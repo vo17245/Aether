@@ -1,0 +1,4 @@
+cmake_minimum_required(VERSION 3.9)
+project(Aether)
+add_subdirectory("Aether")
+add_subdirectory("Sandbox")
