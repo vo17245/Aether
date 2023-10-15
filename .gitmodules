@@ -1,0 +1,21 @@
+[submodule "ThirdParty/glfw"]
+	path = ThirdParty/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "ThirdParty/assimp"]
+	path = ThirdParty/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "ThirdParty/glew"]
+	path = ThirdParty/glew
+	url = https://github.com/nigels-com/glew.git
+[submodule "ThirdParty/stb"]
+	path = ThirdParty/stb
+	url = https://github.com/nothings/stb.git
+[submodule "ThirdParty/spdlog"]
+	path = ThirdParty/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "ThirdParty/eigen"]
+	path = ThirdParty/eigen
+	url = https://github.com/libigl/eigen.git
+[submodule "ThirdParty/nlohmann/json"]
+	path = ThirdParty/nlohmann/json
+	url = https://github.com/nlohmann/json.git
