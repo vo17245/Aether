@@ -1,8 +1,8 @@
 #include "Vertex.h"
 AETHER_NAMESPACE_BEGIN
-VertexBufferLayout& Vertex::GetVertexBufferLayout()
+VertexBufferLayout Vertex::CreateVertexBufferLayout()
 {
-    static VertexBufferLayout vbl;
+    VertexBufferLayout vbl;
     vbl.Push<float>(3);
     vbl.Push<float>(3);
     vbl.Push<float>(2);

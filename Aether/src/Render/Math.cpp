@@ -11,6 +11,11 @@ Eigen::Matrix4f Math::Translation(float x, float y, float z)
 	return m;
 }
 
+Eigen::Matrix4f Math::Translation(Eigen::Vector3f v)
+{
+	return Translation(v.x(),v.y(),v.z());
+}
+
 Eigen::Matrix4f Math::Scale(float x, float y, float z)
 {
 	Eigen::Matrix4f m;
@@ -19,6 +24,11 @@ Eigen::Matrix4f Math::Scale(float x, float y, float z)
 		0, 0, z, 0,
 		0, 0, 0, 1;
 	return m;
+}
+
+Eigen::Matrix4f Math::Scale(Eigen::Vector3f v)
+{
+	return Scale(v.x(), v.y(), v.z());
 }
 
 Eigen::Matrix4f Math::RotateX(float a)

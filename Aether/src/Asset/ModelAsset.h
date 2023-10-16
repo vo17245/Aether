@@ -22,7 +22,8 @@ public:
         LoadModel(path);
     } 
 public:
-    inline const std::vector<MeshAsset>& GetMeshes() { return m_Meshes; }
+    inline const std::vector<MeshAsset>& GetMeshes()const { return m_Meshes; }
+    inline  std::vector<MeshAsset>& GetMeshes() { return m_Meshes; }
     inline const std::string& GetPath() { return m_Path; }
     inline void PushMesh(MeshAsset&& mesh) { m_Meshes.push_back(std::move(mesh)); }
     inline void PushMesh(const MeshAsset& mesh) { m_Meshes.push_back(mesh); }
@@ -34,6 +35,6 @@ private:
     void LoadModel(const std::string& path);
     void ProcessNode(aiNode *node, const aiScene *scene);
     MeshAsset ProcessMesh(aiMesh *mesh, const aiScene *scene);
-    std::vector<std::shared_ptr<TextureAsset>> LoadMaterialTextures(aiMaterial *mat, aiTextureType type, const std::string& typeName);
+    std::vector<std::shared_ptr<TextureAsset>> LoadMaterialTextures(const aiScene* scene,aiMaterial *mat, aiTextureType type, const std::string& typeName);
 };
 AETHER_NAMESPACE_END

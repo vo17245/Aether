@@ -80,19 +80,23 @@ void Application::InitEvent()
     glfwSetKeyCallback(m_Window, KeyboardEventCallback);
     glfwSetMouseButtonCallback(m_Window, MouseButtonEventCallback);
     glfwSetScrollCallback(m_Window, MouseScrollEventCallback);
+    glfwSetCursorPosCallback(m_Window, MousePositionEventCallback);
 }
 
 
 
 
-void Application::Run()
+int Application::Run()
 {
+    //viewport init
+    OpenGLApi::SetViewport(0, 0, 1600, 900);
     //draw
     OpenGLApi::SetClearColor(0.4f, 0.5f, 0.6f, 1.0f);
     OpenGLApi::EnableDepthTest();
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(m_Window))
     {
+        OnLoopBegin();
         /*Record Time*/
         auto begin = std::chrono::high_resolution_clock::now();
         size_t timestampBegin = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
@@ -119,12 +123,14 @@ void Application::Run()
         size_t timestampEnd = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
         float deltaSec = float(timestampEnd - timestampBegin) / 1000000000;//nanoSec to sec 10^9
         OnUpdate(deltaSec);
+        OnLoopEnd();
     }
     // Release resource before window destory
     OnDestory();
     //destory window
     glfwDestroyWindow(m_Window);
     glfwTerminate();
+    return 0;
 }
 
 void Application::DispatchEvent()
@@ -133,7 +139,6 @@ void Application::DispatchEvent()
     {
         OnEvent(*eventPointer);
     }
-    //Dispatch event to imgui
 }
 
 
@@ -206,5 +211,10 @@ void Application::ClearEventQueue()
         delete eventPointer;
     }
     s_EventQueue.clear();
+}
+void Application::MousePositionEventCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    ImGui_ImplGlfw_CursorPosCallback(window,  xpos,  ypos);
+    s_EventQueue.push_back(new MousePositionEvent(xpos, ypos));
 }
 AETHER_NAMESPACE_END

@@ -21,4 +21,11 @@ void Model::Draw(std::shared_ptr<Shader> shader)const
 		m_Meshes[i]->Draw(shader);
 	}
 }
+void Model::Draw(std::shared_ptr<Shader> shader, Eigen::Matrix4f modelMatrix) const
+{
+	for (size_t i = 0; i < m_Meshes.size(); i++)
+	{
+		m_Meshes[i]->Draw(shader,modelMatrix);
+	}
+}
 AETHER_NAMESPACE_END

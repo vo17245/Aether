@@ -24,13 +24,15 @@ public:
     void InitGLEW();
     void InitImGui();
     void InitEvent();
-    void Run();
+    int Run();
     void DispatchEvent();
     virtual void OnUpdate(float sec) {}
     virtual void OnEvent(Event& event) {}
     virtual void OnRender() {}
     virtual void OnImGuiRender() {}
     virtual void OnDestory(){}
+    virtual void OnLoopBegin() {}
+    virtual void OnLoopEnd(){}
 private:
     //event
     static void WindowSizeCallback(GLFWwindow* window, int width, int height);
@@ -40,6 +42,7 @@ private:
     static void MouseScrollEventCallback(GLFWwindow* window, double xoffset, double yoffset);
     static std::vector<Event*> s_EventQueue;
     static void ClearEventQueue();
+    static void MousePositionEventCallback(GLFWwindow* window, double xpos, double ypos);
 private:
     //update
     std::chrono::nanoseconds m_TimeStamp;

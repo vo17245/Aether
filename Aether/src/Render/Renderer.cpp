@@ -7,7 +7,6 @@ Camera Renderer::s_Camera;
 void Renderer::BeginScene(const Camera& camera)
 {
 	s_Camera = camera;
-	s_Camera.CalculateCameraMatrix();
 }
 
 void Renderer::Submit(const VertexArray& va, const IndexBuffer& ib, const Shader& shader)
@@ -26,7 +25,9 @@ void Renderer::Submit(const VertexArray& va, const IndexBuffer& ib, const Shader
 	ib.Bind();
 	shader.Bind();
 	Eigen::Matrix4f mvpMatrix = s_Camera.GetCameraMatrix() * modelMatrix;
+	shader.SetMat4f("u_Model", modelMatrix);
 	shader.SetMat4f("u_MVP", mvpMatrix);
+	ib.GetCount();
 	OpenGLApi::DrawElements(va, ib);
 }
 

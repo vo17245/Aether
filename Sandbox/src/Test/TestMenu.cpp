@@ -23,9 +23,9 @@ namespace Test
 			m_CurTest.reset();
 		}
 		ImGui::End();
-		if (!m_CurTest)
-			return;
-		m_CurTest->OnImGuiRender();
+		if (m_CurTest)
+			m_CurTest->OnImGuiRender();
+		
 	}
 
 	void TestMenu::OnRender()
@@ -52,6 +52,16 @@ namespace Test
 			}
 		}
 
+	}
+	void TestMenu::OnUpdate(float sec)
+	{
+		if (m_CurTest)
+			m_CurTest->OnUpdate(sec);
+	}
+	void TestMenu::OnLoopEnd()
+	{
+		if (m_CurTest)
+			m_CurTest->OnLoopEnd();
 	}
 }
 

@@ -16,6 +16,7 @@ public:
 	bool OnKeyboardRepeat(KeyboardRepeatEvent& event);
 	bool OnMouseScroll(MouseScrollEvent& event);
 	void TranslateCamera(KeyboardCode code);
+	inline Camera& GetCamera() { return m_Camera; }
 private:
 	Camera m_Camera;
 };

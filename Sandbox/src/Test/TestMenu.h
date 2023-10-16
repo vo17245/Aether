@@ -17,6 +17,8 @@ namespace Test
 		void OnRender()override;
 		void RegisterTest(const std::string& name, std::function<std::unique_ptr<Test>()> creator);
 		void OnEvent(Aether::Event& event)override;
+		void OnUpdate(float sec)override;
+		void OnLoopEnd()override;
 	private:
 		std::unordered_map<std::string, std::function<std::unique_ptr<Test>()>> m_Tests;
 		std::unique_ptr<Test> m_CurTest;

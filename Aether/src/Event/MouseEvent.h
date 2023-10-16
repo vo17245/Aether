@@ -49,5 +49,17 @@ private:
 	float m_YOffset;
 };
 
-
+class MousePositionEvent:public Event
+{
+public:
+	static constexpr inline const EventType GetStaticType() { return EventType::MOUSE_POSITION_EVENT; }
+public:
+	MousePositionEvent(double posX, double posY)
+		:m_PosX(posX), m_PosY(posY), Event(EventType::MOUSE_POSITION_EVENT) {}
+	inline double GetPositionX() { return m_PosX; }
+	inline double GetPositionY() { return m_PosY; }
+private:
+	double m_PosX;
+	double m_PosY;
+};
 AETHER_NAMESPACE_END

@@ -2,8 +2,6 @@
 #include "VertexArray.h"
 #include "IndexBuffer.h"
 AETHER_NAMESPACE_BEGIN
-size_t OpenGLApi::s_ViewportWidth;
-size_t OpenGLApi::s_ViewportHeight;
 void GLClearError()
 {
     while (glGetError() != GL_NO_ERROR);
@@ -29,8 +27,6 @@ void OpenGLApi::SetClearColor(float r, float g, float b, float a)
 
 void OpenGLApi::SetViewport(int x, int y, int width, int height)
 {
-    s_ViewportHeight = height;
-    s_ViewportWidth = width;
     GLCall(glViewport(x,y,width,height));
 }
 
@@ -56,6 +52,8 @@ void OpenGLApi::DrawElements(const VertexArray& va,const IndexBuffer& ib,GLDrawM
     ib.Bind();
     GLCall(glDrawElements(static_cast<GLenum>(mode), static_cast<GLsizei>(ib.GetCount()), GL_UNSIGNED_INT, 0));
 }
+
+
 
 void OpenGLApi::SetTexture2DConfig(const Texture2DConfig& config)
 {

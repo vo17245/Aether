@@ -3,6 +3,5 @@
 int main()
 {
 	Sandbox sandbox;
-	sandbox.Run();
-	return 0;
+	return sandbox.Run();
 }

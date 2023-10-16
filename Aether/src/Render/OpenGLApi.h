@@ -58,9 +58,7 @@ struct Texture2DConfig
 
 class OpenGLApi
 {
-private:
-    static size_t s_ViewportWidth;
-    static size_t s_ViewportHeight;
+
 public:
     static void SetClearColor(float r, float g, float b, float a);
     static void SetViewport(int x, int y, int width, int height);
@@ -70,8 +68,6 @@ public:
     static void DrawElements(const VertexArray& va,const IndexBuffer& ib,GLDrawMode mode=GLDrawMode::TRIANGLES);
     static void SetTexture2DConfig(const Texture2DConfig& config);
     static void ActivateTexture(size_t index);
-    static size_t GetViewportWidth() { return s_ViewportWidth; }
-    static size_t GetViewportHeight() { return s_ViewportHeight; }
 public:
     static size_t TypeSize(GLType glType);
 };

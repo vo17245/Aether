@@ -6,6 +6,7 @@ void CameraController::OnEvent(Event& event)
 	EventDispatcher dispatcher(event);
 	dispatcher.Dispatch<KeyboardPressEvent>([this](KeyboardPressEvent& event) {return this->OnKeyboardPress(event);});
 	dispatcher.Dispatch< KeyboardRepeatEvent>([this](KeyboardRepeatEvent& event) {return this->OnKeyboardRepeat(event);});
+	dispatcher.Dispatch<MouseScrollEvent>([this](MouseScrollEvent& event) {return this->OnMouseScroll(event);});
 }
 
 bool CameraController::OnKeyboardPress(KeyboardPressEvent& event)
@@ -30,7 +31,7 @@ bool CameraController::OnMouseScroll(MouseScrollEvent& event)
 	{
 		m_Camera.Scale(0.8f, 0.8f, 0.8f);
 	}
-	return false;
+	return true;
 }
 
 void CameraController::TranslateCamera(KeyboardCode code)
@@ -38,26 +39,18 @@ void CameraController::TranslateCamera(KeyboardCode code)
 	switch (code)
 	{
 	case KeyboardCode::KEY_A:
-		m_Camera.Translate(0.01f, 0.f, 0.f);
-		goto UPDATE_CAMERA;
+		m_Camera.Translate(-0.01f, 0.f, 0.f);
 		break;
 	case KeyboardCode::KEY_W:
-		m_Camera.Translate(0.f, 0.01f, 0.f);
-		goto UPDATE_CAMERA;
+		m_Camera.Translate(0.f,  0.f, 0.01f);
 		break;
 	case KeyboardCode::KEY_D:
-		m_Camera.Translate(-0.01f, 0.f, 0.f);
-		goto UPDATE_CAMERA;
+		m_Camera.Translate(0.01f, 0.f, 0.f);
 		break;
 	case KeyboardCode::KEY_S:
-		m_Camera.Translate(0.f, -0.01f, 0.f);
-		goto UPDATE_CAMERA;
+		m_Camera.Translate(0.f,  0.f, -0.01f);
 		break;
 	}
-	return;
-UPDATE_CAMERA:
-	m_Camera.CalculateViewMatrix();
-	m_Camera.CalculateCameraMatrix();
 	return;
 }
 AETHER_NAMESPACE_END

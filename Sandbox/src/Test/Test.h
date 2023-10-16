@@ -6,6 +6,7 @@
 #include "Aether/Event/Event.h"
 #include <vector>
 #include "Aether/Core/Core.h"
+#define RESOURCE(x) ("../../Resource/" x)
 namespace Test
 {
 	
@@ -14,10 +15,11 @@ namespace Test
 	public:
 		Test() {}
 		virtual ~Test() {}
-		virtual void OnRender() {};
-		virtual void OnImGuiRender() {};
-		virtual void OnEvent(Aether::Event& event) {};
-		virtual void OnUpdate(float sec) {};
+		virtual void OnRender() {}
+		virtual void OnImGuiRender() {}
+		virtual void OnEvent(Aether::Event& event) {}
+		virtual void OnUpdate(float sec) {}
+		virtual void OnLoopEnd() {}
 	};
 	
 }

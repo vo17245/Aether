@@ -13,7 +13,11 @@ public:
 	Model(std::shared_ptr<ModelAsset> modelAsset);
 	~Model();
 	void Draw(std::shared_ptr<Shader> shader)const;
+	void Draw(std::shared_ptr<Shader> shader,Eigen::Matrix4f modelMatrix)const;
+
 private:
 	std::vector<std::shared_ptr<Mesh>> m_Meshes;
+public:
+	std::vector<std::shared_ptr<Mesh>> GetMeshes() { return m_Meshes; }
 };
 AETHER_NAMESPACE_END

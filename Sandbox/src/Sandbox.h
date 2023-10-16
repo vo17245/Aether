@@ -2,7 +2,7 @@
 #include "Aether/Core/Application.h"
 #include "Test/Test.h"
 #include "Test/TestMenu.h"
-#include "Aether/UI/CameraController.h"
+
 class Sandbox :public Aether::Application
 {
 public:
@@ -11,8 +11,10 @@ public:
 	void OnImGuiRender()override;
 	void OnRender()override;
 	void OnEvent(Aether::Event& event)override;
-	
+	void OnDestory()override;
+	void OnUpdate(float sec)override;
+	void OnLoopEnd()override;
 private:
 	Aether::Scope<Test::Test> m_Test;
-	Aether::CameraController m_CameraController;
+	
 };

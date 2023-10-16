@@ -7,6 +7,7 @@
 #include <memory>
 #include "TextureAsset.h"
 #include "../Render/OpenGLApi.h"
+#include <optional>
 AETHER_NAMESPACE_BEGIN
 class MeshAsset
 {
@@ -24,6 +25,8 @@ public:
 		Indices = std::move(mesh.Indices);
 		Textures = std::move(mesh.Textures);
 		m_Mode = mesh.m_Mode;
+		PositionMax = std::move(mesh.PositionMax);
+		PositionMin = std::move(mesh.PositionMin);
 	}
 	MeshAsset(const MeshAsset& mesh)
 	{
@@ -31,10 +34,15 @@ public:
 		Indices = mesh.Indices;
 		Textures = mesh.Textures;
 		m_Mode = mesh.m_Mode;
+		PositionMax = mesh.PositionMax;
+		PositionMin = mesh.PositionMin;
 	}
 	std::vector<Vertex> Vertices;
 	std::vector<uint32_t> Indices;
 	std::vector<std::shared_ptr<TextureAsset>> Textures;
+	std::optional<Eigen::Vector3f> PositionMax;
+	std::optional<Eigen::Vector3f> PositionMin;
 	GLDrawMode m_Mode;
+	void CalculateBoundingBox();
 };
 AETHER_NAMESPACE_END

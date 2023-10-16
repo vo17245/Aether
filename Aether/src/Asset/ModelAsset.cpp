@@ -71,23 +71,24 @@ MeshAsset ModelAsset::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 
    
     // 处理材质
-    if (mesh->mMaterialIndex >= 0)
-    {
-        aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-        auto diffuseTextures = LoadMaterialTextures(material,
-            aiTextureType_DIFFUSE, "texture_diffuse");
-        myMesh.Textures.insert(myMesh.Textures.end(),diffuseTextures.end(), diffuseTextures.end());
-        auto specularTextures = LoadMaterialTextures(material,
-            aiTextureType_SPECULAR, "texture_specular");
-        myMesh.Textures.insert(myMesh.Textures.end(), specularTextures.end(), specularTextures.end());
-    }
+    //if (mesh->mMaterialIndex >= 0)
+    //{
+    //    aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+    //    auto diffuseTextures = LoadMaterialTextures(scene,material,
+    //        aiTextureType_DIFFUSE, "texture_diffuse");
+    //    myMesh.Textures.insert(myMesh.Textures.end(),diffuseTextures.end(), //diffuseTextures.end());
+    //    auto specularTextures = LoadMaterialTextures(scene,material,
+    //        aiTextureType_SPECULAR, "texture_specular");
+    //    myMesh.Textures.insert(myMesh.Textures.end(), specularTextures.end(), //specularTextures.end());
+    //}
 
     return myMesh;
 }
 
-std::vector<std::shared_ptr<TextureAsset>> ModelAsset::LoadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& typeName)
+std::vector<std::shared_ptr<TextureAsset>> ModelAsset::LoadMaterialTextures(const aiScene* scene,aiMaterial* mat, aiTextureType type, const std::string& typeName)
 {
     std::vector<std::shared_ptr<TextureAsset>> textures;
+
     for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
     {
         aiString str;

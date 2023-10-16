@@ -11,7 +11,9 @@ class Math
 public:
 	static constexpr inline const float PI = 3.1415926535f;
 	static Eigen::Matrix4f Translation(float x, float y, float z);
+	static Eigen::Matrix4f Translation(Eigen::Vector3f v);
 	static Eigen::Matrix4f Scale(float x, float y, float z);
+	static Eigen::Matrix4f Scale(Eigen::Vector3f v);
 	static Eigen::Matrix4f RotateX(float a);//使用弧度
 	static Eigen::Matrix4f RotateY(float a);
 	static Eigen::Matrix4f RotateZ(float a);

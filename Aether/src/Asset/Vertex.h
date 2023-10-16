@@ -17,7 +17,7 @@ public:
 	Eigen::Vector3f Normal;
 	Eigen::Vector2f TexCoords;
 public:
-	static VertexBufferLayout& GetVertexBufferLayout();
+	static VertexBufferLayout CreateVertexBufferLayout();
 	
 };
 AETHER_NAMESPACE_END

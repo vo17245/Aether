@@ -1,11 +1,15 @@
 #include "Sandbox.h"
 #include "Test/TestMenu.h"
 #include "Test/EventTest.h"
+#include "Test/ShowModelTest.h"
+#include "Test/LoadModelTest.h"
 Sandbox::Sandbox()
-	:m_CameraController(Aether::Camera::CreatePerspectiveCamera(16.0/9.0))
+	
 {
 	auto testMenu = Aether::CreateScope<Test::TestMenu>();
 	testMenu->RegisterTest("EventTest", []() {return Aether::CreateScope<Test::EventTest>();});
+	testMenu->RegisterTest("ShowModel", []() {return Aether::CreateScope<Test::ShowModelTest>();});
+	testMenu->RegisterTest("LoadModel", []() {return Aether::CreateScope<Test::LoadModelTest>();});
 	m_Test = std::move(testMenu);
 
 }
@@ -26,5 +30,21 @@ void Sandbox::OnRender()
 void Sandbox::OnEvent(Aether::Event& event)
 {
 	m_Test->OnEvent(event);
-	m_CameraController.OnEvent(event);
+	
+}
+
+void Sandbox::OnDestory()
+{
+	if (m_Test)
+		delete m_Test.release();
+}
+
+void Sandbox::OnUpdate(float sec)
+{
+	m_Test->OnUpdate(sec);
+}
+
+void Sandbox::OnLoopEnd()
+{
+	m_Test->OnLoopEnd();
 }

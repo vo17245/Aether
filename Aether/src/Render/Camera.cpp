@@ -5,7 +5,7 @@ AETHER_NAMESPACE_BEGIN
 
 void Camera::CalculateCameraMatrix()
 {
-    m_CameraMatrix = m_Projection * m_View * Math::Scale(1, m_AspectRadio, 1);
+    m_CameraMatrix = Math::Scale(1.0, m_AspectRadio, 1.0) *m_Projection * m_View;
 }
 
 Camera Camera::CreatePerspectiveCamera(float aspectRadio)
@@ -16,7 +16,9 @@ Camera Camera::CreatePerspectiveCamera(float aspectRadio)
     camera.m_Rotation = Math::Identity();
     camera.m_Scaling = Math::Identity();
     auto view = Math::Identity();
-    auto projection = Math::Perspective(-0.1f, -1.f, 1.f, -1.f, 1.f, -1.f);
+    auto projection = Math::Perspective(-0.01f, -1.f, 1.f, -1.f, 1.f, -1.f);
+    camera.m_View = view;
+    camera.m_Projection = projection;
     return camera;
 }
 

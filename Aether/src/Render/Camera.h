@@ -9,12 +9,6 @@ public:
 	Camera():m_AspectRadio(1.0f) {}
 
 	~Camera(){}
-	Camera& operator=(const Camera& ori)
-	{
-		m_View = ori.m_View;
-		m_Projection = ori.m_Projection;
-		return *this;
-	}
 	inline const Eigen::Matrix4f& GetView()const { return m_View; }
 	inline const Eigen::Matrix4f& GetProjection()const { return m_Projection; }
 	inline const Eigen::Matrix4f& GetCameraMatrix()const { return m_CameraMatrix; }
