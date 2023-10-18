@@ -201,7 +201,7 @@ void Application::MouseButtonEventCallback(GLFWwindow* window, int button, int a
 void Application::MouseScrollEventCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
-    s_EventQueue.push_back(new MouseScrollEvent(xoffset,yoffset));
+    s_EventQueue.push_back(new MouseScrollEvent(static_cast<float>(xoffset), static_cast<float>(yoffset)));
 }
 
 void Application::ClearEventQueue()

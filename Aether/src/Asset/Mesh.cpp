@@ -27,16 +27,16 @@ void Mesh::Draw(std::shared_ptr<Shader> shader)const
 	m_VB->Bind();
 	m_IB->Bind();
 	shader->Bind();
-	std::unordered_map<std::string, size_t> cnt;
-	for (size_t i = 0; i < m_Textures.size(); i++)
-	{
-		m_Textures[i]->Bind();
-		if (cnt.find(m_Textures[i]->GetTypeName()) == cnt.end())
-		{
-			cnt[m_Textures[i]->GetTypeName()] = 0;
-		}
-		shader->SetInt(m_Textures[i]->GetTypeName() + "_" + std::to_string(cnt[m_Textures[i]->GetTypeName()]), m_Textures[i]->GetSlot());
-	}
+	//std::unordered_map<std::string, size_t> cnt;
+	//for (size_t i = 0; i < m_Textures.size(); i++)
+	//{
+	//	m_Textures[i]->Bind();
+	//	if (cnt.find(m_Textures[i]->GetTypeName()) == cnt.end())
+	//	{
+	//		cnt[m_Textures[i]->GetTypeName()] = 0;
+	//	}
+	//	shader->SetInt(m_Textures[i]->GetTypeName() + "_" + std::to_string(cnt//[m_Textures[i]->GetTypeName()]), m_Textures[i]->GetSlot());
+	//}
 	OpenGLApi::DrawElements(*m_VA, *m_IB);
 	
 }
@@ -53,16 +53,16 @@ void Mesh::Draw(std::shared_ptr<Shader> shader, Eigen::Matrix4f modelMatrix) con
 		);
 	}
 	shader->Bind();
-	std::unordered_map<std::string, size_t> cnt;
-	for (size_t i = 0; i < m_Textures.size(); i++)
-	{
-		m_Textures[i]->Bind();
-		if (cnt.find(m_Textures[i]->GetTypeName()) == cnt.end())
-		{
-			cnt[m_Textures[i]->GetTypeName()] = 0;
-		}
-		shader->SetInt(m_Textures[i]->GetTypeName() + "_" + std::to_string(cnt[m_Textures[i]->GetTypeName()]), m_Textures[i]->GetSlot());
-	}
+	//std::unordered_map<std::string, size_t> cnt;
+	//for (size_t i = 0; i < m_Textures.size(); i++)
+	//{
+	//	m_Textures[i]->Bind();
+	//	if (cnt.find(m_Textures[i]->GetTypeName()) == cnt.end())
+	//	{
+	//		cnt[m_Textures[i]->GetTypeName()] = 0;
+	//	}
+	//	shader->SetInt(m_Textures[i]->GetTypeName() + "_" + std::to_string(cnt//[m_Textures[i]->GetTypeName()]), m_Textures[i]->GetSlot());
+	//}
 	Renderer::Submit(*m_VA, *m_IB, *shader, modelMatrix);
 }
 

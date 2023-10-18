@@ -79,8 +79,6 @@ void Test::ShowModelTest::OnUpdate(float sec)
 				m_CameraController.GetCamera().Rotate(Aether::Math::RotateX(offset.y() / 1000) * Aether::Math::RotateY(-offset.x() / 1000));
 		}
 	}
-	
-	
 }
 
 void Test::ShowModelTest::OnLoopEnd()

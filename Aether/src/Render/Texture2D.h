@@ -6,7 +6,6 @@ AETHER_NAMESPACE_BEGIN
 class Texture2D
 {
 public:
-	Texture2D(const std::string& path,uint32_t slot);
 	Texture2D(const Image& image, uint32_t slot);
 	~Texture2D();
 	void Bind();

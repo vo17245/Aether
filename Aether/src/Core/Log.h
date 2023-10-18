@@ -10,30 +10,31 @@ public:
 	~Log();
 	static Log& Get();
 	inline const std::shared_ptr<spdlog::logger>& GetLogger()const { return m_Logger; }
-	template<typename... Args>
-	void warn(spdlog::format_string_t<Args...> fmt, Args &&... args)
-	{
-		Log::Get().GetLogger()->warn(fmt, args...);
-	}
+	
 	template<typename... Args>
 	static void Info(spdlog::format_string_t<Args...> fmt, Args &&... args)
 	{
-		Log::Get().GetLogger()->info(fmt, args...);
+		Log::Get().GetLogger()->info(fmt, std::forward<Args>(args)...);
 	}
 	template<typename... Args>
 	static void Debug(spdlog::format_string_t<Args...> fmt, Args &&... args)
 	{
-		Log::Get().GetLogger()->debug(fmt, args...);
+		Log::Get().GetLogger()->debug(fmt, std::forward<Args>(args)...);
 	}
 	template<typename... Args>
 	static void Warn(spdlog::format_string_t<Args...> fmt, Args &&... args)
 	{
-		Log::Get().GetLogger()->warn(fmt, args...);
+		Log::Get().GetLogger()->warn(fmt, std::forward<Args>(args)...);
+	}
+	template<typename... Args>
+	static void Error(spdlog::format_string_t<Args...> fmt, Args &&... args)
+	{
+		Log::Get().GetLogger()->error(fmt, std::forward<Args>(args)...);
 	}
 	template<typename... Args>
 	static void Critical(spdlog::format_string_t<Args...> fmt, Args &&... args)
 	{
-		Log::Get().GetLogger()->critical(fmt, args...);
+		Log::Get().GetLogger()->critical(fmt, std::forward<Args>(args)...);
 	}
 private:
 	Log();

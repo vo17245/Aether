@@ -24,13 +24,6 @@ static uint32_t CreateTexture(const Image& image)
 	GLCall(glGenerateMipmap(GL_TEXTURE_2D));
 	return rendererId;
 }
-Texture2D::Texture2D(const std::string& path,uint32_t slot)
-	:m_Slot(slot)
-{
-	OpenGLApi::ActivateTexture(slot);
-	Image image(path);
-	m_RendererId = CreateTexture(image);
-}
 
 Texture2D::Texture2D(const Image& image,uint32_t slot)
 	:m_Slot(slot)

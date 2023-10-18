@@ -22,8 +22,6 @@ set(GLOBAL_LIB "glfw3_mt.lib" "glew32s" "assimp-vc143-mt" "OpenGL32")
 file(GLOB_RECURSE GLOBAL_FILE
 "src/*.cpp" 
 "src/*.h"
-
-
 )
 add_definitions(-DGLEW_STATIC)
 
