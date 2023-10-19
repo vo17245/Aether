@@ -2,14 +2,13 @@
 #include "Test/TestMenu.h"
 #include "Test/EventTest.h"
 #include "Test/ShowModelTest.h"
-#include "Test/LoadModelTest.h"
 Sandbox::Sandbox()
 	
 {
 	auto testMenu = Aether::CreateScope<Test::TestMenu>();
 	testMenu->RegisterTest("EventTest", []() {return Aether::CreateScope<Test::EventTest>();});
 	testMenu->RegisterTest("ShowModel", []() {return Aether::CreateScope<Test::ShowModelTest>();});
-	testMenu->RegisterTest("LoadModel", []() {return Aether::CreateScope<Test::LoadModelTest>();});
+	
 	m_Test = std::move(testMenu);
 
 }

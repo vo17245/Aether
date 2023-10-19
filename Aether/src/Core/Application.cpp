@@ -32,7 +32,11 @@ Application::~Application()
 void Application::InitWindow()
 {
     /* Initialize the library */
-    assert(glfwInit() && "glfwInit failed");
+    if (!glfwInit())
+    {
+        Log::Critical("glfwInit failed");
+        exit(-1);
+    }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

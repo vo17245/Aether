@@ -43,7 +43,7 @@ private:
 AETHER_NAMESPACE_END
 
 #ifdef DEBUG
-	#define debug_log(...) Aether::Log::Get().GetLogger()->debug(__VA_ARGS__)
+	#define debug_log(...) Aether::Log::Debug("{0}:{1}",__FILE__,__LINE__);Aether::Log::Get().GetLogger()->debug(__VA_ARGS__)
 #else
 	#define debug_log(...) ((void)0)
 #endif

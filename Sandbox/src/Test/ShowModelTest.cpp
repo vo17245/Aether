@@ -1,11 +1,14 @@
 #include "ShowModelTest.h"
 #include "Aether/Render/VertexArray.h"
 #include "Aether/Core/Log.h"
+#include "Aether/Asset/ModelAssetImporter.h"
 Test::ShowModelTest::ShowModelTest()
 	:m_CameraController(Aether::Camera::CreatePerspectiveCamera(16.0/9.0)),
 	m_MouseRecord(Eigen::Vector2d(0.0,0.0))
 {
-	m_ModelAsset = Aether::CreateRef<Aether::ModelAsset>(RESOURCE("Model/just_a_girl.glb"));
+	auto loadRes= Aether::ModelAssetImporter::LoadFromFile(RESOURCE("Model/just_a_girl.glb"));
+	assert(loadRes);
+	m_ModelAsset = CreateRef<Aether::ModelAsset>(std::move(loadRes.value()));
 	for (auto& mesh : m_ModelAsset->GetMeshes())
 	{
 		mesh.CalculateBoundingBox();
@@ -18,7 +21,9 @@ Test::ShowModelTest::ShowModelTest()
 Test::ShowModelTest::ShowModelTest(const std::string& modelPath)
 	:m_CameraController(Aether::Camera::CreatePerspectiveCamera(16.0 / 9.0)), m_MouseRecord(Eigen::Vector2d(0.0, 0.0))
 {
-	m_ModelAsset = Aether::CreateRef<Aether::ModelAsset>(modelPath);
+	auto loadRes = Aether::ModelAssetImporter::LoadFromFile(RESOURCE("Model/just_a_girl.glb"));
+	assert(loadRes);
+	m_ModelAsset = CreateRef<Aether::ModelAsset>(std::move(loadRes.value()));
 	m_Model = Aether::CreateRef<Aether::Model>(m_ModelAsset);
 	m_Shader = Aether::CreateRef<Aether::Shader>(RESOURCE("Shader/Basic.shader"));
 	InitRenderParam();
@@ -27,7 +32,9 @@ Test::ShowModelTest::ShowModelTest(const std::string& modelPath)
 Test::ShowModelTest::ShowModelTest(Aether::Ref<Aether::ModelAsset> modelAsset)
 	:m_CameraController(Aether::Camera::CreatePerspectiveCamera(16.0 / 9.0)), m_MouseRecord(Eigen::Vector2d(0.0, 0.0))
 {
-	m_Model = Aether::CreateRef<Aether::Model>(modelAsset);
+	auto loadRes = Aether::ModelAssetImporter::LoadFromFile(RESOURCE("Model/just_a_girl.glb"));
+	assert(loadRes);
+	m_ModelAsset = CreateRef<Aether::ModelAsset>(std::move(loadRes.value()));
 	m_Shader = Aether::CreateRef<Aether::Shader>(RESOURCE("Shader/Basic.shader"));
 	InitRenderParam();
 }
