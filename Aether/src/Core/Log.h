@@ -3,6 +3,9 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "Core.h"
+#include <sstream>
+#include "spdlog/fmt/fmt.h"
+
 AETHER_NAMESPACE_BEGIN
 class Log
 {
@@ -39,15 +42,24 @@ public:
 private:
 	Log();
 	std::shared_ptr<spdlog::logger> m_Logger;
+	
 };
+
+template<typename... Args>
+inline void DebugLogFunc(const char* file, int line, const char* fmt, Args&&... args)
+{
+	auto msg = fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
+	std::string debugMsg = fmt::format("[{}:{}] {}", file, line, msg);
+	Log::Debug(fmt::runtime(debugMsg.c_str()));
+}
 AETHER_NAMESPACE_END
 
+
 #ifdef DEBUG
-	#define debug_log(...) Aether::Log::Debug("{0}:{1}",__FILE__,__LINE__);Aether::Log::Get().GetLogger()->debug(__VA_ARGS__)
+	#define debug_log(...) Aether::DebugLogFunc(__FILE__,__LINE__,__VA_ARGS__)
 #else
 	#define debug_log(...) ((void)0)
 #endif
-
 
 
 

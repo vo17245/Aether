@@ -34,10 +34,9 @@ std::optional<Ref<TextureAsset>> ModelAsset::LoadEmbeddedTexture(size_t index, a
             texture->mHeight);
         if (!loadRes)
         {
-            Log::Error("Failed to load embedded RGBA8888 image {0}:{1}", __FILE__, __LINE__);
+            debug_log("Failed to load embedded RGBA8888 image");
             return std::nullopt;
         }
-
         auto image = CreateRef<Image>(std::move(loadRes.value()));
         auto textureAsset = CreateRef<TextureAsset>(image, typeName);
         return textureAsset;
@@ -46,8 +45,10 @@ std::optional<Ref<TextureAsset>> ModelAsset::LoadEmbeddedTexture(size_t index, a
 
 std::optional<Ref<TextureAsset>> ModelAsset::LoadFileTexture(const std::string& path, const std::string& typeName)
 {
-    return std::optional<Ref<TextureAsset>>();
+    auto loadRes = Image::LoadFromFileDataFormat(path);
+    if (!loadRes)return std::nullopt;
+    auto image=CreateRef<Image>(loadRes.value());
+    auto texture = CreateRef<TextureAsset>(image,typeName);
+    return std::optional<Ref<TextureAsset>>(texture);
 }
-
-
 AETHER_NAMESPACE_END
