@@ -52,13 +52,22 @@ inline void DebugLogFunc(const char* file, int line, const char* fmt, Args&&... 
 	std::string debugMsg = fmt::format("[{}:{}] {}", file, line, msg);
 	Log::Debug(fmt::runtime(debugMsg.c_str()));
 }
+template<typename... Args>
+inline void DebugLogErrorFunc(const char* file, int line, const char* fmt, Args&&... args)
+{
+	auto msg = fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
+	std::string debugMsg = fmt::format("[{}:{}] {}", file, line, msg);
+	Log::Error(fmt::runtime(debugMsg.c_str()));
+}
 AETHER_NAMESPACE_END
 
 
 #ifdef DEBUG
 	#define debug_log(...) Aether::DebugLogFunc(__FILE__,__LINE__,__VA_ARGS__)
+	#define debug_log_error(...) Aether::DebugLogErrorFunc(__FILE__,__LINE__,__VA_ARGS__)
 #else
 	#define debug_log(...) ((void)0)
+	#define debug_log_error(...) ((void)0)
 #endif
 
 
