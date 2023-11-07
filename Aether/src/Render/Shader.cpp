@@ -168,4 +168,71 @@ bool Shader::GetLocation(const std::string& name, uint32_t& location)const
 	m_LocationCache[name] = location;
 	return true;
 }
+std::optional<Ref<Shader>> Shader::CreateRefFromMem(const char* p, size_t len)
+{
+	
+	
+	//status
+	//	0 ignore
+	//  1 read vertex shader
+	//  2 read fragment shader
+	std::string text(p);
+	std::istringstream iss(text);
+	std::string line;
+	std::stringstream ss[2];
+	int status = 0;
+	while (std::getline(iss, line)) {
+		if (status == 0)
+		{
+			if (line.find("#vertex_shader") != std::string::npos)
+			{
+				status = 1;
+				continue;
+			}
+		}
+		else if (status == 1)
+		{
+			if (line.find("#fragment_shader") != std::string::npos)
+			{
+				status = 2;
+				continue;
+			}
+			ss[0] << line << "\r\n";
+		}
+		else if (status == 2)
+		{
+			ss[1] << line << "\r\n";
+		}
+	}
+	std::string vs = std::move(ss[0].str());
+	std::string fs = std::move(ss[1].str());
+	uint32_t vsId;
+	uint32_t fsId;
+	CompileShader(GL_VERTEX_SHADER, vs, vsId);
+	CompileShader(GL_FRAGMENT_SHADER, fs, fsId);
+	auto rendererId= LinkShader(vsId, fsId);
+	//gl shader is succeed created,init Aether::Shader
+	Ref<Shader> shader(new Shader());
+	shader->m_RendererId = rendererId;
+	shader->Bind();
+	return std::optional<Ref<Shader>>(shader);
+}
+std::optional<Ref<Shader>> Shader::CreateRefFromFile(const char* path)
+{
+	
+	std::string vs;
+	std::string fs;
+	ReadShader(path, vs, fs);
+	uint32_t vsId;
+	uint32_t fsId;
+	CompileShader(GL_VERTEX_SHADER, vs, vsId);
+	CompileShader(GL_FRAGMENT_SHADER, fs, fsId);
+	auto rendererId= LinkShader(vsId, fsId);
+	//gl shader is succeed created,init Aether::Shader
+	Ref<Shader> shader(new Shader());
+	shader->m_Path = path;
+	shader->m_RendererId = rendererId;
+	shader->Bind();
+	return std::optional<Ref<Shader>>(shader);
+}
 AETHER_NAMESPACE_END

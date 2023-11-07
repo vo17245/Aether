@@ -14,6 +14,7 @@ public:
 	void OnDestory()override;
 	void OnUpdate(float sec)override;
 	void OnLoopEnd()override;
+	void OnLoopBegin()override;
 private:
 	Aether::Scope<Test::Test> m_Test;
 	

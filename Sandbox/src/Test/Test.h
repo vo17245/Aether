@@ -20,6 +20,7 @@ namespace Test
 		virtual void OnEvent(Aether::Event& event) {}
 		virtual void OnUpdate(float sec) {}
 		virtual void OnLoopEnd() {}
+		virtual void OnLoopBegin() {}
 	};
 	
 }

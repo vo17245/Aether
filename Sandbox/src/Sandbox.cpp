@@ -2,13 +2,16 @@
 #include "Test/TestMenu.h"
 #include "Test/EventTest.h"
 #include "Test/ShowModelTest.h"
+#include "Test/FrameBufferTest.h"
+#include "Test/ShaderTest.h"
 Sandbox::Sandbox()
 	
 {
 	auto testMenu = Aether::CreateScope<Test::TestMenu>();
 	testMenu->RegisterTest("EventTest", []() {return Aether::CreateScope<Test::EventTest>();});
 	testMenu->RegisterTest("ShowModel", []() {return Aether::CreateScope<Test::ShowModelTest>();});
-	
+	testMenu->RegisterTest("FrameBufferTest", []() {return Aether::CreateScope<Test::FrameBufferTest>();});
+	testMenu->RegisterTest("ShaderTest", []() {return Aether::CreateScope<Test::ShaderTest>();});
 	m_Test = std::move(testMenu);
 
 }
@@ -46,4 +49,9 @@ void Sandbox::OnUpdate(float sec)
 void Sandbox::OnLoopEnd()
 {
 	m_Test->OnLoopEnd();
+}
+
+void Sandbox::OnLoopBegin()
+{
+	m_Test->OnLoopBegin();
 }

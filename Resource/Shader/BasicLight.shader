@@ -26,7 +26,7 @@ in vec3 v_FragmentPosition;
 void main()
 {
     vec3 objColor=vec3(0.5,0.5,0.5);
-    float ambient=0.1;
+    float ambient=0.2;
     float diffuse=max(0,dot(normalize(-u_LightDirection),normalize(v_Normal)));    
     color = vec4(objColor*u_LightColor*(ambient+diffuse),1);
 }

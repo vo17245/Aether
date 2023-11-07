@@ -3,21 +3,29 @@
 #include <string>
 #include <Eigen/Core>
 #include <unordered_map>
+#include <optional>
 AETHER_NAMESPACE_BEGIN
 class Shader
 {
+private:
+	Shader() :m_RendererId(-1) {}
 public:
 	Shader(const std::string& path);
+	
+	Shader(Shader&& shader) = delete;
+	Shader(const Shader& shader) = delete;
 	~Shader();
 	void Bind()const;
 	void Unbind()const;
-	void SetVec3f(const std::string& name,const Eigen::Vector3f& v)const;
+	void SetVec3f(const std::string& name, const Eigen::Vector3f& v)const;
 	void SetVec4f(const std::string& name, const Eigen::Vector4f& v)const;
 	void SetMat3f(const std::string& name, const Eigen::Matrix3f& m)const;
 	void SetMat4f(const std::string& name, const Eigen::Matrix4f& m)const;
 	void SetFloat(const std::string& name, const float n)const;
 	void SetInt(const std::string& name, const int n)const;
-	bool GetLocation(const std::string& name,uint32_t& location)const;
+	bool GetLocation(const std::string& name, uint32_t& location)const;
+	static std::optional<Ref<Shader>> CreateRefFromMem(const char* p, size_t len);
+	static std::optional<Ref<Shader>> CreateRefFromFile(const char* path);
 private:
 	uint32_t m_RendererId;
 	std::string m_Path;

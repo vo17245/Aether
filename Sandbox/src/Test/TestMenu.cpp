@@ -63,5 +63,10 @@ namespace Test
 		if (m_CurTest)
 			m_CurTest->OnLoopEnd();
 	}
+	void TestMenu::OnLoopBegin()
+	{
+		if (m_CurTest)
+			m_CurTest->OnLoopBegin();
+	}
 }
 

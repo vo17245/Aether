@@ -1,3 +1,4 @@
+#pragma once 
 #include "Aether/Core/Core.h"
 #include "Test.h"
 #include <string>
