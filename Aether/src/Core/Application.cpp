@@ -104,7 +104,10 @@ int Application::Run()
         OnLoopBegin();
         /*Record Time*/
         auto begin = std::chrono::high_resolution_clock::now();
-        size_t timestampBegin = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
+        size_t t= std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
+        float ds = float(t - m_TimeLastTickBegin) / 1000000000;//nanoSec to sec 10^9
+        m_TimeLastTickBegin = t;
+         
         /* Render here */
         OpenGLApi::ClearColorBuffer();
         OpenGLApi::ClearDepthBuffer();
@@ -124,10 +127,8 @@ int Application::Run()
         glfwPollEvents();
         DispatchEvent();
         /* OnUpdate*/
-        auto end = std::chrono::high_resolution_clock::now();
-        size_t timestampEnd = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
-        float deltaSec = float(timestampEnd - timestampBegin) / 1000000000;//nanoSec to sec 10^9
-        OnUpdate(deltaSec);
+       
+        OnUpdate(ds);
         OnLoopEnd();
     }
     // Release resource before window destory

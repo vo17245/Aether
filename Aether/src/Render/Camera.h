@@ -22,7 +22,12 @@ class PerspectiveCamera:public Camera
 public:
 	PerspectiveCamera(float fovy, float zNear, float zFar, float aspectRatio)
 		:m_Fovy(fovy), m_ZNear(zNear),
-		m_ZFar(zFar), m_AspectRatio(aspectRatio) {}
+		m_ZFar(zFar), m_AspectRatio(aspectRatio) ,
+		m_Position(0,0,0),m_Rotation(0,0,0)
+	{
+		CalculateProjection();
+		CalculateView();
+	}
 private:
 	float m_Fovy, m_ZNear, m_ZFar, m_AspectRatio;
 	Eigen::Vector3f m_Position;
@@ -37,5 +42,7 @@ public:
 	inline float& GetZNear() { return m_ZNear; }
 	inline float& GetZFar() { return m_ZFar; }
 	inline float& GetAspectRatio() { return m_AspectRatio; }
+	inline Eigen::Vector3f& GetPosition() { return m_Position; }
+	inline Eigen::Vector3f& GetRotation() { return m_Rotation; }
 };
 AETHER_NAMESPACE_END

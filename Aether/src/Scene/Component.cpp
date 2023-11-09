@@ -1,16 +1,22 @@
 #include "Component.h"
 #include "../Core/Config.h"
 #include <filesystem>
+#include "../Render/Transform.h"
 Aether::MeshComponent::MeshComponent(Ref<ModelAsset>& modelAsset)
 {
+	
 	for (auto& meshAsset : modelAsset->GetMeshes())
 	{
 		auto vb=VertexBuffer::Create(meshAsset.Vertices.data(), sizeof(Vertex) * meshAsset.Vertices.size());
 		auto vbl = Vertex::CreateVertexBufferLayout();
 		auto va = CreateRef<VertexArray>();
+		auto ib = CreateRef<IndexBuffer>(meshAsset.Indices.data(), meshAsset.Indices.size());
 		va->SetData(*vb, vbl);
-		std::filesystem::path resDir(Config::ResourcePath);
-		std::filesystem::path filename = "Basic.shader";
-		auto shader = Shader::CreateRefFromFile((resDir / filename).string().c_str());
+		Meshes.emplace_back(CreateRef<Mesh>(vb, va, ib, Ref<Shader>()));
 	}
+}
+
+void Aether::TransformComponent::CalculateMatrix()
+{
+	Matrix = Transform::Translation(Translation)*Transform::Rotation(Rotation)*Transform::Scale(Scaling);
 }

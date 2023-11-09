@@ -1,6 +1,8 @@
 #include "Renderer3D.h"
 #include "OpenGLApi.h"
 #include "Math.h"
+#include "Eigen/Core"
+#include <Eigen/Dense>
 AETHER_NAMESPACE_BEGIN
 const Camera* Renderer3D::s_Camera=nullptr;
 
@@ -34,15 +36,28 @@ void Renderer3D::Submit( VertexArray& va,  IndexBuffer& ib, Shader& shader, cons
 		}
 		else if (command.compare("use_model_view_projection") == 0)
 		{
-			shader.SetMat4f("u_ModelView", s_Camera->GetProjection()*s_Camera->GetView() * modelMatrix);
+			shader.SetMat4f("u_ModelViewProjection", s_Camera->GetProjection()*s_Camera->GetView() * modelMatrix);
 		}
 		else if (command.compare("use_normal_matrix") == 0)
 		{
-			shader.SetMat4f("u_NormalMatrix",Eigen::Transpose((s_Camera->GetView() * modelMatrix).inverse()).transpose() );
+			Eigen::Matrix4f m1 = s_Camera->GetView() * modelMatrix;
+			Eigen::Matrix4f m2 = m1.inverse();
+			Eigen::Matrix4f m3 = m2.transpose();
+			shader.SetMat4f("u_NormalMatrix",m3 );
 		}
 		
 	}
 	OpenGLApi::DrawElements(va, ib);
+}
+
+void Renderer3D::Submit(Ref<VertexArray>& va, Ref<IndexBuffer>& ib, Ref<Shader>& shader, const Eigen::Matrix4f& modelMatrix)
+{
+	Submit(*va, *ib, *shader, modelMatrix);
+}
+
+void Renderer3D::Submit(Ref<Mesh>& mesh, const Eigen::Matrix4f& modelMatrix)
+{
+	Submit(mesh->GetVertexArray(), mesh->GetIndexBuffer(), mesh->GetShader(), modelMatrix);
 }
 
 

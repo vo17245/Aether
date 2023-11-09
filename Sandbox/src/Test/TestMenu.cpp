@@ -55,6 +55,7 @@ namespace Test
 	}
 	void TestMenu::OnUpdate(float sec)
 	{
+		
 		if (m_CurTest)
 			m_CurTest->OnUpdate(sec);
 	}

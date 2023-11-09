@@ -11,7 +11,6 @@ namespace Aether
 		friend class Entity;
 	public:
 		Entity CreateEntity();
-		
 		template<typename... Components>
 		auto GetAllEntitiesWith()
 		{

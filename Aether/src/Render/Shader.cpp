@@ -322,6 +322,7 @@ ShaderLoadResult Shader::CreateRefFromFile(const char* path)
 	std::ifstream ifs(path);
 	if (!ifs.is_open())
 	{
+		debug_log_error("failed to open file {}", path);
 		res.errors.emplace_back("failed to open file");
 		return res;
 	}

@@ -143,7 +143,7 @@ bool ModelAssetImporter::ProcessNode(ModelAsset& modelAsset, aiNode* node, const
     }
     return true;
 }
-std::optional<ModelAsset> ModelAssetImporter::LoadFromFile(const std::string& path)
+std::optional<Ref<ModelAsset>> ModelAssetImporter::LoadFromFile(const std::string& path)
 {
     Assimp::Importer import;
     const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
@@ -152,8 +152,8 @@ std::optional<ModelAsset> ModelAssetImporter::LoadFromFile(const std::string& pa
         debug_log("Failed to load model,model file path {0}",path);
         return std::nullopt;
     }
-    ModelAsset modelAsset;
-    bool ret=ProcessNode(modelAsset, scene->mRootNode, scene);
+    auto modelAsset=CreateRef<ModelAsset>();
+    bool ret=ProcessNode(*modelAsset, scene->mRootNode, scene);
     if (!ret)
     {
         debug_log("Failed to load node");

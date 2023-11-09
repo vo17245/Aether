@@ -35,7 +35,7 @@ namespace Aether
 		template<typename T>
 		T& GetComponent()
 		{
-			assert(!HasComponent<T>() && "Entity does not have component!");
+			assert(HasComponent<T>() && "Entity does not have component!");
 
 			return m_Scene->m_Registry.get<T>(m_EntityHandle);
 		}
@@ -50,7 +50,7 @@ namespace Aether
 		template<typename T>
 		void RemoveComponent()
 		{
-			assert(!HasComponent<T>() && "Entity does not have component!");
+			assert(HasComponent<T>() && "Entity does not have component!");
 			m_Scene->m_Registry.remove<T>(m_EntityHandle);
 		}
 

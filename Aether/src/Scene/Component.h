@@ -20,14 +20,16 @@ namespace Aether
 	};
 	struct TransformComponent
 	{
-		Eigen::Vector3d Translation;
-		Eigen::Vector3d Rotation;//旋转顺序为x y z
-		Eigen::Vector3d Scaling;
+		Eigen::Vector3f Translation;
+		Eigen::Vector3f Rotation;//旋转顺序为x y z
+		Eigen::Vector3f Scaling;
+		Eigen::Matrix4f Matrix;
 		TransformComponent(const TransformComponent&) = default;
 		TransformComponent()
-			:Translation(Eigen::Vector3d::Zero()),
-			Rotation(Eigen::Vector3d::Zero()),
-			Scaling(1,1,1) {}
+			:Translation(Eigen::Vector3f::Zero()),
+			Rotation(Eigen::Vector3f::Zero()),
+			Scaling(1,1,1) ,Matrix(Eigen::Matrix4f::Identity()){}
+		void CalculateMatrix();
 	};
 	struct MeshComponent
 	{
@@ -35,5 +37,6 @@ namespace Aether
 		MeshComponent(const MeshComponent&) = default;
 		MeshComponent() = default;
 		MeshComponent(Ref<ModelAsset>& modelAsset);
+		
 	};
 }

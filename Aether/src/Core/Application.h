@@ -45,7 +45,7 @@ private:
     static void MousePositionEventCallback(GLFWwindow* window, double xpos, double ypos);
 private:
     //update
-    std::chrono::nanoseconds m_TimeStamp;
+    size_t m_TimeLastTickBegin;
 private:
     GLFWwindow* m_Window;
 
