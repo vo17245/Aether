@@ -36,4 +36,4 @@ AETHER_NAMESPACE_END
 	#include "Windows.h" // only aim to remove msvc macro redefine warning
 #endif
 
-#define AETHER_MEMBER_FUNC_LAMBDA [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
+#define AETHER_BIND_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }

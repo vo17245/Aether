@@ -1,12 +1,12 @@
 #include "Application.h"
 
 #include <iostream>
-#include "../Render/Math.h"
+
 #include "../ImGui/imgui.h"
 #include "../ImGui/imgui_impl_glfw.h"
 #include "../ImGui/imgui_impl_opengl3.h"
 #include "../Render/VertexBufferLayout.h"
-#include "../Render/Renderer.h"
+
 #include "../Render/Camera.h"
 #include "../Event/WindowEvent.h"
 #include "../Event/KeyboardEvent.h"
@@ -69,9 +69,10 @@ void Application::InitImGui()
     IMGUI_CHECKVERSION();
     ImGuiContext* imguiContext = ImGui::CreateContext();
     ImGui::SetCurrentContext(imguiContext);
-    ImGuiIO& io = ImGui::GetIO(); //(void)io;
+    ImGuiIO& io = ImGui::GetIO(); 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(m_Window, true);
     ImGui_ImplOpenGL3_Init("#version 460 core");

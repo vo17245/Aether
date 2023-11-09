@@ -1,5 +1,6 @@
 #include "VertexBufferLayout.h"
 #include "OpenGLApi.h"
+#include "../Core/Log.h"
 AETHER_NAMESPACE_BEGIN
 VertexBufferLayout::VertexBufferLayout(VertexBufferLayout&& vbl)noexcept
 	:m_Stride(vbl.m_Stride)
@@ -7,7 +8,7 @@ VertexBufferLayout::VertexBufferLayout(VertexBufferLayout&& vbl)noexcept
 	m_Elements = std::move(vbl.m_Elements);
 }
 
-void VertexBufferLayout::Use()
+bool VertexBufferLayout::Use()
 {
 	for (size_t i=0;i<m_Elements.size();i++)
 	{
@@ -24,8 +25,10 @@ void VertexBufferLayout::Use()
 		}
 		else
 		{
-			assert(false && "Unknown VertexBufferElement Type");
+			debug_log("Unknown VertexBufferElement Type");
+			return false;
 		}
 	}
+	return true;
 }
 AETHER_NAMESPACE_END

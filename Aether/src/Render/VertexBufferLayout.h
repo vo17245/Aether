@@ -30,7 +30,7 @@ public:
 		:m_Stride(vbl.m_Stride), m_Elements(vbl.m_Elements){}
 	template<typename T>
 	void Push(size_t n) { assert(false && "Unknown VertexBufferElement Type"); }
-	void Use();
+	bool Use();
 private:
 	std::vector<VertexBufferElement> m_Elements;
 	size_t m_Stride;// bytes of a vertex

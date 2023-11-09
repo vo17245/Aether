@@ -9,6 +9,7 @@ public:
 	~VertexBuffer();
 	void Bind();
 	void Unbind();
+	static Ref<VertexBuffer> Create(const void* data, const size_t size);
 private:
 	uint32_t m_RendererId;
 };

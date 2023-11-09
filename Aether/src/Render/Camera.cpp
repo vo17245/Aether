@@ -1,46 +1,16 @@
 #include "Camera.h"
 #include "Math.h"
+#include "Transform.h"
 AETHER_NAMESPACE_BEGIN
-
-
-void Camera::CalculateCameraMatrix()
+void PerspectiveCamera::CalculateProjection()
 {
-    m_CameraMatrix = Math::Scale(1.0, m_AspectRadio, 1.0) *m_Projection * m_View;
+    m_Projection =Transform::Perspective(m_Fovy, m_AspectRatio, m_ZNear, m_ZFar);
 }
 
-Camera Camera::CreatePerspectiveCamera(float aspectRadio)
+void PerspectiveCamera::CalculateView()
 {
-    Camera camera;
-    camera.m_AspectRadio = aspectRadio;
-    camera.m_Translation = Math::Identity();
-    camera.m_Rotation = Math::Identity();
-    camera.m_Scaling = Math::Identity();
-    auto view = Math::Identity();
-    auto projection = Math::Perspective(-0.01f, -1.f, 1.f, -1.f, 1.f, -1.f);
-    camera.m_View = view;
-    camera.m_Projection = projection;
-    return camera;
+    m_View = Transform::Translation(-m_Position)*Transform::Rotation(m_Rotation);
 }
-
-void Camera::CalculateViewMatrix()
-{
-    m_View = m_Translation* m_Rotation * m_Scaling;
-}
-
-void Camera::Rotate(Eigen::Matrix4f mat)
-{
-    m_Rotation = mat * m_Rotation;
-}
-
-
-void Camera::Translate(float x, float y, float z)
-{
-    m_Translation = Math::Translation(x, y, z) * m_Translation;
-}
-
-void Camera::Scale(float x, float y, float z)
-{
-    m_Scaling = Math::Scale(x, y, z) * m_Scaling;
-}
-
 AETHER_NAMESPACE_END
+
+

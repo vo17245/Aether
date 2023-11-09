@@ -3,23 +3,35 @@
 #include <vector>
 #include <sstream>
 #include "OpenGLApi.h"
-AETHER_NAMESPACE_BEGIN
-static bool ReadShader(const std::string& path, std::string& vs, std::string& fs)
+#include "../Core/Log.h"
+
+namespace Aether
 {
-	std::ifstream fin;
-	fin.open(path);
-	if (!fin.is_open())
+static std::string & trim(std::string & s)
+{
+	if (s.empty())
 	{
-		return false;
+		return s;
 	}
+	s.erase(0, s.find_first_not_of(" "));
+	s.erase(s.find_last_not_of(" ") + 1);
+	return s;
+}
+
+static bool ParseShader(std::istream& is, std::string& vs, std::string& fs,
+	std::vector<std::string>& aetherShaderCommands)
+{
+
 	std::string line;
 	//status
 	//	0 ignore
 	//  1 read vertex shader
 	//  2 read fragment shader
+	//  3 read aether shader commands
+	//	4 read comment,comment will be ignored
 	std::stringstream ss[2];
 	int status = 0;
-	while (std::getline(fin, line))
+	while (std::getline(is, line))
 	{
 		if (status == 0)
 		{
@@ -28,26 +40,131 @@ static bool ReadShader(const std::string& path, std::string& vs, std::string& fs
 				status = 1;
 				continue;
 			}
-		}
-		else if (status == 1)
-		{
 			if (line.find("#fragment_shader") != std::string::npos)
 			{
 				status = 2;
 				continue;
 			}
-			ss[0] << line<<"\r\n";
+			if (line.find("#aether_shader_command") != std::string::npos)
+			{
+				status = 3;
+				continue;
+			}
+			if (line.find("#aether_shader_comment") != std::string::npos)
+			{
+				status = 4;
+				continue;
+			}
+			
+		}
+		else if (status == 1)
+		{
+			if (line.find("#vertex_shader") != std::string::npos)
+			{
+				status = 1;
+				continue;
+			}
+			if (line.find("#fragment_shader") != std::string::npos)
+			{
+				status = 2;
+				continue;
+			}
+			if (line.find("#aether_shader_command") != std::string::npos)
+			{
+				status = 3;
+				continue;
+			}
+			if (line.find("#aether_shader_comment") != std::string::npos)
+			{
+				status = 4;
+				continue;
+			}
+			
+			ss[0] << line << "\r\n";
 		}
 		else if (status == 2)
 		{
-			ss[1] << line<<"\r\n";
+			if (line.find("#vertex_shader") != std::string::npos)
+			{
+				status = 1;
+				continue;
+			}
+			if (line.find("#fragment_shader") != std::string::npos)
+			{
+				status = 2;
+				continue;
+			}
+			if (line.find("#aether_shader_command") != std::string::npos)
+			{
+				status = 3;
+				continue;
+			}
+			if (line.find("#aether_shader_comment") != std::string::npos)
+			{
+				status = 4;
+				continue;
+			}
+			
+			ss[1] << line << "\r\n";
+		}
+		else if (status == 3)
+		{
+			if (line.find("#vertex_shader") != std::string::npos)
+			{
+				status = 1;
+				continue;
+			}
+			if (line.find("#fragment_shader") != std::string::npos)
+			{
+				status = 2;
+				continue;
+			}
+			if (line.find("#aether_shader_command") != std::string::npos)
+			{
+				status = 3;
+				continue;
+			}
+			if (line.find("#aether_shader_comment") != std::string::npos)
+			{
+				status = 4;
+				continue;
+			}
+			if (line.size() == 0)
+			{
+				continue;
+			}
+			aetherShaderCommands.push_back(trim(line));
+		}
+		else if (status == 4)
+		{
+			if (line.find("#vertex_shader") != std::string::npos)
+			{
+				status = 1;
+				continue;
+			}
+			if (line.find("#fragment_shader") != std::string::npos)
+			{
+				status = 2;
+				continue;
+			}
+			if (line.find("#aether_shader_command") != std::string::npos)
+			{
+				status = 3;
+				continue;
+			}
+			if (line.find("#aether_shader_comment") != std::string::npos)
+			{
+				status = 4;
+				continue;
+			}
 		}
 	}
 	vs = std::move(ss[0].str());
 	fs = std::move(ss[1].str());
 	return true;
 }
-static bool CompileShader(uint32_t type, const std::string& src,uint32_t& id)
+
+static bool CompileShader(uint32_t type, const std::string& src,uint32_t& id,std::string& compileError)
 {
 	GLCall( id=glCreateShader(type));
 	const char* src_data = src.c_str();
@@ -63,7 +180,12 @@ static bool CompileShader(uint32_t type, const std::string& src,uint32_t& id)
 
 		glGetShaderInfoLog(id, length, &length, message);
 		const char* typeStr = type == GL_VERTEX_SHADER ? "Vertex" : "Fragment";
-		std::cerr << "[OpenGL Error] " << typeStr << " Shader Compile Error \r\n" << message << std::endl;;
+		std::stringstream compileErrorStream;
+		compileErrorStream<<"[OpenGL Error] "<< typeStr<<" Shader Compile Error \r\n"
+			<< message << std::endl;;
+		compileError = compileErrorStream.str();
+		debug_log_error("[OpenGL Error] {} Shader Compile Error \r\n {}",
+			typeStr, message);
 		delete[] message;
 		return false;
 	}
@@ -80,22 +202,11 @@ static uint32_t LinkShader(uint32_t vs, uint32_t fs)
 	GLCall(glDeleteShader(fs));
 	return program_id;
 }
-Shader::Shader(const std::string& path)
-	:m_Path(path)
-{
-	std::string vs;
-	std::string fs;
-	ReadShader(path, vs, fs);
-	uint32_t vsId;
-	uint32_t fsId;
-	CompileShader(GL_VERTEX_SHADER, vs, vsId);
-	CompileShader(GL_FRAGMENT_SHADER, fs, fsId);
-	m_RendererId = LinkShader(vsId, fsId);
-	Bind();
-}
 
 Shader::~Shader()
 {
+	if (m_RendererId == -1)
+		return;
 	GLCall(glDeleteProgram(m_RendererId));
 }
 
@@ -109,49 +220,49 @@ void Shader::Unbind()const
 	GLCall(glUseProgram(0));
 }
 
-void Shader::SetVec3f(const std::string& name, const Eigen::Vector3f& v)const
+void Shader::SetVec3f(const std::string& name, const Eigen::Vector3f& v)
 {
 	uint32_t location;
 	GetLocation(name, location);
 	GLCall(glUniform3f(location, v.data()[0], v.data()[1], v.data()[2]));
 }
 
-void Shader::SetVec4f(const std::string& name, const Eigen::Vector4f& v)const
+void Shader::SetVec4f(const std::string& name, const Eigen::Vector4f& v)
 {
 	uint32_t location;
 	GetLocation(name, location);
 	GLCall(glUniform4f(location, v.data()[0], v.data()[1], v.data()[2], v.data()[3]));
 }
 
-void Shader::SetMat3f(const std::string& name, const Eigen::Matrix3f& m)const
+void Shader::SetMat3f(const std::string& name, const Eigen::Matrix3f& m)
 {
 	uint32_t location;
 	GetLocation(name, location);
 	GLCall(glUniformMatrix3fv(location, 1, GL_FALSE, m.data()));
 }
 
-void Shader::SetMat4f(const std::string& name, const Eigen::Matrix4f& m)const
+void Shader::SetMat4f(const std::string& name, const Eigen::Matrix4f& m)
 {
 	uint32_t location;
 	GetLocation(name, location);
 	GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, m.data()));
 }
 
-void Shader::SetFloat(const std::string& name,const float n)const
+void Shader::SetFloat(const std::string& name,const float n)
 {
 	uint32_t location;
 	GetLocation(name, location);
 	GLCall(glUniform1f(location, n));
 }
 
-void Shader::SetInt(const std::string& name, const int n) const
+void Shader::SetInt(const std::string& name, const int n) 
 {
 	uint32_t location;
 	GetLocation(name, location);
 	GLCall(glUniform1i(location, n));
 }
 
-bool Shader::GetLocation(const std::string& name, uint32_t& location)const
+bool Shader::GetLocation(const std::string& name, uint32_t& location)
 {
 	auto iter = m_LocationCache.find(name);
 	if (iter != m_LocationCache.end())
@@ -162,77 +273,86 @@ bool Shader::GetLocation(const std::string& name, uint32_t& location)const
 	GLCall(location = glGetUniformLocation(m_RendererId, name.c_str()));
 	if (location == -1)
 	{
-		std::cerr << "uniform " << name << " not find in " << m_Path << std::endl;
+		debug_log_error("uniform {} not find in {}", name, m_Path);
 		return false;
 	}
 	m_LocationCache[name] = location;
 	return true;
 }
-std::optional<Ref<Shader>> Shader::CreateRefFromMem(const char* p, size_t len)
+ShaderLoadResult Shader::CreateRefFromMem(const char* p, size_t len)
 {
-	
-	
-	//status
-	//	0 ignore
-	//  1 read vertex shader
-	//  2 read fragment shader
-	std::string text(p);
+	std::string text(p,p+len);
 	std::istringstream iss(text);
-	std::string line;
-	std::stringstream ss[2];
-	int status = 0;
-	while (std::getline(iss, line)) {
-		if (status == 0)
-		{
-			if (line.find("#vertex_shader") != std::string::npos)
-			{
-				status = 1;
-				continue;
-			}
-		}
-		else if (status == 1)
-		{
-			if (line.find("#fragment_shader") != std::string::npos)
-			{
-				status = 2;
-				continue;
-			}
-			ss[0] << line << "\r\n";
-		}
-		else if (status == 2)
-		{
-			ss[1] << line << "\r\n";
-		}
-	}
-	std::string vs = std::move(ss[0].str());
-	std::string fs = std::move(ss[1].str());
-	uint32_t vsId;
-	uint32_t fsId;
-	CompileShader(GL_VERTEX_SHADER, vs, vsId);
-	CompileShader(GL_FRAGMENT_SHADER, fs, fsId);
-	auto rendererId= LinkShader(vsId, fsId);
-	//gl shader is succeed created,init Aether::Shader
+	ShaderLoadResult res;
 	Ref<Shader> shader(new Shader());
-	shader->m_RendererId = rendererId;
-	shader->Bind();
-	return std::optional<Ref<Shader>>(shader);
-}
-std::optional<Ref<Shader>> Shader::CreateRefFromFile(const char* path)
-{
-	
 	std::string vs;
 	std::string fs;
-	ReadShader(path, vs, fs);
+	std::vector<std::string> aetherShaderCommands;
+	std::vector<std::string> errors;
+	ParseShader(iss, vs, fs, aetherShaderCommands);
 	uint32_t vsId;
 	uint32_t fsId;
-	CompileShader(GL_VERTEX_SHADER, vs, vsId);
-	CompileShader(GL_FRAGMENT_SHADER, fs, fsId);
+	std::string error;
+	bool ret;
+	ret=CompileShader(GL_VERTEX_SHADER, vs, vsId,error);
+	if (!ret)
+	{
+		res.errors.push_back(error);
+		return res;
+	}
+		
+	ret=CompileShader(GL_FRAGMENT_SHADER, fs, fsId,error);
+	if (!ret)
+	{
+		res.errors.push_back(error);
+		return res;
+	}
 	auto rendererId= LinkShader(vsId, fsId);
-	//gl shader is succeed created,init Aether::Shader
+	shader->m_RendererId = rendererId;
+	shader->Bind();
+	res.shader = shader;
+
+	return res;
+}
+ShaderLoadResult Shader::CreateRefFromFile(const char* path)
+{
+	ShaderLoadResult res;
+	std::string vs;
+	std::string fs;
+	std::ifstream ifs(path);
+	if (!ifs.is_open())
+	{
+		res.errors.emplace_back("failed to open file");
+		return res;
+	}
+	std::vector<std::string> aetherShaderCommands;
+	std::vector<std::string> errors;
+	ParseShader(ifs, vs, fs, aetherShaderCommands);
+	uint32_t vsId;
+	uint32_t fsId;
+	std::string error;
+	bool ret;
+	ret=CompileShader(GL_VERTEX_SHADER, vs, vsId,error);
+	if (!ret)
+	{
+		res.errors.emplace_back(std::move(error));
+		return res;
+	}
+		
+	ret=CompileShader(GL_FRAGMENT_SHADER, fs, fsId, error);
+	if (!ret)
+	{
+		res.errors.emplace_back(std::move(error));
+		return res;
+	}
+		
+	auto rendererId= LinkShader(vsId, fsId);
 	Ref<Shader> shader(new Shader());
 	shader->m_Path = path;
 	shader->m_RendererId = rendererId;
 	shader->Bind();
-	return std::optional<Ref<Shader>>(shader);
+	shader->m_AetherShaderCommands = aetherShaderCommands;
+	res.shader = shader;
+	return res;
 }
-AETHER_NAMESPACE_END
+}//namespace Aether

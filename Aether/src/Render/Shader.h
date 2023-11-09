@@ -4,31 +4,54 @@
 #include <Eigen/Core>
 #include <unordered_map>
 #include <optional>
-AETHER_NAMESPACE_BEGIN
+/*
+* #aether_shader_command
+* use_model
+* use_view
+* use_projection
+* use_model_view
+* use_model_view_projection
+* use_normal_matrix
+*/
+namespace Aether
+{
+
+struct ShaderLoadResult;
 class Shader
 {
 private:
 	Shader() :m_RendererId(-1) {}
 public:
-	Shader(const std::string& path);
-	
 	Shader(Shader&& shader) = delete;
 	Shader(const Shader& shader) = delete;
 	~Shader();
 	void Bind()const;
 	void Unbind()const;
-	void SetVec3f(const std::string& name, const Eigen::Vector3f& v)const;
-	void SetVec4f(const std::string& name, const Eigen::Vector4f& v)const;
-	void SetMat3f(const std::string& name, const Eigen::Matrix3f& m)const;
-	void SetMat4f(const std::string& name, const Eigen::Matrix4f& m)const;
-	void SetFloat(const std::string& name, const float n)const;
-	void SetInt(const std::string& name, const int n)const;
-	bool GetLocation(const std::string& name, uint32_t& location)const;
-	static std::optional<Ref<Shader>> CreateRefFromMem(const char* p, size_t len);
-	static std::optional<Ref<Shader>> CreateRefFromFile(const char* path);
+	void SetVec3f(const std::string& name, const Eigen::Vector3f& v);
+	void SetVec4f(const std::string& name, const Eigen::Vector4f& v);
+	void SetMat3f(const std::string& name, const Eigen::Matrix3f& m);
+	void SetMat4f(const std::string& name, const Eigen::Matrix4f& m);
+	void SetFloat(const std::string& name, const float n);
+	void SetInt(const std::string& name, const int n);
+	bool GetLocation(const std::string& name, uint32_t& location);
+	std::vector<std::string> GetCommands() { return m_AetherShaderCommands; }
+public:
+	static ShaderLoadResult CreateRefFromMem(const char* p, size_t len);
+	static ShaderLoadResult CreateRefFromFile(const char* path);
 private:
 	uint32_t m_RendererId;
+	std::unordered_map<std::string, uint32_t> m_LocationCache;
+	std::vector<std::string> m_CompileErrors;
+	std::vector<std::string> m_AetherShaderCommands;
 	std::string m_Path;
-	mutable std::unordered_map<std::string, uint32_t> m_LocationCache;
 };
-AETHER_NAMESPACE_END
+struct ShaderLoadResult
+{
+	std::optional<Ref<Shader>> shader;
+	std::vector<std::string> errors;
+	explicit operator bool()const noexcept { return bool(shader); }
+	ShaderLoadResult(const ShaderLoadResult&) = default;
+	ShaderLoadResult(ShaderLoadResult&&) = default;
+	ShaderLoadResult() = default;
+};
+}//namespace Aether

@@ -60,13 +60,21 @@ bool ModelAssetImporter::ProcessMesh(ModelAsset& modelAsset, aiMesh* mesh, const
     {
         Vertex vertex;
         //位置
-        vertex.Position.x() = mesh->mVertices[i].x;
-        vertex.Position.y() = mesh->mVertices[i].y;
-        vertex.Position.z() = mesh->mVertices[i].z;
+        if (mesh->HasPositions())
+        {
+            vertex.Position.x() = mesh->mVertices[i].x;
+            vertex.Position.y() = mesh->mVertices[i].y;
+            vertex.Position.z() = mesh->mVertices[i].z;
+        }
+        
         //法向量
-        vertex.Normal.x() = mesh->mNormals[i].x;
-        vertex.Normal.y() = mesh->mNormals[i].y;
-        vertex.Normal.z() = mesh->mNormals[i].z;
+        if (mesh->HasNormals())
+        {
+            vertex.Normal.x() = mesh->mNormals[i].x;
+            vertex.Normal.y() = mesh->mNormals[i].y;
+            vertex.Normal.z() = mesh->mNormals[i].z;
+        }
+        
         //纹理坐标
 
         if (mesh->mTextureCoords[0]) // 网格是否有纹理坐标？

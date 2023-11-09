@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(Aether)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(AETHER_ROOT "..")
 set(VENDOR_DIR "${AETHER_ROOT}/Vendor")
 set(DEPENDENCIES_DIR "${AETHER_ROOT}/Dependencies")
