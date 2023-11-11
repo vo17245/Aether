@@ -69,6 +69,11 @@ void OpenGLApi::ActivateTexture(size_t index)
     GLCall(glActiveTexture(static_cast<GLenum>(GL_TEXTURE0+index)));
 }
 
+void OpenGLApi::BindFrameBuffer(RendererId frameBuffer)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+}
+
 size_t OpenGLApi::TypeSize(GLType glType)
 {
     switch (glType)

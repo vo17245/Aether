@@ -1,31 +1,37 @@
 #include "VertexArray.h"
 #include "OpenGLApi.h"
-AETHER_NAMESPACE_BEGIN
-VertexArray::VertexArray()
+namespace Aether
 {
-	GLCall(glGenVertexArrays(1, &m_RendererId));
-	GLCall(glBindVertexArray(m_RendererId));
-}
+	VertexArray::VertexArray()
+		:m_RendererId(0)
+	{
+		GLCall(glGenVertexArrays(1, &m_RendererId));
+		GLCall(glBindVertexArray(m_RendererId));
+	}
 
-VertexArray::~VertexArray()
-{
-	GLCall(glDeleteVertexArrays(1, &m_RendererId));
-}
+	VertexArray::~VertexArray()
+	{
+		GLCall(glDeleteVertexArrays(1, &m_RendererId));
+	}
 
-void VertexArray::Bind()const
-{
-	GLCall(glBindVertexArray(m_RendererId));
-}
+	void VertexArray::Bind()const
+	{
+		GLCall(glBindVertexArray(m_RendererId));
+	}
 
-void VertexArray::Unbind()const
-{
-	GLCall(glBindVertexArray(0));
-}
+	void VertexArray::Unbind()const
+	{
+		GLCall(glBindVertexArray(0));
+	}
 
-void VertexArray::SetData(VertexBuffer& vb, VertexBufferLayout& vbl)
-{
-	Bind();
-	vb.Bind();
-	vbl.Use();
-}
-AETHER_NAMESPACE_END
+	void VertexArray::SetData(VertexBuffer& vb, VertexBufferLayout& vbl)
+	{
+		Bind();
+		vb.Bind();
+		vbl.Use();
+	}
+	Ref<VertexArray> VertexArray::Create()
+	{
+		return CreateRef<VertexArray>();
+	}
+}//namespace Aether

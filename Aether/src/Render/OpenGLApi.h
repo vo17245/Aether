@@ -31,7 +31,7 @@ enum class GLDrawMode :uint32_t
 };
 class VertexArray;
 class IndexBuffer;
-
+using RendererId = uint32_t;
 struct Texture2DConfig
 {
     Texture2DConfig(uint32_t wrap_s, uint32_t wrap_t)
@@ -68,6 +68,8 @@ public:
     static void DrawElements(const VertexArray& va,const IndexBuffer& ib,GLDrawMode mode=GLDrawMode::TRIANGLES);
     static void SetTexture2DConfig(const Texture2DConfig& config);
     static void ActivateTexture(size_t index);
+    static void BindFrameBuffer(RendererId frameBuffer);
+    
 public:
     static size_t TypeSize(GLType glType);
 };

@@ -2,11 +2,13 @@
 #include "Test/TestMenu.h"
 
 #include "Test/ShaderTest.h"
+#include "Test/FrameBufferTest.h"
 Sandbox::Sandbox()
 	
 {
 	auto testMenu = Aether::CreateScope<Test::TestMenu>();
 	testMenu->RegisterTest("ShaderTest", []() {return Aether::CreateScope<Test::ShaderTest>();});
+	testMenu->RegisterTest("FrameBufferTest", []() {return Aether::CreateScope<Test::FrameBufferTest>();});
 	m_Test = std::move(testMenu);
 
 }

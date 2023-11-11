@@ -55,9 +55,9 @@ void Renderer3D::Submit(Ref<VertexArray>& va, Ref<IndexBuffer>& ib, Ref<Shader>&
 	Submit(*va, *ib, *shader, modelMatrix);
 }
 
-void Renderer3D::Submit(Ref<Mesh>& mesh, const Eigen::Matrix4f& modelMatrix)
+void Renderer3D::Submit(Ref<Mesh>& mesh, Ref<Shader>& shader,const Eigen::Matrix4f& modelMatrix)
 {
-	Submit(mesh->GetVertexArray(), mesh->GetIndexBuffer(), mesh->GetShader(), modelMatrix);
+	Submit(mesh->GetVertexArray(), mesh->GetIndexBuffer(), shader, modelMatrix);
 }
 
 

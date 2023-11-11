@@ -12,7 +12,7 @@ Aether::MeshComponent::MeshComponent(Ref<ModelAsset>& modelAsset)
 		auto va = CreateRef<VertexArray>();
 		auto ib = CreateRef<IndexBuffer>(meshAsset.Indices.data(), meshAsset.Indices.size());
 		va->SetData(*vb, vbl);
-		Meshes.emplace_back(CreateRef<Mesh>(vb, va, ib, Ref<Shader>()));
+		Meshes.emplace_back(CreateRef<Mesh>(va, vb, ib));
 	}
 }
 

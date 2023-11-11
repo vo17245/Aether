@@ -2,6 +2,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <filesystem>
 AETHER_NAMESPACE_BEGIN
 std::optional<std::vector<std::shared_ptr<TextureAsset>>>
 ModelAssetImporter::LoadMaterialTextures(ModelAsset& modelAsset,const aiScene* scene, aiMaterial* mat, aiTextureType type, const std::string& typeName)
@@ -45,7 +46,7 @@ ModelAssetImporter::LoadMaterialTextures(ModelAsset& modelAsset,const aiScene* s
             
             if (!loadRes)
             {
-                debug_log("failed to load texture");
+                debug_log("failed to load {} texture from file,path: {}", typeName,str.C_Str());
                 return std::nullopt;
             }
             textures.push_back(loadRes.value());

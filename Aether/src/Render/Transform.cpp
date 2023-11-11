@@ -83,4 +83,14 @@ namespace Aether
 			0, 0, 0, 1;
 		return m;
 	}
+	Eigen::Matrix4f Transform::Orthographic(float left, float right, float bottom, float top, float near, float far)
+	{
+		Eigen::Matrix4f ortho;
+		ortho << 2.0f / (right - left), 0, 0, -(right + left) / (right - left),
+			0, 2.0f / (top - bottom), 0, -(top + bottom) / (top - bottom),
+			0, 0, -2.0f / (far - near), -(far + near) / (far - near),
+			0, 0, 0, 1.0f;
+		return ortho;
+	}
+
 }

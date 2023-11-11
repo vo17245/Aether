@@ -2,7 +2,7 @@
 #include "OpenGLApi.h"
 AETHER_NAMESPACE_BEGIN
 VertexBuffer::VertexBuffer(const void* data,const size_t size)
-    :m_RendererId(-1)
+    :m_RendererId(0)
 {
     GLCall(glGenBuffers(1, &m_RendererId));
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_RendererId));

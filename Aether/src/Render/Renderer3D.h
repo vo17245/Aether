@@ -5,19 +5,35 @@
 #include "IndexBuffer.h"
 #include "Shader.h"
 #include "Mesh.h"
-AETHER_NAMESPACE_BEGIN
-class Model;
-class Renderer3D
+#include "Light.h"
+#include <vector>
+#include "../Core/Math.h"
+namespace Aether
 {
-private:
-	static const Camera* s_Camera;
+	class Renderer3D
+	{
 
-public:
-	static void BeginScene(const Camera* camera);
-	static void Submit( VertexArray& va, IndexBuffer& ib,  Shader& shader,const Eigen::Matrix4f& modelMatrix);
-	static void Submit(Ref<VertexArray>& va, Ref<IndexBuffer>& ib, Ref<Shader>& shader, const Eigen::Matrix4f& modelMatrix);
-	static void Submit(Ref<Mesh>& mesh, const Eigen::Matrix4f& modelMatrix);
-	static void EndScene() {}
+	private:
+		struct VisualObject
+		{
+			Ref<Mesh> mesh;
+			Ref<Shader> shader;
+			Mat4 modelMatrix;
+		};
+	private:
+		static const Camera* s_Camera;
+		static std::vector<Light> s_Lights;
+		static std::vector<VisualObject> s_VisualObjects;
+	private:
+		static void Submit(VertexArray& va, IndexBuffer& ib, Shader& shader, const Eigen::Matrix4f& modelMatrix);
+		static void Submit(Ref<VertexArray>& va, Ref<IndexBuffer>& ib, Ref<Shader>& shader, const Eigen::Matrix4f& modelMatrix);
+	public:
+		static void BeginScene(const Camera* camera);
+		
+		static void Submit(Ref<Mesh>& mesh, Ref<Shader>& shader, const Eigen::Matrix4f& modelMatrix);
+		
+		static void EndScene() {}
 
-};
-AETHER_NAMESPACE_END
+	};
+}
+

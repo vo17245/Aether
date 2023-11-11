@@ -2,22 +2,27 @@
 #include "../Core/Core.h"
 #include <string>
 #include "../Asset/Image.h"
+#include "OpenGLApi.h"
 AETHER_NAMESPACE_BEGIN
 class Texture2D
 {
 public:
-	Texture2D(const Image& image, uint32_t slot);
+	Texture2D(const Image& image);
+	Texture2D(size_t width, size_t height);
+	Texture2D(const Texture2D&) = delete;
+	Texture2D(Texture2D&&) = delete;
 	~Texture2D();
 	void Bind();
 	void Unbind();
-	void SetSlot(uint32_t slot);
-	inline const uint32_t GetSlot()const { return m_Slot; }
-	inline const std::string& GetTypeName()const { return m_TypeName; }
-	inline void SetTypeName(const std::string& typeName) { m_TypeName = typeName; }
-	inline uint32_t GetRendererId() { return m_RendererId; }
+	void Unbind(uint32_t slot);
+	void Bind(uint32_t slot);
+	inline size_t GetWidth() { return m_Width; }
+	inline size_t GetHeight() { return m_Height; }
+	inline RendererId GetRendererId() { return m_RendererId; }
+
 private:
-	uint32_t m_RendererId;
-	uint32_t m_Slot;
-	std::string m_TypeName;
+	RendererId m_RendererId;
+	size_t m_Width;
+	size_t m_Height;
 };
 AETHER_NAMESPACE_END

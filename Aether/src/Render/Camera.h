@@ -2,47 +2,62 @@
 
 #include "Eigen/Core"
 #include "../Core/Core.h"
-AETHER_NAMESPACE_BEGIN
-
-class Camera
+namespace Aether
 {
-public:
-	Camera() {}
-	~Camera(){}
-	inline Eigen::Matrix4f& GetView() { return m_View; }
-	inline Eigen::Matrix4f& GetProjection() { return m_Projection; }
-	inline const Eigen::Matrix4f& GetView()const { return m_View; }
-	inline const Eigen::Matrix4f& GetProjection()const  { return m_Projection; }
-protected:
-	Eigen::Matrix4f m_View;
-	Eigen::Matrix4f m_Projection;
-};
-class PerspectiveCamera:public Camera
-{
-public:
-	PerspectiveCamera(float fovy, float zNear, float zFar, float aspectRatio)
-		:m_Fovy(fovy), m_ZNear(zNear),
-		m_ZFar(zFar), m_AspectRatio(aspectRatio) ,
-		m_Position(0,0,0),m_Rotation(0,0,0)
+	class Camera
 	{
-		CalculateProjection();
-		CalculateView();
-	}
-private:
-	float m_Fovy, m_ZNear, m_ZFar, m_AspectRatio;
-	Eigen::Vector3f m_Position;
-	Eigen::Vector3f m_Rotation;
-	
-public:
-	void CalculateProjection();
-	void CalculateView();
-	inline Eigen::Matrix4f& GetView() { return m_View; }
-	inline Eigen::Matrix4f& GetProjection() { return m_Projection; }
-	inline float& GetFovy() { return m_Fovy; }
-	inline float& GetZNear() { return m_ZNear; }
-	inline float& GetZFar() { return m_ZFar; }
-	inline float& GetAspectRatio() { return m_AspectRatio; }
-	inline Eigen::Vector3f& GetPosition() { return m_Position; }
-	inline Eigen::Vector3f& GetRotation() { return m_Rotation; }
-};
-AETHER_NAMESPACE_END
+	public:
+		Camera() {}
+		~Camera() {}
+		inline Eigen::Matrix4f& GetView() { return m_View; }
+		inline Eigen::Matrix4f& GetProjection() { return m_Projection; }
+		inline const Eigen::Matrix4f& GetView()const { return m_View; }
+		inline const Eigen::Matrix4f& GetProjection()const { return m_Projection; }
+	protected:
+		Eigen::Matrix4f m_View;
+		Eigen::Matrix4f m_Projection;
+	};
+	class PerspectiveCamera :public Camera
+	{
+	public:
+		PerspectiveCamera(float fovy, float zNear, float zFar, float aspectRatio)
+			:m_Fovy(fovy), m_ZNear(zNear),
+			m_ZFar(zFar), m_AspectRatio(aspectRatio),
+			m_Position(0, 0, 0), m_Rotation(0, 0, 0)
+		{
+			CalculateProjection();
+			CalculateView();
+		}
+	private:
+		float m_Fovy, m_ZNear, m_ZFar, m_AspectRatio;
+		Eigen::Vector3f m_Position;
+		Eigen::Vector3f m_Rotation;
+
+	public:
+		void CalculateProjection();
+		void CalculateView();
+		inline Eigen::Matrix4f& GetView() { return m_View; }
+		inline Eigen::Matrix4f& GetProjection() { return m_Projection; }
+		inline float& GetFovy() { return m_Fovy; }
+		inline float& GetZNear() { return m_ZNear; }
+		inline float& GetZFar() { return m_ZFar; }
+		inline float& GetAspectRatio() { return m_AspectRatio; }
+		inline Eigen::Vector3f& GetPosition() { return m_Position; }
+		inline Eigen::Vector3f& GetRotation() { return m_Rotation; }
+	};
+	class OrthographicCamera:public Camera
+	{
+	public:
+		OrthographicCamera(float left, float right, float bottom, float top, float near, float far);
+		inline Eigen::Vector3f& GetPosition() { return m_Position; }
+		inline Eigen::Vector3f& GetRotation() { return m_Rotation; }
+		inline const Eigen::Vector3f& GetPosition()const { return m_Position; }
+		inline const Eigen::Vector3f& GetRotation()const { return m_Rotation; }
+		void CalculateView();
+	private:
+		Eigen::Vector3f m_Position;
+		Eigen::Vector3f m_Rotation;
+	};
+}
+
+

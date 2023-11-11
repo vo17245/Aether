@@ -34,6 +34,12 @@ AETHER_NAMESPACE_END
 
 #ifdef _WIN32
 	#include "Windows.h" // only aim to remove msvc macro redefine warning
+	#ifdef far
+		#undef far
+	#endif
+	#ifdef near
+		#undef near
+	#endif
 #endif
 
 #define AETHER_BIND_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }

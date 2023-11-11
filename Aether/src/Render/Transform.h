@@ -1,5 +1,11 @@
 #pragma once
 #include <Eigen/Core>
+#ifdef near
+#undef near
+#endif
+#ifdef far
+#undef far
+#endif
 namespace Aether
 {
 	class Transform
@@ -14,6 +20,8 @@ namespace Aether
 		static Eigen::Matrix4f RotateZ(float a);
 		static Eigen::Matrix4f Rotation(const Eigen::Vector3f& v);
 		static Eigen::Matrix4f Identity();
+		static Eigen::Matrix4f Orthographic(float left, float right, float bottom, float top, float near, float far);
+			
 	};
 }
 
