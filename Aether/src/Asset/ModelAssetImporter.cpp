@@ -17,13 +17,13 @@ ModelAssetImporter::LoadMaterialTextures(ModelAsset& modelAsset,const aiScene* s
             //load from embedded image data
             if (scene->mTextures == nullptr)
             {
-                debug_log("scene->mTextures == nullptr");
+                AETHER_DEBUG_LOG_ERROR("scene->mTextures == nullptr");
                 return std::nullopt;
             }
             uint32_t textureIndex = atoi(str.C_Str() + 1);
             if (!(textureIndex >= 0 && textureIndex < scene->mNumTextures))
             {
-                debug_log("!(textureIndex >= 0 && textureIndex < scene->mNumTextures)");
+                AETHER_DEBUG_LOG_ERROR("!(textureIndex >= 0 && textureIndex < scene->mNumTextures)");
                 return std::nullopt;
 
             }
@@ -34,7 +34,7 @@ ModelAssetImporter::LoadMaterialTextures(ModelAsset& modelAsset,const aiScene* s
             }
             else
             {
-                debug_log("failed to load embedded texture");
+                AETHER_DEBUG_LOG_ERROR("failed to load embedded texture");
                 return std::nullopt;
             }
                 
@@ -46,7 +46,7 @@ ModelAssetImporter::LoadMaterialTextures(ModelAsset& modelAsset,const aiScene* s
             
             if (!loadRes)
             {
-                debug_log("failed to load {} texture from file,path: {}", typeName,str.C_Str());
+                AETHER_DEBUG_LOG_ERROR("failed to load {} texture from file,path: {}", typeName,str.C_Str());
                 return std::nullopt;
             }
             textures.push_back(loadRes.value());
@@ -108,7 +108,7 @@ bool ModelAssetImporter::ProcessMesh(ModelAsset& modelAsset, aiMesh* mesh, const
             aiTextureType_DIFFUSE, "texture_diffuse");
         if (!diffuseTextures)
         {
-            debug_log("failed to load diffuseTextures");
+            AETHER_DEBUG_LOG_ERROR("failed to load diffuseTextures");
             return false;
         }
         myMesh.Textures.insert(myMesh.Textures.end(), diffuseTextures.value().begin(), diffuseTextures.value().end());
@@ -117,7 +117,7 @@ bool ModelAssetImporter::ProcessMesh(ModelAsset& modelAsset, aiMesh* mesh, const
             aiTextureType_SPECULAR, "texture_specular");
         if (!specularTextures)
         {
-            debug_log("failed to load specularTextures");
+            AETHER_DEBUG_LOG_ERROR("failed to load specularTextures");
             return false;
         }
         myMesh.Textures.insert(myMesh.Textures.end(), specularTextures.value().begin(), specularTextures.value().end());
@@ -150,14 +150,14 @@ std::optional<Ref<ModelAsset>> ModelAssetImporter::LoadFromFile(const std::strin
     const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
     if ((!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode))
     {
-        debug_log("Failed to load model,model file path {0}",path);
+        AETHER_DEBUG_LOG_ERROR("Failed to load model,model file path {0}",path);
         return std::nullopt;
     }
     auto modelAsset=CreateRef<ModelAsset>();
     bool ret=ProcessNode(*modelAsset, scene->mRootNode, scene);
     if (!ret)
     {
-        debug_log("Failed to load node");
+        AETHER_DEBUG_LOG_ERROR("Failed to load node");
         return std::nullopt;
     }
 	return modelAsset;

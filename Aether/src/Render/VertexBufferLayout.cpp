@@ -25,7 +25,7 @@ bool VertexBufferLayout::Use()
 		}
 		else
 		{
-			debug_log("Unknown VertexBufferElement Type");
+			AETHER_DEBUG_LOG_ERROR("Unknown VertexBufferElement Type");
 			return false;
 		}
 	}

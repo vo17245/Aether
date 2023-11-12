@@ -81,13 +81,13 @@ bool Renderer3D::VisualObject::SetDirectLight(std::vector<DirectLight>& lights)
 {
 	if (lights.size() > ShaderLanguage::max_direct_lights)
 	{
-		debug_log_error("lights.size() > ShaderLanguage::max_direct_lights");
+		AETHER_DEBUG_LOG_ERROR("lights.size() > ShaderLanguage::max_direct_lights");
 		return false;
 	}
 	shader->Bind();
 	if (shader->SetInt("u_DirectLightCnt", lights.size()))
 	{
-		debug_log_error("failed to set u_DirectLightCnt");
+		AETHER_DEBUG_LOG_ERROR("failed to set u_DirectLightCnt");
 		return false;
 	}
 	for (size_t i = 0;i < lights.size();i++)
@@ -96,14 +96,14 @@ bool Renderer3D::VisualObject::SetDirectLight(std::vector<DirectLight>& lights)
 		ss1 << "u_DirectLights[" << std::to_string(i) << "].direct";
 		if (!shader->SetVec3f(ss1.str(), lights[i].GetDirect()))
 		{
-			debug_log_error("failed to set direct light uniform {}", ss1.str());
+			AETHER_DEBUG_LOG_ERROR("failed to set direct light uniform {}", ss1.str());
 			return false;
 		}
 		std::stringstream ss2;
 		ss2 << "u_DirectLights[" << std::to_string(i) << "].color";
 		if (!shader->SetVec3f(ss2.str(), lights[i].GetColor()))
 		{
-			debug_log_error("failed to set direct light uniform {}", ss2.str());
+			AETHER_DEBUG_LOG_ERROR("failed to set direct light uniform {}", ss2.str());
 			return false;
 		}
 	}
@@ -114,13 +114,13 @@ bool Renderer3D::VisualObject::SetPointLight(std::vector<PointLight>& lights)
 {
 	if (lights.size() > ShaderLanguage::max_point_lights)
 	{
-		debug_log_error("lights.size() > ShaderLanguage::max_point_lights");
+		AETHER_DEBUG_LOG_ERROR("lights.size() > ShaderLanguage::max_point_lights");
 		return false;
 	}
 	shader->Bind();
 	if (shader->SetInt("u_PointLightCnt", lights.size()))
 	{
-		debug_log_error("failed to set u_PointLightCnt");
+		AETHER_DEBUG_LOG_ERROR("failed to set u_PointLightCnt");
 		return false;
 	}
 	for (size_t i = 0;i < lights.size();i++)
@@ -129,14 +129,14 @@ bool Renderer3D::VisualObject::SetPointLight(std::vector<PointLight>& lights)
 		ss1 << "u_PointLights[" << std::to_string(i) << "].position";
 		if (!shader->SetVec3f(ss1.str(), lights[i].GetPosition()))
 		{
-			debug_log_error("failed to set point light uniform {}", ss1.str());
+			AETHER_DEBUG_LOG_ERROR("failed to set point light uniform {}", ss1.str());
 			return false;
 		}
 		std::stringstream ss2;
 		ss2 << "u_PointLights[" << std::to_string(i) << "].color";
 		if (!shader->SetVec3f(ss2.str(), lights[i].GetColor()))
 		{
-			debug_log_error("failed to set point light uniform {}", ss2.str());
+			AETHER_DEBUG_LOG_ERROR("failed to set point light uniform {}", ss2.str());
 			return false;
 		}
 	}

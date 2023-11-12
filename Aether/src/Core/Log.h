@@ -63,11 +63,11 @@ AETHER_NAMESPACE_END
 
 
 #ifdef DEBUG
-	#define debug_log(...) Aether::DebugLogFunc(__FILE__,__LINE__,__VA_ARGS__)
-	#define debug_log_error(...) Aether::DebugLogErrorFunc(__FILE__,__LINE__,__VA_ARGS__)
+	#define AETHER_DEBUG_LOG(...) Aether::DebugLogFunc(__FILE__,__LINE__,__VA_ARGS__)
+	#define AETHER_DEBUG_LOG_ERROR(...) Aether::DebugLogErrorFunc(__FILE__,__LINE__,__VA_ARGS__)
 #else
-	#define debug_log(...) ((void)0)
-	#define debug_log_error(...) ((void)0)
+	#define AETHER_DEBUG_LOG(...) ((void)0)
+	#define AETHER_DEBUG_LOG_ERROR(...) ((void)0)
 #endif
 
 

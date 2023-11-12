@@ -52,7 +52,7 @@ namespace Aether
 		}
 		else
 		{
-			debug_log_error("framebuffer is not complete");
+			AETHER_DEBUG_LOG_ERROR("framebuffer is not complete");
 		}
 		return framebuffer;
 	}

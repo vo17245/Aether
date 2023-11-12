@@ -23,11 +23,11 @@ static void AddModel(Aether::Scene& scene,Aether::Ref<Aether::Shader>& shader,st
 Test::ShaderTest::ShaderTest()
 	:m_Camera(45,0.01,1000,16.0/9)
 {
-	AETHER_ASSERT(false);
+	
 	std::filesystem::path resDir(Aether::Config::ResourcePath);
 	std::filesystem::path shaderPath("Shader/Basic.shader");
 	auto shaderRes = Aether::Shader::CreateRefFromFile((resDir / shaderPath).string().c_str());
-	assert(shaderRes);
+	AETHER_ASSERT(shaderRes);
 	m_Shader = shaderRes.shader.value();
 	AddModel(m_Scene, m_Shader, std::string("Model/sibenik-cathedral-vray-fbx.glb"),10);
 	

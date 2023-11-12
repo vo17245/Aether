@@ -18,7 +18,7 @@ std::optional<Ref<TextureAsset>> ModelAsset::LoadEmbeddedTexture(size_t index, a
         auto compressedImageLoadres = Image::LoadFromMemDataFormat((unsigned char*)texture->pcData, texture->mWidth);
         if (!compressedImageLoadres)
         {
-            debug_log_error("Failed to load embedded compressed image {0}:{1}", __FILE__, __LINE__);
+            AETHER_DEBUG_LOG_ERROR("Failed to load embedded compressed image {0}:{1}", __FILE__, __LINE__);
             return std::nullopt;
         }
         auto image = CreateRef<Image>(std::move(compressedImageLoadres.value()));
@@ -34,7 +34,7 @@ std::optional<Ref<TextureAsset>> ModelAsset::LoadEmbeddedTexture(size_t index, a
             texture->mHeight);
         if (!loadRes)
         {
-            debug_log_error("Failed to load embedded RGBA8888 image");
+            AETHER_DEBUG_LOG_ERROR("Failed to load embedded RGBA8888 image");
             return std::nullopt;
         }
         auto image = CreateRef<Image>(std::move(loadRes.value()));

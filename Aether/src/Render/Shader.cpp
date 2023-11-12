@@ -184,7 +184,7 @@ static bool CompileShader(uint32_t type, const std::string& src,uint32_t& id,std
 		compileErrorStream<<"[OpenGL Error] "<< typeStr<<" Shader Compile Error \r\n"
 			<< message << std::endl;;
 		compileError = compileErrorStream.str();
-		debug_log_error("[OpenGL Error] {} Shader Compile Error \r\n {}",
+		AETHER_DEBUG_LOG_ERROR("[OpenGL Error] {} Shader Compile Error \r\n {}",
 			typeStr, message);
 		delete[] message;
 		return false;
@@ -297,7 +297,7 @@ bool Shader::GetLocation(const std::string& name, uint32_t& location)
 	GLCall(location = glGetUniformLocation(m_RendererId, name.c_str()));
 	if (location == -1)
 	{
-		debug_log_error("uniform {} not find in {}", name, m_Path);
+		AETHER_DEBUG_LOG_ERROR("uniform {} not find in {}", name, m_Path);
 		return false;
 	}
 	m_LocationCache[name] = location;
@@ -346,7 +346,7 @@ ShaderLoadResult Shader::CreateRefFromFile(const char* path)
 	std::ifstream ifs(path);
 	if (!ifs.is_open())
 	{
-		debug_log_error("failed to open file {}", path);
+		AETHER_DEBUG_LOG_ERROR("failed to open file {}", path);
 		res.errors.emplace_back("failed to open file");
 		return res;
 	}
