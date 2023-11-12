@@ -27,12 +27,12 @@ public:
 	~Shader();
 	void Bind()const;
 	void Unbind()const;
-	void SetVec3f(const std::string& name, const Eigen::Vector3f& v);
-	void SetVec4f(const std::string& name, const Eigen::Vector4f& v);
-	void SetMat3f(const std::string& name, const Eigen::Matrix3f& m);
-	void SetMat4f(const std::string& name, const Eigen::Matrix4f& m);
-	void SetFloat(const std::string& name, const float n);
-	void SetInt(const std::string& name, const int n);
+	bool SetVec3f(const std::string& name, const Eigen::Vector3f& v);
+	bool SetVec4f(const std::string& name, const Eigen::Vector4f& v);
+	bool SetMat3f(const std::string& name, const Eigen::Matrix3f& m);
+	bool SetMat4f(const std::string& name, const Eigen::Matrix4f& m);
+	bool SetFloat(const std::string& name, const float n);
+	bool SetInt(const std::string& name, const int n);
 	bool GetLocation(const std::string& name, uint32_t& location);
 	std::vector<std::string> GetCommands() { return m_AetherShaderCommands; }
 public:

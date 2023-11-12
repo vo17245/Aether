@@ -38,23 +38,46 @@ uniform float sheenTint = .5;
 uniform float clearcoat= 0;
 uniform float clearcoatGloss = 1;
 const float PI = 3.14159265358979323846;
+
+
+#define MAX_DIRECT_LIGHTS 10
+#define MAX_POINT_LIGHTS 10
+struct DirectLight 
+{
+    vec3 direction;
+    vec3 color;
+};
+struct PointLight 
+{
+    vec3 position;
+    vec3 color;
+};
+uniform PointLight u_PointLights[MAX_DIRECT_LIGHTS];  
+uniform int u_PointLightCnt;
+uniform DirectLight u_DirectLight[MAX_POINT_LIGHTS];
+uniform int u_DirectLightCnt;
 vec3 BRDF( vec3 L, vec3 V, vec3 N );
 vec3 BSDF( vec3 baseColor, float roughness, float NoV, float NoL, float VoH );
 void main()
 {
-    vec3 lightPos=vec3(10,10,10);
-    vec3 L=normalize(lightPos-v_FragPos);
-    vec3 N=normalize(v_Normal);
-    vec3 V=normalize(-v_FragPos);
-    vec3 H=normalize(V+L);
-    float NdotV=dot(N,V);
-    float NdotL=dot(N,L);
-    float NdotH=dot(N,H);
-    float VdotH=dot(V,H);
-    float diffuse=dot(N,L);
-    float roughness=0.1;
-    vec3 objColor=vec3(1,1,1);
-    color = vec4(BRDF(L,V,H)*BSDF(objColor,roughness,NdotV,NdotL,VdotH)*objColor,1.0);
+    vec3 sum=vec3(0,0,0);
+    for(int i=0;i<MAX_POINT_LIGHTS;i++)
+    {
+        vec3 lightPos=u_PointLights[i].position;
+        vec3 L=normalize(lightPos-v_FragPos);
+        vec3 N=normalize(v_Normal);
+        vec3 V=normalize(-v_FragPos);
+        vec3 H=normalize(V+L);
+        float NdotV=dot(N,V);
+        float NdotL=dot(N,L);
+        float NdotH=dot(N,H);
+        float VdotH=dot(V,H);
+        float diffuse=dot(N,L);
+        float roughness=0.1;
+        vec3 objColor=vec3(1,1,1);
+        sum+ = BRDF(L,V,H)*BSDF(objColor,roughness,NdotV,NdotL,VdotH)*objColor;
+    }
+    color=vec4(sum,1);
 }
 float sqr(float x) { return x*x; }
 

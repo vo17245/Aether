@@ -5,7 +5,8 @@
 #include "Aether/Core/Config.h"
 #include "Aether/Render/Renderer3D.h"
 #include <iostream>
-
+#include "Aether/Render/Light.h"
+#include "Aether/Core/Assert.h"
 static void AddModel(Aether::Scene& scene,Aether::Ref<Aether::Shader>& shader,std::string& path,float x)
 {
 	std::filesystem::path resDir(Aether::Config::ResourcePath);
@@ -22,7 +23,7 @@ static void AddModel(Aether::Scene& scene,Aether::Ref<Aether::Shader>& shader,st
 Test::ShaderTest::ShaderTest()
 	:m_Camera(45,0.01,1000,16.0/9)
 {
-
+	AETHER_ASSERT(false);
 	std::filesystem::path resDir(Aether::Config::ResourcePath);
 	std::filesystem::path shaderPath("Shader/Basic.shader");
 	auto shaderRes = Aether::Shader::CreateRefFromFile((resDir / shaderPath).string().c_str());
@@ -39,8 +40,10 @@ Test::ShaderTest::~ShaderTest()
 
 void Test::ShaderTest::OnRender()
 {
+	Aether::PointLight light(Aether::Vec3(0,0,0),Aether::Vec3(10,10,10) );
 	Aether::OpenGLApi::BindFrameBuffer(0);
 	Aether::Renderer3D::BeginScene(&m_Camera);
+	Aether::Renderer3D::Submit(light);
 	auto view = m_Scene.GetAllEntitiesWith<Aether::MeshComponent>();
 	for (auto& [entity, mc] : view.each())
 	{

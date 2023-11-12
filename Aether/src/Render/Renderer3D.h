@@ -19,20 +19,31 @@ namespace Aether
 			Ref<Mesh> mesh;
 			Ref<Shader> shader;
 			Mat4 modelMatrix;
+			void Draw();
+			VisualObject(Ref<Mesh>& _mesh,
+				Ref<Shader>& _shader,
+				const Mat4& _modelMatrix)
+				:mesh(_mesh), shader(_shader), modelMatrix(_modelMatrix)
+			{}
+			bool SetDirectLight(std::vector<DirectLight>& lights);
+			bool SetPointLight(std::vector<PointLight>& lights);
 		};
+
 	private:
 		static const Camera* s_Camera;
 		static std::vector<Light> s_Lights;
 		static std::vector<VisualObject> s_VisualObjects;
-	private:
-		static void Submit(VertexArray& va, IndexBuffer& ib, Shader& shader, const Eigen::Matrix4f& modelMatrix);
-		static void Submit(Ref<VertexArray>& va, Ref<IndexBuffer>& ib, Ref<Shader>& shader, const Eigen::Matrix4f& modelMatrix);
+		static std::vector<DirectLight> s_DirectLights;
+		static std::vector<PointLight> s_PointLights;
+
+		
 	public:
 		static void BeginScene(const Camera* camera);
 		
 		static void Submit(Ref<Mesh>& mesh, Ref<Shader>& shader, const Eigen::Matrix4f& modelMatrix);
-		
-		static void EndScene() {}
+		static void Submit(const DirectLight& light);
+		static void Submit(const PointLight& light);
+		static void EndScene();
 
 	};
 }

@@ -5,6 +5,7 @@
 #include <optional>
 #include "Component.h"
 #include <filesystem>
+#include "../Core/Assert.h"
 namespace Aether
 {
 	class Scene;
@@ -17,7 +18,8 @@ namespace Aether
 		template<typename T, typename... Args>
 		T& AddComponent(Args&&... args)
 		{
-			assert(!HasComponent<T>() && "Entity already has component!");
+			AETHER_ASSERT(!HasComponent<T>() && "Entity already has component!");
+			
 
 			T& component = m_Scene->m_Registry.emplace<T>(m_EntityHandle, std::forward<Args>(args)...);
 			
@@ -35,7 +37,7 @@ namespace Aether
 		template<typename T>
 		T& GetComponent()
 		{
-			assert(HasComponent<T>() && "Entity does not have component!");
+			AETHER_ASSERT(HasComponent<T>() && "Entity does not have component!");
 
 			return m_Scene->m_Registry.get<T>(m_EntityHandle);
 		}
@@ -50,7 +52,7 @@ namespace Aether
 		template<typename T>
 		void RemoveComponent()
 		{
-			assert(HasComponent<T>() && "Entity does not have component!");
+			AETHER_ASSERT(HasComponent<T>() && "Entity does not have component!");
 			m_Scene->m_Registry.remove<T>(m_EntityHandle);
 		}
 

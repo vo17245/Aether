@@ -24,7 +24,7 @@ file(GLOB_RECURSE GLOBAL_FILE
 "src/*.h"
 )
 add_definitions(-DGLEW_STATIC)
-
+add_definitions(-DAETHER_ENABLE_ASSERT)
 # compile mode
 #set(CMAKE_BUILD_TYPE "Debug")
 

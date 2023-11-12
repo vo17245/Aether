@@ -220,46 +220,70 @@ void Shader::Unbind()const
 	GLCall(glUseProgram(0));
 }
 
-void Shader::SetVec3f(const std::string& name, const Eigen::Vector3f& v)
+bool Shader::SetVec3f(const std::string& name, const Eigen::Vector3f& v)
 {
 	uint32_t location;
-	GetLocation(name, location);
+	if (!GetLocation(name, location))
+	{
+		return false;
+	}
 	GLCall(glUniform3f(location, v.data()[0], v.data()[1], v.data()[2]));
+	return true;
 }
 
-void Shader::SetVec4f(const std::string& name, const Eigen::Vector4f& v)
+bool Shader::SetVec4f(const std::string& name, const Eigen::Vector4f& v)
 {
 	uint32_t location;
-	GetLocation(name, location);
+	if (!GetLocation(name, location))
+	{
+		return false;
+	}
 	GLCall(glUniform4f(location, v.data()[0], v.data()[1], v.data()[2], v.data()[3]));
+	return true;
 }
 
-void Shader::SetMat3f(const std::string& name, const Eigen::Matrix3f& m)
+bool Shader::SetMat3f(const std::string& name, const Eigen::Matrix3f& m)
 {
 	uint32_t location;
-	GetLocation(name, location);
+	if (!GetLocation(name, location))
+	{
+		return false;
+	}
 	GLCall(glUniformMatrix3fv(location, 1, GL_FALSE, m.data()));
+	return true;
 }
 
-void Shader::SetMat4f(const std::string& name, const Eigen::Matrix4f& m)
+bool Shader::SetMat4f(const std::string& name, const Eigen::Matrix4f& m)
 {
 	uint32_t location;
-	GetLocation(name, location);
+	if (!GetLocation(name, location))
+	{
+		return false;
+	}
 	GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, m.data()));
+	return true;
 }
 
-void Shader::SetFloat(const std::string& name,const float n)
+bool Shader::SetFloat(const std::string& name,const float n)
 {
 	uint32_t location;
-	GetLocation(name, location);
+	if (!GetLocation(name, location))
+	{
+		return false;
+	}
 	GLCall(glUniform1f(location, n));
+	return true;
 }
 
-void Shader::SetInt(const std::string& name, const int n) 
+bool Shader::SetInt(const std::string& name, const int n) 
 {
 	uint32_t location;
-	GetLocation(name, location);
+	if (!GetLocation(name, location))
+	{
+		return false;
+	}
 	GLCall(glUniform1i(location, n));
+	return true;
 }
 
 bool Shader::GetLocation(const std::string& name, uint32_t& location)
