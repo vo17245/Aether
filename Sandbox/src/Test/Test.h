@@ -7,7 +7,7 @@
 #include <vector>
 #include "Aether/Core/Core.h"
 #define RESOURCE(x) ("../../Resource/" x)
-namespace Test
+namespace Aether
 {
 	
 	class Test

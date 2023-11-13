@@ -2,7 +2,7 @@
 #include "Aether/Event/WindowEvent.h"
 #include "Aether/Render/OpenGLApi.h"
 
-namespace Test
+namespace Aether
 {
 	void TestMenu::OnImGuiRender()
 	{

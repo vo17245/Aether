@@ -9,7 +9,7 @@
 #include "Aether/Core/Assert.h"
 static void AddModel(Aether::Scene& scene,Aether::Ref<Aether::Shader>& shader,std::string& path,float x)
 {
-	std::filesystem::path resDir(Aether::Config::ResourcePath);
+	std::filesystem::path resDir("../res");
 	std::filesystem::path modelPath(path);
 	auto res = Aether::ModelAssetImporter::LoadFromFile((resDir / modelPath).string());
 	assert(res);
@@ -20,11 +20,11 @@ static void AddModel(Aether::Scene& scene,Aether::Ref<Aether::Shader>& shader,st
 	tc.CalculateMatrix();
 	sphere.AddComponent<Aether::TagComponent>(path);
 }
-Test::ShaderTest::ShaderTest()
+Aether::ShaderTest::ShaderTest()
 	:m_Camera(45,0.01,1000,16.0/9)
 {
 	
-	std::filesystem::path resDir(Aether::Config::ResourcePath);
+	std::filesystem::path resDir("../res");
 	std::filesystem::path shaderPath("Shader/Basic.shader");
 	auto shaderRes = Aether::Shader::CreateRefFromFile((resDir / shaderPath).string().c_str());
 	AETHER_ASSERT(shaderRes);
@@ -34,16 +34,18 @@ Test::ShaderTest::ShaderTest()
 	
 }
 
-Test::ShaderTest::~ShaderTest()
+Aether::ShaderTest::~ShaderTest()
 {
 }
 
-void Test::ShaderTest::OnRender()
+void Aether::ShaderTest::OnRender()
 {
-	Aether::PointLight light(Aether::Vec3(0,0,0),Aether::Vec3(10,10,10) );
+	Aether::PointLight light1(Aether::Vec3(0,0,0),Aether::Vec3(10,10,10) );
+	Aether::PointLight light2(Aether::Vec3(0, 0, 0), Aether::Vec3(-10, 10, 10));
 	Aether::OpenGLApi::BindFrameBuffer(0);
 	Aether::Renderer3D::BeginScene(&m_Camera);
-	Aether::Renderer3D::Submit(light);
+	Aether::Renderer3D::Submit(light1);
+	Aether::Renderer3D::Submit(light2);
 	auto view = m_Scene.GetAllEntitiesWith<Aether::MeshComponent>();
 	for (auto& [entity, mc] : view.each())
 	{
@@ -64,8 +66,18 @@ void Test::ShaderTest::OnRender()
 
 }
 
-void Test::ShaderTest::OnImGuiRender()
+void Aether::ShaderTest::OnImGuiRender()
 {
+	static bool dockspaceOpen = true;
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->Pos);
+	ImGui::SetNextWindowSize(viewport->Size);
+	ImGui::SetNextWindowViewport(viewport->ID);
+	int window_flags = 0;
+	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+	ImGui::Begin("Editor", &dockspaceOpen, window_flags);
+	ImGui::End();
 	ImGui::Begin("Scene");
 	auto view=m_Scene.GetAllEntitiesWith<Aether::TagComponent>();
 	for (auto& [entity,tagc] : view.each())
@@ -81,21 +93,21 @@ void Test::ShaderTest::OnImGuiRender()
 	ImGui::End();
 }
 
-void Test::ShaderTest::OnEvent(Aether::Event& event)
+void Aether::ShaderTest::OnEvent(Aether::Event& event)
 {
 	
 }
 
-bool Test::ShaderTest::OnFileDrop(Aether::WindowFileDropEvent& event)
+bool Aether::ShaderTest::OnFileDrop(Aether::WindowFileDropEvent& event)
 {
 	return false;
 }
-void Test::ShaderTest::OnLoopEnd()
+void Aether::ShaderTest::OnLoopEnd()
 {
 	
 }
 
-void Test::ShaderTest::OnUpdate(float ds)
+void Aether::ShaderTest::OnUpdate(float ds)
 {
 	auto view = m_Scene.GetAllEntitiesWith<Aether::TransformComponent>();
 	for (auto& [entity, tc] : view.each())

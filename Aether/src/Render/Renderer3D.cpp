@@ -85,7 +85,7 @@ bool Renderer3D::VisualObject::SetDirectLight(std::vector<DirectLight>& lights)
 		return false;
 	}
 	shader->Bind();
-	if (shader->SetInt("u_DirectLightCnt", lights.size()))
+	if (!shader->SetInt("u_DirectLightCnt", lights.size()))
 	{
 		AETHER_DEBUG_LOG_ERROR("failed to set u_DirectLightCnt");
 		return false;
@@ -118,7 +118,7 @@ bool Renderer3D::VisualObject::SetPointLight(std::vector<PointLight>& lights)
 		return false;
 	}
 	shader->Bind();
-	if (shader->SetInt("u_PointLightCnt", lights.size()))
+	if (!shader->SetInt("u_PointLightCnt", lights.size()))
 	{
 		AETHER_DEBUG_LOG_ERROR("failed to set u_PointLightCnt");
 		return false;

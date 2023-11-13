@@ -11,7 +11,7 @@
 #include "../Event/WindowEvent.h"
 #include "../Event/KeyboardEvent.h"
 #include "../Event/MouseEvent.h"
-
+#include "Config.h"
 
 #include "../Core/Log.h"
 AETHER_NAMESPACE_BEGIN
@@ -22,12 +22,10 @@ Application::Application()
     InitGLEW();
     InitImGui();
     InitEvent();
+    Log::Get();
 }
 
-Application::~Application()
-{
 
-}
 
 void Application::InitWindow()
 {
@@ -41,7 +39,7 @@ void Application::InitWindow()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     /* Create a windowed mode window and its OpenGL context */
-    m_Window = glfwCreateWindow(1600, 900, "Aether", NULL, NULL);
+    m_Window = glfwCreateWindow(1600, 900, GetConfig().app_name, NULL, NULL);
     if (!m_Window)
     {
         glfwTerminate();
@@ -222,5 +220,67 @@ void Application::MousePositionEventCallback(GLFWwindow* window, double xpos, do
 {
     ImGui_ImplGlfw_CursorPosCallback(window,  xpos,  ypos);
     s_EventQueue.push_back(new MousePositionEvent(xpos, ypos));
+}
+void Application::OnUpdate(float ds)
+{
+    for (auto& layer : m_Layers)
+    {
+        layer->OnUpdate(ds);
+    }
+}
+void Application::OnEvent(Event& e)
+{
+    for (auto& layer : m_Layers)
+    {
+        layer->OnEvent(e);
+    }
+}
+void Application::OnRender()
+{
+    for (auto& layer : m_Layers)
+    {
+        layer->OnRender();
+    }
+}
+void Application::OnImGuiRender()
+{
+    for (auto& layer : m_Layers)
+    {
+        layer->OnImGuiRender();
+    }
+}
+void Application::OnDestory()
+{
+    m_Layers.clear();
+}
+void Application::OnLoopBegin()
+{
+    for (auto& layer : m_Layers)
+    {
+        layer->OnLoopBegin();
+    }
+}
+void Application::OnLoopEnd()
+{
+    for (auto& layer : m_Layers)
+    {
+        layer->OnLoopEnd();
+    }
+}
+void Application::PushLayer(Ref<Layer> layer)
+{
+    m_Layers.push_back(layer);
+}
+bool Application::PopLayer(Ref<Layer> layer)
+{
+    for (auto iter = m_Layers.begin();iter != m_Layers.end();iter++)
+    {
+        if (*iter == layer)
+        {
+            m_Layers.erase(iter);
+            return true;
+        }
+    }
+    return false;
 }
 AETHER_NAMESPACE_END

@@ -60,8 +60,8 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N );
 vec3 BSDF( vec3 baseColor, float roughness, float NoV, float NoL, float VoH );
 void main()
 {
-    vec3 sum=vec3(0,0,0);
-    for(int i=0;i<MAX_POINT_LIGHTS;i++)
+    vec3 colorSum=vec3(0,0,0);
+    for(int i=0;i<u_PointLightCnt;i++)
     {
         vec3 lightPos=u_PointLights[i].position;
         vec3 L=normalize(lightPos-v_FragPos);
@@ -75,9 +75,9 @@ void main()
         float diffuse=dot(N,L);
         float roughness=0.1;
         vec3 objColor=vec3(1,1,1);
-        sum+ = BRDF(L,V,H)*BSDF(objColor,roughness,NdotV,NdotL,VdotH)*objColor;
+        colorSum = BRDF(L,V,H)*BSDF(objColor,roughness,NdotV,NdotL,VdotH)*objColor;
     }
-    color=vec4(sum,1);
+    color=vec4(colorSum,1);
 }
 float sqr(float x) { return x*x; }
 

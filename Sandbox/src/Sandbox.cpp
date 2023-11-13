@@ -1,54 +1,13 @@
 #include "Sandbox.h"
-#include "Test/TestMenu.h"
-
-#include "Test/ShaderTest.h"
-#include "Test/FrameBufferTest.h"
-Sandbox::Sandbox()
-	
+#include "TestLayer.h"
+namespace Aether
 {
-	auto testMenu = Aether::CreateScope<Test::TestMenu>();
-	testMenu->RegisterTest("ShaderTest", []() {return Aether::CreateScope<Test::ShaderTest>();});
-	testMenu->RegisterTest("FrameBufferTest", []() {return Aether::CreateScope<Test::FrameBufferTest>();});
-	m_Test = std::move(testMenu);
+	Sandbox::Sandbox()
+	{
+		auto layer=CreateRef<TestLayer>();
+		PushLayer(layer);
 
+	}
 }
 
-void Sandbox::OnImGuiRender()
-{
-	m_Test->OnImGuiRender();
-	ImGui::Begin("Sandbox");
-	ImGui::Text("Hello");
-	ImGui::End();
-}
 
-void Sandbox::OnRender()
-{
-	m_Test->OnRender();
-}
-
-void Sandbox::OnEvent(Aether::Event& event)
-{
-	m_Test->OnEvent(event);
-	
-}
-
-void Sandbox::OnDestory()
-{
-	if (m_Test)
-		delete m_Test.release();
-}
-
-void Sandbox::OnUpdate(float sec)
-{
-	m_Test->OnUpdate(sec);
-}
-
-void Sandbox::OnLoopEnd()
-{
-	m_Test->OnLoopEnd();
-}
-
-void Sandbox::OnLoopBegin()
-{
-	m_Test->OnLoopBegin();
-}

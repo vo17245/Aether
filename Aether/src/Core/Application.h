@@ -13,26 +13,29 @@
 #include "../Render/Texture2D.h"
 #include "../Event/Event.h"
 #include <chrono>
+#include "Layer.h"
 
 AETHER_NAMESPACE_BEGIN
 class Application
 {
 public:
     Application();
-    virtual ~Application();
+    ~Application() {};
     void InitWindow();
     void InitGLEW();
     void InitImGui();
     void InitEvent();
     int Run();
     void DispatchEvent();
-    virtual void OnUpdate(float sec) {}
-    virtual void OnEvent(Event& event) {}
-    virtual void OnRender() {}
-    virtual void OnImGuiRender() {}
-    virtual void OnDestory(){}
-    virtual void OnLoopBegin() {}
-    virtual void OnLoopEnd(){}
+    void OnUpdate(float ds);
+    void OnEvent(Event& e);
+    void OnRender();
+    void OnImGuiRender();
+    void OnDestory();
+    void OnLoopBegin();
+    void OnLoopEnd();
+    void PushLayer(Ref<Layer> layer);
+    bool PopLayer(Ref<Layer> layer);
 private:
     //event
     static void WindowSizeCallback(GLFWwindow* window, int width, int height);
@@ -48,6 +51,9 @@ private:
     size_t m_TimeLastTickBegin;
 private:
     GLFWwindow* m_Window;
+  
+private:
+    std::vector<Ref<Layer>> m_Layers;
 
 };
 AETHER_NAMESPACE_END

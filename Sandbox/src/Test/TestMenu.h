@@ -6,7 +6,7 @@
 #include <memory>
 #include <unordered_map>
 #include "Aether/Core/Log.h"
-namespace Test
+namespace Aether
 {
 	class TestMenu :public Test
 	{

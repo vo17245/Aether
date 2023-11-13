@@ -7,7 +7,7 @@
 static void AddModel(Aether::Scene& scene,
 	Aether::Ref<Aether::Shader>& shader, std::string& path, float x)
 {
-	std::filesystem::path resDir(Aether::Config::ResourcePath);
+	std::filesystem::path resDir("../res");
 	std::filesystem::path modelPath(path);
 	auto res = Aether::ModelAssetImporter::LoadFromFile((resDir / modelPath).string());
 	assert(res);
@@ -18,7 +18,7 @@ static void AddModel(Aether::Scene& scene,
 	tc.CalculateMatrix();
 	sphere.AddComponent<Aether::TagComponent>(path);
 }
-Test::FrameBufferTest::FrameBufferTest()
+Aether::FrameBufferTest::FrameBufferTest()
 	:m_OrthographicCamera(-800,800,-450,450,1,-10), m_Camera(45, 0.01, 1000, 16.0 / 9)
 {
 	m_FB=Aether::CreateRef<Aether::FrameBuffer>(1600,900);
@@ -28,7 +28,7 @@ Test::FrameBufferTest::FrameBufferTest()
 	assert(res);
 	m_ScreenShader = res.shader.value();
 
-	std::filesystem::path resDir(Aether::Config::ResourcePath);
+	std::filesystem::path resDir("../res");
 	std::filesystem::path shaderPath("Shader/Basic.shader");
 	auto shaderRes = Aether::Shader::CreateRefFromFile((resDir / shaderPath).string().c_str());
 	assert(shaderRes);
@@ -39,11 +39,11 @@ Test::FrameBufferTest::FrameBufferTest()
 	m_Texture = Aether::CreateRef<Aether::Texture2D>(imageRes.value());
 }
 
-Test::FrameBufferTest::~FrameBufferTest()
+Aether::FrameBufferTest::~FrameBufferTest()
 {
 }
 
-void Test::FrameBufferTest::OnRender()
+void Aether::FrameBufferTest::OnRender()
 {
 	//Render framebuffer 
 	m_FB->Bind();
@@ -85,7 +85,7 @@ void Test::FrameBufferTest::OnRender()
 	Aether::Renderer3D::EndScene();
 }
 
-void Test::FrameBufferTest::OnImGuiRender()
+void Aether::FrameBufferTest::OnImGuiRender()
 {
 	ImGui::Begin("Scene");
 	auto view = m_Scene.GetAllEntitiesWith<Aether::TagComponent>();

@@ -8,7 +8,7 @@
 #include "Aether/Scene/Entity.h"
 #include "Aether/Scene/Component.h"
 #include "Aether/Render/Camera.h"
-namespace Test
+namespace Aether
 {
 	class ShaderTest :public Test
 	{

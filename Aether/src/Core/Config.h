@@ -4,6 +4,10 @@ namespace Aether
 	class Config
 	{
 	public:
-		static const char* ResourcePath;
+		
+		const char* resource_path;
+		const char* log_name;
+		const char* app_name;
 	};
+	extern Config& GetConfig();//define in Aether Application
 }

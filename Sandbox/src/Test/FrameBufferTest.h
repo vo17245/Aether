@@ -10,7 +10,7 @@
 #include "Aether/Render/Camera.h"
 #include "Aether/Render/FrameBuffer.h"
 #include "Aether/Geometry/Rectangle.h"
-namespace Test
+namespace Aether
 {
 	class FrameBufferTest :public Test
 	{
