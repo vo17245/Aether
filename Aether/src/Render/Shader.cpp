@@ -4,7 +4,8 @@
 #include <sstream>
 #include "OpenGLApi.h"
 #include "../Core/Log.h"
-
+#include <filesystem>
+#include "../Core/Assert.h"
 namespace Aether
 {
 static std::string & trim(std::string & s)
@@ -184,8 +185,10 @@ static bool CompileShader(uint32_t type, const std::string& src,uint32_t& id,std
 		compileErrorStream<<"[OpenGL Error] "<< typeStr<<" Shader Compile Error \r\n"
 			<< message << std::endl;;
 		compileError = compileErrorStream.str();
+		
 		AETHER_DEBUG_LOG_ERROR("[OpenGL Error] {} Shader Compile Error \r\n {}",
 			typeStr, message);
+		
 		delete[] message;
 		return false;
 	}
@@ -379,5 +382,19 @@ ShaderLoadResult Shader::CreateRefFromFile(const char* path)
 	shader->m_AetherShaderCommands = aetherShaderCommands;
 	res.shader = shader;
 	return res;
+}
+Ref<Shader> Shader::Premake::GetBasic()
+{
+	static ShaderLoadResult shader =
+		(
+			Shader::CreateRefFromFile
+			(
+				(
+					std::filesystem::path(GetConfig().resource_path) / "Shader/Premake/Basic.shader"
+				).string().c_str()
+			)
+		);
+	AETHER_ASSERT(shader && "Failed to init premake basic shader");
+	return shader.shader.value();
 }
 }//namespace Aether

@@ -8,7 +8,7 @@ namespace Aether
     Config& GetConfig()
     {
         static Config config;
-        config.resource_path="../Resource";
+        config.resource_path="../../Resource";
 		config.log_name="AetherEditor";
 		config.app_name="AetherEditor";
         return config;

@@ -16,6 +16,7 @@
 #include "../Core/Log.h"
 AETHER_NAMESPACE_BEGIN
 std::vector<Event*> Application::s_EventQueue;
+
 Application::Application()
 {
     InitWindow();

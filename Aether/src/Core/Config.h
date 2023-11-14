@@ -9,5 +9,5 @@ namespace Aether
 		const char* log_name;
 		const char* app_name;
 	};
-	extern Config& GetConfig();//define in Aether Application
+	extern Config& GetConfig();//define in Aether App
 }

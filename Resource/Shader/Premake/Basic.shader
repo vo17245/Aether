@@ -25,12 +25,12 @@ void main()
 // light
 #define MAX_DIRECT_LIGHTS 10
 #define MAX_POINT_LIGHTS 10
-struct DirectLight 
+struct DirectLight
 {
     vec3 direction;
     vec3 color;
 };
-struct PointLight 
+struct PositionLight
 {
     vec3 position;
     vec3 color;
@@ -54,16 +54,16 @@ vec3 OnPointLight(PointLight light)
 }
 void main()
 {
-    vec3 color=vec3(0,0,0);
+    vec3 sumColor=vec3(0,0,0);
     for(int  i=0;i<MAX_DIRECT_LIGHTS;i++)
     {
         //direct light
-        color+=OnDirectLight(pointLights);
+        sumColor=sumColor+OnDirectLight(u_PointLights[i]);
     }
     for(int  i=0;i<MAX_POINT_LIGHTS;i++)
     {
         //point light
-        color+=OnPointLight(pointLights);
+        sumColor=sumColor+OnPointLight(u_DirectLight[i]);
     }
     gl_FragColor=vec4(color,1);
     

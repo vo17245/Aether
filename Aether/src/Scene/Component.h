@@ -4,6 +4,7 @@
 #include <vector>
 #include "../Render/Mesh.h"
 #include "../Asset/ModelAsset.h"
+#include "../Render/Light.h"
 namespace Aether
 {
 	struct IDComponent
@@ -17,6 +18,8 @@ namespace Aether
 		std::string Tag;
 		TagComponent() = default;
 		TagComponent(const TagComponent&) = default;
+		TagComponent(const std::string& tag)
+			:Tag(tag) {}
 	};
 	struct TransformComponent
 	{
@@ -31,12 +34,22 @@ namespace Aether
 			Scaling(1,1,1) ,Matrix(Eigen::Matrix4f::Identity()){}
 		void CalculateMatrix();
 	};
-	struct MeshComponent
+	struct VisualComponent
 	{
 		std::vector<Ref<Mesh>> Meshes;
-		MeshComponent(const MeshComponent&) = default;
-		MeshComponent() = default;
-		MeshComponent(Ref<ModelAsset>& modelAsset);
+		std::vector<Ref<Shader>> Shaders;
+		VisualComponent(const VisualComponent&) = default;
+		VisualComponent() = default;
+		VisualComponent(Ref<ModelAsset>& modelAsset);
 		
+	};
+	struct PointLightComponent
+	{
+		PointLight Light;
+		PointLightComponent(const PointLightComponent&) = default;
+		PointLightComponent() = default;
+		PointLightComponent(const Vec3& color, const Vec3& pos)
+			:Light(color,pos)
+		{}
 	};
 }

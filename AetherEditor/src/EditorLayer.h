@@ -4,6 +4,7 @@
 #include "Aether/Render/FrameBuffer.h"
 #include "Aether/Core/Application.h"
 #include "Aether/Event/WindowEvent.h"
+#include "Aether/Core/Math.h"
 namespace Aether
 {
 	class EditorLayer:public Layer
@@ -17,9 +18,11 @@ namespace Aether
 	private:
 		Scene m_Scene;
 		Ref<FrameBuffer> m_FB;
+		Vec2 m_FbViewportSize;
 	private:
-		void DrawSceneView();
+	
 		bool OnWindowResize(WindowResizeEvent& e);
+
 	
 	};
 

@@ -18,6 +18,7 @@
 AETHER_NAMESPACE_BEGIN
 class Application
 {
+
 public:
     Application();
     ~Application() {};
@@ -56,4 +57,5 @@ private:
     std::vector<Ref<Layer>> m_Layers;
 
 };
+extern Application& GetApplication();//define in Aether App
 AETHER_NAMESPACE_END

@@ -2,7 +2,7 @@
 #include "../Core/Config.h"
 #include <filesystem>
 #include "../Render/Transform.h"
-Aether::MeshComponent::MeshComponent(Ref<ModelAsset>& modelAsset)
+Aether::VisualComponent::VisualComponent(Ref<ModelAsset>& modelAsset)
 {
 	
 	for (auto& meshAsset : modelAsset->GetMeshes())
@@ -13,6 +13,7 @@ Aether::MeshComponent::MeshComponent(Ref<ModelAsset>& modelAsset)
 		auto ib = CreateRef<IndexBuffer>(meshAsset.Indices.data(), meshAsset.Indices.size());
 		va->SetData(*vb, vbl);
 		Meshes.emplace_back(CreateRef<Mesh>(va, vb, ib));
+		Shaders.push_back(Shader::Premake::GetBasic());
 	}
 }
 

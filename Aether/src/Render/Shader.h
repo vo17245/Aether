@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <unordered_map>
 #include <optional>
+#include "../Core/Config.h"
 /*
 * #aether_shader_command
 * use_model
@@ -15,7 +16,6 @@
 */
 namespace Aether
 {
-
 struct ShaderLoadResult;
 class Shader
 {
@@ -44,6 +44,13 @@ private:
 	std::vector<std::string> m_CompileErrors;
 	std::vector<std::string> m_AetherShaderCommands;
 	std::string m_Path;
+public:
+	class Premake
+	{
+	public:
+		static Ref<Shader> GetBasic();
+	};
+	
 };
 struct ShaderLoadResult
 {
@@ -54,4 +61,5 @@ struct ShaderLoadResult
 	ShaderLoadResult(ShaderLoadResult&&) = default;
 	ShaderLoadResult() = default;
 };
+
 }//namespace Aether

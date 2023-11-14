@@ -50,14 +50,14 @@ inline void DebugLogFunc(const char* file, int line, const char* fmt, Args&&... 
 {
 	auto msg = fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
 	std::string debugMsg = fmt::format("[{}:{}] {}", file, line, msg);
-	Log::Debug(fmt::runtime(debugMsg.c_str()));
+	Log::Debug("{}",debugMsg.c_str());
 }
 template<typename... Args>
 inline void DebugLogErrorFunc(const char* file, int line, const char* fmt, Args&&... args)
 {
 	auto msg = fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
 	std::string debugMsg = fmt::format("[{}:{}] {}", file, line, msg);
-	Log::Error(fmt::runtime(debugMsg.c_str()));
+	Log::Error("{}", debugMsg.c_str());
 }
 AETHER_NAMESPACE_END
 
