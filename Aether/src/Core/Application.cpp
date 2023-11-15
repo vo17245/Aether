@@ -14,6 +14,7 @@
 #include "Config.h"
 
 #include "../Core/Log.h"
+
 AETHER_NAMESPACE_BEGIN
 std::vector<Event*> Application::s_EventQueue;
 
@@ -231,6 +232,7 @@ void Application::OnUpdate(float ds)
 }
 void Application::OnEvent(Event& e)
 {
+    Input::OnEvent(e);
     for (auto& layer : m_Layers)
     {
         layer->OnEvent(e);

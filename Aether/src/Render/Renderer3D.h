@@ -40,9 +40,9 @@ namespace Aether
 	public:
 		static void BeginScene(const Camera* camera);
 		
-		static void Submit(Ref<Mesh>& mesh, Ref<Shader>& shader, const Eigen::Matrix4f& modelMatrix);
-		static void Submit(const DirectLight& light);
-		static void Submit(const PointLight& light);
+		static void Submit(Ref<Mesh> mesh, Ref<Shader> shader, const Eigen::Matrix4f modelMatrix);
+		static void Submit(const DirectLight light);
+		static void Submit(const PointLight light);
 		static void EndScene();
 
 	};

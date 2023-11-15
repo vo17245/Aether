@@ -54,15 +54,15 @@ void main()
     for(int  i=0;i<u_DirectLightCnt;i++)
     {
         vec3 L=normalize(u_DirectLights[i].direction);
-        sumColor=dot(L,N)*baseColor*u_DirectLights[i].color;
+        sumColor+=dot(L,N)*baseColor*u_DirectLights[i].color;
     }
     for(int  i=0;i<u_PointLightCnt;i++)
     {
         //point light
         vec3 L=normalize(u_PointLights[i].position-v_FragPos);
-        sumColor=dot(L,N)*baseColor*u_PointLights[i].color;
+        sumColor+=dot(L,N)*baseColor*u_PointLights[i].color;
        
     }
-    color=vec4(sumColor,1);
+    color=vec4(pow(sumColor.x,2.2),pow(sumColor.y,2.2),pow(sumColor.z,2.2),1);
     
 }

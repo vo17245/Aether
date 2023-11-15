@@ -22,17 +22,17 @@ void Renderer3D::BeginScene(const Camera* camera)
 	
 }
 
-void Renderer3D::Submit(Ref<Mesh>& mesh, Ref<Shader>& shader,const Eigen::Matrix4f& modelMatrix)
+void Renderer3D::Submit(Ref<Mesh> mesh, Ref<Shader> shader,const Eigen::Matrix4f modelMatrix)
 {
 	s_VisualObjects.emplace_back(mesh, shader, modelMatrix);
 }
 
-void Aether::Renderer3D::Submit(const DirectLight& light)
+void Aether::Renderer3D::Submit(const DirectLight light)
 {
 	s_DirectLights.emplace_back(light);
 }
 
-void Aether::Renderer3D::Submit(const PointLight& light)
+void Aether::Renderer3D::Submit(const PointLight light)
 {
 	s_PointLights.emplace_back(light);
 }

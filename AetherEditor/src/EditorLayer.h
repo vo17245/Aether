@@ -5,6 +5,7 @@
 #include "Aether/Core/Application.h"
 #include "Aether/Event/WindowEvent.h"
 #include "Aether/Core/Math.h"
+#include "Aether/Scene/CameraController.h"
 namespace Aether
 {
 	class EditorLayer:public Layer
@@ -15,8 +16,9 @@ namespace Aether
 		void OnImGuiRender()override;
 		void OnRender()override;
 		void OnEvent(Event& e)override;
-	
+		void OnUpdate(float ds)override;
 	private:
+		PerspectiveCameraController m_CameraController;
 		Scene m_Scene;
 		Ref<FrameBuffer> m_FB;
 		Vec2 m_FbViewportSize;
