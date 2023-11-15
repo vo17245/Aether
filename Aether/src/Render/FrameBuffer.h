@@ -17,5 +17,6 @@ namespace Aether
 	private:
 		RendererId m_RendererId;
 		Ref<Texture2D> m_Texture;
+		RendererId m_RenderBuferId;
 	};
 }

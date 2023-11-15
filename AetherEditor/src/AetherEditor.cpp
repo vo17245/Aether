@@ -6,4 +6,8 @@ namespace Aether
 	{
 		PushLayer(CreateRef<EditorLayer>());
 	}
+	AetherEditor::~AetherEditor()
+	{
+		
+	}
 }

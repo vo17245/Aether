@@ -8,18 +8,25 @@ Aether::EditorLayer::EditorLayer()
 {
 	m_FB = Aether::CreateRef<Aether::FrameBuffer>(1600, 900);
 	OpenGLApi::BindFrameBuffer(0);
-	auto entity=m_Scene.CreateEntity();
+	auto teapot=m_Scene.CreateEntity();
 	std::string path = std::string(GetConfig().resource_path) + "/Model/teapot.obj";
 	auto res=ModelAssetImporter::LoadFromFile(path);
-
+	
 	if (!res)
 	{
 		Log::Error("failed to load {}", path);
 		return;
 	}
-	entity.AddComponent<VisualComponent>(res.value());
-	entity.AddComponent<TagComponent>("teapot");
-	entity.AddComponent<TransformComponent>();
+	teapot.AddComponent<VisualComponent>(res.value());
+	teapot.AddComponent<TagComponent>("teapot");
+	teapot.AddComponent<TransformComponent>();
+	auto light = m_Scene.CreateEntity();
+	light.AddComponent<PointLightComponent>(Vec3(1, 1, 1), Vec3(100, 100, 100));
+}
+
+Aether::EditorLayer::~EditorLayer()
+{
+
 }
 
 void Aether::EditorLayer::OnImGuiRender()

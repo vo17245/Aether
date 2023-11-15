@@ -57,5 +57,5 @@ private:
     std::vector<Ref<Layer>> m_Layers;
 
 };
-extern Application& GetApplication();//define in Aether App
+
 AETHER_NAMESPACE_END

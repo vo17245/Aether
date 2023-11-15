@@ -48,7 +48,7 @@ public:
 	class Premake
 	{
 	public:
-		static Ref<Shader> GetBasic();
+		static Ref<Shader>& GetBasic();
 	};
 	
 };

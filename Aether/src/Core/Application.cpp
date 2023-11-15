@@ -253,6 +253,7 @@ void Application::OnImGuiRender()
 void Application::OnDestory()
 {
     m_Layers.clear();
+    Shader::Premake::GetBasic().reset();
 }
 void Application::OnLoopBegin()
 {

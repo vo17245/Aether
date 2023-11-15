@@ -8,6 +8,6 @@ namespace Aether
 	{
 	public:
 		AetherEditor();
-		~AetherEditor() {}
+		~AetherEditor(); 
 	};
 }

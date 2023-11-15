@@ -383,7 +383,7 @@ ShaderLoadResult Shader::CreateRefFromFile(const char* path)
 	res.shader = shader;
 	return res;
 }
-Ref<Shader> Shader::Premake::GetBasic()
+Ref<Shader>& Shader::Premake::GetBasic()
 {
 	static ShaderLoadResult shader =
 		(

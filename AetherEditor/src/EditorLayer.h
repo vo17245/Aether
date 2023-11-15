@@ -11,6 +11,7 @@ namespace Aether
 	{
 	public:
 		EditorLayer();
+		~EditorLayer();
 		void OnImGuiRender()override;
 		void OnRender()override;
 		void OnEvent(Event& e)override;

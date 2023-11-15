@@ -21,7 +21,7 @@ void main()
 
 #fragment_shader
 #version 460 core
-
+out vec4 color;
 // light
 #define MAX_DIRECT_LIGHTS 10
 #define MAX_POINT_LIGHTS 10
@@ -30,41 +30,39 @@ struct DirectLight
     vec3 direction;
     vec3 color;
 };
-struct PositionLight
+struct PointLight
 {
     vec3 position;
     vec3 color;
 };
 uniform PointLight u_PointLights[MAX_DIRECT_LIGHTS];  
 uniform int u_PointLightCnt;
-uniform DirectLight u_DirectLight[MAX_POINT_LIGHTS];
+uniform DirectLight u_DirectLights[MAX_POINT_LIGHTS];
 uniform int u_DirectLightCnt;
 
 //varying
 
 in vec3 v_FragPos;
 in vec3 v_Normal;
-vec3 OnDirectLight(DirectLight light)
-{
-    return vec3(0,0,1);
-}
-vec3 OnPointLight(PointLight light)
-{
-    return vec3(0,0,1);
-}
+
 void main()
 {
+    vec3 N=normalize(v_Normal);
+    vec3 V=normalize(-v_FragPos);
     vec3 sumColor=vec3(0,0,0);
-    for(int  i=0;i<MAX_DIRECT_LIGHTS;i++)
+    vec3 baseColor=vec3(0.8,0.6,0.4);
+    for(int  i=0;i<u_DirectLightCnt;i++)
     {
-        //direct light
-        sumColor=sumColor+OnDirectLight(u_PointLights[i]);
+        vec3 L=normalize(u_DirectLights[i].direction);
+        sumColor=dot(L,N)*baseColor*u_DirectLights[i].color;
     }
-    for(int  i=0;i<MAX_POINT_LIGHTS;i++)
+    for(int  i=0;i<u_PointLightCnt;i++)
     {
         //point light
-        sumColor=sumColor+OnPointLight(u_DirectLight[i]);
+        vec3 L=normalize(u_PointLights[i].position-v_FragPos);
+        sumColor=dot(L,N)*baseColor*u_PointLights[i].color;
+       
     }
-    gl_FragColor=vec4(color,1);
+    color=vec4(sumColor,1);
     
 }
