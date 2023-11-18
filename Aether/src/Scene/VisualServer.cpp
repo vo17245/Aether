@@ -15,9 +15,9 @@ namespace Aether
 				if (e.HasComponent<TransformComponent>())
 				{
 					auto& tc = e.GetComponent<TransformComponent>();
-					lc.Light.GetPosition() = tc.Position;
+					lc.light.GetPosition() = tc.position;
 				}
-				Renderer3D::Submit(lc.Light);
+				Renderer3D::Submit(lc.light);
 			}
 		}
 		
@@ -33,11 +33,11 @@ namespace Aether
 				{
 					auto& tc = e.GetComponent<TransformComponent>();
 					tc.CalculateMatrix();
-					modelMatrix = tc.Matrix;
+					modelMatrix = tc.matrix;
 				}
-				for (size_t i = 0;i < vc.Meshes.size();i++)
+				for (size_t i = 0;i < vc.model->GetMeshes().size();i++)
 				{
-					Renderer3D::Submit(vc.Meshes[i], vc.Shaders[i], modelMatrix);
+					Renderer3D::Submit(vc.model->GetMeshes()[i], vc.model->GetShaders()[i], modelMatrix);
 				}
 			}
 		}

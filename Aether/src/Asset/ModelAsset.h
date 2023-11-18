@@ -12,26 +12,31 @@
 #include "TextureAsset.h"
 #include <unordered_map>
 #include "../Core/Log.h"
-AETHER_NAMESPACE_BEGIN
-class ModelAssetImporter;
-class ModelAsset 
+#include <filesystem>
+namespace Aether
 {
-    friend class ModelAssetImporter;
-public:
-    ModelAsset(){}
- 
-    
-public:
-    inline const std::vector<MeshAsset>& GetMeshes()const { return m_Meshes; }
-    inline  std::vector<MeshAsset>& GetMeshes() { return m_Meshes; }
-private:
-    /*  模型数据  */
-    std::vector<MeshAsset> m_Meshes;
-private:
-    std::unordered_map<size_t,Ref<TextureAsset>> m_EmbeddedTextureCache;
-    std::unordered_map<std::string, Ref<TextureAsset>> m_FileTextureCache;
-    std::optional<Ref<TextureAsset>> LoadEmbeddedTexture(size_t index,aiTexture** textures,const std::string& typeName);
-    std::optional<Ref<TextureAsset>> LoadFileTexture(const std::string& path, const std::string& typeName);
-};
+    class ModelAssetImporter;
+    class ModelAsset
+    {
+        friend class ModelAssetImporter;
+    public:
+        ModelAsset() {}
 
-AETHER_NAMESPACE_END
+
+    public:
+        inline const std::vector<MeshAsset>& GetMeshes()const { return m_Meshes; }
+        inline  std::vector<MeshAsset>& GetMeshes() { return m_Meshes; }
+        inline std::filesystem::path& GetPath() { return m_Path; }
+    private:
+        /*  模型数据  */
+        std::vector<MeshAsset> m_Meshes;
+    private:
+        std::unordered_map<size_t, Ref<TextureAsset>> m_EmbeddedTextureCache;
+        std::unordered_map<std::string, Ref<TextureAsset>> m_FileTextureCache;
+        std::optional<Ref<TextureAsset>> LoadEmbeddedTexture(size_t index, aiTexture** textures, const std::string& typeName);
+        std::optional<Ref<TextureAsset>> LoadFileTexture(const std::string& path, const std::string& typeName);
+        std::filesystem::path m_Path;
+    };
+}
+
+

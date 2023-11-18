@@ -3,6 +3,7 @@
 #include "Aether/Asset/ModelAssetImporter.h"
 #include "Aether/Core/Config.h"
 #include "Aether/Scene/VisualServer.h"
+#include "Aether/Render/Model.h"
 Aether::EditorLayer::EditorLayer()
 	: m_CameraController(45,0.01,100,1600.0/900)
 {
@@ -17,7 +18,8 @@ Aether::EditorLayer::EditorLayer()
 		Log::Error("failed to load {}", teapotModelPath);
 		return;
 	}
-	teapot.AddComponent<VisualComponent>(res1.value());
+	auto teapotModel = CreateRef<Model>(res1.value());
+	teapot.AddComponent<VisualComponent>(teapotModel);
 	teapot.AddComponent<TagComponent>("teapot");
 	teapot.AddComponent<TransformComponent>();
 	auto light1 = m_Scene.CreateEntity();
@@ -29,7 +31,9 @@ Aether::EditorLayer::EditorLayer()
 	auto cube= m_Scene.CreateEntity();
 	std::string cubeModelPath = std::string(GetConfig().resource_path) + "/Model/cube.glb";
 	auto res2 = ModelAssetImporter::LoadFromFile(cubeModelPath);
-	cube.AddComponent<VisualComponent>(res2.value());
+	AETHER_ASSERT(res2);
+	auto cubeModel = CreateRef<Model>(res2.value());
+	cube.AddComponent<VisualComponent>(cubeModel);
 	cube.AddComponent<TagComponent>("cube");
 	cube.AddComponent<TransformComponent>();
 }
@@ -73,14 +77,14 @@ void Aether::EditorLayer::OnImGuiRender()
 		for (auto& [entity, tgc] : view.each())
 		{
 			Entity e = { entity,&m_Scene };
-			if (ImGui::TreeNode(tgc.Tag.c_str()))
+			if (ImGui::TreeNode(tgc.tag.c_str()))
 			{
 				if (e.HasComponent<TransformComponent>())
 				{
 					if (ImGui::TreeNode("Transform"))
 					{
 						auto& tc = e.GetComponent<TransformComponent>();
-						ImGui::InputFloat3("position", tc.Position.data());
+						ImGui::InputFloat3("position", tc.position.data());
 						ImGui::TreePop();
 					}
 				}
@@ -94,8 +98,8 @@ void Aether::EditorLayer::OnImGuiRender()
 					if (ImGui::TreeNode("PointLight"))
 					{
 						auto& lc = e.GetComponent<PointLightComponent>();
-						ImGui::InputFloat3("color", lc.Light.GetColor().data());
-						ImGui::InputFloat3("position", lc.Light.GetPosition().data());
+						ImGui::InputFloat3("color", lc.light.GetColor().data());
+						ImGui::InputFloat3("position", lc.light.GetPosition().data());
 						ImGui::TreePop();
 					}
 				}

@@ -4,6 +4,7 @@
 #include "../Core/Core.h"
 namespace Aether
 {
+	//class Camera must be POD
 	class Camera
 	{
 	public:

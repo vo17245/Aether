@@ -5,51 +5,52 @@
 #include "../Render/Mesh.h"
 #include "../Asset/ModelAsset.h"
 #include "../Render/Light.h"
+#include "../Render/Model.h"
 namespace Aether
 {
 	struct IDComponent
 	{
-		UUID ID;
+		UUID id;
 		IDComponent() = default;
 		IDComponent(const IDComponent&) = default;
 	};
 	struct TagComponent
 	{
-		std::string Tag;
+		std::string tag;
 		TagComponent() = default;
 		TagComponent(const TagComponent&) = default;
-		TagComponent(const std::string& tag)
-			:Tag(tag) {}
+		TagComponent(const std::string& _tag)
+			:tag(_tag) {}
 	};
 	struct TransformComponent
 	{
-		Eigen::Vector3f Position;
-		Eigen::Vector3f Rotation;//旋转顺序为x y z
-		Eigen::Vector3f Scaling;
-		Eigen::Matrix4f Matrix;
+		Eigen::Vector3f position;
+		Eigen::Vector3f rotation;//旋转顺序为x y z
+		Eigen::Vector3f scaling;
+		Eigen::Matrix4f matrix;
 		TransformComponent(const TransformComponent&) = default;
 		TransformComponent()
-			:Position(Eigen::Vector3f::Zero()),
-			Rotation(Eigen::Vector3f::Zero()),
-			Scaling(1,1,1) ,Matrix(Eigen::Matrix4f::Identity()){}
+			:position(Eigen::Vector3f::Zero()),
+			rotation(Eigen::Vector3f::Zero()),
+			scaling(1,1,1) ,matrix(Eigen::Matrix4f::Identity()){}
 		void CalculateMatrix();
 	};
 	struct VisualComponent
 	{
-		std::vector<Ref<Mesh>> Meshes;
-		std::vector<Ref<Shader>> Shaders;
+		Ref<Model> model;
 		VisualComponent(const VisualComponent&) = default;
 		VisualComponent() = default;
-		VisualComponent(Ref<ModelAsset>& modelAsset);
+		VisualComponent(Ref<Model> _model)
+			:model(_model) {}
 		
 	};
 	struct PointLightComponent
 	{
-		PointLight Light;
+		PointLight light;
 		PointLightComponent(const PointLightComponent&) = default;
 		PointLightComponent() = default;
 		PointLightComponent(const Vec3& color, const Vec3& pos)
-			:Light(color,pos)
+			:light(color,pos)
 		{}
 	};
 }

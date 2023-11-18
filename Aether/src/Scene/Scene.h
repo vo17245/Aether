@@ -6,8 +6,10 @@
 #include <unordered_map>
 namespace Aether
 {
+	class SceneSerializer;
 	class Scene
 	{
+		friend class SceneSerializer;
 		friend class Entity;
 	public:
 		Entity CreateEntity();

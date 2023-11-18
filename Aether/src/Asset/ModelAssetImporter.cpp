@@ -154,6 +154,7 @@ std::optional<Ref<ModelAsset>> ModelAssetImporter::LoadFromFile(const std::strin
         return std::nullopt;
     }
     auto modelAsset=CreateRef<ModelAsset>();
+    modelAsset->m_Path = path;
     bool ret=ProcessNode(*modelAsset, scene->mRootNode, scene);
     if (!ret)
     {
