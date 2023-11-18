@@ -4,7 +4,7 @@
 #include "Aether/Core/Config.h"
 #include "Aether/Scene/VisualServer.h"
 Aether::EditorLayer::EditorLayer()
-	:m_FbViewportSize(1600,900), m_CameraController(45,0.01,100,1600.0/900)
+	: m_CameraController(45,0.01,100,1600.0/900)
 {
 	m_FB = Aether::CreateRef<Aether::FrameBuffer>(1600, 900);
 	OpenGLApi::BindFrameBuffer(0);
@@ -80,7 +80,7 @@ void Aether::EditorLayer::OnImGuiRender()
 					if (ImGui::TreeNode("Transform"))
 					{
 						auto& tc = e.GetComponent<TransformComponent>();
-						ImGui::InputFloat3("position", tc.Translation.data());
+						ImGui::InputFloat3("position", tc.Position.data());
 						ImGui::TreePop();
 					}
 				}
@@ -89,13 +89,21 @@ void Aether::EditorLayer::OnImGuiRender()
 					auto& lc = e.GetComponent<PointLightComponent>();
 					
 				}
+				if (e.HasComponent<PointLightComponent>())
+				{
+					if (ImGui::TreeNode("PointLight"))
+					{
+						auto& lc = e.GetComponent<PointLightComponent>();
+						ImGui::InputFloat3("color", lc.Light.GetColor().data());
+						ImGui::InputFloat3("position", lc.Light.GetPosition().data());
+						ImGui::TreePop();
+					}
+				}
 				ImGui::TreePop();
 			}
+			
 		}
 		
-		ImVec2 size = ImGui::GetWindowSize();
-		m_FbViewportSize.x() = size.x;
-		m_FbViewportSize.y() = size.y;
 		ImGui::End();
 	}
 	{
@@ -107,10 +115,9 @@ void Aether::EditorLayer::OnImGuiRender()
 		static bool open = true;
 		ImGui::Begin("SceneView", &open, window_flags);
 		ImVec2 size = ImGui::GetWindowSize();
-		m_FbViewportSize.x() = size.x;
-		m_FbViewportSize.y() = size.y;
-		m_CameraController.GetCamera().GetAspectRatio()=  m_FbViewportSize.x() /m_FbViewportSize.y();
-		ImGui::Image((void*)m_FB->GetTexture()->GetRendererId(), size);
+		ImGui::Image((void*)m_FB->GetTexture()->GetRendererId(), 
+			ImVec2(m_FB->GetTexture()->GetWidth(),
+				m_FB->GetTexture()->GetHeight()));
 		ImGui::End();
 	}
 	
@@ -120,7 +127,7 @@ void Aether::EditorLayer::OnRender()
 {
 	
 	m_FB->Bind();
-	OpenGLApi::SetViewport(0, 0, m_FbViewportSize.x(), m_FbViewportSize.y());
+	OpenGLApi::SetViewport(0, 0, m_FB->GetTexture()->GetWidth(), m_FB->GetTexture()->GetHeight());
 	OpenGLApi::SetClearColor(0.4, 0.5, 0.6, 1.0);
 	OpenGLApi::ClearColorBuffer();
 	OpenGLApi::ClearDepthBuffer();

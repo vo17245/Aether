@@ -21,7 +21,7 @@ namespace Aether
 		PerspectiveCameraController m_CameraController;
 		Scene m_Scene;
 		Ref<FrameBuffer> m_FB;
-		Vec2 m_FbViewportSize;
+	
 	private:
 	
 		bool OnWindowResize(WindowResizeEvent& e);

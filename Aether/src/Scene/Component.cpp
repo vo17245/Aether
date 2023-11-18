@@ -19,5 +19,5 @@ Aether::VisualComponent::VisualComponent(Ref<ModelAsset>& modelAsset)
 
 void Aether::TransformComponent::CalculateMatrix()
 {
-	Matrix = Transform::Translation(Translation)*Transform::Rotation(Rotation)*Transform::Scale(Scaling);
+	Matrix = Transform::Translation(Position)*Transform::Rotation(Rotation)*Transform::Scale(Scaling);
 }

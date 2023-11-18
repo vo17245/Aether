@@ -11,6 +11,12 @@ namespace Aether
 			auto view = scene.GetAllEntitiesWith<PointLightComponent>();
 			for (auto& [entity, lc] : view.each())
 			{
+				Entity e = { entity,&scene };
+				if (e.HasComponent<TransformComponent>())
+				{
+					auto& tc = e.GetComponent<TransformComponent>();
+					lc.Light.GetPosition() = tc.Position;
+				}
 				Renderer3D::Submit(lc.Light);
 			}
 		}

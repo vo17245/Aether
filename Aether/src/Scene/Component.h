@@ -23,13 +23,13 @@ namespace Aether
 	};
 	struct TransformComponent
 	{
-		Eigen::Vector3f Translation;
+		Eigen::Vector3f Position;
 		Eigen::Vector3f Rotation;//旋转顺序为x y z
 		Eigen::Vector3f Scaling;
 		Eigen::Matrix4f Matrix;
 		TransformComponent(const TransformComponent&) = default;
 		TransformComponent()
-			:Translation(Eigen::Vector3f::Zero()),
+			:Position(Eigen::Vector3f::Zero()),
 			Rotation(Eigen::Vector3f::Zero()),
 			Scaling(1,1,1) ,Matrix(Eigen::Matrix4f::Identity()){}
 		void CalculateMatrix();
