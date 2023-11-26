@@ -19,13 +19,13 @@ namespace Aether
 		void OnUpdate(float ds)override;
 	private:
 		PerspectiveCameraController m_CameraController;
-		Scene m_Scene;
+		Ref<Scene> m_Scene;
 		Ref<FrameBuffer> m_FB;
 	
 	private:
-	
+		void DrawSceneHierachyPanel();
 		bool OnWindowResize(WindowResizeEvent& e);
-
+		void DrawViewerPanel();
 	
 	};
 

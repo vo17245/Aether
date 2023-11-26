@@ -9,7 +9,7 @@ namespace Aether
 		//add lights
 		{
 			auto view = scene.GetAllEntitiesWith<PointLightComponent>();
-			for (auto& [entity, lc] : view.each())
+			for (const auto& [entity, lc] : view.each())
 			{
 				Entity e = { entity,&scene };
 				if (e.HasComponent<TransformComponent>())
@@ -25,7 +25,7 @@ namespace Aether
 		// object pass
 		{
 			auto view = scene.GetAllEntitiesWith<VisualComponent>();
-			for (auto& [entity, vc] : view.each())
+			for (const auto& [entity, vc] : view.each())
 			{
 				Entity e = { entity,&scene };
 				Mat4 modelMatrix;

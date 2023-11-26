@@ -7,7 +7,9 @@ namespace Aether
 	{
 	public:
 		Light(const Vec3& color)
-			:m_Color(color), HasShadow(false) {}
+			:HasShadow(false),m_Color(color)  {}
+		Light(Light&&)=default;
+		Light(const Light&)=default;
 		bool HasShadow;
 		inline Vec3& GetColor() { return m_Color; }
 		inline const Vec3& GetColor() const { return m_Color; }
@@ -31,6 +33,7 @@ namespace Aether
 	{
 	public:
 		PointLight(const PointLight&) = default;
+		PointLight(PointLight&&)=default;
 		PointLight(const Vec3& color,const Vec3& pos)
 			:Light(color), m_Position(pos) {}
 		inline Vec3& GetPosition() { return m_Position; }

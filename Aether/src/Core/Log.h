@@ -1,12 +1,15 @@
 #pragma once
 
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
+
 #include "Core.h"
 #include <sstream>
+#include <thread>
 #include "spdlog/fmt/fmt.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 AETHER_NAMESPACE_BEGIN
+
 class Log
 {
 public:
@@ -48,21 +51,27 @@ private:
 template<typename... Args>
 inline void DebugLogFunc(const char* file, int line, const char* fmt, Args&&... args)
 {
+	static_assert(sizeof(std::thread::id)==sizeof(unsigned int));
 	auto msg = fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
-	std::string debugMsg = fmt::format("[{}:{}] {}", file, line, msg);
+	std::thread::id thread_id=std::this_thread::get_id();
+	unsigned int uint_thread_id=*((unsigned int*)(&thread_id));
+	std::string debugMsg = fmt::format("[thread {}][{}:{}] {}",uint_thread_id, file, line, msg);
 	Log::Debug("{}",debugMsg.c_str());
 }
 template<typename... Args>
 inline void DebugLogErrorFunc(const char* file, int line, const char* fmt, Args&&... args)
 {
+	static_assert(sizeof(std::thread::id)==sizeof(unsigned int));
 	auto msg = fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
-	std::string debugMsg = fmt::format("[{}:{}] {}", file, line, msg);
+	std::thread::id thread_id=std::this_thread::get_id();
+	unsigned int uint_thread_id=*((unsigned int*)(&thread_id));
+	std::string debugMsg = fmt::format("[thread {}][{}:{}] {}", uint_thread_id,file, line, msg);
 	Log::Error("{}", debugMsg.c_str());
 }
 AETHER_NAMESPACE_END
 
 
-#ifdef DEBUG
+#ifdef AETHER_ENABLE_DEBUG_LOG
 	#define AETHER_DEBUG_LOG(...) Aether::DebugLogFunc(__FILE__,__LINE__,__VA_ARGS__)
 	#define AETHER_DEBUG_LOG_ERROR(...) Aether::DebugLogErrorFunc(__FILE__,__LINE__,__VA_ARGS__)
 #else

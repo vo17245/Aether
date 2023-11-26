@@ -13,6 +13,7 @@ namespace Aether
 		UUID id;
 		IDComponent() = default;
 		IDComponent(const IDComponent&) = default;
+		IDComponent(const UUID& _id):id(_id){}
 	};
 	struct TagComponent
 	{
@@ -47,6 +48,7 @@ namespace Aether
 	struct PointLightComponent
 	{
 		PointLight light;
+		PointLightComponent(PointLightComponent&&)=default;
 		PointLightComponent(const PointLightComponent&) = default;
 		PointLightComponent() = default;
 		PointLightComponent(const Vec3& color, const Vec3& pos)

@@ -1,2 +1,6 @@
 /build
 /Aether/include
+/Data
+__pycache__/
+compile_commands.json
+.cache/

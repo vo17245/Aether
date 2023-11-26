@@ -1,6 +1,7 @@
 #include "Log.h"
 #include <iostream>
 #include "Config.h"
+
 AETHER_NAMESPACE_BEGIN
 Log& Log::Get()
 {

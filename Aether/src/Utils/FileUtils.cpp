@@ -12,7 +12,7 @@ namespace Aether
     {
         std::ifstream ifs(path, std::ios::binary | std::ios::in);
         if (!ifs.is_open()) {
-            AETHER_DEBUG_LOG_ERROR("failed to load {}", path);
+            AETHER_DEBUG_LOG_ERROR("failed to load {}", path.string());
             return std::nullopt;
         }
         ifs.seekg(0, std::ios::end);
@@ -20,7 +20,7 @@ namespace Aether
         ifs.seekg(0, std::ios::beg);
         std::vector<std::byte> data(file_size);
         if (!ifs.read(reinterpret_cast<char*>(data.data()), file_size)) {
-            AETHER_DEBUG_LOG_ERROR("failed to read file {}", path);
+            AETHER_DEBUG_LOG_ERROR("failed to read file {}", path.string());
             return std::nullopt;
         }
         return data;

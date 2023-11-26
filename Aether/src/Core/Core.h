@@ -43,3 +43,4 @@ AETHER_NAMESPACE_END
 #endif
 
 #define AETHER_BIND_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
+
