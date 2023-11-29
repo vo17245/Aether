@@ -8,7 +8,7 @@ set(DEPENDENCIES_DIR "${AETHER_ROOT}/Dependencies")
 # Global Configure
 set(GLOBAL_INCLUDE_DIR 
 ${VENDOR_DIR}
-"${AETHER_ROOT}/Aether/include"
+"${AETHER_ROOT}/Aether/src"
 "${DEPENDENCIES_DIR}/glew-2.1.0/include"
 "${DEPENDENCIES_DIR}/glfw-3.3.8.bin.WIN64/include"
 "${DEPENDENCIES_DIR}/assimp-5.3.0/include"

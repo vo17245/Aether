@@ -21,12 +21,16 @@ namespace Aether
 		PerspectiveCameraController m_CameraController;
 		Ref<Scene> m_Scene;
 		Ref<FrameBuffer> m_FB;
-	
+		void AttachScene(Ref<Scene>& scene);
 	private:
 		void DrawSceneHierachyPanel();
 		bool OnWindowResize(WindowResizeEvent& e);
 		void DrawViewerPanel();
-	
+		std::unordered_map<UUID,std::vector<std::byte>> m_EntityTextInputBuffer;
+		void OnEntityCreate(Entity& entity);
+		void OnEntityDelete(Entity& entity);
+		std::optional<Entity> m_SelectedEntity ;
+		
 	};
 
 }

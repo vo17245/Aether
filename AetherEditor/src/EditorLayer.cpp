@@ -1,4 +1,5 @@
 #include "EditorLayer.h"
+#include "Aether/Core/Core.h"
 #include "Aether/Scene/Component.h"
 #include "Aether/Asset/ModelAssetImporter.h"
 #include "Aether/Core/Config.h"
@@ -8,7 +9,8 @@
 Aether::EditorLayer::EditorLayer()
 	: m_CameraController(45,0.01,100,1600.0/900)
 {
-	m_Scene = CreateRef<Scene>();
+	auto scene = CreateRef<Scene>();
+	AttachScene(scene);
 	m_FB = Aether::CreateRef<Aether::FrameBuffer>(1600, 900);
 	OpenGLApi::BindFrameBuffer(0);
 	auto teapot=m_Scene->CreateEntity();
@@ -49,8 +51,6 @@ void Aether::EditorLayer::OnImGuiRender()
 {
 	
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	
-	
 	{
 		static bool p_open = true;
 		static int window_flags = 0;
@@ -88,8 +88,9 @@ void Aether::EditorLayer::OnImGuiRender()
 					auto opt_res=SceneSerializer::LoadFile("../../Data/first.json");
 					if(opt_res)
 					{
-						const DeserializationResult& res=opt_res.value();
-						m_Scene=res.scene;
+						m_EntityTextInputBuffer.clear();
+						DeserializationResult& res=opt_res.value();
+						AttachScene(res.scene);
 						m_CameraController.GetCamera()=res.camera.perspectiveCamera.value();
 					}
 				}
@@ -97,7 +98,10 @@ void Aether::EditorLayer::OnImGuiRender()
 			}
 			if (ImGui::BeginMenu("Scene"))
 			{
-				ImGui::MenuItem("Add entity");
+				if (ImGui::MenuItem("Add entity"))
+				{
+					m_Scene->CreateEntity();
+				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndMenuBar();
@@ -136,16 +140,62 @@ void Aether::EditorLayer::OnUpdate(float ds)
 	m_CameraController.OnUpdate(ds);
 }
 
+void Aether::EditorLayer::AttachScene(Ref<Scene>& scene)
+{
+	m_Scene = scene;
+	m_Scene->GetOnCreate() = AETHER_BIND_FN(OnEntityCreate);
+	m_Scene->GetOnDelete() = AETHER_BIND_FN(OnEntityDelete);
+	auto view = m_Scene->GetAllEntitiesWith<IDComponent>();
+	for (auto& [entity, ic] : view.each())
+	{
+		Entity e = { entity, m_Scene.get() };
+		OnEntityCreate(e);
+	}
+	m_SelectedEntity.reset();
+}
+
 void Aether::EditorLayer::DrawSceneHierachyPanel()
 {
-	
+	constexpr const size_t BUF_SIZE = 128;
+	static char buf[BUF_SIZE] = {0};
 	ImGui::Begin("SceneHierachy");
-	auto view = m_Scene->GetAllEntitiesWith<TagComponent>();
-	for (const auto& [entity, tgc] : view.each())
+	auto view = m_Scene->GetAllEntitiesWith<IDComponent>();
+	for (const auto& [entity, ic] : view.each())
 	{
 		Entity e = { entity,m_Scene.get()};
-		if (ImGui::TreeNode(tgc.tag.c_str()))
+		std::string displayName;
+		if(e.HasComponent<TagComponent>())
 		{
+			auto& tgc=e.GetComponent<TagComponent>();
+			displayName=tgc.tag;
+		}
+		else 
+		{
+			displayName=fmt::format("[{}]",std::to_string(uint64_t(ic.id)));
+		
+		}
+		ImGui::PushID(ic.id);
+		if (ImGui::TreeNode(displayName.c_str()))
+		{
+			m_SelectedEntity=e;
+			if(e.HasComponent<TagComponent>())
+			{
+				auto& entityTextInputBuf = m_EntityTextInputBuffer[ic.id];
+				auto& tgc = e.GetComponent<TagComponent>();
+				if (ImGui::TreeNode("Tag"))
+				{
+					ImGui::Text("value: %s",tgc.tag.c_str());
+					ImGui::Text("input buffer: %s", (const char*)entityTextInputBuf.data());
+					//ImGui::Text("edit buffer: %s", entity_buf.c_str());
+					ImGui::InputText("tag", (char*)entityTextInputBuf.data(),
+						entityTextInputBuf.size());
+					if (ImGui::Button("apply edit"))
+					{
+						tgc.tag = (const char*)entityTextInputBuf.data();
+					}
+					ImGui::TreePop();
+				}
+			}
 			if (e.HasComponent<TransformComponent>())
 			{
 				if (ImGui::TreeNode("Transform"))
@@ -172,9 +222,31 @@ void Aether::EditorLayer::DrawSceneHierachyPanel()
 			}
 			ImGui::TreePop();
 		}
+		ImGui::PopID();
 
 	}
+	if (m_SelectedEntity)
+	{
+		auto& e = m_SelectedEntity.value();
+		std::string displayName;
+		if (e.HasComponent<TagComponent>())
+		{
+			displayName = e.GetComponent<TagComponent>().tag;
+		}
+		else
+		{
+			displayName = std::to_string(e.GetComponent<IDComponent>().id);
+		}
+		ImGui::Text("selected: %s", displayName.c_str());
+		if (ImGui::Button("add component"))
+		{
 
+		}
+		if (ImGui::Button("remove component"))
+		{
+
+		}
+	}
 	ImGui::End();
 }
 
@@ -194,4 +266,21 @@ void Aether::EditorLayer::DrawViewerPanel()
 		ImVec2(m_FB->GetTexture()->GetWidth(),
 			m_FB->GetTexture()->GetHeight()));
 	ImGui::End();
+
+}
+
+namespace Aether
+{
+	void EditorLayer::OnEntityCreate(Entity& entity)
+	{
+		auto& ic=entity.GetComponent<IDComponent>();
+		
+		m_EntityTextInputBuffer[ic.id]=std::move(std::vector<std::byte>(128));
+	}
+	void EditorLayer::OnEntityDelete(Entity& entity)
+	{
+		auto& ic=entity.GetComponent<IDComponent>();
+		auto iter= m_EntityTextInputBuffer.find(ic.id);
+		m_EntityTextInputBuffer.erase(iter);
+	}
 }
