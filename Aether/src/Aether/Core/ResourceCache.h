@@ -2,8 +2,8 @@
 #include <unordered_map>
 #include <filesystem>
 #include <optional>
-#include "../Asset/ModelAsset.h"
-#include "../Asset/ModelAssetImporter.h"
+#include "../Resource/ModelAsset.h"
+#include "../Resource/ModelAssetImporter.h"
 #include <mutex>
 
 namespace Aether

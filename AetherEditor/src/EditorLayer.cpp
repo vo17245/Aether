@@ -1,7 +1,8 @@
 #include "EditorLayer.h"
 #include "Aether/Core/Core.h"
+#include "Aether/ImGui/ImGui"
 #include "Aether/Scene/Component.h"
-#include "Aether/Asset/ModelAssetImporter.h"
+#include "Aether/Resource/ModelAssetImporter.h"
 #include "Aether/Core/Config.h"
 #include "Aether/Scene/VisualServer.h"
 #include "Aether/Render/Model.h"
@@ -9,6 +10,7 @@
 Aether::EditorLayer::EditorLayer()
 	: m_CameraController(45,0.01,100,1600.0/900)
 {
+	// create a default scene
 	auto scene = CreateRef<Scene>();
 	AttachScene(scene);
 	m_FB = Aether::CreateRef<Aether::FrameBuffer>(1600, 900);
@@ -40,6 +42,8 @@ Aether::EditorLayer::EditorLayer()
 	cube.AddComponent<VisualComponent>(cubeModel);
 	cube.AddComponent<TagComponent>("cube");
 	cube.AddComponent<TransformComponent>();
+	
+	
 }
 
 Aether::EditorLayer::~EditorLayer()
@@ -110,9 +114,8 @@ void Aether::EditorLayer::OnImGuiRender()
 	}
 	ImGui::Begin("center");
 	ImGui::End();
-	DrawSceneHierachyPanel();
 	DrawViewerPanel();
-	
+	m_SceneHierachyPanel.OnImGuiRender();
 }
 
 void Aether::EditorLayer::OnRender()
@@ -143,112 +146,14 @@ void Aether::EditorLayer::OnUpdate(float ds)
 void Aether::EditorLayer::AttachScene(Ref<Scene>& scene)
 {
 	m_Scene = scene;
-	m_Scene->GetOnCreate() = AETHER_BIND_FN(OnEntityCreate);
-	m_Scene->GetOnDelete() = AETHER_BIND_FN(OnEntityDelete);
-	auto view = m_Scene->GetAllEntitiesWith<IDComponent>();
-	for (auto& [entity, ic] : view.each())
-	{
-		Entity e = { entity, m_Scene.get() };
-		OnEntityCreate(e);
-	}
-	m_SelectedEntity.reset();
+	m_SceneHierachyPanel.AttachScene(scene);
+	
+	m_Scene->SetEntityCreateHandler(AETHER_BIND_FN(OnEntityCreate));
+	m_Scene->SetEntityDestoryHandler(AETHER_BIND_FN(OnEntityDestory));
+	
 }
 
-void Aether::EditorLayer::DrawSceneHierachyPanel()
-{
-	constexpr const size_t BUF_SIZE = 128;
-	static char buf[BUF_SIZE] = {0};
-	ImGui::Begin("SceneHierachy");
-	auto view = m_Scene->GetAllEntitiesWith<IDComponent>();
-	for (const auto& [entity, ic] : view.each())
-	{
-		Entity e = { entity,m_Scene.get()};
-		std::string displayName;
-		if(e.HasComponent<TagComponent>())
-		{
-			auto& tgc=e.GetComponent<TagComponent>();
-			displayName=tgc.tag;
-		}
-		else 
-		{
-			displayName=fmt::format("[{}]",std::to_string(uint64_t(ic.id)));
-		
-		}
-		ImGui::PushID(ic.id);
-		if (ImGui::TreeNode(displayName.c_str()))
-		{
-			m_SelectedEntity=e;
-			if(e.HasComponent<TagComponent>())
-			{
-				auto& entityTextInputBuf = m_EntityTextInputBuffer[ic.id];
-				auto& tgc = e.GetComponent<TagComponent>();
-				if (ImGui::TreeNode("Tag"))
-				{
-					ImGui::Text("value: %s",tgc.tag.c_str());
-					ImGui::Text("input buffer: %s", (const char*)entityTextInputBuf.data());
-					//ImGui::Text("edit buffer: %s", entity_buf.c_str());
-					ImGui::InputText("tag", (char*)entityTextInputBuf.data(),
-						entityTextInputBuf.size());
-					if (ImGui::Button("apply edit"))
-					{
-						tgc.tag = (const char*)entityTextInputBuf.data();
-					}
-					ImGui::TreePop();
-				}
-			}
-			if (e.HasComponent<TransformComponent>())
-			{
-				if (ImGui::TreeNode("Transform"))
-				{
-					auto& tc = e.GetComponent<TransformComponent>();
-					ImGui::InputFloat3("position", tc.position.data());
-					ImGui::TreePop();
-				}
-			}
-			if (e.HasComponent<PointLightComponent>())
-			{
-				auto& lc = e.GetComponent<PointLightComponent>();
 
-			}
-			if (e.HasComponent<PointLightComponent>())
-			{
-				if (ImGui::TreeNode("PointLight"))
-				{
-					auto& lc = e.GetComponent<PointLightComponent>();
-					ImGui::InputFloat3("color", lc.light.GetColor().data());
-					ImGui::InputFloat3("position", lc.light.GetPosition().data());
-					ImGui::TreePop();
-				}
-			}
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-
-	}
-	if (m_SelectedEntity)
-	{
-		auto& e = m_SelectedEntity.value();
-		std::string displayName;
-		if (e.HasComponent<TagComponent>())
-		{
-			displayName = e.GetComponent<TagComponent>().tag;
-		}
-		else
-		{
-			displayName = std::to_string(e.GetComponent<IDComponent>().id);
-		}
-		ImGui::Text("selected: %s", displayName.c_str());
-		if (ImGui::Button("add component"))
-		{
-
-		}
-		if (ImGui::Button("remove component"))
-		{
-
-		}
-	}
-	ImGui::End();
-}
 
 bool Aether::EditorLayer::OnWindowResize(WindowResizeEvent& e)
 {
@@ -273,14 +178,11 @@ namespace Aether
 {
 	void EditorLayer::OnEntityCreate(Entity& entity)
 	{
-		auto& ic=entity.GetComponent<IDComponent>();
-		
-		m_EntityTextInputBuffer[ic.id]=std::move(std::vector<std::byte>(128));
+		m_SceneHierachyPanel.OnEntityCreate(entity);
 	}
-	void EditorLayer::OnEntityDelete(Entity& entity)
+	void EditorLayer::OnEntityDestory(Entity& entity)
 	{
-		auto& ic=entity.GetComponent<IDComponent>();
-		auto iter= m_EntityTextInputBuffer.find(ic.id);
-		m_EntityTextInputBuffer.erase(iter);
+		m_SceneHierachyPanel.OnEntityDestory(entity);
 	}
+	
 }

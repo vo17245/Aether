@@ -3,7 +3,7 @@
 #include "Eigen/Core"
 #include <vector>
 #include "../Render/Mesh.h"
-#include "../Asset/ModelAsset.h"
+#include "../Resource/ModelAsset.h"
 #include "../Render/Light.h"
 #include "../Render/Model.h"
 namespace Aether
@@ -54,5 +54,10 @@ namespace Aether
 		PointLightComponent(const Vec3& color, const Vec3& pos)
 			:light(color,pos)
 		{}
+		PointLightComponent& operator=(const PointLightComponent& plc)
+		{
+			light=plc.light;
+			return *this;
+		}
 	};
 }

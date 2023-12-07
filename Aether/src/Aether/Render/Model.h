@@ -2,7 +2,7 @@
 #include "Mesh.h"
 #include <vector>
 #include <filesystem>
-#include "../Asset/ModelAsset.h"
+#include "../Resource/ModelAsset.h"
 namespace Aether
 {
 	class Model

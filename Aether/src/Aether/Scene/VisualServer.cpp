@@ -37,6 +37,8 @@ namespace Aether
 				}
 				for (size_t i = 0;i < vc.model->GetMeshes().size();i++)
 				{
+					if(!vc.model)
+						continue;
 					Renderer3D::Submit(vc.model->GetMeshes()[i], vc.model->GetShaders()[i], modelMatrix);
 				}
 			}

@@ -1,7 +1,7 @@
 #pragma once
 #include "../Core/Core.h"
 #include <string>
-#include "../Asset/Image.h"
+#include "../Resource/Image.h"
 #include "OpenGLApi.h"
 AETHER_NAMESPACE_BEGIN
 class Texture2D
