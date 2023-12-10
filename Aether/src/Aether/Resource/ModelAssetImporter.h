@@ -1,7 +1,7 @@
 #pragma once
 #include "ModelAsset.h"
 #include "../Core/Core.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether{
 class ModelAssetImporter
 {
 public:
@@ -13,4 +13,4 @@ public:
     static std::optional<std::vector<std::shared_ptr<TextureAsset>>>
     LoadMaterialTextures(ModelAsset& modelAsset, const aiScene* scene, aiMaterial* mat, aiTextureType type, const std::string& typeName);
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

@@ -4,7 +4,9 @@
 #include <vector>
 #include <optional>
 #include <functional>
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 //channel == 3  -> RGB888
 //channel == 4  -> RGBA8888
 class Image
@@ -43,4 +45,4 @@ private:
 	// use delete[] to release pointer created by new[],if not nullptr
 	static void ReleaseDataCreatedByCppNewArray(unsigned char* ptr);
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

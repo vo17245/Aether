@@ -8,7 +8,9 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 
 class Log
 {
@@ -68,7 +70,8 @@ inline void DebugLogErrorFunc(const char* file, int line, const char* fmt, Args&
 	std::string debugMsg = fmt::format("[thread {}][{}:{}] {}", uint_thread_id,file, line, msg);
 	Log::Error("{}", debugMsg.c_str());
 }
-AETHER_NAMESPACE_END
+}//namespace Aether
+
 
 
 #ifdef AETHER_ENABLE_DEBUG_LOG

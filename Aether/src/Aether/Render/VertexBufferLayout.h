@@ -4,7 +4,9 @@
 #include <assert.h>
 #include <vector>
 
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 enum class VertexBufferElementType:int32_t
 {
 	FLOAT=0x1406  //#define GL_FLOAT 0x1406
@@ -41,4 +43,5 @@ inline void VertexBufferLayout::Push<float>(size_t n)
 	m_Elements.push_back(VertexBufferElement(VertexBufferElementType::FLOAT, n, m_Stride));
 	m_Stride += n * sizeof(float);
 }
-AETHER_NAMESPACE_END
+}//namespace Aether
+

@@ -3,7 +3,9 @@
 #include <string>
 #include <vector>
 #include "../Core/Core.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 class WindowFileDropEvent :public Event
 {
 public:
@@ -41,4 +43,4 @@ private:
 	size_t m_Width;
 	size_t m_Height;
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

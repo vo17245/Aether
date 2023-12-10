@@ -83,14 +83,7 @@ namespace Aether
                 json_TagComponent["tag"] = tc.tag;
                 json_entity["TagComponent"] = json_TagComponent;
             }
-            //VisualComponent
-            if (e.HasComponent<VisualComponent>())
-            {
-                auto& vc = e.GetComponent<VisualComponent>();
-                json json_VisualComponent = json::object();
-                json_VisualComponent["modelPath"] = vc.model->GetPath().string();
-                json_entity["VisualComponent"] = json_VisualComponent;
-            }
+            
             //PointLightComponent
             if (e.HasComponent<PointLightComponent>())
             {
@@ -401,29 +394,7 @@ namespace Aether
         transformComponent.scaling=scaling;
         return transformComponent;
     }
-    std::optional<VisualComponent> Json2VisualComponent(const json& json_vc)
-    {
-        if(!json_vc.is_object())
-        {
-            AETHER_DEBUG_LOG_ERROR("invalid VisualComponent");
-            return std::nullopt;
-        }
-        auto opt_json_modelPath=GetFromObject(json_vc, "modelPath");
-        if(!opt_json_modelPath)
-        {
-            AETHER_DEBUG_LOG_ERROR("invalid VisualComponent");
-            return std::nullopt;
-        }
-        std::string modelPath=opt_json_modelPath.value();
-        auto opt_modelAsset = ModelAssetImporter::LoadFromFile(modelPath);
-        if(!opt_modelAsset)
-        {
-            AETHER_DEBUG_LOG_ERROR("failed to load model from {}",modelPath);
-            return std::nullopt;
-        }
-        auto model = CreateRef<Model>(opt_modelAsset.value());
-        return VisualComponent(model);
-    }
+    
     std::optional<PointLightComponent> Json2PointLightComponent(const json& json_plc)
     {
         if(!json_plc.is_object())
@@ -537,18 +508,7 @@ namespace Aether
                 }
                 entity.AddComponent<TransformComponent>(std::move(opt_TransformComponent.value()));
             }
-            auto opt_json_VisualComponent=GetFromObject(json_entity, "VisualComponent");
-            if(opt_json_VisualComponent)
-            {
-                const json& json_VisualComponent=opt_json_VisualComponent.value();
-                auto opt_vc=Json2VisualComponent(json_VisualComponent);
-                if(!opt_vc)
-                {
-                    AETHER_DEBUG_LOG_ERROR("failed to parse VisualComponent");
-                    return std::nullopt;
-                }
-                entity.AddComponent<VisualComponent>(opt_vc.value());
-            }
+            
             auto opt_json_PointLightComponent=GetFromObject(json_entity, "PointLightComponent");
             if(opt_json_PointLightComponent)
             {

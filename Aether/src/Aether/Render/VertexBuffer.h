@@ -2,7 +2,9 @@
 #include "../Core/Core.h"
 #include <stdint.h>
 #include "OpenGLApi.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 class VertexBuffer
 {
 public:
@@ -16,4 +18,4 @@ public:
 private:
 	RendererId m_RendererId;
 };
-AETHER_NAMESPACE_END
+}

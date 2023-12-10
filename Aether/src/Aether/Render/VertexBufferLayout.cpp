@@ -1,7 +1,9 @@
 #include "VertexBufferLayout.h"
 #include "OpenGLApi.h"
 #include "../Core/Log.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 VertexBufferLayout::VertexBufferLayout(VertexBufferLayout&& vbl)noexcept
 	:m_Stride(vbl.m_Stride)
 {
@@ -31,4 +33,5 @@ bool VertexBufferLayout::Use()
 	}
 	return true;
 }
-AETHER_NAMESPACE_END
+}//namespace Aether
+

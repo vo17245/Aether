@@ -1,5 +1,5 @@
 #pragma once
-#include "../Core/Math.h"
+#include "Aether/Core/Math.h"
 
 namespace Aether
 {

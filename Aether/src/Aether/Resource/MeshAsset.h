@@ -8,7 +8,9 @@
 #include "TextureAsset.h"
 #include "../Render/OpenGLApi.h"
 #include <optional>
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 class MeshAsset
 {
 public:
@@ -45,4 +47,4 @@ public:
 	GLDrawMode m_Mode;
 	void CalculateBoundingBox();
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

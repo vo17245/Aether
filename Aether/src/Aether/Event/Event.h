@@ -1,7 +1,9 @@
 #pragma once
 #include <stdint.h>
 #include "../Core/Core.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 enum class EventType :uint32_t
 {
 	UNKNOWN_EVENT=Bit(31),
@@ -56,4 +58,5 @@ public:
 private:
 	Event& m_Event;
 };
-AETHER_NAMESPACE_END
+}//namespace Aether
+

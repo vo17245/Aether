@@ -3,7 +3,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <filesystem>
-AETHER_NAMESPACE_BEGIN
+namespace Aether{
 std::optional<std::vector<std::shared_ptr<TextureAsset>>>
 ModelAssetImporter::LoadMaterialTextures(ModelAsset& modelAsset,const aiScene* scene, aiMaterial* mat, aiTextureType type, const std::string& typeName)
 {
@@ -135,7 +135,7 @@ bool ModelAssetImporter::ProcessNode(ModelAsset& modelAsset, aiNode* node, const
         bool ret=ProcessMesh(modelAsset, mesh, scene);
         if (!ret)return false;
     }
-
+    
     // 接下来对它的子节点重复这一过程
     for (size_t i = 0; i < node->mNumChildren; i++)
     {
@@ -163,6 +163,6 @@ std::optional<Ref<ModelAsset>> ModelAssetImporter::LoadFromFile(const std::strin
     }
 	return modelAsset;
 }
-AETHER_NAMESPACE_END
+}//namespace Aether
 
 

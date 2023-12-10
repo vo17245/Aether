@@ -1,7 +1,9 @@
 #pragma once
 #include "Event.h"
 
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 enum class MouseButtonCode:int32_t
 {
 	MOUSE_BUTTON_LEFT	=   0,
@@ -62,4 +64,4 @@ private:
 	double m_PosX;
 	double m_PosY;
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

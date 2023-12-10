@@ -15,7 +15,9 @@
 #include <chrono>
 #include "Layer.h"
 #include "../Core/Input.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 class Application
 {
 
@@ -58,4 +60,4 @@ private:
 
 };
 
-AETHER_NAMESPACE_END
+}//namespace Aether

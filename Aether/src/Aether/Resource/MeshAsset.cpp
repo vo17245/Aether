@@ -2,7 +2,9 @@
 #include <limits>
 #undef max
 #undef min
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 static void ReplaceMinOrMax(float& min, float& max, float val)
 {
 	if (val < min)
@@ -29,4 +31,4 @@ void MeshAsset::CalculateBoundingBox()
 	PositionMax = max;
 	PositionMin = min;
 }
-AETHER_NAMESPACE_END
+}//namespace Aether

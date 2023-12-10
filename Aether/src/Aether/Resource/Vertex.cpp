@@ -1,5 +1,5 @@
 #include "Vertex.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether{
 VertexBufferLayout Vertex::CreateVertexBufferLayout()
 {
     VertexBufferLayout vbl;
@@ -8,4 +8,4 @@ VertexBufferLayout Vertex::CreateVertexBufferLayout()
     vbl.Push<float>(2);
     return vbl;
 }
-AETHER_NAMESPACE_END
+}//namespace Aether

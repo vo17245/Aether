@@ -3,7 +3,7 @@
 #include "Image.h"
 #include <string>
 #include <memory>
-AETHER_NAMESPACE_BEGIN
+namespace Aether{
 class TextureAsset
 {
 public:
@@ -17,4 +17,4 @@ private:
 	Ref<Image> m_Image;
     
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

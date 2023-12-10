@@ -15,7 +15,9 @@
 
 #include "../Core/Log.h"
 
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 std::vector<Event*> Application::s_EventQueue;
 
 Application::Application()
@@ -287,4 +289,4 @@ bool Application::PopLayer(Ref<Layer> layer)
     }
     return false;
 }
-AETHER_NAMESPACE_END
+}//namespace Aether

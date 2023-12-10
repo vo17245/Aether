@@ -2,8 +2,9 @@
 #include <iostream>
 #include "../Core/Log.h"
 
+namespace Aether
+{
 
-AETHER_NAMESPACE_BEGIN
 std::optional<Ref<TextureAsset>> ModelAsset::LoadEmbeddedTexture(size_t index, aiTexture** textures, const std::string& typeName)
 {
     auto iter = m_EmbeddedTextureCache.find(index);
@@ -51,4 +52,4 @@ std::optional<Ref<TextureAsset>> ModelAsset::LoadFileTexture(const std::string& 
     auto texture = CreateRef<TextureAsset>(image,typeName);
     return std::optional<Ref<TextureAsset>>(texture);
 }
-AETHER_NAMESPACE_END
+}//namespace Aether

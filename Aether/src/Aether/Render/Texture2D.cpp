@@ -1,6 +1,8 @@
 #include "Texture2D.h"
 
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 static uint32_t CreateTexture(const Image& image)
 {
 	uint32_t rendererId;
@@ -74,5 +76,4 @@ void Texture2D::Bind(uint32_t slot)
 	GLCall(glBindTexture(GL_TEXTURE_2D, m_RendererId));
 }
 
-
-AETHER_NAMESPACE_END
+}//namespace Aether

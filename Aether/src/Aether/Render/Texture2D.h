@@ -3,7 +3,9 @@
 #include <string>
 #include "../Resource/Image.h"
 #include "OpenGLApi.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 class Texture2D
 {
 public:
@@ -25,4 +27,4 @@ private:
 	size_t m_Width;
 	size_t m_Height;
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

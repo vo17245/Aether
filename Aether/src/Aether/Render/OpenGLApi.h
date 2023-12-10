@@ -2,7 +2,9 @@
 #include "../Core/Core.h"
 #include <GL/glew.h>
 #include <iostream>
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 void GLClearError();
 GLenum GLGetError();
 void GLPrintError(GLenum err, const char* func, const char* file, int line);
@@ -73,4 +75,4 @@ public:
 public:
     static size_t TypeSize(GLType glType);
 };
-AETHER_NAMESPACE_END
+}

@@ -3,9 +3,11 @@
 #include <stdint.h>
 #include <memory>
 #include <assert.h>
-#define AETHER_NAMESPACE_BEGIN namespace Aether{
-#define AETHER_NAMESPACE_END }
-AETHER_NAMESPACE_BEGIN
+
+namespace Aether
+{
+
+
 constexpr uint32_t Bit(uint32_t n)
 {
 	return 1 << n;
@@ -27,9 +29,9 @@ constexpr Scope<T> CreateScope(Ts&&... args)
 {
 	return std::make_unique<T>(std::forward<Ts>(args)...);
 }
-AETHER_NAMESPACE_END
 
 
+}
 
 
 #ifdef _WIN32
@@ -39,6 +41,12 @@ AETHER_NAMESPACE_END
 	#endif
 	#ifdef near
 		#undef near
+	#endif
+	#ifdef max
+		#undef max
+	#endif 
+	#ifdef min
+		#undef min
 	#endif
 #endif
 

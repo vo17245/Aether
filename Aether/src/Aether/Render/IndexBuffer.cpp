@@ -1,6 +1,7 @@
 #include "IndexBuffer.h"
 #include "OpenGLApi.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
 IndexBuffer::IndexBuffer(const uint32_t* buf,const size_t count)
     :m_Count(count)
 {
@@ -23,4 +24,4 @@ void IndexBuffer::Unbind()const
 {
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
 }
-AETHER_NAMESPACE_END
+}//namespace Aether

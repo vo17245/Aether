@@ -1,7 +1,9 @@
 #pragma once
 #include "Event.h"
 #include "KeyboardCode.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 
 
 class KeyboardEvent:public Event
@@ -39,4 +41,4 @@ public:
 	KeyboardRepeatEvent(KeyboardCode code)
 		:KeyboardEvent(code, EventType::KEYBOARD_REPEAT_EVENT) {}
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

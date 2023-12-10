@@ -2,10 +2,8 @@
 #include "../Core/UUID.h"
 #include "Eigen/Core"
 #include <vector>
-#include "../Render/Mesh.h"
 #include "../Resource/ModelAsset.h"
 #include "../Render/Light.h"
-#include "../Render/Model.h"
 namespace Aether
 {
 	struct IDComponent
@@ -36,15 +34,7 @@ namespace Aether
 			scaling(1,1,1) ,matrix(Eigen::Matrix4f::Identity()){}
 		void CalculateMatrix();
 	};
-	struct VisualComponent
-	{
-		Ref<Model> model;
-		VisualComponent(const VisualComponent&) = default;
-		VisualComponent() = default;
-		VisualComponent(Ref<Model> _model)
-			:model(_model) {}
-		
-	};
+	
 	struct PointLightComponent
 	{
 		PointLight light;

@@ -1,6 +1,8 @@
 #include "VertexBuffer.h"
 #include "OpenGLApi.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 VertexBuffer::VertexBuffer(const void* data,const size_t size)
     :m_RendererId(0)
 {
@@ -27,4 +29,4 @@ Ref<VertexBuffer> VertexBuffer::Create(const void* data, const size_t size)
 {
     return CreateRef<VertexBuffer>(data,size);
 }
-AETHER_NAMESPACE_END
+}//namespace Aether

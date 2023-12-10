@@ -1,9 +1,10 @@
 #include "Image.h"
 #include "stb/stb_image.h"
 #include <assert.h>
-AETHER_NAMESPACE_BEGIN
 
 
+namespace Aether
+{
 
 Image::~Image()
 {
@@ -98,6 +99,7 @@ void Image::ReleaseDataCreatedByCppNewArray(unsigned char* ptr)
 
 
 
-AETHER_NAMESPACE_END
+}//namespace Aether
+
 
 

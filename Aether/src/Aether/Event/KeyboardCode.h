@@ -1,6 +1,8 @@
 #pragma once
 #include "../Core/Core.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 enum class KeyboardCode :int32_t
 {
 
@@ -124,4 +126,4 @@ enum class KeyboardCode :int32_t
 	KEY_RIGHT_SUPER = 347,
 	KEY_MENU = 348,
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

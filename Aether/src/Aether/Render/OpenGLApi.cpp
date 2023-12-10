@@ -1,7 +1,9 @@
 #include "OpenGLApi.h"
 #include "VertexArray.h"
 #include "IndexBuffer.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 void GLClearError()
 {
     while (glGetError() != GL_NO_ERROR);
@@ -91,4 +93,4 @@ size_t OpenGLApi::TypeSize(GLType glType)
         return 0;
     }
 }
-AETHER_NAMESPACE_END
+}//namespace Aether

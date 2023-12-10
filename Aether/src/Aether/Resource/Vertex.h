@@ -2,7 +2,7 @@
 
 #include "Eigen/Core"
 #include "../Render/VertexBufferLayout.h"
-AETHER_NAMESPACE_BEGIN
+namespace Aether{
 class Vertex
 {
 public:
@@ -20,4 +20,4 @@ public:
 	static VertexBufferLayout CreateVertexBufferLayout();
 	
 };
-AETHER_NAMESPACE_END
+}//namespace Aether

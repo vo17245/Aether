@@ -2,7 +2,9 @@
 #include <iostream>
 #include "Config.h"
 
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 Log& Log::Get()
 {
 	static Log log;
@@ -17,4 +19,4 @@ Log::Log()
 Log::~Log()
 {
 }
-AETHER_NAMESPACE_END
+}

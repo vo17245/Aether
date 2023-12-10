@@ -1,7 +1,9 @@
 #pragma once
 #include "../Core/Core.h"
 #include <stdint.h>
-AETHER_NAMESPACE_BEGIN
+namespace Aether
+{
+
 class IndexBuffer
 {
 public:
@@ -14,4 +16,4 @@ private:
 	uint32_t m_RendererId;
 	size_t m_Count;
 };
-AETHER_NAMESPACE_END
+}
