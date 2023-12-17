@@ -6,6 +6,7 @@
 #include <string>
 #include <filesystem>
 namespace Aether{
+
 class ModelLoader
 {
 public:

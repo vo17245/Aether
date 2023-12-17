@@ -6,11 +6,12 @@
 #include "Material.h"
 #include "Primitive.h"
 #include "Mesh.h"
-
+#include "BufferView.h"
 namespace Aether
 {
-    struct Model
+    class Model
     {
+    public:
         std::vector<Buffer> buffers;
         std::vector<BufferView> bufferViews;
         std::vector<Accessor> accessors;
@@ -21,5 +22,7 @@ namespace Aether
         std::vector<Node> nodes;
         // check if a cycle in nodes 
         bool HasCycle();
+        void Bind();
+        void Unbind();
     };
 }

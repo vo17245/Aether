@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core/Core.h"
+#include "Aether/Render/OpenGLApi.h"
 #include "VertexBuffer.h"
 #include "VertexBufferLayout.h"
 #include "OpenGLApi.h"
@@ -14,7 +15,7 @@ public:
 	VertexArray(VertexArray&&) = delete;
 	void Bind()const;
 	void Unbind()const;
-	void SetData(VertexBuffer& vb,VertexBufferLayout& vbl);
+	void BindData(VertexBuffer& vb,VertexBufferLayout& vbl);
 	static Ref<VertexArray> Create();
 private:
 	RendererId m_RendererId;

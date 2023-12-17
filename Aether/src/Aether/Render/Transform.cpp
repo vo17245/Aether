@@ -1,5 +1,7 @@
 #include "Transform.h"
+#include "Aether/Core/Math.h"
 #include <Eigen/Geometry>
+#include <Eigen/Dense>
 namespace Aether
 {
     Eigen::Matrix4f Transform::Perspective(const float fovy, const float aspectRatio, const float zNear, const float zFar)
@@ -91,6 +93,20 @@ namespace Aether
 			0, 0, -2.0f / (far - near), -(far + near) / (far - near),
 			0, 0, 0, 1.0f;
 		return ortho;
+	}
+	Mat4 Rotation(const Vec3 axis,const Real angle)
+	{
+		Eigen::AngleAxisf rotation(angle, axis);
+		Eigen::Matrix3f rotationMatrix = rotation.toRotationMatrix();
+		Mat4 mat=Mat4::Identity();
+		for(size_t row=0;row<3;row++)
+		{
+			for(size_t col=0;col<3;col++)
+			{
+				mat(row,col)=rotationMatrix(row,col);
+			}
+		}
+		return mat;
 	}
 
 }

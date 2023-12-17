@@ -4,7 +4,7 @@
 #include "../Utils/FileUtils.h"
 #include "nlohmann/json.hpp"
 #include "../Core/Log.h"
-#include "../Resource/ModelAssetImporter.h"
+
 
 using json = nlohmann::json;
 namespace Aether

@@ -24,7 +24,7 @@ namespace Aether
 		GLCall(glBindVertexArray(0));
 	}
 
-	void VertexArray::SetData(VertexBuffer& vb, VertexBufferLayout& vbl)
+	void VertexArray::BindData(VertexBuffer& vb, VertexBufferLayout& vbl)
 	{
 		Bind();
 		vb.Bind();

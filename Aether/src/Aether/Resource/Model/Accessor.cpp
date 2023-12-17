@@ -2,8 +2,10 @@
 #include "Model.h"
 namespace Aether
 {
-    AccessorIterator::AccessorIterator(size_t pos,size_t stride,size_t bufferView,Model* model)
-        :m_Pos(pos),m_Stride(stride),m_BufferView(bufferView),m_Model(model)
+    AccessorIterator::AccessorIterator(size_t pos,size_t stride,size_t bufferView,
+    size_t offset,Model* model)
+        :m_Pos(pos),m_Stride(stride),m_BufferView(bufferView),
+        m_Offset(offset),m_Model(model)
     {
     }
     AccessorIterator::AccessorIterator(const AccessorIterator& other)
@@ -11,19 +13,23 @@ namespace Aether
     {
         m_Pos=other.m_Pos;
         m_Stride=other.m_Stride;
+        m_BufferView=other.m_BufferView;
+        m_Offset=other.m_Offset;
+        m_Model=other.m_Model;
     }
     Element& AccessorIterator::operator*()
     {
         auto& bufferView=m_Model->bufferViews[m_BufferView];
-        auto& buffer=m_Model->buffers[bufferView.buffer];
-        return *((Element*)(&buffer[m_Pos]));
+        auto& buffer=m_Model->buffers[bufferView.GetBuffer()];
+        return *((Element*)(&buffer[m_Offset+m_Pos]));
     }
     bool AccessorIterator::operator==(const AccessorIterator& other)
     {
         return m_Pos==other.m_Pos&&
         m_Stride==other.m_Stride&&
         m_BufferView==other.m_BufferView&&
-        m_Model==other.m_Model;
+        m_Model==other.m_Model&&
+        m_Offset==other.m_Offset;
     }
     AccessorIterator AccessorIterator::operator=(const AccessorIterator& other)
     {
@@ -31,6 +37,7 @@ namespace Aether
         m_Pos=other.m_Pos;
         m_Stride=other.m_Stride;
         m_Model=other.m_Model;
+        m_Offset=other.m_Offset;
         return *this;
     }
     AccessorIterator AccessorIterator::operator++(int i)//iter++
@@ -61,23 +68,16 @@ namespace Aether
     }
 
 
-    Accessor::Accessor(size_t bufferViewIndex,size_t stride,ElementType elementType,Model* model)
-            :m_ElementType(elementType),m_BufferView(bufferViewIndex ),m_Stride(stride),m_Model(model)
-    {
-        auto& bufferView=model->bufferViews[m_BufferView];
-        m_Cnt=(bufferView.end-bufferView.begin)/GetElementSize(m_ElementType);
-        if (m_Stride == 0)
-        {
-            m_Stride = GetElementSize(m_ElementType);
-        }
-    }
+   
     AccessorIterator Accessor::Begin()
     {
-        return AccessorIterator(0,m_Stride,m_BufferView,m_Model);
+        return AccessorIterator(0,m_Stride,
+        m_BufferView,m_Offset,m_Model);
     }
     AccessorIterator Accessor::End()
     {
-        return AccessorIterator(m_Cnt*GetElementSize(m_ElementType),m_Stride,m_BufferView,m_Model);
+        return AccessorIterator(m_Cnt*GetElementSize(m_ElementType),m_Stride,
+        m_BufferView,m_Offset,m_Model);
     }
     AccessorIterator Accessor::begin()
     {
@@ -117,8 +117,24 @@ namespace Aether
             case ElementType::VEC3:
                 return sizeof(Real);
                 break;
+            case ElementType::UNSIGNED_INT32:
+                return 4;
+                break;
             default:
                 AETHER_ASSERT(false&&"unknown type");
         }
+    }
+    Accessor::Accessor(size_t bufferViewIndex,size_t stride,ElementType elementType,
+    size_t offset,Model* model)
+        :m_ElementType(elementType),
+        m_BufferView(bufferViewIndex),
+        m_Stride(stride),
+        m_Model(model),
+        m_Offset(offset)
+
+    {
+        BufferView& bufferView=m_Model->bufferViews[m_BufferView];
+        m_Cnt=(bufferView.GetEnd()-bufferView.GetBegin())/GetElementSize(elementType);
+        
     }
 }

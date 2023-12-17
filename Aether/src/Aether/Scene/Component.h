@@ -2,7 +2,6 @@
 #include "../Core/UUID.h"
 #include "Eigen/Core"
 #include <vector>
-#include "../Resource/ModelAsset.h"
 #include "../Render/Light.h"
 namespace Aether
 {
