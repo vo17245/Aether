@@ -1,6 +1,8 @@
 #pragma once
 #include "Aether/Core/Assert.h"
 #include "Aether/Core/Log.h"
+#include "Aether/Render/IndexBuffer.h"
+#include "Aether/Render/OpenGLApi.h"
 #include "Aether/Resource/Model/Accessor.h"
 #include "Aether/Utils/TarjanAlgorithm.h"
 #include "Model.h"
@@ -22,7 +24,7 @@ namespace Aether
     }
     void Model::Bind()
     {
-        //bind vertex buffer
+        //bind index/vertex buffer(submit data to gpu)
         for(auto& bufferView:bufferViews)
         {
             bufferView.Bind();
@@ -30,8 +32,9 @@ namespace Aether
         //vertex array per primitive
         for(auto& primitive:primitives)
         {
-            primitive.Bind();
-            primitive.GetVertexArray().Bind();
+
+            primitive.Bind();//create vao
+            primitive.GetVertexArray().Bind();//vao bind
             /*
             * vertex location order
             * POSITION
@@ -39,25 +42,45 @@ namespace Aether
             * TEXCOORD_N
             */
             size_t location=0;
+            //set attribute
             for(const auto& [key,value]:primitive.GetAttributes())
             {
+                
                 Accessor& accessor=accessors[value];
+                //bind buffer
+                auto& curBufferView=bufferViews[accessor.GetBufferView()];
+                curBufferView.Bind();
                 if(key.compare("POSITION")==0)
                 {
+                    
                     //POSITION accessor element type must be vec3
-                    if(accessor.GetElementType()!=ElementType::VEC3)
+                    if(accessor.GetElementType()==ElementType::VEC3)
                     {
-                        AETHER_ASSERT(false&&"POSITION accessor element type must be vec3");
-                        AETHER_DEBUG_LOG("POSITION accessor element type not vec3");
-                        return;
-                    }
-                    glEnableVertexAttribArray(static_cast<GLuint>(location));
+                        glEnableVertexAttribArray(static_cast<GLuint>(location));
                     glVertexAttribPointer(static_cast<GLuint>(location), 
 				        static_cast<GLint>(3),
 				        static_cast<GLenum>(GL_FLOAT),
 				        GL_FALSE, 
 				        static_cast<GLsizei>(accessor.GetStride()), 
 				        (const void*)accessor.GetOffset());
+                    
+                    }
+                    else if(accessor.GetElementType()==ElementType::VEC2)
+                    {
+                        glEnableVertexAttribArray(static_cast<GLuint>(location));
+                    glVertexAttribPointer(static_cast<GLuint>(location), 
+				        static_cast<GLint>(2),
+				        static_cast<GLenum>(GL_FLOAT),
+				        GL_FALSE, 
+				        static_cast<GLsizei>(accessor.GetStride()), 
+				        (const void*)accessor.GetOffset());
+                    }
+                    else
+                    {
+                        AETHER_ASSERT(false&&"invalid POSITION element type");
+                        AETHER_DEBUG_LOG("invalid POSITION element type");
+                        return;
+                    }
                     location++;
                 }
                 else if(key.compare("NORMAL")==0)
@@ -116,6 +139,22 @@ namespace Aether
         for(auto& bufferView:bufferViews)
         {
             bufferView.Unbind();
+        }
+    }
+    void Model::Render()
+    {
+        for(auto& p:primitives)
+        {
+            //get indices cnt
+            auto opt_accessorIndex=p.GetIndices();
+            AETHER_ASSERT(opt_accessorIndex&&"no indices draw not implment");
+            auto& indicesAccessor=accessors[opt_accessorIndex.value()];
+            auto& indicesBufferView=bufferViews[indicesAccessor.GetBufferView()];
+            size_t indicesCnt=(indicesBufferView.GetEnd()-indicesBufferView.GetBegin())/
+            indicesAccessor.GetStride();
+            //draw
+            OpenGLApi::DrawElements(p.GetVertexArray(), *indicesBufferView.GetIndexBuffer(), indicesCnt);
+            
         }
     }
 }

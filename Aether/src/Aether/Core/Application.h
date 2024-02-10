@@ -5,12 +5,7 @@
 #include "../Render/OpenGLApi.h"
 #include <GLFW/glfw3.h>
 #include <assert.h>
-#include "../Render/Shader.h"
 #include <memory>
-#include "../Render/VertexArray.h"
-#include "../Render/VertexBuffer.h"
-#include "../Render/IndexBuffer.h"
-#include "../Render/Texture2D.h"
 #include "../Event/Event.h"
 #include <chrono>
 #include "Layer.h"
@@ -57,7 +52,11 @@ private:
   
 private:
     std::vector<Ref<Layer>> m_Layers;
-
+public:
+    static void Init(){s_Instance=new Application;}
+    static void Release(){delete s_Instance;s_Instance=nullptr;}
+    static Application& Get(){return *s_Instance;}
+private:
+    static Application* s_Instance;
 };
-
 }//namespace Aether

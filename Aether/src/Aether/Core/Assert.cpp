@@ -6,7 +6,7 @@ namespace Aether
 		if (!(x))
 		{
 			Log::Error("[{}:{}] [Assert Failed] {}", file, line, s);
-			exit(-1);
+			std::abort();
 		}
 		
 	}

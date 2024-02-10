@@ -1,12 +1,11 @@
 #include "Sandbox.h"
-#include "TestLayer.h"
+#include "Layer/UILayer.h"
+#include "Aether/Core/Application.h"
 namespace Aether
 {
 	Sandbox::Sandbox()
 	{
-		auto layer=CreateRef<TestLayer>();
-		PushLayer(layer);
-
+		Application::Get().PushLayer(CreateRef<UILayer>());
 	}
 }
 

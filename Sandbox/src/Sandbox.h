@@ -5,7 +5,7 @@
 
 namespace Aether
 {
-	class Sandbox :public Aether::Application
+	class Sandbox 
 	{
 	public:
 		Sandbox();

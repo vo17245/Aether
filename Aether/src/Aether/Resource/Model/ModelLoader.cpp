@@ -48,7 +48,9 @@ namespace Aether
             //buffer
             model.buffers.emplace_back((std::byte*)indices.data(),((std::byte*)indices.data())+indices.size()*sizeof(uint32_t));
             //bufferViews;
-            model.bufferViews.emplace_back(model.buffers.size()-1,0,model.buffers.back().size(),&model);
+            model.bufferViews.emplace_back(model.buffers.size()-1,0,model.buffers.back().size(),
+                BufferView::Target::INDEX_BUFFER,
+                &model);
             //accessor
             model.accessors.emplace_back(model.bufferViews.size()-1,0,ElementType::UNSIGNED_INT32,0,&model);
             //indices
@@ -62,7 +64,10 @@ namespace Aether
             ((std::byte*)ai_scene.mMeshes[ai_mesh]->mVertices)+
             ai_scene.mMeshes[ai_mesh]->mNumVertices*3*sizeof(float));
             //bufferview
-            model.bufferViews.emplace_back(model.buffers.size()-1,0,model.buffers.back().size(),&model);
+            model.bufferViews.emplace_back(model.buffers.size()-1,0,
+                model.buffers.back().size(),
+                BufferView::Target::VERTEX_BUFFER,
+                &model);
             //accessor
             model.accessors.emplace_back(model.buffers.size()-1,0,ElementType::VEC3,0,&model);
             //attribute
@@ -75,9 +80,13 @@ namespace Aether
             model.buffers.emplace_back((std::byte*)ai_meshPtr->mNormals,((std::byte*)ai_meshPtr->mNormals)+
             ai_meshPtr->mNumVertices*3*sizeof(float));
             //bufferView
-            model.bufferViews.emplace_back(model.buffers.size()-1,0,model.buffers.back().size(),&model);
+            model.bufferViews.emplace_back(model.buffers.size()-1,
+                0,model.buffers.back().size(),
+                BufferView::Target::VERTEX_BUFFER,
+                &model);
             //accessor
-            model.accessors.emplace_back(model.bufferViews.size()-1,0,ElementType::VEC3,0,&model);
+            model.accessors.emplace_back(model.bufferViews.size()-1,
+                0,ElementType::VEC3,0,&model);
             //attribute
             model.primitives.back().GetAttributes()["NORMAL"]=model.accessors.size()-1;
         }

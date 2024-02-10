@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <optional>
 #include "../Core/Config.h"
+#include "ShaderSource.h"
 /*
 * #aether_shader_command
 * use_model
@@ -16,7 +17,7 @@
 */
 namespace Aether
 {
-struct ShaderLoadResult;
+
 class Shader
 {
 private:
@@ -34,32 +35,12 @@ public:
 	bool SetFloat(const std::string& name, const float n);
 	bool SetInt(const std::string& name, const int n);
 	bool GetLocation(const std::string& name, uint32_t& location);
-	std::vector<std::string> GetCommands() { return m_AetherShaderCommands; }
 public:
-	static ShaderLoadResult CreateRefFromMem(const char* p, size_t len);
-	static ShaderLoadResult CreateRefFromFile(const char* path);
+	static Ref<Shader> Create(const ShaderSource& src);
 private:
 	uint32_t m_RendererId;
 	std::unordered_map<std::string, uint32_t> m_LocationCache;
-	std::vector<std::string> m_CompileErrors;
-	std::vector<std::string> m_AetherShaderCommands;
-	std::string m_Path;
-public:
-	class Premake
-	{
-	public:
-		static Ref<Shader>& GetBasic();
-	};
-	
 };
-struct ShaderLoadResult
-{
-	std::optional<Ref<Shader>> shader;
-	std::vector<std::string> errors;
-	explicit operator bool()const noexcept { return bool(shader); }
-	ShaderLoadResult(const ShaderLoadResult&) = default;
-	ShaderLoadResult(ShaderLoadResult&&) = default;
-	ShaderLoadResult() = default;
-};
+
 
 }//namespace Aether

@@ -1,6 +1,7 @@
 #include "FileUtils.h"
 #include "../Core/Log.h"
 #include <fstream>
+#include <optional>
 namespace Aether
 {
     std::optional<std::vector<std::byte>> FileUtils::ReadFile(const std::string& path)
@@ -24,6 +25,20 @@ namespace Aether
             return std::nullopt;
         }
         return data;
+    }
+    std::optional<std::string> FileUtils::ReadFileAsString(const std::filesystem::path& path)
+    {
+        std::ifstream input(path, std::ios::binary);
+        if(!input.is_open())
+        {
+            return std::nullopt;
+        }
+	    std::string buffer(std::istreambuf_iterator<char>(input), {});
+	    return buffer;
+    }
+    std::optional<std::string> FileUtils::ReadFileAsString(const std::string& path)
+    {
+        return ReadFileAsString(path);
     }
 
 }

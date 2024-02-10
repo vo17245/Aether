@@ -8,162 +8,6 @@
 #include "../Core/Assert.h"
 namespace Aether
 {
-static std::string & trim(std::string & s)
-{
-	if (s.empty())
-	{
-		return s;
-	}
-	s.erase(0, s.find_first_not_of(" "));
-	s.erase(s.find_last_not_of(" ") + 1);
-	return s;
-}
-
-static bool ParseShader(std::istream& is, std::string& vs, std::string& fs,
-	std::vector<std::string>& aetherShaderCommands)
-{
-
-	std::string line;
-	//status
-	//	0 ignore
-	//  1 read vertex shader
-	//  2 read fragment shader
-	//  3 read aether shader commands
-	//	4 read comment,comment will be ignored
-	std::stringstream ss[2];
-	int status = 0;
-	while (std::getline(is, line))
-	{
-		if (status == 0)
-		{
-			if (line.find("#vertex_shader") != std::string::npos)
-			{
-				status = 1;
-				continue;
-			}
-			if (line.find("#fragment_shader") != std::string::npos)
-			{
-				status = 2;
-				continue;
-			}
-			if (line.find("#aether_shader_command") != std::string::npos)
-			{
-				status = 3;
-				continue;
-			}
-			if (line.find("#aether_shader_comment") != std::string::npos)
-			{
-				status = 4;
-				continue;
-			}
-			
-		}
-		else if (status == 1)
-		{
-			if (line.find("#vertex_shader") != std::string::npos)
-			{
-				status = 1;
-				continue;
-			}
-			if (line.find("#fragment_shader") != std::string::npos)
-			{
-				status = 2;
-				continue;
-			}
-			if (line.find("#aether_shader_command") != std::string::npos)
-			{
-				status = 3;
-				continue;
-			}
-			if (line.find("#aether_shader_comment") != std::string::npos)
-			{
-				status = 4;
-				continue;
-			}
-			
-			ss[0] << line << "\r\n";
-		}
-		else if (status == 2)
-		{
-			if (line.find("#vertex_shader") != std::string::npos)
-			{
-				status = 1;
-				continue;
-			}
-			if (line.find("#fragment_shader") != std::string::npos)
-			{
-				status = 2;
-				continue;
-			}
-			if (line.find("#aether_shader_command") != std::string::npos)
-			{
-				status = 3;
-				continue;
-			}
-			if (line.find("#aether_shader_comment") != std::string::npos)
-			{
-				status = 4;
-				continue;
-			}
-			
-			ss[1] << line << "\r\n";
-		}
-		else if (status == 3)
-		{
-			if (line.find("#vertex_shader") != std::string::npos)
-			{
-				status = 1;
-				continue;
-			}
-			if (line.find("#fragment_shader") != std::string::npos)
-			{
-				status = 2;
-				continue;
-			}
-			if (line.find("#aether_shader_command") != std::string::npos)
-			{
-				status = 3;
-				continue;
-			}
-			if (line.find("#aether_shader_comment") != std::string::npos)
-			{
-				status = 4;
-				continue;
-			}
-			if (line.size() == 0)
-			{
-				continue;
-			}
-			aetherShaderCommands.push_back(trim(line));
-		}
-		else if (status == 4)
-		{
-			if (line.find("#vertex_shader") != std::string::npos)
-			{
-				status = 1;
-				continue;
-			}
-			if (line.find("#fragment_shader") != std::string::npos)
-			{
-				status = 2;
-				continue;
-			}
-			if (line.find("#aether_shader_command") != std::string::npos)
-			{
-				status = 3;
-				continue;
-			}
-			if (line.find("#aether_shader_comment") != std::string::npos)
-			{
-				status = 4;
-				continue;
-			}
-		}
-	}
-	vs = std::move(ss[0].str());
-	fs = std::move(ss[1].str());
-	return true;
-}
 
 static bool CompileShader(uint32_t type, const std::string& src,uint32_t& id,std::string& compileError)
 {
@@ -300,101 +144,35 @@ bool Shader::GetLocation(const std::string& name, uint32_t& location)
 	GLCall(location = glGetUniformLocation(m_RendererId, name.c_str()));
 	if (location == -1)
 	{
-		AETHER_DEBUG_LOG_ERROR("uniform {} not find in {}", name, m_Path);
+		AETHER_DEBUG_LOG_ERROR("uniform {} not find", name);
 		return false;
 	}
 	m_LocationCache[name] = location;
 	return true;
 }
-ShaderLoadResult Shader::CreateRefFromMem(const char* p, size_t len)
-{
-	std::string text(p,p+len);
-	std::istringstream iss(text);
-	ShaderLoadResult res;
-	Ref<Shader> shader(new Shader());
-	std::string vs;
-	std::string fs;
-	std::vector<std::string> aetherShaderCommands;
-	std::vector<std::string> errors;
-	ParseShader(iss, vs, fs, aetherShaderCommands);
-	uint32_t vsId;
-	uint32_t fsId;
-	std::string error;
-	bool ret;
-	ret=CompileShader(GL_VERTEX_SHADER, vs, vsId,error);
-	if (!ret)
-	{
-		res.errors.push_back(error);
-		return res;
-	}
-		
-	ret=CompileShader(GL_FRAGMENT_SHADER, fs, fsId,error);
-	if (!ret)
-	{
-		res.errors.push_back(error);
-		return res;
-	}
-	auto rendererId= LinkShader(vsId, fsId);
-	shader->m_RendererId = rendererId;
-	shader->Bind();
-	res.shader = shader;
 
-	return res;
-}
-ShaderLoadResult Shader::CreateRefFromFile(const char* path)
+
+
+Ref<Shader> Shader::Create(const ShaderSource& src)
 {
-	ShaderLoadResult res;
-	std::string vs;
-	std::string fs;
-	std::ifstream ifs(path);
-	if (!ifs.is_open())
-	{
-		AETHER_DEBUG_LOG_ERROR("failed to open file {}", path);
-		res.errors.emplace_back("failed to open file");
-		return res;
-	}
-	std::vector<std::string> aetherShaderCommands;
-	std::vector<std::string> errors;
-	ParseShader(ifs, vs, fs, aetherShaderCommands);
+	bool ret;
 	uint32_t vsId;
 	uint32_t fsId;
 	std::string error;
-	bool ret;
-	ret=CompileShader(GL_VERTEX_SHADER, vs, vsId,error);
+	ret = CompileShader(GL_VERTEX_SHADER, src.GetVertexSource(), vsId, error);
 	if (!ret)
 	{
-		res.errors.emplace_back(std::move(error));
-		return res;
+		return nullptr;
 	}
-		
-	ret=CompileShader(GL_FRAGMENT_SHADER, fs, fsId, error);
+	ret = CompileShader(GL_FRAGMENT_SHADER,src.GetFragmentSource(),fsId,error);
 	if (!ret)
 	{
-		res.errors.emplace_back(std::move(error));
-		return res;
+		return nullptr;
 	}
-		
-	auto rendererId= LinkShader(vsId, fsId);
-	Ref<Shader> shader(new Shader());
-	shader->m_Path = path;
+	auto rendererId = LinkShader(vsId, fsId);
+	Ref<Shader> shader(new Shader);
 	shader->m_RendererId = rendererId;
-	shader->Bind();
-	shader->m_AetherShaderCommands = aetherShaderCommands;
-	res.shader = shader;
-	return res;
+	return shader;
 }
-Ref<Shader>& Shader::Premake::GetBasic()
-{
-	static ShaderLoadResult shader =
-		(
-			Shader::CreateRefFromFile
-			(
-				(
-					std::filesystem::path(GetConfig().resource_path) / "Shader/Premake/Basic.shader"
-				).string().c_str()
-			)
-		);
-	AETHER_ASSERT(shader && "Failed to init premake basic shader");
-	return shader.shader.value();
-}
+
 }//namespace Aether

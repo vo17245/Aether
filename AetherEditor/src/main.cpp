@@ -1,7 +1,9 @@
-#include "AetherEditor.h"
+#include "Aether/Core/Application.h"
+#include "EditorLayer.h"
+using namespace Aether;
 
 int main()
 {
-	Aether::AetherEditor editor;
-	return editor.Run();
+	Application::Get().PushLayer(CreateRef<EditorLayer>());
+	return Application::Get().Run();
 }

@@ -2,18 +2,27 @@
 #include <vector>
 #include "../../Core/Core.h"
 #include <optional>
+#include "Aether/Render/IndexBuffer.h"
 #include "Aether/Render/VertexBuffer.h"
 namespace Aether
 {
     class Model;
+    
     class BufferView//Buffer[begin,end) 
     {
         friend class Model;
     public:
-        BufferView(size_t _buffer,size_t _begin,size_t _end)
-            :m_Buffer(_buffer),m_Begin(_begin),m_End(_end){}
-        BufferView(size_t _buffer,size_t _begin,size_t _end,Model* model)
-            :m_Buffer(_buffer),m_Begin(_begin),m_End(_end),m_Model(model){}
+        enum class Target
+        {
+            VERTEX_BUFFER,
+            INDEX_BUFFER,
+        };
+        
+        BufferView(size_t _buffer,size_t _begin,size_t _end,
+        Target target,Model* model)
+            :m_Buffer(_buffer),m_Begin(_begin),m_End(_end),m_Model(model),
+            m_Target(target)
+        {}
         BufferView(const BufferView&)=default;
         BufferView(BufferView&&)=default;
         bool operator==(const BufferView& other)
@@ -30,11 +39,9 @@ namespace Aether
         inline size_t GetBuffer(){return m_Buffer;}
         inline size_t GetBegin(){return m_Begin;}
         inline size_t GetEnd(){return m_End;}
-        
-        void SetModel(Model* model)
-        {
-            m_Model=model;
-        }
+        inline Target GetTarget(){return m_Target;}
+        inline Ref<VertexBuffer> GetVertexBuffer(){return m_VBO;}
+        inline Ref<IndexBuffer> GetIndexBuffer(){return m_IBO;}
     private:
         size_t m_Buffer;
         size_t m_Begin;
@@ -43,5 +50,7 @@ namespace Aether
         Model* m_Model;
         void Bind();
         void Unbind();
+        Target m_Target;
+        Ref<IndexBuffer> m_IBO;
     };
 }

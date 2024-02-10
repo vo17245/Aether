@@ -5,12 +5,17 @@
 #include "Aether/Core/Config.h"
 namespace Aether
 {
-    Config& GetConfig()
+    Config CreateConfig()
     {
-        static Config config;
+        Config config;
         config.resource_path="../../Resource";
 		config.log_name="AetherEditor";
 		config.app_name="AetherEditor";
+        return config;
+    }
+    Config& GetConfig()
+    {
+        static Config config=CreateConfig();
         return config;
     }
 }

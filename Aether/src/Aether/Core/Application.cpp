@@ -1,23 +1,19 @@
 #include "Application.h"
-
-#include <iostream>
-
 #include "../ImGui/imgui.h"
 #include "../ImGui/imgui_impl_glfw.h"
 #include "../ImGui/imgui_impl_opengl3.h"
 #include "../Render/VertexBufferLayout.h"
-
 #include "../Render/Camera.h"
 #include "../Event/WindowEvent.h"
 #include "../Event/KeyboardEvent.h"
 #include "../Event/MouseEvent.h"
 #include "Config.h"
-
+#include "../Render/Shader.h"
 #include "../Core/Log.h"
 
 namespace Aether
 {
-
+Application* Application::s_Instance=nullptr;
 std::vector<Event*> Application::s_EventQueue;
 
 Application::Application()
@@ -257,7 +253,6 @@ void Application::OnImGuiRender()
 void Application::OnDestory()
 {
     m_Layers.clear();
-    Shader::Premake::GetBasic().reset();
 }
 void Application::OnLoopBegin()
 {

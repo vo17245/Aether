@@ -22,7 +22,8 @@ namespace Aether
         std::vector<Node> nodes;
         // check if a cycle in nodes 
         bool HasCycle();
-        void Bind();
-        void Unbind();
+        void Bind();//make instance in gpu
+        void Unbind();//release instance in gpu
+        void Render();
     };
 }

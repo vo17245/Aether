@@ -48,11 +48,12 @@ void OpenGLApi::ClearColorBuffer()
     GLCall(glClear(GL_COLOR_BUFFER_BIT  ));
 }
 
-void OpenGLApi::DrawElements(const VertexArray& va,const IndexBuffer& ib,GLDrawMode mode)
+void OpenGLApi::DrawElements(const VertexArray& va,const IndexBuffer& ib,size_t elementCnt,
+    GLDrawMode mode)
 {
     va.Bind();
     ib.Bind();
-    GLCall(glDrawElements(static_cast<GLenum>(mode), static_cast<GLsizei>(ib.GetCount()), GL_UNSIGNED_INT, 0));
+    GLCall(glDrawElements(static_cast<GLenum>(mode), static_cast<GLsizei>(elementCnt), GL_UNSIGNED_INT, 0));
 }
 
 
