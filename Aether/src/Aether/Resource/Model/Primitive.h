@@ -39,7 +39,21 @@ namespace Aether
         inline void SetModel(Model* model){m_Model=model;}
         Ref<VertexArray> GetVertexArrayRef(){return m_VAO;}
         VertexArray& GetVertexArray(){return *m_VAO;}
+        bool HasNormal()
+        {
+            return HasAttribute("NORMAL");
+        }
+        bool HasPosition()
+        {
+            return HasAttribute("POSITION");
+        }
+        
     private:
+        bool HasAttribute(const std::string& attribute)
+        {
+            auto iter = m_Attributes.find(attribute);
+            return iter != m_Attributes.end();
+        }
         std::unordered_map<std::string, size_t> m_Attributes;
         std::optional<size_t> m_Indices;//accessor ref
         Model* m_Model;

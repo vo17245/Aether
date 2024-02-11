@@ -1,20 +1,19 @@
 #pragma once
-
 #include "Aether/Core/Layer.h"
 #include "Test/TestMenu.h"
-#include "TestLayer.h"
 #include <memory>
 namespace Aether
 {
-    class UILayer:public Layer
+    class TestLayer:public Layer
     {
     public:
-        UILayer();
-        ~UILayer()=default;
+        TestLayer()=default;
+        ~TestLayer()=default;
         void OnImGuiRender() override;
         void OnUpdate(float sec)override;
         void OnRender()override;
+        void OnEvent(Event& event)override;
     private:
-        Ref<TestLayer> m_TestLayer;
+        std::unique_ptr<TestMenu> m_TestMenu;
     };
 }

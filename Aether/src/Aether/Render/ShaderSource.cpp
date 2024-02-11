@@ -105,18 +105,18 @@ namespace Aether
         res->m_VertexSource=std::move(opt_vs.value());
         return res;
     }
-    static std::filesystem::path GetBuiltinVertexShaderPath(BuiltinShaderSignature signature)
+    static std::filesystem::path GetBuiltinVertexShaderPath(BuiltinShaderType type)
     {
-        switch (signature) 
+        switch (type) 
         {
-        case BuiltinShaderSignature::BASIC:
+        case BuiltinShaderType::BASIC:
         {
             std::stringstream ss;
             ss<<GetConfig().shader_dir<<"/"<<"basic_vs.glsl";
             return ss.str();
         }
         break;
-        case BuiltinShaderSignature::PBR:
+        case BuiltinShaderType::PBR:
         {
             std::stringstream ss;
             ss<<GetConfig().shader_dir<<"/"<<"pbr_vs.glsl";
@@ -130,18 +130,18 @@ namespace Aether
         break;
         }
     }
-    static std::filesystem::path GetBuiltinFragmentShaderPath(BuiltinShaderSignature signature)
+    static std::filesystem::path GetBuiltinFragmentShaderPath(BuiltinShaderType type)
     {
-        switch (signature) 
+        switch (type) 
         {
-            case BuiltinShaderSignature::BASIC:
+            case BuiltinShaderType::BASIC:
             {
                 std::stringstream ss;
                 ss<<GetConfig().shader_dir<<"/"<<"basic_fs.glsl";
                 return ss.str();
             }
             break;
-            case BuiltinShaderSignature::PBR:
+            case BuiltinShaderType::PBR:
             {
                 std::stringstream ss;
                 ss<<GetConfig().shader_dir<<"/"<<"pbr_fs.glsl";
@@ -155,9 +155,9 @@ namespace Aether
             break;
         }
     }
-    std::optional<Ref<ShaderSource>> ShaderSource::LoadBuiltin(BuiltinShaderSignature signature)
+    std::optional<Ref<ShaderSource>> ShaderSource::LoadBuiltin(BuiltinShaderType type)
     {
-        return LoadFromFile(GetBuiltinVertexShaderPath(signature), 
-        GetBuiltinFragmentShaderPath(signature));
+        return LoadFromFile(GetBuiltinVertexShaderPath(type), 
+        GetBuiltinFragmentShaderPath(type));
     }
 }

@@ -9,7 +9,7 @@ namespace Aether
     {
         if(!m_VBO && !m_IBO)
         {
-            if(m_Target==Target::INDEX_BUFFER)
+            if(m_Target==Target::VERTEX_BUFFER)
             {
                 m_VBO=VertexBuffer::Create(m_Model->buffers[m_Buffer].data()+m_Begin,m_End-m_Begin);
             }
@@ -24,7 +24,7 @@ namespace Aether
         }
         else 
         {
-            if(m_Target==Target::INDEX_BUFFER)
+            if(m_Target==Target::VERTEX_BUFFER)
             {
                 m_VBO->Bind();
             }

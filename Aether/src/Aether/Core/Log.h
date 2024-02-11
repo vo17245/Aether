@@ -70,6 +70,16 @@ inline void DebugLogErrorFunc(const char* file, int line, const char* fmt, Args&
 	std::string debugMsg = fmt::format("[thread {}][{}:{}] {}", uint_thread_id,file, line, msg);
 	Log::Error("{}", debugMsg.c_str());
 }
+template<typename... Args>
+inline void DebugLogWarnFunc(const char* file, int line, const char* fmt, Args&&... args)
+{
+	static_assert(sizeof(std::thread::id)==sizeof(unsigned int));
+	auto msg = fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...);
+	std::thread::id thread_id=std::this_thread::get_id();
+	unsigned int uint_thread_id=*((unsigned int*)(&thread_id));
+	std::string debugMsg = fmt::format("[thread {}][{}:{}] {}", uint_thread_id,file, line, msg);
+	Log::Warn("{}", debugMsg.c_str());
+}
 }//namespace Aether
 
 
@@ -77,6 +87,7 @@ inline void DebugLogErrorFunc(const char* file, int line, const char* fmt, Args&
 #ifdef AETHER_ENABLE_DEBUG_LOG
 	#define AETHER_DEBUG_LOG(...) Aether::DebugLogFunc(__FILE__,__LINE__,__VA_ARGS__)
 	#define AETHER_DEBUG_LOG_ERROR(...) Aether::DebugLogErrorFunc(__FILE__,__LINE__,__VA_ARGS__)
+	#define AETHER_DEBUG_LOG_WARN(...) Aether::DebugLogWarnFunc(__FILE__,__LINE__,__VA_ARGS__)
 #else
 	#define AETHER_DEBUG_LOG(...) ((void)0)
 	#define AETHER_DEBUG_LOG_ERROR(...) ((void)0)

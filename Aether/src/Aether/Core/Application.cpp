@@ -7,10 +7,15 @@
 #include "../Event/WindowEvent.h"
 #include "../Event/KeyboardEvent.h"
 #include "../Event/MouseEvent.h"
+#include "Aether/Message/MessageBus.h"
 #include "Config.h"
 #include "../Render/Shader.h"
 #include "../Core/Log.h"
-
+#include "Aether/Render/Renderer3D.h"
+#include "Aether/Render/ShaderCache.h"
+#ifdef _WIN32
+    #undef DispatchMessage
+#endif
 namespace Aether
 {
 Application* Application::s_Instance=nullptr;
@@ -23,6 +28,8 @@ Application::Application()
     InitImGui();
     InitEvent();
     Log::Get();
+    //init renderer3d 
+    Renderer3D::Init();
 }
 
 
@@ -127,6 +134,8 @@ int Application::Run()
         /* OnUpdate*/
        
         OnUpdate(ds);
+        /*message*/
+        MessageBus::GetSingleton().DispatchMessageA();
         OnLoopEnd();
     }
     // Release resource before window destory
@@ -230,7 +239,7 @@ void Application::OnUpdate(float ds)
 }
 void Application::OnEvent(Event& e)
 {
-    Input::OnEvent(e);
+    Input::Get().OnEvent(e);
     for (auto& layer : m_Layers)
     {
         layer->OnEvent(e);

@@ -52,7 +52,10 @@ namespace Aether
                 BufferView::Target::INDEX_BUFFER,
                 &model);
             //accessor
-            model.accessors.emplace_back(model.bufferViews.size()-1,0,ElementType::UNSIGNED_INT32,0,&model);
+            model.accessors.emplace_back(model.bufferViews.size()-1,
+                4,//sizeof(unsigned int) 
+                ElementType::UNSIGNED_INT32, 0,
+                &model);
             //indices
             model.primitives.back().SetIndices(model.accessors.size()-1);
         }

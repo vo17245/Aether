@@ -10,12 +10,18 @@ class Input
 {
 	friend class Application;
 public:
-	static bool Pressed(KeyboardCode code);
-	static void OnEvent(Event& e);
+	bool Pressed(KeyboardCode code);
+	void OnEvent(Event& e);
+	static Input& Get()
+	{
+		static Input input;
+		return input;
+	}
 private:
-	static std::unordered_map<KeyboardCode, bool> s_KeyboardRecord;
-	static bool OnKeyboardPressEvent(KeyboardPressEvent& e);
-	static bool OnKeyboardReleaseEvent(KeyboardReleaseEvent& e);
-	static bool OnKeyboardRepeatEvent(KeyboardRepeatEvent& e);
+	Input() = default;
+	std::unordered_map<KeyboardCode, bool> s_KeyboardRecord;
+	bool OnKeyboardPressEvent(KeyboardPressEvent& e);
+	bool OnKeyboardReleaseEvent(KeyboardReleaseEvent& e);
+	bool OnKeyboardRepeatEvent(KeyboardRepeatEvent& e);
 };
 }

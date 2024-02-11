@@ -3,6 +3,7 @@
 #include "Eigen/Core"
 #include <vector>
 #include "../Render/Light.h"
+#include "Aether/Resource/Model/Model.h"
 namespace Aether
 {
 	struct IDComponent
@@ -48,5 +49,9 @@ namespace Aether
 			light=plc.light;
 			return *this;
 		}
+	};
+	struct ModelComponent
+	{
+		Ref<Model> model;
 	};
 }

@@ -1,8 +1,7 @@
 #include "Input.h"
-
+#include "Aether/Core/Log.h"
 namespace Aether
 {
-    std::unordered_map<KeyboardCode, bool> Input::s_KeyboardRecord;
 
 bool Input::Pressed(KeyboardCode code)
 {
@@ -17,9 +16,9 @@ bool Input::Pressed(KeyboardCode code)
 void Input::OnEvent(Event& e)
 {
     EventDispatcher dispatcher(e);
-    dispatcher.Dispatch<KeyboardPressEvent>(OnKeyboardPressEvent);
-    dispatcher.Dispatch<KeyboardReleaseEvent>(OnKeyboardReleaseEvent);
-    dispatcher.Dispatch<KeyboardRepeatEvent>(OnKeyboardRepeatEvent);
+    dispatcher.Dispatch<KeyboardPressEvent>(AETHER_BIND_FN(OnKeyboardPressEvent) );
+    dispatcher.Dispatch<KeyboardReleaseEvent>(AETHER_BIND_FN(OnKeyboardReleaseEvent));
+    dispatcher.Dispatch<KeyboardRepeatEvent>(AETHER_BIND_FN(OnKeyboardRepeatEvent));
 }
 
 bool Input::OnKeyboardPressEvent(KeyboardPressEvent& e)
@@ -30,6 +29,7 @@ bool Input::OnKeyboardPressEvent(KeyboardPressEvent& e)
 
 bool Input::OnKeyboardReleaseEvent(KeyboardReleaseEvent& e)
 {
+
     s_KeyboardRecord[e.GetCode()] = false;
     return true;
 }

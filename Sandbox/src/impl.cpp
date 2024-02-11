@@ -11,6 +11,8 @@ namespace Aether
         config.resource_path = "../Resource";
         config.log_name = "Sandbox";
         config.app_name = "Sandbox";
+        config.shader_dir="../../Aether/shader";
+        return config;
     }
     Config& GetConfig()
     {

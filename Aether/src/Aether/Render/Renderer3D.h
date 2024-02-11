@@ -12,13 +12,16 @@ namespace Aether
 {
 	class Renderer3D
 	{
+		friend class Application;
 	private:
 		static const Camera* s_Camera;
+		static Ref<Shader> s_BasicShader;
 	public:
 		static void BeginScene(const Camera* camera);
-		static void Submit(Ref<Model> model,const Mat4& modelMatrix);
 		static void EndScene();
-
+		static void Submit(Ref<Model> model, const Mat4& modelMatrix);
+	private:
+		static bool Init();
 	};
 }
 

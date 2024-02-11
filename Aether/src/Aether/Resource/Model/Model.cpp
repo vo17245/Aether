@@ -43,65 +43,71 @@ namespace Aether
             */
             size_t location=0;
             //set attribute
+            if (primitive.HasPosition())
+            {
+
+                Accessor& accessor = accessors[primitive.GetAttributes()["POSITION"]];
+                //POSITION accessor element type must be vec3
+                if (accessor.GetElementType() == ElementType::VEC3)
+                {
+                    glEnableVertexAttribArray(static_cast<GLuint>(location));
+                    glVertexAttribPointer(static_cast<GLuint>(location),
+                        static_cast<GLint>(3),
+                        static_cast<GLenum>(GL_FLOAT),
+                        GL_FALSE,
+                        static_cast<GLsizei>(accessor.GetStride()),
+                        (const void*)accessor.GetOffset());
+
+                }
+                else if (accessor.GetElementType() == ElementType::VEC2)
+                {
+                    glEnableVertexAttribArray(static_cast<GLuint>(location));
+                    glVertexAttribPointer(static_cast<GLuint>(location),
+                        static_cast<GLint>(2),
+                        static_cast<GLenum>(GL_FLOAT),
+                        GL_FALSE,
+                        static_cast<GLsizei>(accessor.GetStride()),
+                        (const void*)accessor.GetOffset());
+                }
+                else
+                {
+                    AETHER_ASSERT(false && "invalid POSITION element type");
+                    AETHER_DEBUG_LOG("invalid POSITION element type");
+                    return;
+                }
+                location++;
+            }
+            if (primitive.HasNormal())
+            {
+                Accessor& accessor = accessors[primitive.GetAttributes()["NORMAL"]];
+                //NORMAL accessor element type must be vec3
+                if (accessor.GetElementType() != ElementType::VEC3)
+                {
+                    AETHER_ASSERT(false && "NORMAL accessor element type must be vec3");
+                    AETHER_DEBUG_LOG("NORMAL accessor element type not vec3");
+                    return;
+                }
+                glEnableVertexAttribArray(static_cast<GLuint>(location));
+                glVertexAttribPointer(static_cast<GLuint>(location),
+                    static_cast<GLint>(3),
+                    static_cast<GLenum>(GL_FLOAT),
+                    GL_FALSE,
+                    static_cast<GLsizei>(accessor.GetStride()),
+                    (const void*)accessor.GetOffset());
+                location++;
+            }
             for(const auto& [key,value]:primitive.GetAttributes())
             {
-                
+                if (key.compare("NORMAL") == 0 || key.compare("POSITION") == 0)
+                {
+                    continue;
+                }
                 Accessor& accessor=accessors[value];
                 //bind buffer
                 auto& curBufferView=bufferViews[accessor.GetBufferView()];
                 curBufferView.Bind();
-                if(key.compare("POSITION")==0)
-                {
-                    
-                    //POSITION accessor element type must be vec3
-                    if(accessor.GetElementType()==ElementType::VEC3)
-                    {
-                        glEnableVertexAttribArray(static_cast<GLuint>(location));
-                    glVertexAttribPointer(static_cast<GLuint>(location), 
-				        static_cast<GLint>(3),
-				        static_cast<GLenum>(GL_FLOAT),
-				        GL_FALSE, 
-				        static_cast<GLsizei>(accessor.GetStride()), 
-				        (const void*)accessor.GetOffset());
-                    
-                    }
-                    else if(accessor.GetElementType()==ElementType::VEC2)
-                    {
-                        glEnableVertexAttribArray(static_cast<GLuint>(location));
-                    glVertexAttribPointer(static_cast<GLuint>(location), 
-				        static_cast<GLint>(2),
-				        static_cast<GLenum>(GL_FLOAT),
-				        GL_FALSE, 
-				        static_cast<GLsizei>(accessor.GetStride()), 
-				        (const void*)accessor.GetOffset());
-                    }
-                    else
-                    {
-                        AETHER_ASSERT(false&&"invalid POSITION element type");
-                        AETHER_DEBUG_LOG("invalid POSITION element type");
-                        return;
-                    }
-                    location++;
-                }
-                else if(key.compare("NORMAL")==0)
-                {
-                    //NORMAL accessor element type must be vec3
-                    if(accessor.GetElementType()!=ElementType::VEC3)
-                    {
-                        AETHER_ASSERT(false&&"NORMAL accessor element type must be vec3");
-                        AETHER_DEBUG_LOG("NORMAL accessor element type not vec3");
-                        return;
-                    }
-                    glEnableVertexAttribArray(static_cast<GLuint>(location));
-                    glVertexAttribPointer(static_cast<GLuint>(location), 
-				        static_cast<GLint>(3),
-				        static_cast<GLenum>(GL_FLOAT),
-				        GL_FALSE, 
-				        static_cast<GLsizei>(accessor.GetStride()), 
-				        (const void*)accessor.GetOffset());
-                    location++;
-                }
-                else if(key.compare("TEXCOORD_0"))
+                
+                if(key.compare("TEXCOORD_0")==0)
                 {
                     //TEXCOORD_0 accessor element type must be vec2
                     if(accessor.GetElementType()!=ElementType::VEC2)

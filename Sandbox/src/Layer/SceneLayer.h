@@ -2,6 +2,7 @@
 #include "Aether/Core/Layer.h"
 #include "Aether/Scene/Scene.h"
 #include "Aether/Resource/Model/Model.h"
+#include "Aether/Scene/CameraController.h"
 namespace Aether
 {
     class SceneLayer:public Layer
@@ -12,7 +13,10 @@ namespace Aether
         SceneLayer(const SceneLayer&)=delete;
         SceneLayer(SceneLayer&&)=delete;
         void OnRender()override;
+        void OnUpdate(float sec)override;
+        void OnImGuiRender()override;
     private:
         Ref<Model> m_Model;
+        PerspectiveCameraController m_Controller;
     };
 }

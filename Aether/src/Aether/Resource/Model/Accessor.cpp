@@ -100,6 +100,9 @@ namespace Aether
             case ElementType::VEC3:
                 return 3*sizeof(Real);
                 break;
+            case ElementType::UNSIGNED_INT32:
+                return 4;
+                break;
             default:
                 AETHER_ASSERT(false&&"unknown type");
         }
