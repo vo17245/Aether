@@ -9,41 +9,49 @@
 namespace Aether
 {
 
+
 //thread safe message bus
 class MessageBus
 {
     friend class Application;
 public:
+    struct CallbackSignature
+    {
+        size_t topic_id;
+        size_t callback_id;
+        CallbackSignature(const CallbackSignature&) = default;
+        CallbackSignature(size_t _topic_id, size_t _callback_id)
+            :topic_id(_topic_id), callback_id(_callback_id) {}
+    };
     static MessageBus& GetSingleton()
     {
         static MessageBus instance;
         return instance;
     } 
     template<typename T>
-    size_t Subscribe(const std::function<void(void*)>& callback)
+    CallbackSignature Subscribe(const std::function<void(void*)>& callback)
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
         size_t topicID = TypeIdProvider<T>::ID();
         size_t callback_id = m_IDGenerator.Get();
         m_Callbacks[topicID].emplace_back(callback_id, callback);
-        return callback_id;
+        return CallbackSignature(topicID,callback_id);
     }
     template<typename T>
-    size_t Publish(T* data)
+    void Publish(T* data)
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
         size_t topicID = TypeIdProvider<T>::ID();
         m_Messages.emplace_back(topicID, data);
     }
-    template<typename T>
-    bool Unsubscribe(size_t callback_id)
+    bool Unsubscribe(CallbackSignature signature)
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
-        size_t topicID = TypeIdProvider<T>::ID();
+        size_t topicID = signature.topic_id;
         auto& callbacks = m_Callbacks[topicID];
         for(auto it = callbacks.begin(); it != callbacks.end(); ++it)
         {
-            if(it->first == callback_id)
+            if(it->first == signature.callback_id)
             {
                 callbacks.erase(it);
                 return true;

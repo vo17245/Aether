@@ -14,6 +14,6 @@ namespace Aether
         void OnRender()override;
         void OnEvent(Event& event)override;
     private:
-        std::unique_ptr<TestMenu> m_TestMenu;
+        TestMenu m_TestMenu;
     };
 }

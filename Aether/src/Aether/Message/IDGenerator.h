@@ -5,9 +5,11 @@ namespace Aether
     class IDGenerator
     {
     public:
+        using ID = uint64_t;
+    public:
         IDGenerator() = default;
         ~IDGenerator()= default;
-        size_t Get()
+        ID Get()
         {
             if(m_IdPool.empty())
             {
@@ -15,18 +17,18 @@ namespace Aether
             }
             else
             {
-                size_t id = m_IdPool.back();
+                ID id = m_IdPool.back();
                 m_IdPool.pop_back();
                 return id;
             }
         }
-        size_t Release(size_t id)
+        void Release(ID id)
         {
             m_IdPool.emplace_back(id);
         }
     private:
-        size_t m_Next;
-        std::vector<size_t> m_IdPool;
+        ID m_Next=0;
+        std::vector<ID> m_IdPool;
     };
 
 }

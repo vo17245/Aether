@@ -8,7 +8,17 @@ namespace Aether
 {
     UILayer::UILayer()
     {
-
+        auto signature=MessageBus::GetSingleton().Subscribe<TestLayerTriggleMessage>(
+            AETHER_BIND_FN(OnTestLayerTriggle)
+        );
+        m_CallbackSignatures.emplace_back(signature);
+    }
+    UILayer::~UILayer()
+    {
+        for (auto& signature : m_CallbackSignatures)
+        {
+            MessageBus::GetSingleton().Unsubscribe(signature);
+        }
     }
     void Aether::UILayer::OnImGuiRender()
     {
@@ -16,16 +26,7 @@ namespace Aether
     	ImGui::Text("Hello");
         if(ImGui::Button("Test Menu"))
         {
-            if(m_TestLayer)
-            {
-                Application::Get().PopLayer(m_TestLayer);
-            }
-            else 
-            {
-                m_TestLayer=CreateRef<TestLayer>();
-                Application::Get().PushLayer(m_TestLayer);
-            }
-            
+            MessageBus::GetSingleton().Publish<TestLayerTriggleMessage>(nullptr);
         }
     	ImGui::End();
 
