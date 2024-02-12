@@ -9,7 +9,6 @@ namespace Aether
 class VertexArray
 {
 public:
-	VertexArray();
 	~VertexArray();
 	VertexArray(const VertexArray&) = delete;
 	VertexArray(VertexArray&&) = delete;
@@ -18,6 +17,7 @@ public:
 	void BindData(VertexBuffer& vb,VertexBufferLayout& vbl);
 	static Ref<VertexArray> Create();
 private:
+	VertexArray();
 	RendererId m_RendererId;
 };
 }//namespace Aether

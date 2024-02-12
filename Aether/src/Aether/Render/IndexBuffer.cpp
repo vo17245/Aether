@@ -1,5 +1,7 @@
 #include "IndexBuffer.h"
+#include "Aether/Render/IndexBuffer.h"
 #include "OpenGLApi.h"
+#include <memory>
 namespace Aether
 {
 IndexBuffer::IndexBuffer(const std::byte* buf, const size_t len)
@@ -22,5 +24,9 @@ void IndexBuffer::Bind()const
 void IndexBuffer::Unbind()const
 {
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+}
+Ref<IndexBuffer> IndexBuffer::Create(const std::byte* buf,const size_t len)
+{
+    return std::make_shared<IndexBuffer>(buf,len);
 }
 }//namespace Aether

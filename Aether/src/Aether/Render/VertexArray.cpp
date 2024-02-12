@@ -32,6 +32,6 @@ namespace Aether
 	}
 	Ref<VertexArray> VertexArray::Create()
 	{
-		return CreateRef<VertexArray>();
+		return Ref<VertexArray>(new VertexArray);
 	}
 }//namespace Aether

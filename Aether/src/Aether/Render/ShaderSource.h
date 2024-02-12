@@ -44,6 +44,8 @@ namespace Aether
         static std::optional<Ref<ShaderSource>> LoadFromFile(const std::filesystem::path& vsPath,
         const std::filesystem::path& fsPath);
         static std::optional<Ref<ShaderSource>> LoadBuiltin(BuiltinShaderType type); 
+        ShaderSource(const std::string& vs,const std::string& fs)
+            :m_VertexSource(vs),m_FragmentSource(fs){}
     private:
         ShaderSource() {}
         std::string m_VertexSource;

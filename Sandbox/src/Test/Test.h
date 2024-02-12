@@ -9,7 +9,9 @@
 #define RESOURCE(x) ("../../Resource/" x)
 namespace Aether
 {
-	
+	namespace Test
+	{
+		
 	class Test
 	{
 	public:
@@ -22,5 +24,6 @@ namespace Aether
 		virtual void OnLoopEnd() {}
 		virtual void OnLoopBegin() {}
 	};
+	}
 	
 }

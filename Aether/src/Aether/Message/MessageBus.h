@@ -6,6 +6,9 @@
 #include <vcruntime.h>
 #include "IDGenerator.h"
 #include "TypeIdProvider.h"
+#ifdef _WIN32
+#undef DispatchMessage
+#endif
 namespace Aether
 {
 

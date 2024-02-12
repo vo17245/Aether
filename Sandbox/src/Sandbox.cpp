@@ -7,7 +7,6 @@ namespace Aether
 	Sandbox::Sandbox()
 	{
 		Application::Get().PushLayer(CreateRef<UILayer>());
-		Application::Get().PushLayer(CreateRef<SceneLayer>());
 	}
 }
 

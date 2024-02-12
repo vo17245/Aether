@@ -47,7 +47,10 @@ namespace Aether
         {
             return HasAttribute("POSITION");
         }
-        
+        void AddAttribute(const std::string& name,size_t accessor_index)
+        {
+            m_Attributes[name]=accessor_index;
+        }
     private:
         bool HasAttribute(const std::string& attribute)
         {

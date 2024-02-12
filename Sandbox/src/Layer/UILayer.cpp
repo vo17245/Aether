@@ -8,10 +8,20 @@ namespace Aether
 {
     UILayer::UILayer()
     {
-        auto signature=MessageBus::GetSingleton().Subscribe<TestLayerTriggleMessage>(
-            AETHER_BIND_FN(OnTestLayerTriggle)
-        );
-        m_CallbackSignatures.emplace_back(signature);
+        {
+            auto signature = MessageBus::GetSingleton().Subscribe<TestLayerTriggleMessage>(
+                AETHER_BIND_FN(OnTestLayerTriggle)
+            );
+            m_CallbackSignatures.emplace_back(signature);
+        }
+        
+        {
+            auto signature = MessageBus::GetSingleton().Subscribe<SceneLayerTriggleMessage>(
+                AETHER_BIND_FN(OnSceneLayerTriggle)
+            );
+        }
+        
+        
     }
     UILayer::~UILayer()
     {
@@ -22,11 +32,14 @@ namespace Aether
     }
     void Aether::UILayer::OnImGuiRender()
     {
-    	ImGui::Begin("Sandbox");
-    	ImGui::Text("Hello");
-        if(ImGui::Button("Test Menu"))
+    	ImGui::Begin("UILayer");
+        if(ImGui::Button("TestLayer"))
         {
             MessageBus::GetSingleton().Publish<TestLayerTriggleMessage>(nullptr);
+        }
+        if (ImGui::Button("SceneLayer"))
+        {
+            MessageBus::GetSingleton().Publish<SceneLayerTriggleMessage>(nullptr);
         }
     	ImGui::End();
 

@@ -135,7 +135,7 @@ int Application::Run()
        
         OnUpdate(ds);
         /*message*/
-        MessageBus::GetSingleton().DispatchMessageA();
+        MessageBus::GetSingleton().DispatchMessage();
         OnLoopEnd();
     }
     // Release resource before window destory

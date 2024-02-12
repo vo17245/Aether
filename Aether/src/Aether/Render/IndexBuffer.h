@@ -11,6 +11,7 @@ public:
 	~IndexBuffer();
 	void Bind()const;
 	void Unbind()const;
+	static Ref<IndexBuffer> Create(const std::byte* buf,const size_t len);
 private:
 	uint32_t m_RendererId;
 };

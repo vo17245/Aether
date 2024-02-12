@@ -41,7 +41,7 @@ namespace Aether
                 }
                 for (unsigned int j = 0; j < face.mNumIndices; j++)
                 {
-                    indices.push_back(face.mIndices[i]);
+                    indices.push_back(face.mIndices[j]);
                 }
                     
             }

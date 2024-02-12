@@ -11,8 +11,9 @@ namespace Aether
     {   
         VEC3=Bit(0),
         VEC2=Bit(1),
-        REAL=Bit(2),
+        REAL=Bit(2),//means float type in c++
         UNSIGNED_INT32=Bit(3),
+        FLOAT32=Bit(4),//the same with REAL
     };
     struct Element
     {
@@ -58,8 +59,8 @@ namespace Aether
         AccessorIterator End();
         AccessorIterator begin();
         AccessorIterator end();
-        constexpr size_t GetElementSize(ElementType type);
-        constexpr size_t GetScalarSize(ElementType type);
+        static constexpr size_t GetElementSize(ElementType type);
+        static constexpr size_t GetScalarSize(ElementType type);
         inline ElementType GetElementType()const{return m_ElementType;}
         inline size_t GetBufferView()const {return m_BufferView;}
         inline size_t GetStride()const{return m_Stride;}

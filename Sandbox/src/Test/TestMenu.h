@@ -8,6 +8,8 @@
 #include "Aether/Core/Log.h"
 namespace Aether
 {
+	namespace Test
+	{
 	class TestMenu :public Test
 	{
 	public:
@@ -24,4 +26,5 @@ namespace Aether
 		std::unordered_map<std::string, std::function<std::unique_ptr<Test>()>> m_Tests;
 		std::unique_ptr<Test> m_CurTest;
 	};
+	}
 }

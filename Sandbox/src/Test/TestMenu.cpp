@@ -4,6 +4,8 @@
 
 namespace Aether
 {
+	namespace Test
+	{
 	void TestMenu::OnImGuiRender()
 	{
 		ImGui::Begin("Test Menu");
@@ -69,5 +71,7 @@ namespace Aether
 		if (m_CurTest)
 			m_CurTest->OnLoopBegin();
 	}
+	}//namespace Test
+
 }
 

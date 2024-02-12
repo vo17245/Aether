@@ -45,8 +45,9 @@ namespace Aether
             //set attribute
             if (primitive.HasPosition())
             {
-
+                
                 Accessor& accessor = accessors[primitive.GetAttributes()["POSITION"]];
+                bufferViews[accessor.GetBufferView()].Bind();
                 //POSITION accessor element type must be vec3
                 if (accessor.GetElementType() == ElementType::VEC3)
                 {
@@ -80,6 +81,7 @@ namespace Aether
             if (primitive.HasNormal())
             {
                 Accessor& accessor = accessors[primitive.GetAttributes()["NORMAL"]];
+                bufferViews[accessor.GetBufferView()].Bind();
                 //NORMAL accessor element type must be vec3
                 if (accessor.GetElementType() != ElementType::VEC3)
                 {
@@ -103,6 +105,7 @@ namespace Aether
                     continue;
                 }
                 Accessor& accessor=accessors[value];
+                bufferViews[accessor.GetBufferView()].Bind();
                 //bind buffer
                 auto& curBufferView=bufferViews[accessor.GetBufferView()];
                 curBufferView.Bind();

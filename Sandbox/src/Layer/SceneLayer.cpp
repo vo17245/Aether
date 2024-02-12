@@ -34,4 +34,17 @@ namespace Aether
             m_Controller.GetCamera().GetPosition().data());
         ImGui::End();
     }
+    void SceneLayer::OnEvent(Event& event)
+    {
+        EventDispatcher dispatcher(event);
+        dispatcher.Dispatch<WindowResizeEvent>(AETHER_BIND_FN(OnWindowResize));
+
+    }
+    bool SceneLayer::OnWindowResize(WindowResizeEvent& e)
+    {
+        Real aspectRatio = Real(e.GetWidth()) / e.GetHeight();
+        m_Controller.GetCamera().SetAspectRatio(aspectRatio);
+        OpenGLApi::SetViewport(0, 0, e.GetWidth(), e.GetHeight());
+        return true;
+    }
 }

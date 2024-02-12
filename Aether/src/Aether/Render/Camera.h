@@ -46,6 +46,7 @@ namespace Aether
 		inline Vec3& GetPosition() { return m_Position; }
 		inline Vec3& GetRotation() { return m_Rotation; }
 
+
 		inline const Mat4& GetView()const  { return m_View; }
 		inline const Mat4& GetProjection()const { return m_Projection; }
 		inline const float& GetFovy()const { return m_Fovy; }
@@ -54,6 +55,9 @@ namespace Aether
 		inline const float& GetAspectRatio()const { return m_AspectRatio; }
 		inline const Vec3& GetPosition()const { return m_Position; }
 		inline const Vec3& GetRotation()const { return m_Rotation; }
+
+		inline void SetAspectRatio(Real aspectRatio) { m_AspectRatio = aspectRatio; }
+
 	};
 	class OrthographicCamera:public Camera
 	{
