@@ -10,6 +10,7 @@
 #include <chrono>
 #include "Layer.h"
 #include "../Core/Input.h"
+#include "Aether/Core/Math.h"
 namespace Aether
 {
 
@@ -34,6 +35,12 @@ public:
     void OnLoopEnd();
     void PushLayer(Ref<Layer> layer);
     bool PopLayer(Ref<Layer> layer);
+    Vec2i GetWindowSize()
+    {
+        int width, height;
+        glfwGetFramebufferSize(m_Window, &width, &height);
+        return Vec2i(width, height);
+    }
 private:
     //event
     static void WindowSizeCallback(GLFWwindow* window, int width, int height);

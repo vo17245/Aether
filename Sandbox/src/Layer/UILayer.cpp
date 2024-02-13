@@ -19,6 +19,7 @@ namespace Aether
             auto signature = MessageBus::GetSingleton().Subscribe<SceneLayerTriggleMessage>(
                 AETHER_BIND_FN(OnSceneLayerTriggle)
             );
+            m_CallbackSignatures.emplace_back(signature);
         }
         
         
