@@ -5,8 +5,8 @@ namespace Aether
 
 bool Input::Pressed(KeyboardCode code)
 {
-    auto iter = s_KeyboardRecord.find(code);
-    if (iter != s_KeyboardRecord.end())
+    auto iter = m_KeyboardRecord.find(code);
+    if (iter != m_KeyboardRecord.end())
     {
         return iter->second;
     }
@@ -19,24 +19,31 @@ void Input::OnEvent(Event& e)
     dispatcher.Dispatch<KeyboardPressEvent>(AETHER_BIND_FN(OnKeyboardPressEvent) );
     dispatcher.Dispatch<KeyboardReleaseEvent>(AETHER_BIND_FN(OnKeyboardReleaseEvent));
     dispatcher.Dispatch<KeyboardRepeatEvent>(AETHER_BIND_FN(OnKeyboardRepeatEvent));
+    dispatcher.Dispatch<MousePositionEvent>(
+        AETHER_BIND_FN(OnMousePositionEvent));
 }
 
 bool Input::OnKeyboardPressEvent(KeyboardPressEvent& e)
 {
-    s_KeyboardRecord[e.GetCode()] = true;
+    m_KeyboardRecord[e.GetCode()] = true;
     return true;
 }
 
 bool Input::OnKeyboardReleaseEvent(KeyboardReleaseEvent& e)
 {
 
-    s_KeyboardRecord[e.GetCode()] = false;
+    m_KeyboardRecord[e.GetCode()] = false;
     return true;
 }
 
 bool Input::OnKeyboardRepeatEvent(KeyboardRepeatEvent& e)
 {
-    s_KeyboardRecord[e.GetCode()] = true;
+    m_KeyboardRecord[e.GetCode()] = true;
+    return true;
+}
+bool Input::OnMousePositionEvent(MousePositionEvent& e)
+{
+    m_MouseTrace.emplace_back(e);
     return true;
 }
 }

@@ -28,7 +28,12 @@ namespace Aether
 		 *  generate a rotation matrix that rotates around an input axis following the right-hand screw rule
 		*/
 		static Mat4 Rotation(const Vec3 axis,const Real angle);
-			
+		/**
+		if a and b are normalized, 
+		then the return matrix is the rotation matrix that rotates a to b
+		*/
+		static Mat3 GetRotation(const Vec3& a,const Vec3& b);
+		static Mat4 Homogeneous(const Mat3& m);
 	};
 }
 

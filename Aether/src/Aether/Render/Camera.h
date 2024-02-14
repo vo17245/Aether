@@ -32,7 +32,7 @@ namespace Aether
 	private:
 		Real m_Fovy, m_ZNear, m_ZFar, m_AspectRatio;
 		Vec3 m_Position;
-		Vec3 m_Rotation;
+		Vec3 m_Rotation;//means camera face
 
 	public:
 		void CalculateProjection();

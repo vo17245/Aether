@@ -276,6 +276,7 @@ void Application::OnLoopEnd()
     {
         layer->OnLoopEnd();
     }
+    Input::Get().OnLoopEnd();
 }
 void Application::PushLayer(Ref<Layer> layer)
 {

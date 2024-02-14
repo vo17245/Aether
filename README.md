@@ -1,4 +1,4 @@
-## demo
+## screenshot
 
 pbr direct light
 

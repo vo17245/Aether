@@ -1,7 +1,9 @@
 #include "Image.h"
+#include "Aether/Resource/Image.h"
 #include "stb/stb_image.h"
 #include <assert.h>
-
+#include "Aether/Core/Assert.h"
+#include "Aether/Core/Log.h"
 
 namespace Aether
 {
@@ -35,6 +37,7 @@ Image::Image(const Image& image)
 std::optional<Image> Image::LoadFromMemDataRGB888(const char* data, size_t width, size_t height)
 {
     Image image;
+    image.m_Format=ImageFormat::RGB888;
     image.m_Channel = 3;
     image.m_Height = height;
     image.m_Width = width;
@@ -47,6 +50,7 @@ std::optional<Image> Image::LoadFromMemDataRGB888(const char* data, size_t width
 std::optional<Image> Image::LoadFromMemDataRGBA8888(const char* data, size_t width, size_t height)
 {
     Image image;
+    image.m_Format=ImageFormat::RGBA8888;
     image.m_Channel = 4;
     image.m_Height = height;
     image.m_Width = width;
@@ -66,6 +70,21 @@ std::optional<Image> Image::LoadFromMemDataFormat(unsigned char* data, size_t le
     {
         return std::nullopt;
     }
+    switch (image.m_Channel)
+    {
+    case 1:
+        image.m_Format = ImageFormat::GRAY8;
+        break;
+    case 3:
+        image.m_Format = ImageFormat::RGB888;
+        break;
+    case 4:
+        image.m_Format = ImageFormat::RGBA8888;
+        break;
+    default:
+        AETHER_ASSERT(false&&"unknown image format");
+        break;
+    }
     image.m_Data = std::unique_ptr<unsigned char, std::function<void(unsigned char*)>>(ptr, ReleaseDataCreatedByStb);
     return image;
 }
@@ -78,6 +97,21 @@ std::optional<Image> Image::LoadFromFileDataFormat(const std::string& path, bool
     if (data == nullptr)
     {
         return std::nullopt;
+    }
+    switch (image.m_Channel)
+    {
+    case 1:
+        image.m_Format = ImageFormat::GRAY8;
+        break;
+    case 3:
+        image.m_Format = ImageFormat::RGB888;
+        break;
+    case 4:
+        image.m_Format = ImageFormat::RGBA8888;
+        break;
+    default:
+        AETHER_ASSERT(false&&"unknown image format");
+        break;
     }
     image.m_Data = std::unique_ptr<unsigned char, std::function<void(unsigned char*)>>(data, ReleaseDataCreatedByStb);
     return image;
@@ -96,6 +130,43 @@ void Image::ReleaseDataCreatedByCppNewArray(unsigned char* ptr)
 
 }
 
+std::optional<Image> 
+Image::LoadFromFileDataFormat2Float32(const std::string& path,bool flip)
+{
+    Image image;
+    stbi_set_flip_vertically_on_load(flip);
+    float *data = stbi_loadf("newport_loft.hdr", &image.m_Width,
+     &image.m_Height, & image.m_Channel, 0);
+    if(data==nullptr)
+    {
+        return std::nullopt;
+    }
+    switch (image.m_Channel)
+    {
+    case 1:
+        image.m_Format = ImageFormat::GRAY_FLOAT32;
+        break;
+    case 3:
+        image.m_Format = ImageFormat::RGB_FLOAT32;
+        break;
+    case 4:
+        image.m_Format = ImageFormat::RGBA_FLOAT32;
+        break;
+    default:
+        AETHER_ASSERT(false&&"unknown image format");
+        break;
+    }
+    image.m_Data = std::unique_ptr<unsigned char, std::function<void(unsigned char*)>>(
+        (unsigned char*)(data),ReleeaseDataCreatedByStbLoadf);
+    return image;
+}
+void Image::ReleeaseDataCreatedByStbLoadf(unsigned char* ptr)
+{
+    if (ptr != nullptr)
+    {
+        STBI_FREE((float*)ptr);
+    }
+}
 
 
 

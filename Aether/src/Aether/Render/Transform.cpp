@@ -94,7 +94,7 @@ namespace Aether
 			0, 0, 0, 1.0f;
 		return ortho;
 	}
-	Mat4 Rotation(const Vec3 axis,const Real angle)
+	Mat4 Transform::Rotation(const Vec3 axis,const Real angle)
 	{
 		Eigen::AngleAxisf rotation(angle, axis);
 		Eigen::Matrix3f rotationMatrix = rotation.toRotationMatrix();
@@ -107,6 +107,28 @@ namespace Aether
 			}
 		}
 		return mat;
+	}
+	Mat3 Transform::GetRotation(const Vec3& a,const Vec3& b)
+	{
+		// Assume vec_a and vec_c are initialized
+
+		// Compute rotation axis
+		Eigen::Vector3f axis = a.cross(b);
+
+		// Compute rotation angle
+		float angle = acos(a.dot(b) / (a.norm() * b.norm()));
+
+		// Construct rotation matrix
+		Eigen::Matrix3f rotation_matrix;
+		rotation_matrix = Eigen::AngleAxisf(angle, axis);
+		return rotation_matrix;
+	}
+	Mat4 Transform::Homogeneous(const Mat3& m)
+	{
+		// Create a 4x4 matrix from the 3x3 matrix
+		Eigen::Matrix4f mat4 = Eigen::Matrix4f::Identity();
+		mat4.block<3,3>(0,0) = m;
+		return mat4;
 	}
 
 }

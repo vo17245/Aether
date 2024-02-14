@@ -1,8 +1,34 @@
 #include "Texture2D.h"
-
+#include "Aether/Core/Assert.h"
 namespace Aether
 {
+static uint32_t CreateTextureFloat(const Image& image)
+{
+	GLenum gl_image_format=GL_RGB;
+	if(image.GetChannel()==3)
+	{
+		gl_image_format=GL_RGB;
+	}
+	else if(image.GetChannel()==4)
+	{
+		gl_image_format=GL_RGBA;
+	}
+	else
+	{
+		AETHER_ASSERT(false&&"Unsupported image format");
+	}
+	unsigned int hdrTexture;
+    glGenTextures(1, &hdrTexture);
+    glBindTexture(GL_TEXTURE_2D, hdrTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, image.GetWidth(), image.GetHeight(), 0, gl_image_format, GL_FLOAT, image.GetData()); 
 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	return hdrTexture;
+
+}
 static uint32_t CreateTexture(const Image& image)
 {
 	uint32_t rendererId;
