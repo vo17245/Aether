@@ -73,6 +73,7 @@ void Application::InitImGui()
     // init imgui
     IMGUI_CHECKVERSION();
     ImGuiContext* imguiContext = ImGui::CreateContext();
+    m_ImGuiContext = imguiContext;
     ImGui::SetCurrentContext(imguiContext);
     ImGuiIO& io = ImGui::GetIO(); 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
@@ -126,7 +127,7 @@ int Application::Run()
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         /* Swap front and back buffers */
         glfwSwapBuffers(m_Window);
-
+    
         /* Poll for and process events */
         ClearEventQueue();
         glfwPollEvents();
@@ -141,8 +142,8 @@ int Application::Run()
     // Release resource before window destory
     OnDestory();
     //destory window
-    glfwDestroyWindow(m_Window);
-    glfwTerminate();
+    //glfwDestroyWindow(m_Window);
+    //glfwTerminate();
     return 0;
 }
 

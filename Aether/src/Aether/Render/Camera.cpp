@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include "Aether/Render/Transform.h"
 #include "Math.h"
 #include "Transform.h"
 namespace Aether
@@ -10,7 +11,11 @@ namespace Aether
 
     void PerspectiveCamera::CalculateView()
     {
-        m_View = Transform::Translation(-m_Position) * Transform::Rotation(m_Rotation);
+        Vec3 face = m_Face;
+        face.normalize();
+        Mat3 t=Transform::GetRotation(face, Vec3(0, 0, -1));
+        Mat4 rotation=Transform::Homogeneous(t);
+        m_View = rotation*Transform::Translation(-m_Position) ;
     }
 
     OrthographicCamera::OrthographicCamera(float left, float right, float bottom, float top, float near, float far)

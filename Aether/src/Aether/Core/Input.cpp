@@ -43,6 +43,16 @@ bool Input::OnKeyboardRepeatEvent(KeyboardRepeatEvent& e)
 }
 bool Input::OnMousePositionEvent(MousePositionEvent& e)
 {
+    if(!m_MouseTrace.empty())
+    {
+        m_MouseOffset+=Vec2i(e.GetPositionX()-m_MouseTrace.back().GetPositionX(),
+        e.GetPositionY()-m_MouseTrace.back().GetPositionY());
+    }
+    else
+    {
+        m_MouseOffset += Vec2i(e.GetPositionX() - m_LastMousePos.x(),
+            e.GetPositionY() - m_LastMousePos.y());
+    }
     m_MouseTrace.emplace_back(e);
     return true;
 }

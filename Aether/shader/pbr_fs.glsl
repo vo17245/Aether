@@ -58,7 +58,6 @@ uniform vec3 lightColors[4];
 uniform vec3 camPos;
 
 
-
 void main()
 {       
     vec3 N = normalize(v_Normal);
@@ -69,19 +68,19 @@ void main()
 
     // reflectance equation
     vec3 Lo = vec3(0.0);
-    vec3 debug_specluar;
-    vec3 debug_radiance;
-    float debug_distance;
+    //vec3 debug_specluar;
+    //vec3 debug_radiance;
+    //float debug_distance;
     for(int i = 0; i < 4; ++i) 
     {
         // calculate per-light radiance
         vec3 L = normalize(lightPositions[i] - v_FragPos);
         vec3 H = normalize(V + L);
         float distance    = length(lightPositions[i] - v_FragPos);
-        debug_distance=distance;
+        //debug_distance=distance;
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance     = lightColors[i] * attenuation;        
-        debug_radiance=radiance;
+        //debug_radiance=radiance;
         // cook-torrance brdf
         float NDF = DistributionGGX(N, H, roughness);        
         float G   = GeometrySmith(N, V, L, roughness);      
@@ -94,7 +93,7 @@ void main()
         vec3 nominator    = NDF * G * F;
         float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001; 
         vec3 specular     = nominator / denominator;
-        debug_specluar=specular;
+        //debug_specluar=specular;
         // add to outgoing radiance Lo
         float NdotL = max(dot(N, L), 0.0);                
         Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
@@ -106,6 +105,7 @@ void main()
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0/2.2));  
     //debug
-    //color = vec3(v_Normal);
+    
+    //color = v_CamSpacePosition/10;
     FragColor = vec4(color, 1.0);
 }  

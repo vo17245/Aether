@@ -35,7 +35,7 @@ namespace Aether
             json_camera["zFar"] = pc.GetZFar();
             json_camera["aspectRatio"] = pc.GetAspectRatio();
             json_camera["position"] = Vec32Json(pc.GetPosition());
-            json_camera["rotation"] = Vec32Json(pc.GetRotation());
+            json_camera["face"] = Vec32Json(pc.GetFace());
         }
         else if (camera.type == CameraStorage::CameraType::Orthographic)
         {
@@ -291,7 +291,7 @@ namespace Aether
         {
             PerspectiveCamera camera(fovy,zNear,zFar,aspectRatio);
             camera.GetPosition()=position;
-            camera.GetRotation()=rotation;
+            camera.GetFace()=rotation;
             CameraStorage cameraStorage(camera);
             return cameraStorage;
         }

@@ -110,17 +110,21 @@ namespace Aether
 	}
 	Mat3 Transform::GetRotation(const Vec3& a,const Vec3& b)
 	{
-		// Assume vec_a and vec_c are initialized
 
 		// Compute rotation axis
 		Eigen::Vector3f axis = a.cross(b);
-
+		if (axis.norm() == 0) {  
+    		axis = Eigen::Vector3f(1, 0, 0);  
+		} else {
+		    axis.normalize();
+		}
+		
 		// Compute rotation angle
 		float angle = acos(a.dot(b) / (a.norm() * b.norm()));
 
 		// Construct rotation matrix
 		Eigen::Matrix3f rotation_matrix;
-		rotation_matrix = Eigen::AngleAxisf(angle, axis);
+		rotation_matrix = Eigen::AngleAxisf(angle, axis).toRotationMatrix();
 		return rotation_matrix;
 	}
 	Mat4 Transform::Homogeneous(const Mat3& m)

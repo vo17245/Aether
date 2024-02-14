@@ -19,8 +19,8 @@ namespace Aether
             auto window_size = Application::Get().GetWindowSize();
             Real aspectRatio = Real(window_size.x()) / Real(window_size.y());
             m_Controller.GetCamera().SetAspectRatio(aspectRatio);
-
-
+            
+            
             auto opt_model = ModelLoader::LoadFromFile(
                 "../../Asset/Model/sphere.fbx");
                 
@@ -40,7 +40,6 @@ namespace Aether
         }
         PbrDirectLight::~PbrDirectLight()
         {
-
         }
        
         void PbrDirectLight::OnImGuiRender()
@@ -57,6 +56,8 @@ namespace Aether
                 ret |= ImGui::ColorEdit3(color_label.c_str(), &m_LightColor[i][0]);
             }
             ImGui::InputFloat3("camera pos", &m_Controller.GetCamera().GetPosition()[0]);
+            ImGui::InputFloat3("camera face", 
+                &m_Controller.GetCamera().GetFace()[0]);
             ImGui::End();
             if(ret)
             {
@@ -87,7 +88,7 @@ namespace Aether
             {
                 for(size_t y=0;y<y_cnt;y++)
                 {
-                    modelMatrix=Transform::Translation(Vec3(x*3,y*3,0));
+                    modelMatrix=Transform::Translation(Vec3(x*3,y*3,-10));
                     DrawModel(modelMatrix,camera.GetView(),camera.GetProjection(),
                     roughness,metallic);
                     metallic -= metallic_delta;
@@ -115,7 +116,7 @@ namespace Aether
             Mat4 modelView=viewMatrix*modelMatrix;
             Mat4 mvp = projectionMatrix * modelView;
             m_Shader->SetMat4f("u_ModelViewProjection", mvp);
-
+            //m_Shader->SetMat4f("u_ModelView", modelView);
             m_Model->Render();
         }
     }

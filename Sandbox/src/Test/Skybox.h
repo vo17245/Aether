@@ -7,6 +7,7 @@
 #include "Aether/Scene/CameraController.h"
 #include "Aether/Core/Input.h"
 #include "Aether/Core/Log.h"
+#include "Aether/Render/Texture2D.h"
 namespace Aether
 {
     namespace Test
@@ -20,17 +21,13 @@ namespace Aether
             void OnUpdate(float sec)
             {
                 m_Controller.OnUpdate(sec);
-                auto trace = Input::Get().GetMouseTrace();
-                for (auto& e : trace)
-                {
-                    Log::Debug("{} {}", e.GetPositionX(),
-                        e.GetPositionY());
-                }
+                
             }
         private:
             Ref<Model> m_Model;
             Ref<Shader> m_SkyboxShader;
             PerspectiveCameraController m_Controller;
+            Ref<Texture2D> m_SkyboxTex;
         };
     }
 }

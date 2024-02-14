@@ -25,5 +25,6 @@ namespace Aether
         void Bind();//make instance in gpu
         void Unbind();//release instance in gpu
         void Render();
+        ~Model() { Unbind(); }
     };
 }

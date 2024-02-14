@@ -12,11 +12,12 @@ uniform mat4 u_NormalMatrix;
 
 out vec3 v_Normal;
 out vec3 v_FragPos;
-
 void main()
 {
     v_Normal=(u_NormalMatrix*vec4(a_Normal,0)).xyz;
     v_FragPos=(u_Model*vec4(a_Position,1)).xyz;
+    
+
     gl_Position = u_ModelViewProjection*vec4(a_Position,1.0);
 }
 

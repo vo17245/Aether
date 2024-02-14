@@ -12,6 +12,7 @@ int main()
 	Sandbox sandbox;
 	//aether release
 	int rc=Application::Get().Run();
+	
 	Application::Release();
 	return rc;
 }

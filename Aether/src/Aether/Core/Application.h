@@ -65,5 +65,6 @@ public:
     static Application& Get(){return *s_Instance;}
 private:
     static Application* s_Instance;
+    ImGuiContext* m_ImGuiContext;
 };
 }//namespace Aether
