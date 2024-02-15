@@ -18,9 +18,11 @@ Image::Image(Image&& image)noexcept
     m_Height = image.m_Height;
     m_Width = image.m_Width;
     m_Channel = image.m_Channel;
+    m_Format = image.m_Format;
     image.m_Height = 0;
     image.m_Width = 0;
     image.m_Channel = 0;
+    
 }
 
 Image::Image(const Image& image)
@@ -32,6 +34,7 @@ Image::Image(const Image& image)
     m_Height = image.m_Height;
     m_Width = image.m_Width;
     m_Channel = image.m_Channel;
+    m_Format = image.m_Format;
 }
 
 std::optional<Image> Image::LoadFromMemDataRGB888(const char* data, size_t width, size_t height)

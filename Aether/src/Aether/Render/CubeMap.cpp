@@ -3,7 +3,7 @@
 #include "Aether/Core/Log.h"
 namespace Aether
 {
-    static int GetGLFormat(const Image& image)
+    static int GetGLInternalFormat(const Image& image)
     {
         auto format=image.GetFormat();
         switch(format)
@@ -21,6 +21,26 @@ namespace Aether
                 AETHER_DEBUG_LOG_ERROR("Unkown Image Format");
                 Log::Warn("Unkown Image Format");
                 return GL_RGB;
+        }
+    }
+    static int GetGLFormat(const Image& image)
+    {
+        auto format = image.GetFormat();
+        switch (format)
+        {
+        case ImageFormat::RGB888:
+            return GL_RGB;
+        case ImageFormat::RGBA8888:
+            return GL_RGBA;
+        case ImageFormat::RGB_FLOAT32:
+            return GL_RGB;
+        case ImageFormat::RGBA_FLOAT32:
+            return GL_RGBA;
+        default:
+            AETHER_ASSERT(false && "Unkown Image Format");
+            AETHER_DEBUG_LOG_ERROR("Unkown Image Format");
+            Log::Warn("Unkown Image Format");
+            return GL_RGB;
         }
     }
     static int GetGLDataType(const Image& image)
@@ -43,12 +63,13 @@ namespace Aether
                 return GL_UNSIGNED_BYTE;
         }
     }
-    static int SetData(int target,const Image& image)
+    static void SetData(int target,const Image& image)
     {
-        int gl_format=GetGLFormat(image);
+        int gl_int_format= GetGLInternalFormat(image);
+        int gl_format = GetGLFormat(image);
         int gl_data_type=GetGLDataType(image);
         GLCall(glTexImage2D(target , 
-                     0, gl_format,
+                     0, gl_int_format,
                       image.GetWidth(), 
                      image.GetHeight(), 0, gl_format,gl_data_type, image.GetData()
         ));
@@ -113,5 +134,18 @@ namespace Aether
         GLCall(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R,         GL_CLAMP_TO_EDGE));
         GLCall(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER,         GL_LINEAR));
         GLCall(glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    }
+    void CubeMap::Bind(int slot)
+    {
+        OpenGLApi::ActivateTexture(slot);
+        GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID));
+    }
+    void CubeMap::Bind()
+    {
+        GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID));
+    }
+    void CubeMap::Unbind()
+    {
+        GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, 0));
     }
 }

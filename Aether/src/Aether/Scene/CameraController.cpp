@@ -59,6 +59,18 @@ namespace Aether
 		Transform::Rotation(-y_hat,
 		ds*m_MouseSpeed*offset.x())*
 		h_face;
+		if (std::abs(h_face.x()) < 0.01)
+		{
+			h_face.x() = 0;
+		}
+		if (std::abs(h_face.z()) < 0.01)
+		{
+			h_face.z() = 0;
+		}
+		if (std::abs(h_face.y()) < 0.01)
+		{
+			h_face.y() = 0;
+		}
 		m_Camera.GetFace() = h_face.head<3>();
 	}
 }

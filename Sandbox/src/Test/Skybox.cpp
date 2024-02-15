@@ -10,7 +10,7 @@ namespace Aether
         Skybox::Skybox()
             :m_Controller(3.1415926535 / 4, 0.1, 1000, 1)
         {
-            auto opt_model=ModelLoader::LoadFromFile("../../Asset/Model/sphere.fbx");
+            auto opt_model=ModelLoader::LoadFromFile("../../Asset/Model/cube.glb");
             m_Model=opt_model.value();
             m_Model->Bind();
             auto opt_src=ShaderSource::LoadFromFile("../../Aether/shader/skybox_vs.glsl", 
@@ -23,14 +23,15 @@ namespace Aether
             //auto image=Image::LoadFromFileDataFormat2Float32(
             //    "../../Asset/Texture/container2.png");
             AETHER_ASSERT(image&&"Failed to load image");
-            m_SkyboxTex=Texture2D::Create(image.value());
+            LoadCubeMap();
+            m_Controller.GetCamera().GetFace() = Vec3(0,0.5,0.5);
         }
         Skybox::~Skybox()
         {
         }
         void Skybox::OnRender()
         {
-            m_SkyboxTex->Bind();
+            m_CubeMap->Bind();
             m_SkyboxShader->Bind();
             auto& camera=m_Controller.GetCamera();
             camera.CalculateProjection();
