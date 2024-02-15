@@ -135,7 +135,7 @@ Image::LoadFromFileDataFormat2Float32(const std::string& path,bool flip)
 {
     Image image;
     stbi_set_flip_vertically_on_load(flip);
-    float *data = stbi_loadf("newport_loft.hdr", &image.m_Width,
+    float *data = stbi_loadf(path.c_str(), &image.m_Width,
      &image.m_Height, & image.m_Channel, 0);
     if(data==nullptr)
     {

@@ -19,12 +19,18 @@ namespace Aether
             auto shader=Shader::Create(*opt_src.value());
             AETHER_ASSERT(shader&&"Failed to create shader");
             m_SkyboxShader=shader;
+            auto image=Image::LoadFromFileDataFormat2Float32("../../Asset/Texture/skybox/hdr/kloppenheim_06_puresky_4k.hdr");
+            //auto image=Image::LoadFromFileDataFormat2Float32(
+            //    "../../Asset/Texture/container2.png");
+            AETHER_ASSERT(image&&"Failed to load image");
+            m_SkyboxTex=Texture2D::Create(image.value());
         }
         Skybox::~Skybox()
         {
         }
         void Skybox::OnRender()
         {
+            m_SkyboxTex->Bind();
             m_SkyboxShader->Bind();
             auto& camera=m_Controller.GetCamera();
             camera.CalculateProjection();
@@ -33,6 +39,7 @@ namespace Aether
             Mat4 proj=camera.GetProjection();
             m_SkyboxShader->SetMat4f("u_View", view);
             m_SkyboxShader->SetMat4f("u_Projection", proj);
+            m_SkyboxShader->SetInt("u_EnvMap", 0);
             m_Model->Render();
         }
     }

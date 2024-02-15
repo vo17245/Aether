@@ -41,6 +41,7 @@ public:
 	inline const int GetHeight()const { return m_Height; }
 	inline const int GetChannel()const { return m_Channel; }
 	inline const unsigned char* GetData()const { return m_Data.get(); }
+	inline ImageFormat GetFormat()const { return m_Format; }
 	static std::optional<Image> LoadFromMemDataRGB888(const char* data, size_t width, size_t height);
 	static std::optional<Image> LoadFromMemDataRGBA8888(const char* data, size_t width, size_t height);
 	static std::optional<Image> LoadFromMemDataFormat(unsigned char* data, size_t len, bool flip = true);

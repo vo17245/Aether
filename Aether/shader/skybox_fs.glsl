@@ -9,19 +9,21 @@ float AngleBetween(vec3 a, vec3 b) {
 }
 vec2 FragPos2UV(vec3 pos)
 {
-    float a=AngleBetween(vec3(pos.x,0,pos.z),vec3(1,0,0));
-    if(pos.z>0)
-    {
-        a+=PI;
-    }
-    vec3 t=normalize(pos);
-    float b=t.y;
-    return vec2((a)/(2*PI),b/2);
+
+    vec2 uv; // 二维纹理坐标
+
+    float r = length(pos);
+    float u = (atan(pos.y,pos.x)+PI) / (  2*PI);
+    float v = (acos(pos.z)+PI/2) / (PI) ;
+
+    uv = vec2(u, v);
+    return uv;
 }
 
 out vec4 color;
 in vec3 v_FragPos;
 void main()
 {
-    color=vec4(FragPos2UV(v_FragPos),0,1);
+    vec4 texColor=texture(u_EnvMap,FragPos2UV(v_FragPos));
+    color=vec4(texColor.xyz,1);
 }

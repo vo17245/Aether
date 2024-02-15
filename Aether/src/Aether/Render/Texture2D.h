@@ -21,7 +21,10 @@ public:
 	inline size_t GetWidth() { return m_Width; }
 	inline size_t GetHeight() { return m_Height; }
 	inline RendererId GetRendererId() { return m_RendererId; }
-
+	static Ref<Texture2D> Create(const Image& image)
+	{
+		return CreateRef<Texture2D>(image);
+	}
 private:
 	RendererId m_RendererId;
 	size_t m_Width;

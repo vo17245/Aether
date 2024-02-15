@@ -93,6 +93,10 @@ namespace Aether
             //attribute
             model.primitives.back().GetAttributes()["NORMAL"]=model.accessors.size()-1;
         }
+        if (ai_meshPtr->HasTextureCoords(0))
+        {
+            Log::Debug("texture coords find");
+        }
         return true;
     }
     static bool ProcessNode(aiScene& ai_scene,aiNode* ai_node,
