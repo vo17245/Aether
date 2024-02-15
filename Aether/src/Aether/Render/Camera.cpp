@@ -11,11 +11,20 @@ namespace Aether
 
     void PerspectiveCamera::CalculateView()
     {
-        Vec3 face = m_Face;
-        face.normalize();
-        Mat3 t=Transform::GetRotation(face, Vec3(0, 0, -1));
-        Mat4 rotation=Transform::Homogeneous(t);
-        m_View = rotation*Transform::Translation(-m_Position) ;
+        // 计算右向量
+        Eigen::Vector3f cameraRight = m_Up.cross(m_Face).normalized();
+
+        // 重新计算上向量
+        m_Up = m_Face.cross(cameraRight).normalized();
+
+        // 构造视图矩阵
+        Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
+        view.block<3, 1>(0, 0) = cameraRight;
+        view.block<3, 1>(0, 1) = m_Up;
+        view.block<3, 1>(0, 2) = -m_Face;
+        view.block<3, 1>(0, 3) = m_Position;
+        m_View = view.inverse();
+         
     }
 
     OrthographicCamera::OrthographicCamera(float left, float right, float bottom, float top, float near, float far)

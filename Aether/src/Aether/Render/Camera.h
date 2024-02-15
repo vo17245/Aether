@@ -24,7 +24,7 @@ namespace Aether
 		PerspectiveCamera(float fovy, float zNear, float zFar, float aspectRatio)
 			:m_Fovy(fovy), m_ZNear(zNear),
 			m_ZFar(zFar), m_AspectRatio(aspectRatio),
-			m_Position(0, 0, 0), m_Face(0, 0, -1)
+			m_Position(0, 0, 0)
 
 		{
 			CalculateProjection();
@@ -33,7 +33,8 @@ namespace Aether
 	private:
 		Real m_Fovy, m_ZNear, m_ZFar, m_AspectRatio;
 		Vec3 m_Position;
-		Vec3 m_Face;
+		Vec3 m_Face=Vec3(0, 0, -1);
+		Vec3 m_Up=Vec3(0,1,0);
 
 	public:
 		void CalculateProjection();
@@ -46,7 +47,7 @@ namespace Aether
 		inline float& GetAspectRatio() { return m_AspectRatio; }
 		inline Vec3& GetPosition() { return m_Position; }
 		inline Vec3& GetFace() { return m_Face; }
-
+		inline Vec3& GetUp() { return m_Up; }
 		inline const Mat4& GetView()const  { return m_View; }
 		inline const Mat4& GetProjection()const { return m_Projection; }
 		inline const float& GetFovy()const { return m_Fovy; }

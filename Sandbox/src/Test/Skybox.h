@@ -10,6 +10,8 @@
 #include "Aether/Render/Texture2D.h"
 #include "Aether/Event/WindowEvent.h"
 #include "Aether/Render/CubeMap.h"
+#include "Aether/Render/Transform.h"
+
 namespace Aether
 {
     namespace Test
@@ -29,6 +31,33 @@ namespace Aether
             {
                 EventDispatcher dispatcher(e);
                 dispatcher.Dispatch<WindowResizeEvent>(AETHER_BIND_FN(OnWindowResize));
+            }
+            void OnImGuiRender()override
+            {
+
+                Vec3 face = m_Controller.GetCamera().GetFace();
+		        face.normalize();
+		        Mat3 rotation = Transform::GetRotation(Vec3(0, 0, -1), face);
+		        Vec3 z_hat = -face;
+		        z_hat.normalize();
+		        Vec3 x_hat = rotation * Vec3(1, 0, 0);
+		        Vec3 y_hat = (z_hat).cross(x_hat);
+		        y_hat.normalize();
+		        x_hat = y_hat.cross(z_hat);
+		        x_hat.normalize();
+                ImGui::Begin("Skybox");
+                ImGui::InputFloat3("camera pos",
+                 &m_Controller.GetCamera().GetPosition()[0]);
+                ImGui::InputFloat3("camera face",
+                    &m_Controller.GetCamera().GetFace()[0]);
+                ImGui::InputFloat3("x_hat",
+                    &x_hat[0]);
+                ImGui::InputFloat3("y_hat",
+                    &y_hat[0]);
+                ImGui::InputFloat3("z_hat",
+                    &z_hat[0]);
+                ImGui::End();
+                    
             }
         private:
             Ref<Model> m_Model;
