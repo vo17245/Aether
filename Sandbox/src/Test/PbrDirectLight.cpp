@@ -66,7 +66,6 @@ namespace Aether
         }
         void PbrDirectLight::OnRender()
         {
-            OpenGLApi::SetClearColor(0, 0, 0, 1);
             m_Shader->Bind();
             UpdateUniform();
             auto& camera = m_Controller.GetCamera();

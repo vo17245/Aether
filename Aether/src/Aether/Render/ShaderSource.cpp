@@ -44,12 +44,13 @@ namespace Aether
     {
         //1.find the end of fitst line
         size_t pos=0;
-        while(pos<line.size())
+        while(pos< m_FragmentSource.size())
         {
             if(m_FragmentSource[pos]=='\n')
             {
                 break;
             }
+            pos++;
         } 
         if(pos==m_FragmentSource.size())
         {

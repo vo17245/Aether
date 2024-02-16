@@ -10,6 +10,9 @@ out vec3 v_FragPos;
 void main()
 {
     v_FragPos=a_Position;
-    gl_Position = u_Projection*vec4((u_View*vec4(a_Position,0.0)).xyz,1.0);
+    vec4 pos=u_View*vec4(a_Position,0.0);
+    pos.w=1.0;
+    pos=u_Projection*pos;
+    gl_Position = pos.xyww;
 }
 

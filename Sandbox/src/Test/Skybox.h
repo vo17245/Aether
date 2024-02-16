@@ -50,12 +50,8 @@ namespace Aether
                  &m_Controller.GetCamera().GetPosition()[0]);
                 ImGui::InputFloat3("camera face",
                     &m_Controller.GetCamera().GetFace()[0]);
-                ImGui::InputFloat3("x_hat",
-                    &x_hat[0]);
-                ImGui::InputFloat3("y_hat",
-                    &y_hat[0]);
-                ImGui::InputFloat3("z_hat",
-                    &z_hat[0]);
+                ImGui::InputFloat3("camera up",
+                    &m_Controller.GetCamera().GetUp()[0]);
                 ImGui::End();
                     
             }
@@ -76,12 +72,12 @@ namespace Aether
                 //TODO
                 // check if image is loaded successfully
                 std::string dir = "../../Asset/Texture/skybox/hdr/";
-                auto& px = Image::LoadFromFileDataFormat2Float32(dir + "px.hdr");
-                auto& nx = Image::LoadFromFileDataFormat2Float32(dir + "nx.hdr");
-                auto& py = Image::LoadFromFileDataFormat2Float32(dir + "ny.hdr");
-                auto& ny = Image::LoadFromFileDataFormat2Float32(dir + "py.hdr");
-                auto& pz = Image::LoadFromFileDataFormat2Float32(dir + "pz.hdr");
-                auto& nz = Image::LoadFromFileDataFormat2Float32(dir + "nz.hdr");
+                auto px = Image::LoadFromFileDataFormat2Float32(dir + "px.hdr");
+                auto nx = Image::LoadFromFileDataFormat2Float32(dir + "nx.hdr");
+                auto py = Image::LoadFromFileDataFormat2Float32(dir + "ny.hdr");
+                auto ny = Image::LoadFromFileDataFormat2Float32(dir + "py.hdr");
+                auto pz = Image::LoadFromFileDataFormat2Float32(dir + "pz.hdr");
+                auto nz = Image::LoadFromFileDataFormat2Float32(dir + "nz.hdr");
                 m_CubeMap = CubeMap::Create(px.value(), nx.value(),
                     py.value(), ny.value(), 
                     pz.value(), nz.value());

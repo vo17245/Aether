@@ -12,7 +12,7 @@ namespace Aether
 		inline PerspectiveCamera& GetCamera() { return m_Camera;}
 	private:
 		float m_Speed = 3;
-		float m_MouseSpeed=Math::PI/32;
+		float m_RotateSpeed=Math::PI/16;
 		PerspectiveCamera m_Camera;
 	};
 }

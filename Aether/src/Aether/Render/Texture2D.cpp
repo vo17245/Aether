@@ -62,10 +62,62 @@ static RendererId CreateTexture(size_t width, size_t height)
 	GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 	return texture;
 }
+
+static RendererId CreateTextureEx(const Image& image)
+{
+	ImageFormat format=image.GetFormat();
+	
+	switch (format)
+	{
+	case ImageFormat::RGBA8888:
+
+		return CreateTexture(image);
+		break;
+	case ImageFormat::RGB888:
+		return CreateTexture(image);
+		break;
+	case ImageFormat::RGBA_FLOAT32:
+	{
+		RendererId texture;
+		GLCall(glGenTextures(1, &texture));
+		GLCall(glBindTexture(GL_TEXTURE_2D, texture));
+		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, image.GetWidth(),
+			image.GetHeight(), 0, GL_RGBA, GL_FLOAT, image.GetData()));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+	}
+		break;
+	case ImageFormat::RGB_FLOAT32:
+	{
+		RendererId texture;
+		GLCall(glGenTextures(1, &texture));
+		GLCall(glBindTexture(GL_TEXTURE_2D, texture));
+		GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, image.GetWidth(),
+			image.GetHeight(), 0, GL_RGB, GL_FLOAT, image.GetData()));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+		GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+		return texture;
+	}
+		break;
+	case ImageFormat::GRAY8:
+		AETHER_ASSERT(false && "unsupport format");
+		break;
+	case ImageFormat::GRAY_FLOAT32:
+		AETHER_ASSERT(false && "unsupport format");
+		break;
+	default:
+		AETHER_ASSERT(false && "unsupport format");
+		break;
+	}
+}
 Texture2D::Texture2D(const Image& image)
 	:m_RendererId(0),m_Width(image.GetWidth()),m_Height(image.GetHeight())
 {
-	m_RendererId = CreateTexture(image);
+	m_RendererId = CreateTextureEx(image);
 }
 
 Texture2D::Texture2D(size_t width, size_t height)

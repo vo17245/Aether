@@ -40,7 +40,6 @@ namespace Aether
 			m_Camera.GetPosition() -= (up * ds * m_Speed);
 		}
 
-		Vec2i offset = Input::Get().GetMouseOffset();
 
 		Vec4 h_face;
 		
@@ -52,26 +51,38 @@ namespace Aether
 		if (Input::Get().Pressed(KeyboardCode::KEY_UP))
 		{
 			Mat4 rm = Transform::Rotation(-right,
-				ds * m_MouseSpeed);
+				ds * m_RotateSpeed);
 			h_face =rm*  h_face;
 			h_up = rm * h_up;
 		}
 		if (Input::Get().Pressed(KeyboardCode::KEY_DOWN))
 		{
 			Mat4 rm = Transform::Rotation(right,
-				ds * m_MouseSpeed);
+				ds * m_RotateSpeed);
 			h_face =rm * h_face;
 			h_up = rm * h_up;
 		}
 		if (Input::Get().Pressed(KeyboardCode::KEY_RIGHT))
 		{
 			h_face = Transform::Rotation(up,
-				ds * m_MouseSpeed) * h_face;
+				ds * m_RotateSpeed) * h_face;
 		}
 		if (Input::Get().Pressed(KeyboardCode::KEY_LEFT))
 		{
 			h_face = Transform::Rotation(-up,
-				ds * m_MouseSpeed) * h_face;
+				ds * m_RotateSpeed) * h_face;
+		}
+		if (Input::Get().Pressed(KeyboardCode::KEY_J))
+		{
+			Mat4 rm = Transform::Rotation(face,
+				ds * m_RotateSpeed);
+			h_up = rm * h_up;
+		}
+		if (Input::Get().Pressed(KeyboardCode::KEY_K))
+		{
+			Mat4 rm = Transform::Rotation(-face,
+				ds * m_RotateSpeed);
+			h_up = rm * h_up;
 		}
 		m_Camera.GetFace() = h_face.head<3>();
 		m_Camera.GetUp() = h_up.head<3>();

@@ -40,6 +40,12 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
     return ggx1 * ggx2;
 }
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}   
+
 out vec4 FragColor;
 in vec3 v_Normal;
 in vec3 v_FragPos;
@@ -56,6 +62,14 @@ uniform vec3 lightPositions[4];
 uniform vec3 lightColors[4];
 
 uniform vec3 camPos;
+
+
+//ibl
+#ifdef IBL
+uniform samplerCube u_IBL_DiffuseMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D   brdfLUT;  
+#endif
 
 
 void main()
@@ -98,14 +112,30 @@ void main()
         float NdotL = max(dot(N, L), 0.0);                
         Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
     }   
+    #ifdef IBL
+        vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness); 
+        vec3 kS=F;
+        vec3 kD = 1.0 - kS;
+        vec3 irradiance = texture(u_IBL_DiffuseMap, N).rgb;
+        vec3 diffuse    = irradiance * albedo;
+        vec3 R = reflect(-V, N);   
+        vec3 prefilteredColor = texture(prefilterMap, R).rgb;
+        
+        
+        vec2 envBRDF  = texture(brdfLUT, vec2(max(dot(N, V), 0), roughness)).rg;
+        vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+        vec3 ambient = (kD * diffuse + specular) * ao; 
+         
+    #else
+        vec3 ambient = vec3(0.03) * albedo * ao;
+    #endif
+    
     vec3 color = ambient + Lo;
 
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0/2.2));  
     //debug
-    
-    //color = v_CamSpacePosition/10;
+    //color=specular;
     FragColor = vec4(color, 1.0);
 }  

@@ -2,6 +2,8 @@
 #include "Aether/Core/Assert.h"
 #include "Aether/Core/Math.h"
 #include "Aether/Resource/Model/ModelLoader.h"
+#include "Aether/Core/Application.h"
+
 namespace Aether
 {
     namespace Test
@@ -10,6 +12,10 @@ namespace Aether
         Skybox::Skybox()
             :m_Controller(3.1415926535 / 4, 0.1, 1000, 1)
         {
+            auto window_size = Application::Get().GetWindowSize();
+            Real aspectRatio = Real(window_size.x()) / Real(window_size.y());
+            m_Controller.GetCamera().SetAspectRatio(aspectRatio);
+
             auto opt_model=ModelLoader::LoadFromFile("../../Asset/Model/cube.glb");
             m_Model=opt_model.value();
             m_Model->Bind();

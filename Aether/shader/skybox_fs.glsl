@@ -7,7 +7,8 @@ out vec4 color;
 in vec3 v_FragPos;
 void main()
 {
-    vec4 texColor=texture(u_EnvMap,v_FragPos);
-    texColor.xyz = pow(texColor.xyz, vec3(1.0/2.2));  
-    color=vec4(texColor.xyz,1);
+    vec3 texColor=texture(u_EnvMap,v_FragPos).xyz;
+    texColor = texColor / (texColor + vec3(1.0));
+    texColor = pow(texColor, vec3(1.0/2.2));  
+    color=vec4(texColor,1);
 }
