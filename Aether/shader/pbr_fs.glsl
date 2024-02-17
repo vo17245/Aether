@@ -51,31 +51,79 @@ in vec3 v_Normal;
 in vec3 v_FragPos;
 
 // material parameters
-uniform vec3  albedo;
-uniform float metallic;
-uniform float roughness;
-uniform float ao;
+
+
+
+
+
+#ifdef USE_AO_TEX
+uniform sampler2D u_AoTex;
+#else
+uniform float u_Ao;
+#endif
+
+#ifdef USE_ROUGHNESS_TEX
+uniform sampler2D u_RoughnessTex;
+#else
+uniform float u_Roughness;
+#endif
+
+#ifdef USE_ALBEDO_TEX
+uniform sampler2D u_AlbedoTex;
+#else
+uniform vec3  u_Albedo;
+#endif
+
+#ifdef USE_METALLIC_TEX
+uniform sampler2D u_MetallicTex;
+#else
+uniform float u_Metallic;
+#endif
+
+in vec2 v_TexCoords;
 
 
 // lights
-uniform vec3 lightPositions[4];
-uniform vec3 lightColors[4];
+uniform vec3 u_LightPositions[4];
+uniform vec3 u_LightColors[4];
 
-uniform vec3 camPos;
+uniform vec3 u_CamPos;
 
 
 //ibl
 #ifdef IBL
 uniform samplerCube u_IBL_DiffuseMap;
-uniform samplerCube prefilterMap;
-uniform sampler2D   brdfLUT;  
+uniform samplerCube u_PrefilterMap;
+uniform sampler2D   u_BrdfLUT;  
 #endif
+
 
 
 void main()
 {       
+    #ifdef USE_ALBEDO_TEX
+    vec3 albedo = texture(u_AlbedoTex, v_TexCoords).rgb;
+    #else
+    vec3 albedo = u_Albedo;
+    #endif
+    #ifdef USE_ROUGHNESS_TEX
+    float roughness = texture(u_RoughnessTex, v_TexCoords).r;
+    #else
+    float roughness = u_Roughness;
+    #endif
+    #ifdef USE_METALLIC_TEX
+    float metallic = texture(u_MetallicTex, v_TexCoords).r;
+    #else
+    float metallic = u_Metallic;
+    #endif
+    #ifdef USE_AO_TEX
+    float ao = texture(u_AoTex, v_TexCoords).r;
+    #else
+    float ao = u_Ao;
+    #endif
+
     vec3 N = normalize(v_Normal);
-    vec3 V = normalize(camPos-v_FragPos);
+    vec3 V = normalize(u_CamPos-v_FragPos);
 
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metallic);
@@ -88,12 +136,12 @@ void main()
     for(int i = 0; i < 4; ++i) 
     {
         // calculate per-light radiance
-        vec3 L = normalize(lightPositions[i] - v_FragPos);
+        vec3 L = normalize(u_LightPositions[i] - v_FragPos);
         vec3 H = normalize(V + L);
-        float distance    = length(lightPositions[i] - v_FragPos);
+        float distance    = length(u_LightPositions[i] - v_FragPos);
         //debug_distance=distance;
         float attenuation = 1.0 / (distance * distance);
-        vec3 radiance     = lightColors[i] * attenuation;        
+        vec3 radiance     = u_LightColors[i] * attenuation;        
         //debug_radiance=radiance;
         // cook-torrance brdf
         float NDF = DistributionGGX(N, H, roughness);        
@@ -119,10 +167,10 @@ void main()
         vec3 irradiance = texture(u_IBL_DiffuseMap, N).rgb;
         vec3 diffuse    = irradiance * albedo;
         vec3 R = reflect(-V, N);   
-        vec3 prefilteredColor = texture(prefilterMap, R).rgb;
+        vec3 prefilteredColor = texture(u_PrefilterMap, R).rgb;
         
         
-        vec2 envBRDF  = texture(brdfLUT, vec2(max(dot(N, V), 0), roughness)).rg;
+        vec2 envBRDF  = texture(u_BrdfLUT, vec2(max(dot(N, V), 0), roughness)).rg;
         vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
         vec3 ambient = (kD * diffuse + specular) * ao; 

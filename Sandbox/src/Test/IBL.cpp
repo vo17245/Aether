@@ -110,13 +110,13 @@ namespace Aether
         void IBL::UpdateUniform()
         {
             m_Shader->Bind();
-            m_Shader->SetVec3f("albedo", m_Albedo);
-            m_Shader->SetFloat("ao", m_Ao);
+            m_Shader->SetVec3f("u_Albedo", m_Albedo);
+            m_Shader->SetFloat("u_Ao", m_Ao);
             for (size_t i = 0;i < 4;i++)
             {
-                std::string pos_label = fmt::format("lightPositions[{}]", i);
+                std::string pos_label = fmt::format("u_LightPositions[{}]", i);
                 m_Shader->SetVec3f(pos_label, m_LightPos[i]);
-                std::string color_label = fmt::format("lightColors[{}]", i);
+                std::string color_label = fmt::format("u_LightColors[{}]", i);
                 m_Shader->SetVec3f(color_label, m_LightColor[i]);
             }
         }
@@ -128,9 +128,9 @@ namespace Aether
             camera.CalculateProjection();
             camera.CalculateView();
             Vec3 cameraPos = camera.GetPosition();
-            m_Shader->SetVec3f("camPos", cameraPos);
-            m_Shader->SetVec3f("albedo", m_Albedo);
-            m_Shader->SetFloat("ao", m_Ao);
+            m_Shader->SetVec3f("u_CamPos", cameraPos);
+            m_Shader->SetVec3f("u_Albedo", m_Albedo);
+            m_Shader->SetFloat("u_Ao", m_Ao);
             Mat4 modelMatrix = Mat4::Identity();
             size_t x_cnt = 7;
             size_t y_cnt = 7;
@@ -161,12 +161,12 @@ namespace Aether
             m_DiffuseCubeMap->Bind(0);
             m_SpecularCubeMap->Bind(1);
             m_BrfdLUT->Bind(2);
-            m_Shader->SetInt("prefilterMap", 1);
-            m_Shader->SetInt("brdfLUT", 2);
+            m_Shader->SetInt("u_PrefilterMap", 1);
+            m_Shader->SetInt("u_BrdfLUT", 2);
             m_Shader->SetInt("u_IBL_DiffuseMap",0);
             m_Shader->SetMat4f("u_Model", modelMatrix);
-            m_Shader->SetFloat("roughness", roughness);
-            m_Shader->SetFloat("metallic", metallic);
+            m_Shader->SetFloat("u_Roughness", roughness);
+            m_Shader->SetFloat("u_Metallic", metallic);
             Mat4 normalMatrix = modelMatrix.inverse();//rendering in world space
             normalMatrix.transposeInPlace();
             m_Shader->SetMat4f("u_NormalMatrix", normalMatrix);
