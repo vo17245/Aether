@@ -82,7 +82,7 @@ namespace Aether
             shader->SetMat4f("u_ModelViewProjection", mvp);
             shader->SetVec3f("u_CamPos", camera.GetPosition());
             //set light
-            shader->SetFloat("u_LightCnt", 0);
+            shader->SetInt("u_LightCnt", 0);
             // bind tex and set material uniform
             int tex_index = 0;
             if (macro & (uint32_t)BuiltinShaderPbrMacro::IBL)
