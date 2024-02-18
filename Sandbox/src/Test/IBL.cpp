@@ -19,8 +19,8 @@ namespace Aether
             m_Controller.GetCamera().SetAspectRatio(aspectRatio);
             //load box
             {
-                 auto opt_model=ModelLoader::LoadFromFile("../../Asset/Model/cube.glb");
-                m_SC.model=opt_model.value();
+                 auto model=ModelLoader::LoadFromFile("../../Asset/Model/cube.glb");
+                m_SC.model=model;
                 m_SC.model->Bind();
             }
             //skybox shader
@@ -35,10 +35,10 @@ namespace Aether
             LoadCubeMap();
             //model
             {
-                auto opt_model = ModelLoader::LoadFromFile(
+                auto model = ModelLoader::LoadFromFile(
                 "../../Asset/Model/sphere.fbx");
-                AETHER_ASSERT(opt_model&&"Failed to load model");
-                m_Model=opt_model.value();
+                AETHER_ASSERT(model&&"Failed to load model");
+                m_Model=model;
                 m_Model->Bind();
             }
             //pbr shader
@@ -119,6 +119,7 @@ namespace Aether
                 std::string color_label = fmt::format("u_LightColors[{}]", i);
                 m_Shader->SetVec3f(color_label, m_LightColor[i]);
             }
+            m_Shader->SetInt("u_LightCnt", 4);
         }
         void IBL::RenderModel()
         {
@@ -206,6 +207,14 @@ namespace Aether
                 &m_Controller.GetCamera().GetFace()[0]);
             ImGui::InputFloat3("camera up",
                 &m_Controller.GetCamera().GetUp()[0]);
+            for (size_t i = 0;i < 4;i++)
+            {
+                std::string pos_label = fmt::format("light_{}_pos", i);
+                ImGui::SliderFloat3(pos_label.c_str(), &m_LightPos[i][0], -10, 10);
+                std::string color_label = fmt::format("light_{}_color", i);
+                ImGui::SliderFloat3(color_label.c_str(), &m_LightColor[i][0],
+                    0,600);
+            }
             ImGui::End();
         }
         void IBL::LoadIBLDiffuseCubeMap()

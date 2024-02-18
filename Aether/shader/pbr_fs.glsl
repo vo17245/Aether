@@ -80,12 +80,15 @@ uniform sampler2D u_MetallicTex;
 uniform float u_Metallic;
 #endif
 
+
+
 in vec2 v_TexCoords;
 
 
 // lights
-uniform vec3 u_LightPositions[4];
-uniform vec3 u_LightColors[4];
+uniform vec3 u_LightPositions[16];
+uniform vec3 u_LightColors[16];
+uniform int u_LightCnt;
 
 uniform vec3 u_CamPos;
 
@@ -133,7 +136,7 @@ void main()
     //vec3 debug_specluar;
     //vec3 debug_radiance;
     //float debug_distance;
-    for(int i = 0; i < 4; ++i) 
+    for(int i = 0; i < u_LightCnt; ++i) 
     {
         // calculate per-light radiance
         vec3 L = normalize(u_LightPositions[i] - v_FragPos);
@@ -184,6 +187,6 @@ void main()
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0/2.2));  
     //debug
-    //color=specular;
+    //color=N;
     FragColor = vec4(color, 1.0);
 }  

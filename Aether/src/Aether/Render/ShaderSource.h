@@ -8,11 +8,15 @@ namespace Aether
     {
         PBR,
         BASIC,
+        SKYBOX,
     };
     enum class BuiltinShaderPbrMacro:uint32_t
     {
-        USE_NORMAL_MAP=Bit(0),
-        USE_ALBEDO_MAP=Bit(1),
+        USE_AO_TEX=Bit(0),
+        USE_ROUGHNESS_TEX=Bit(1),
+        USE_ALBEDO_TEX=Bit(2),
+        USE_METALLIC_TEX=Bit(3),
+        IBL=Bit(4),
     };
     using BuiltinShaderMacro=uint32_t;
     struct BuiltinShaderSignature
@@ -33,12 +37,15 @@ namespace Aether
     class ShaderSource
     {
     public:
+        ShaderSource(const ShaderSource&) = default;
+        ShaderSource(ShaderSource&&) = default;
         void AddLineInVertexShader(const std::string& line);
         void AddLineInFragmentShader(const std::string& line);
         void AddVertexShaderMacro(const std::string& macro);
         void AddFragmentShaderMacro(const std::string& macro);
         const std::string& GetVertexSource()const{return m_VertexSource;}
         const std::string& GetFragmentSource()const{return m_FragmentSource;}
+        void UseMacro(BuiltinShaderSignature signature);
 
     public:
         static std::optional<Ref<ShaderSource>> LoadFromFile(const std::filesystem::path& vsPath,

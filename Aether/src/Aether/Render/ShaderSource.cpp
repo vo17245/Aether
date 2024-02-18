@@ -124,6 +124,12 @@ namespace Aether
             return ss.str();
         }
         break;
+        case BuiltinShaderType::SKYBOX:
+        {
+            std::stringstream ss;
+            ss<<GetConfig().shader_dir<<"/"<<"skybox_vs.glsl";
+            return ss.str();
+        }
         default:
         AETHER_ASSERT(false&&"unknown builtin shader");
         AETHER_DEBUG_LOG_ERROR("unknown builtin shader");
@@ -149,6 +155,12 @@ namespace Aether
                 return ss.str();
             }
             break;
+            case BuiltinShaderType::SKYBOX:
+            {
+                std::stringstream ss;
+                ss<<GetConfig().shader_dir<<"/"<<"skybox_fs.glsl";
+                return ss.str();
+            }
             default:
             AETHER_ASSERT(false&&"unknown builtin shader");
             AETHER_DEBUG_LOG_ERROR("unknown builtin shader");
@@ -160,5 +172,47 @@ namespace Aether
     {
         return LoadFromFile(GetBuiltinVertexShaderPath(type), 
         GetBuiltinFragmentShaderPath(type));
+    }
+    void ShaderSource::UseMacro(BuiltinShaderSignature signature)
+    {
+        BuiltinShaderType type=signature.type;
+        BuiltinShaderMacro macro=signature.macro;
+        switch (type) 
+        {
+        case BuiltinShaderType::BASIC:
+            AETHER_DEBUG_LOG_WARN("ignore macro in basic shader");
+        break;
+        case BuiltinShaderType::SKYBOX:
+            AETHER_DEBUG_LOG_WARN("ignore macro in skybox shader");
+        break;
+        case BuiltinShaderType::PBR:
+        {
+            if(macro&(uint32_t)BuiltinShaderPbrMacro::USE_AO_TEX)
+            {
+                AddFragmentShaderMacro("USE_AO_TEX");
+            }
+            if(macro&(uint32_t)BuiltinShaderPbrMacro::USE_ROUGHNESS_TEX)
+            {
+                AddFragmentShaderMacro("USE_ROUGHNESS_TEX");
+            }
+            if(macro&(uint32_t)BuiltinShaderPbrMacro::USE_ALBEDO_TEX)
+            {
+                AddFragmentShaderMacro("USE_ALBEDO_TEX");
+            }
+            if(macro&(uint32_t)BuiltinShaderPbrMacro::USE_METALLIC_TEX)
+            {
+                AddFragmentShaderMacro("USE_METALLIC_TEX");
+            }
+            if(macro&(uint32_t)BuiltinShaderPbrMacro::IBL)
+            {
+                AddFragmentShaderMacro("IBL");
+            }
+
+        }
+        break;
+        default:
+            AETHER_ASSERT(false&&"unknown builtin shader");
+        break;
+        }
     }
 }

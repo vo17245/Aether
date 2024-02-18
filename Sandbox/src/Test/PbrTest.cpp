@@ -15,11 +15,11 @@ namespace Aether
         {
             
 
-            auto opt_model = ModelLoader::LoadFromFile(
+            auto model = ModelLoader::LoadFromFile(
                 "../../Asset/Model/sphere.fbx");
                 
-            AETHER_ASSERT(opt_model&&"Failed to load model");
-            m_Model=opt_model.value();
+            AETHER_ASSERT(model&&"Failed to load model");
+            m_Model=model;
             m_Model->Bind();
             
             auto opt_src=ShaderSource::LoadFromFile("../../Aether/shader/pbr_vs.glsl",

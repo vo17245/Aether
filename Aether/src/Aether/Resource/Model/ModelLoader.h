@@ -10,6 +10,6 @@ namespace Aether{
 class ModelLoader
 {
 public:
-    static std::optional<Ref<Model>> LoadFromFile(const std::filesystem::path& path);
+    static Ref<Model> LoadFromFile(const std::filesystem::path& path);
 };
 }//namespace Aether

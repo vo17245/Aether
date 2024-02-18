@@ -148,4 +148,17 @@ namespace Aether
     {
         GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, 0));
     }
+    Ref<CubeMap> CubeMap::LoadFromDir(const std::string& dir)
+    {
+        auto px = Image::LoadFromFileDataFormat2Float32(dir + "/px.hdr");
+        auto nx = Image::LoadFromFileDataFormat2Float32(dir + "/nx.hdr");
+        auto py = Image::LoadFromFileDataFormat2Float32(dir + "/ny.hdr");
+        auto ny = Image::LoadFromFileDataFormat2Float32(dir + "/py.hdr");
+        auto pz = Image::LoadFromFileDataFormat2Float32(dir + "/pz.hdr");
+        auto nz = Image::LoadFromFileDataFormat2Float32(dir + "/nz.hdr");
+        Ref<CubeMap> cubemap = CubeMap::Create(px.value(), nx.value(),
+            py.value(), ny.value(),
+            pz.value(), nz.value());
+        return cubemap;
+    }
 }

@@ -164,7 +164,7 @@ namespace Aether
         return true;
 
     }
-    std::optional<Ref<Model>> ModelLoader::LoadFromFile(const std::filesystem::path& path)
+    Ref<Model> ModelLoader::LoadFromFile(const std::filesystem::path& path)
     {
         Ref<Model> res=CreateRef<Model>();
         Assimp::Importer import;
@@ -174,14 +174,14 @@ namespace Aether
         if ((!ai_scene || ai_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !ai_scene->mRootNode))
         {
             AETHER_DEBUG_LOG_ERROR("Failed to load model,model file path {0}",path.string());
-            return std::nullopt;
+            return nullptr;
         }
         ProcessAssimpModelContext context;
         bool ret=ProcessNode(*ai_scene, ai_scene->mRootNode, 
         *res, -1,context);
         if(!ret)
         {
-            return std::nullopt;
+            return nullptr;
         }
         return res;
     }

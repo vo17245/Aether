@@ -15,7 +15,7 @@ namespace Aether
 	using Vec2i = Eigen::Vector2i;
 	namespace Math
 	{
-		constexpr Real PI=3.1415926535;
+		constexpr Real PI=3.1415926535f;
 	}
 }
 

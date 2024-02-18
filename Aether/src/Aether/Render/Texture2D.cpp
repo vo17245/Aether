@@ -154,4 +154,5 @@ void Texture2D::Bind(uint32_t slot)
 	GLCall(glBindTexture(GL_TEXTURE_2D, m_RendererId));
 }
 
+
 }//namespace Aether

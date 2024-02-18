@@ -31,6 +31,51 @@ namespace Aether
             m_ShaderCache[signature.value]=shader;
             return shader;
         }
+        else if(signature.type==BuiltinShaderType::SKYBOX)
+        {
+            // return cached shader
+            if(m_ShaderCache.find(signature.value)!=m_ShaderCache.end())
+            {
+                return m_ShaderCache[signature.value];
+            }
+            //create shader
+            if(signature.macro!=0)
+            {
+                AETHER_DEBUG_LOG_WARN("ignore macro for SKYBOX shader");
+            }
+            if(m_SourceCache.find(signature.value)==m_SourceCache.end())
+            {
+                auto opt_src=ShaderSource::LoadBuiltin(signature.type);
+                AETHER_ASSERT(opt_src&&"failed to load builtin shader");
+                m_SourceCache[(uint32_t)signature.type]=opt_src.value();
+            }
+            auto shader=Shader::Create(*m_SourceCache[(uint32_t)signature.type]);
+            AETHER_ASSERT(shader&&"failed to create shader");
+            m_ShaderCache[signature.value]=shader;
+            return shader;
+        }
+        else if(signature.type==BuiltinShaderType::PBR)
+        {
+            // return cached shader
+            if(m_ShaderCache.find(signature.value)!=m_ShaderCache.end())
+            {
+                return m_ShaderCache[signature.value];
+            }
+            // has source?
+            if(m_SourceCache.find(signature.value)==m_SourceCache.end())
+            {
+                auto opt_src=ShaderSource::LoadBuiltin(signature.type);
+                AETHER_ASSERT(opt_src&&"failed to load builtin shader");
+                m_SourceCache[(uint32_t)signature.type]=opt_src.value();
+            }
+            // create shader
+            ShaderSource src = *m_SourceCache[(uint32_t)signature.type];
+            src.UseMacro(signature);
+            auto shader=Shader::Create(src);
+            AETHER_ASSERT(shader&&"failed to create shader");
+            m_ShaderCache[signature.value]=shader;
+            return shader;
+        }
         else
         {
             AETHER_ASSERT(false&&"BuiltinShaderType not supported");

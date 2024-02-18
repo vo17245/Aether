@@ -45,8 +45,12 @@ namespace Aether
             Real m_Ao=1.0;
             Vec3 m_LightPos[4] = { 
                 Vec3(-10,-10,10),Vec3(10,-10,10) ,Vec3(-10,10,10) ,Vec3(10,10,10) };
-            Vec3 m_LightColor[4]= { 
-                Vec3(300,300,300),Vec3(300,300,300) ,Vec3(300,300,300) ,Vec3(300,300,300)};
+            //Vec3 m_LightColor[4]= { 
+            //    Vec3(300,300,300),Vec3(300,300,300) 
+            //    ,Vec3(300,300,300) ,Vec3(300,300,300)};
+            Vec3 m_LightColor[4] = {
+                Vec3(0,0,0),Vec3(0,0,0) ,
+                Vec3(0,0,0) ,Vec3(0,0,0) };
             bool OnWindowResize(WindowResizeEvent& e);
             Ref<CubeMap> LoadCubeMapInDir(const std::string& dir);
             bool LoadCubeMap();

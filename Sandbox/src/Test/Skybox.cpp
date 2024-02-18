@@ -16,8 +16,8 @@ namespace Aether
             Real aspectRatio = Real(window_size.x()) / Real(window_size.y());
             m_Controller.GetCamera().SetAspectRatio(aspectRatio);
 
-            auto opt_model=ModelLoader::LoadFromFile("../../Asset/Model/cube.glb");
-            m_Model=opt_model.value();
+            auto model=ModelLoader::LoadFromFile("../../Asset/Model/cube.glb");
+            m_Model=model;
             m_Model->Bind();
             auto opt_src=ShaderSource::LoadFromFile("../../Aether/shader/skybox_vs.glsl", 
             "../../Aether/shader/skybox_fs.glsl");

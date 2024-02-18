@@ -21,6 +21,8 @@ namespace Aether
             {
                 return CreateRef<CubeMap>(px,nx,py,ny,pz,nz);
             }
+            static Ref<CubeMap> LoadFromDir(const std::string& dir);
+            
             RendererId GetRendererID() const { return m_RendererID; }
             static Ref<CubeMap> Create()
             {

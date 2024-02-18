@@ -10,9 +10,9 @@ namespace Aether
         :m_Controller(3.1415926535 / 4, 0.1, 1000, 1)
     {
         std::filesystem::path cubeModelPath="../../Asset/Model/cube.glb";
-        auto opt_Model=ModelLoader::LoadFromFile(cubeModelPath);
-        AETHER_ASSERT(opt_Model&&"failed to load model");
-        m_Model=opt_Model.value();
+        auto model=ModelLoader::LoadFromFile(cubeModelPath);
+        AETHER_ASSERT(model&&"failed to load model");
+        m_Model=model;
         m_Model->Bind();
     }
     void SceneLayer::OnRender()

@@ -1,9 +1,13 @@
 #pragma once
 #include "../Core/UUID.h"
+#include "Aether/Core/Math.h"
+#include "Aether/Render/Texture2D.h"
 #include "Eigen/Core"
 #include <vector>
 #include "../Render/Light.h"
 #include "Aether/Resource/Model/Model.h"
+#include "Aether/Render/CubeMap.h"
+
 namespace Aether
 {
 	struct IDComponent
@@ -50,8 +54,42 @@ namespace Aether
 			return *this;
 		}
 	};
-	struct ModelComponent
+	struct MeshComponent
 	{
 		Ref<Model> model;
 	};
+	struct SkyboxComponent
+	{
+		Ref<Model> model;
+		Ref<CubeMap> envMap;
+		Ref<CubeMap> irradianceMap;
+		Ref<CubeMap> prefilterMap;
+		Ref<Texture2D> brdfLUT;
+		SkyboxComponent(const Ref<Model>& _model,
+				const Ref<CubeMap>& _envMap,
+				const Ref<CubeMap>& _irradianceMap,
+				const Ref<CubeMap>& _prefilterMap,
+				const Ref<Texture2D>& _brdfLUT)
+			:model(_model),envMap(_envMap),irradianceMap(_irradianceMap),
+			prefilterMap(_prefilterMap),brdfLUT(_brdfLUT){}
+		SkyboxComponent() = default;
+		SkyboxComponent(const SkyboxComponent&) = default;
+		SkyboxComponent(SkyboxComponent&&) = default;
+
+	};
+	struct PbrMeterialComponent
+	{
+		Vec3 albedo;
+		float metallic;
+		float roughness;
+		float ao;
+		Ref<Texture2D> albedoMap;
+		Ref<Texture2D> metallicMap;
+		Ref<Texture2D> roughnessMap;
+		Ref<Texture2D> aoMap;
+		PbrMeterialComponent() = default;
+		PbrMeterialComponent(const PbrMeterialComponent&) = default;
+		PbrMeterialComponent(PbrMeterialComponent&&) = default;
+	};
+	
 }
