@@ -8,11 +8,32 @@ namespace Aether
 
 class Texture2D
 {
+
+public:
+	enum class Format:uint32_t
+	{
+		RGB=0,
+		RGBA=1,
+	};
+	enum class ScalarType:uint32_t
+	{
+		UBYTE=0,
+		FLOAT32=1,
+	};
+	struct Spec
+	{
+		size_t width;
+		size_t height;
+		Format format;
+		Format internalFormat;
+		ScalarType dataType;
+	};
 public:
 	Texture2D(const Image& image);
 	Texture2D(size_t width, size_t height);
 	Texture2D(const Texture2D&) = delete;
 	Texture2D(Texture2D&&) = delete;
+	Texture2D(const Spec& spec);
 	~Texture2D();
 	void Bind();
 	void Unbind();

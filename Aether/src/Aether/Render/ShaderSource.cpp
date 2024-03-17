@@ -207,6 +207,14 @@ namespace Aether
             {
                 AddFragmentShaderMacro("IBL");
             }
+            if(macro&(uint32_t)BuiltinShaderPbrMacro::TONEMAPPING)
+            {
+                AddFragmentShaderMacro("TONEMAPPING");
+            }
+            if(macro&(uint32_t)BuiltinShaderPbrMacro::GAMMA)
+            {
+                AddFragmentShaderMacro("GAMMA");
+            }
 
         }
         break;

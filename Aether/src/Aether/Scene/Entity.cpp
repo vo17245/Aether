@@ -7,5 +7,10 @@ namespace Aether
 	{
 		
 	}
+
+	entt::registry& Entity::GetRegistry()
+	{
+		return m_Scene->m_Registry;
+	}
 	
 }

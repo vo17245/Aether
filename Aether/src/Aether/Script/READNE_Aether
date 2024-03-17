@@ -1,0 +1,3 @@
+file in ./Lua is download from https://www.lua.org/
+only change the suffix of .c file to .cpp,
+aim to compile .c files in c++ compiler 

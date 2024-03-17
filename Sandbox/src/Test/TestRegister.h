@@ -19,6 +19,8 @@ namespace Aether
 		template<typename T>
 		void PushTest(const std::string& name)
 		{
+			static_assert(std::is_base_of_v<Test, T> ,
+				"T must be child class of Test");
 			m_Tests[name] = []() {return std::make_unique<T>();};
 		}
 		Scope<TestMenu> CreateTestMenu()

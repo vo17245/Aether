@@ -146,4 +146,19 @@ namespace Aether
         }
 
     }
+    void SceneRenderer::Render(Scene& scene)
+    {
+        PerspectiveCameraComponent* primaryCamera=nullptr;
+        auto view = scene.GetAllEntitiesWith<PerspectiveCameraComponent>();
+        for (const auto& [entity, pc] : view.each())
+        {
+            if (pc.isPrimary)
+            {
+                primaryCamera = &pc;
+                break;
+            }
+        }
+        AETHER_ASSERT(primaryCamera&&"no primary camera");
+        Render(scene,primaryCamera->camera);
+    }
 }//namespace Aether

@@ -6,6 +6,7 @@
 #include "Component.h"
 #include <filesystem>
 #include "../Core/Assert.h"
+#include <entt.hpp>
 namespace Aether
 {
 	class Scene;
@@ -21,16 +22,18 @@ namespace Aether
 			AETHER_ASSERT(!HasComponent<T>() && "Entity already has component!");
 			
 
-			T& component = m_Scene->m_Registry.emplace<T>(m_EntityHandle, std::forward<Args>(args)...);
+			T& component = GetRegistry().emplace<T>(m_EntityHandle, std::forward<Args>(args)...);
 			
+			OnComponentAdd(component);
 			return component;
 		}
 		
+
 		template<typename T, typename... Args>
 		T& AddOrReplaceComponent(Args&&... args)
 		{
-			T& component = m_Scene->m_Registry.emplace_or_replace<T>(m_EntityHandle, std::forward<Args>(args)...);
-			
+			T& component = GetRegistry().emplace_or_replace<T>(m_EntityHandle, std::forward<Args>(args)...);
+			OnComponentAdd(component);
 			return component;
 		}
 
@@ -39,21 +42,23 @@ namespace Aether
 		{
 			AETHER_ASSERT(HasComponent<T>() && "Entity does not have component!");
 
-			return m_Scene->m_Registry.get<T>(m_EntityHandle);
+			return GetRegistry().get<T>(m_EntityHandle);
 		}
 
 		template<typename T>
 		bool HasComponent()
 		{
 			
-			return m_Scene->m_Registry.any_of<T>(m_EntityHandle);
+			return GetRegistry().any_of<T>(m_EntityHandle);
 		}
 
 		template<typename T>
 		void RemoveComponent()
 		{
 			AETHER_ASSERT(HasComponent<T>() && "Entity does not have component!");
-			m_Scene->m_Registry.remove<T>(m_EntityHandle);
+			OnComponentRemove<T>();
+			GetRegistry().remove<T>(m_EntityHandle);
+
 		}
 
 		operator bool() const { return m_EntityHandle != entt::null; }
@@ -72,6 +77,11 @@ namespace Aether
 	private:
 		entt::entity m_EntityHandle{ entt::null };
 		Scene* m_Scene = nullptr;
+		template<typename T>
+		void OnComponentAdd(T& c){}
+		template<typename T>
+		void OnComponentRemove(){}
+		entt::registry& GetRegistry();
 	};
 }
 

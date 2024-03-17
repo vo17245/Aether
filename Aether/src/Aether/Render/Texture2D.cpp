@@ -1,5 +1,6 @@
 #include "Texture2D.h"
 #include "Aether/Core/Assert.h"
+#include "Aether/Render/Texture2D.h"
 namespace Aether
 {
 static uint32_t CreateTextureFloat(const Image& image)
@@ -153,6 +154,55 @@ void Texture2D::Bind(uint32_t slot)
 	OpenGLApi::ActivateTexture(slot);
 	GLCall(glBindTexture(GL_TEXTURE_2D, m_RendererId));
 }
-
+Texture2D::Texture2D(const Spec& spec)
+	:m_Width(spec.width),m_Height(spec.height)
+{
+	GLint internalFormat=GL_RGB;
+	GLenum format=GL_RGB;
+	GLenum type=GL_UNSIGNED_BYTE;
+	if(spec.internalFormat==Format::RGB)
+	{
+		internalFormat = GL_RGB;
+	}
+	else if(spec.internalFormat==Format::RGBA)
+	{
+		internalFormat = GL_RGBA;
+	}
+	else
+	{
+		AETHER_ASSERT(false&&"unsupported color buffer format");
+	}
+	if(spec.format==Format::RGB)
+	{
+		format = GL_RGB;
+	}
+	else if(spec.format==Format::RGBA)
+	{
+		format = GL_RGBA;
+	}
+	else
+	{
+		AETHER_ASSERT(false&&"unsupported color buffer format");
+	}
+	if(spec.dataType==ScalarType::UBYTE)
+	{
+		type = GL_UNSIGNED_BYTE;
+	}
+	else if(spec.dataType==ScalarType::FLOAT32)
+	{
+		type = GL_FLOAT;
+	}
+	else
+	{
+		AETHER_ASSERT(false&&"unsupported color buffer format");
+	}
+	unsigned int texture;
+	GLCall(glGenTextures(1, &texture));
+	GLCall(glBindTexture(GL_TEXTURE_2D, texture));
+	GLCall(glTexImage2D(GL_TEXTURE_2D, 0, internalFormat,spec.width, 	spec.height, 0, format, type, NULL));
+	GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR));
+	GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR));	
+	m_RendererId=texture;
+}
 
 }//namespace Aether

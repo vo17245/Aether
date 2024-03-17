@@ -183,9 +183,14 @@ void main()
     #endif
     
     vec3 color = ambient + Lo;
-
+    //tonemapping
+    #ifdef TONEMAPPING
     color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0/2.2));  
+    #endif
+    //gamma
+    #ifdef GAMMA
+    color = pow(color, vec3(1.0/2.2));
+    #endif 
     //debug
     //color=N;
     FragColor = vec4(color, 1.0);

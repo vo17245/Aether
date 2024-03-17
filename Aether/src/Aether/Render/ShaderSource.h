@@ -9,6 +9,8 @@ namespace Aether
         PBR,
         BASIC,
         SKYBOX,
+        GAUSSIAN_BLUR,
+        SCREEN_QUAD,
     };
     enum class BuiltinShaderPbrMacro:uint32_t
     {
@@ -17,6 +19,8 @@ namespace Aether
         USE_ALBEDO_TEX=Bit(2),
         USE_METALLIC_TEX=Bit(3),
         IBL=Bit(4),
+        TONEMAPPING=Bit(5),
+        GAMMA=Bit(6),
     };
     using BuiltinShaderMacro=uint32_t;
     struct BuiltinShaderSignature

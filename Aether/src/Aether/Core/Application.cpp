@@ -295,4 +295,8 @@ bool Application::PopLayer(Ref<Layer> layer)
     }
     return false;
 }
+void Application::Close()
+{
+    glfwSetWindowShouldClose(m_Window, true);
+}
 }//namespace Aether

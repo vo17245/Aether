@@ -7,6 +7,7 @@
 #include "../Render/Light.h"
 #include "Aether/Resource/Model/Model.h"
 #include "Aether/Render/CubeMap.h"
+#include "Aether/Render/Camera.h"
 
 namespace Aether
 {
@@ -90,6 +91,16 @@ namespace Aether
 		PbrMeterialComponent() = default;
 		PbrMeterialComponent(const PbrMeterialComponent&) = default;
 		PbrMeterialComponent(PbrMeterialComponent&&) = default;
+	};
+	struct PerspectiveCameraComponent
+	{
+		bool isPrimary=false;
+		PerspectiveCamera camera;
+		PerspectiveCameraComponent() 
+			:camera(Math::PI / 4, 0.1, 1000, 1){}
+		PerspectiveCameraComponent(Real fovy,Real zNear,Real zFar,Real aspectRatio) 
+			:camera(fovy,zNear,zFar,aspectRatio){}
+		PerspectiveCameraComponent(const PerspectiveCameraComponent&)=default;
 	};
 	
 }

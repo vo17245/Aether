@@ -45,8 +45,10 @@ namespace Aether
             {
                 auto opt_src=ShaderSource::LoadFromFile("../../Aether/shader/pbr_vs.glsl",
                 "../../Aether/shader/pbr_fs.glsl");
+                AETHER_ASSERT(opt_src && "Failed to load shader source");
                 opt_src.value()->AddFragmentShaderMacro("IBL");
-                AETHER_ASSERT(opt_src&&"Failed to load shader source");
+                opt_src.value()->AddFragmentShaderMacro("TONEMAPPING");
+                opt_src.value()->AddFragmentShaderMacro("GAMMA");
                 auto shader=Shader::Create(*opt_src.value());
                 AETHER_ASSERT(shader&&"Failed to create shader");
                 m_Shader=shader;

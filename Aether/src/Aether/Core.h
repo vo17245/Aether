@@ -1,0 +1,11 @@
+#pragma once
+#include "Core/Application.h"
+#include "Core/Assert.h"
+#include "Core/Assert.h"
+#include "Core/Config.h"
+#include "Core/Input.h"
+#include "Core/Layer.h"
+#include "Core/Log.h"
+#include "Core/Math.h"
+#include "Core/Core.h"
+#include "Core/UUID.h"

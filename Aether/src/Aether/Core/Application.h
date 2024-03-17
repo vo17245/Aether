@@ -41,6 +41,7 @@ public:
         glfwGetFramebufferSize(m_Window, &width, &height);
         return Vec2i(width, height);
     }
+    void Close();
 private:
     //event
     static void WindowSizeCallback(GLFWwindow* window, int width, int height);
