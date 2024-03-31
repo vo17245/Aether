@@ -3,3 +3,4 @@
 #include "Scene/Scene.h"
 #include "Scene/Component.h"
 #include "Scene/SceneRenderer.h"
+#include "Scene/CameraController.h"

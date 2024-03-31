@@ -31,14 +31,14 @@ namespace Aether
 			ColorBufferScalarType dataType;
 			ColorBufferStorage storage;
 		};
-		struct FrameBufferSpec
+		struct Spec
 		{
 			size_t width;
 			size_t height;
 			ColorBufferSpec colorBufferSpec;
 		};
 	public:
-		FrameBuffer(const FrameBufferSpec& spec);
+		FrameBuffer(const Spec& spec);
 		~FrameBuffer();
 		void Bind();
 		void Unbind();
@@ -58,6 +58,5 @@ namespace Aether
 		std::optional<RendererId> m_ColorRenderBuffer;
 		std::optional<RendererId> m_DepthRenderBuffer;
 
-	private:
 	};
 }

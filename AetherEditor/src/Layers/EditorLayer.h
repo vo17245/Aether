@@ -17,6 +17,7 @@ namespace Aether
             void OnRender()override;
         private:
             std::vector<std::unique_ptr<Panel>> m_Panels;
+            
         };
     }
 }

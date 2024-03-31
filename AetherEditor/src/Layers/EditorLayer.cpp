@@ -1,6 +1,7 @@
 #include "EditorLayer.h"
 #include "Aether/ImGui.h"
 #include "Aether/ImGui/imgui.h"
+#include "Core/MainScene.h"
 #include "Panels/SceneViewPanel.h"
 #include <memory>
 
@@ -65,6 +66,14 @@ namespace Aether
                 {
                     if (ImGui::MenuItem("Exit"))
                         Application::Get().Close();
+                    ImGui::EndMenu();
+                }
+                if(ImGui::BeginMenu("Scene"))
+                {
+                    if(ImGui::MenuItem("Add Entity"))
+                    {
+                        MainScene::GetInstance().GetScene().CreateEntity();
+                    }
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenuBar();

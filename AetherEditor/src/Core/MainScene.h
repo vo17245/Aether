@@ -9,7 +9,7 @@ namespace Aether
         {
         public:
             ~MainScene();
-            MainScene& GetInstance()
+            static MainScene& GetInstance()
             {
                 static MainScene instance;
                 return instance;

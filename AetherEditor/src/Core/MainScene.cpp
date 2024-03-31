@@ -8,9 +8,9 @@ namespace Aether
         MainScene::MainScene()
         {
             // primary camera
-            auto pc=m_Scene.CreateEntity();
-            auto& cc=pc.AddComponent<PerspectiveCameraComponent>();
-            cc.isPrimary=true;
+            //auto pc=m_Scene.CreateEntity();
+            //auto& cc=pc.AddComponent<PerspectiveCameraComponent>();
+            //cc.isPrimary=true;
             
         }
         MainScene::~MainScene()
