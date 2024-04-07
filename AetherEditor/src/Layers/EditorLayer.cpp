@@ -4,6 +4,7 @@
 #include "Core/MainScene.h"
 #include "Panels/SceneViewPanel.h"
 #include <memory>
+#include "Panels/SceneHierarchyPanel.h"
 
 namespace Aether
 {
@@ -12,6 +13,7 @@ namespace Aether
         EditorLayer::EditorLayer()
         {
             m_Panels.emplace_back(std::make_unique<SceneViewPanel>());
+            m_Panels.emplace_back(std::make_unique<SceneHierarchyPanel>());
         }
         void EditorLayer::OnImGuiRender()
         {

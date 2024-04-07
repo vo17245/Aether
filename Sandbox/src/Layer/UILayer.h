@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Aether/Core/Layer.h"
+#include "Aether/Message/Message.h"
 #include "Test/TestMenu.h"
 #include "TestLayer.h"
 #include <memory>
@@ -8,11 +9,12 @@
 #include "Aether/Core/Application.h"
 #include "Test/TestRegister.h"
 #include "SceneLayer.h"
+#include "Aether/Message.h"
 
 namespace Aether
 {
-    class TestLayerTriggleMessage {};
-    class SceneLayerTriggleMessage {};
+    class TestLayerTriggleMessage:public Message {};
+    class SceneLayerTriggleMessage:public Message {};
     class UILayer:public Layer
     {
     public:
@@ -24,7 +26,7 @@ namespace Aether
     private:
         Ref<TestLayer> m_TestLayer;
         Ref<SceneLayer> m_SceneLayer;
-        void OnTestLayerTriggle(void* data)
+        void OnTestLayerTriggle(Message* data)
         {
             if (m_TestLayer)
             {
@@ -37,7 +39,7 @@ namespace Aether
                 Application::Get().PushLayer(m_TestLayer);
             }
         }
-        void OnSceneLayerTriggle(void* data)
+        void OnSceneLayerTriggle(Message* data)
         {
             if (m_SceneLayer)
             {

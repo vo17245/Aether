@@ -12,7 +12,6 @@ namespace Aether
 	void Scene::DeleteEntity(Entity& entity)
 	{
 		m_Registry.destroy(entity);
-		
 	}
 }
 

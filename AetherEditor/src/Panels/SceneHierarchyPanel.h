@@ -12,9 +12,6 @@ namespace Aether
             SceneHierarchyPanel() = default;
             virtual ~SceneHierarchyPanel() = default;
             virtual void OnImGuiRender() override;
-            virtual void OnRender() override;
-            virtual void OnEvent(Event& e) override;
-            virtual void OnUpdate(Real ds) override;
         };
     }
 }

@@ -18,9 +18,12 @@ namespace Aether
             {
                 return m_Scene;
             }
+            bool HasEntitySelected() { return bool(m_SelectedEntity); }
+            Entity& GetEntitySelected() { return m_SelectedEntity.value(); }
         private:
             MainScene();
             Scene m_Scene;
+            std::optional<Entity> m_SelectedEntity;
 
         };
     }

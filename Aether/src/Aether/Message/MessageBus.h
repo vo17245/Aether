@@ -6,6 +6,7 @@
 #include <vcruntime.h>
 #include "IDGenerator.h"
 #include "TypeIdProvider.h"
+#include "Message.h"
 #ifdef _WIN32
 #undef DispatchMessage
 #endif
@@ -32,7 +33,7 @@ public:
         return instance;
     } 
     template<typename T>
-    CallbackSignature Subscribe(const std::function<void(void*)>& callback)
+    CallbackSignature Subscribe(const std::function<void(Message*)>& callback)
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
         size_t topicID = TypeIdProvider<T>::ID();
@@ -66,8 +67,8 @@ public:
 private:
     MessageBus() = default;
     IDGenerator m_IDGenerator;
-    std::unordered_map<size_t, std::vector<std::pair<size_t, std::function<void(void*)>>>> m_Callbacks;
-    std::vector<std::pair<size_t, void*>> m_Messages;
+    std::unordered_map<size_t, std::vector<std::pair<size_t, std::function<void(Message*)>>>> m_Callbacks;
+    std::vector<std::pair<size_t, Message*>> m_Messages;
     void DispatchMessage()
     {
         std::lock_guard<std::mutex> lock(m_Mutex);
@@ -78,6 +79,7 @@ private:
             {
                 callback.second(data);
             }
+            delete data;
         }
         m_Messages.clear();
     }
