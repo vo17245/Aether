@@ -2,10 +2,8 @@
 #include <functional>
 #include <mutex>
 #include <unordered_map>
-#include <utility>
-#include <vcruntime.h>
 #include "IDGenerator.h"
-#include "TypeIdProvider.h"
+#include "Aether/Core/TypeIdProvider.h"
 #include "Message.h"
 #ifdef _WIN32
 #undef DispatchMessage
@@ -41,6 +39,11 @@ public:
         m_Callbacks[topicID].emplace_back(callback_id, callback);
         return CallbackSignature(topicID,callback_id);
     }
+    //@param
+    //  data : a child class point of Aether::Message created by new
+    //         this function will take the ownership of the data
+    //         and delete it after dispatching
+
     template<typename T>
     void Publish(T* data)
     {

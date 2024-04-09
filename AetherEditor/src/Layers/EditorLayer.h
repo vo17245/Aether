@@ -2,8 +2,11 @@
 #include <vector>
 #include <memory>
 #include "Aether/Core.h"
+#include "Aether/Message.h"
 #include "Panels/Panel.h"
-
+#include "Panels/SelectComponentPanel.h"
+#include "Aether/Scene.h"
+#include "Message/EditorMessage.h"
 namespace Aether
 {
     namespace Editor
@@ -12,12 +15,11 @@ namespace Aether
         {
         public:
             EditorLayer();
-            ~EditorLayer()=default;
+            ~EditorLayer();
             void OnImGuiRender()override; 
             void OnRender()override;
         private:
             std::vector<std::unique_ptr<Panel>> m_Panels;
-            
         };
     }
 }

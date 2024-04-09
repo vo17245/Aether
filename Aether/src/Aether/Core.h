@@ -9,3 +9,4 @@
 #include "Core/Math.h"
 #include "Core/Core.h"
 #include "Core/UUID.h"
+#include "Core/TypeIdProvider.h"

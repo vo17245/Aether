@@ -1,6 +1,8 @@
 #include "Aether/Scene/SceneRenderer.h"
 #include "Aether/Core/Assert.h"
 #include "Aether/Render/ShaderSource.h"
+#include "Aether/Resource/Model/ModelLoader.h"
+#include "Aether/Resource/ModelCache.h"
 #include "Aether/Scene/Component.h"
 #include "Aether/Render/ShaderCache.h"
 namespace Aether
@@ -48,6 +50,13 @@ namespace Aether
         auto view = scene.GetAllEntitiesWith<MeshComponent, PbrMeterialComponent>();
         for (const auto& [entity, mc, pmc] : view.each())
         {
+            //no model
+            if(!mc.model && !mc.filePath)
+                continue;
+            //model not loaded,try to load model
+            mc.model=ModelCache::LoadFromFile(mc.filePath.value());
+            if(!mc.model)//failed to load model
+                continue;
             // shader macro
             uint32_t macro=0;
             if (sc)

@@ -58,6 +58,7 @@ namespace Aether
 	struct MeshComponent
 	{
 		Ref<Model> model;
+		std::optional<std::string> filePath;
 	};
 	struct SkyboxComponent
 	{

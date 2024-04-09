@@ -2,6 +2,8 @@
 #include "Aether/ImGui/imgui.h"
 #include "Aether/Scene/Component.h"
 #include "Core/MainScene.h"
+#include "Message/EditorMessage.h"
+#include "Aether/Message/MessageBus.h"
 namespace Aether
 {
     namespace Editor
@@ -19,8 +21,16 @@ namespace Aether
                 if(e.HasComponent<TagComponent>())
                 {
                     auto& tc=e.GetComponent<TagComponent>();
-                    displayName=tc.tag;
+                    if(tc.tag.size()==0)
+                    {
+                        displayName="empty";
+                    }
+                    else
+                    {
+                        displayName=tc.tag;
+                    }
                 }
+                displayName+="##"+std::to_string(uint64_t(ic.id));
                 //is selected?
                 bool is_selected = false;
                 if (scene.HasEntitySelected())
@@ -28,6 +38,7 @@ namespace Aether
                     auto& entitySelected = scene.GetEntitySelected();
                     if (entitySelected == e)
                     {
+
                         is_selected = true;
                     }
                 }
@@ -38,8 +49,17 @@ namespace Aether
                     buttonColor = ImVec4(1.f, 0.8f, 0.f, 1.f);
                 }
                 ImGui::PushStyleColor(ImGuiCol_Button, buttonColor); 
-                ImGui::Button(displayName.c_str());
+                bool isClicked=ImGui::Button(displayName.c_str());
                 ImGui::PopStyleColor();
+                //clicked?
+                if (isClicked)
+                {
+                    auto* msg = new Message::EntitySelected();
+                    msg->entity = e;
+                    MessageBus::GetSingleton().
+                        Publish<Message::EntitySelected>
+                        (msg);
+                }
             }
             ImGui::End();
 

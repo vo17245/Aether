@@ -1,19 +1,27 @@
 #include "EditorLayer.h"
 #include "Aether/ImGui.h"
 #include "Aether/ImGui/imgui.h"
+#include "Aether/Message/Message.h"
 #include "Core/MainScene.h"
+#include "Panels/EntityTagEditPanel.h"
 #include "Panels/SceneViewPanel.h"
 #include <memory>
 #include "Panels/SceneHierarchyPanel.h"
-
+#include "Message/EditorMessage.h"
+#include "Panels/EntityPanel.h"
 namespace Aether
 {
     namespace Editor
     {
         EditorLayer::EditorLayer()
         {
+            //添加panel
             m_Panels.emplace_back(std::make_unique<SceneViewPanel>());
             m_Panels.emplace_back(std::make_unique<SceneHierarchyPanel>());
+            m_Panels.emplace_back(std::make_unique<EntityPanel>());
+            m_Panels.emplace_back(std::make_unique<EntityTagEditPanel>());
+            m_Panels.emplace_back(std::make_unique<SelectComponentPanel>());
+
         }
         void EditorLayer::OnImGuiRender()
         {
@@ -85,6 +93,7 @@ namespace Aether
             {
                 panel->OnImGuiRender();
             }
+            
             // 结束主窗口
             ImGui::End();
             
@@ -95,6 +104,10 @@ namespace Aether
             {
                 panel->OnRender();
             }
+        }
+        EditorLayer::~EditorLayer()
+        {
+            
         }
     }//namespace Editor
 }//namespace Aether
