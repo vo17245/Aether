@@ -2,6 +2,7 @@
 #include "Aether/Scene/Component.h"
 #include "Aether/Script/Lua.h"
 #include "Aether/Script/Lua/lua.h"
+#include <string>
 
 
 
@@ -27,13 +28,32 @@ namespace Aether
         auto lop=LuaStateOperator(L);
         lop.RegisterFunction("log_info",AETHER_LUA_C_FUNC_NAME(log_info));
         lop.RegisterFunction("log_error", AETHER_LUA_C_FUNC_NAME(log_error));
+        auto err=lop.DoString(R"(
+            local ID="0";
+            local ENTITY_STORAGE={}
+            function storage()
+                if not ENTITY_STORAGE[ID] then
+                    ENTITY_STORAGE[ID]={}
+                end
+                return ENTITY_STORAGE[ID];
+            end
+        )");
+        if (err)
+        {
+            AETHER_DEBUG_LOG_ERROR("{}", err.value());
+        }
     }
     void LuaScriptSystem::OnUpdate(float sec)
     {
+        auto lop=LuaStateOperator(L);
         auto view=m_Scene->GetAllEntitiesWith<IDComponent,LuaScriptComponent>();
         for (const auto& [entity,ic,lsc] : view.each())
         {
-            auto lop=LuaStateOperator(L);
+            //set lua state
+            lop.SetGlobal("ID", std::to_string(uint64_t(ic.id)));
+            
+
+            //do file
             auto err=lop.DoString(lsc.script);
             if(err)
             {

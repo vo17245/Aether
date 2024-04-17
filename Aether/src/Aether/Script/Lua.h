@@ -112,6 +112,33 @@ namespace Aether
             }
             return std::nullopt;
         }
+        
+        void SetGlobal(const std::string& name,int v)
+        {
+            lua_pushinteger(m_L,v);
+            lua_setglobal(m_L,name.c_str());
+        }
+        void SetGlobal(const std::string& name,float v)
+        {
+            lua_pushnumber(m_L,v);
+            lua_setglobal(m_L,name.c_str());
+        }
+        void SetGlobal(const std::string& name,const std::string& v)
+        {
+            lua_pushstring(m_L,v.c_str());
+            lua_setglobal(m_L,name.c_str());
+        }
+        void SetGlobal(const std::string& name,bool v)
+        {
+            lua_pushboolean(m_L,v);
+            lua_setglobal(m_L,name.c_str());
+        }
+        void SetGlobal(const std::string& name,LuaUserdata v)
+        {
+            lua_pushlightuserdata(m_L,v);
+            lua_setglobal(m_L,name.c_str());
+        }
+        
 
     private:
         lua_State* m_L;
