@@ -11,13 +11,8 @@ namespace Aether
         {
             struct EntitySelected:public ::Aether::Message
             {Entity entity;};
-            struct AddComponent:public ::Aether::Message{};
-            struct ComponentSelected:public ::Aether::Message
-            {
-                ComponentSelected(::Aether::TypeId id)
-                    :componentType(id){}
-                ::Aether::TypeId componentType;
-            };
+            struct SelectComponentBegin:public ::Aether::Message{};
+            
             struct EditTagBegin:public ::Aether::Message{};
             struct EditTagEnd:public ::Aether::Message
             {
@@ -27,7 +22,7 @@ namespace Aether
                 std::string tag;
             };
             struct SelectMeshFileBegin:public ::Aether::Message{};
-            
+            struct SelectLuaScriptFileBegin:public ::Aether::Message{};
         }
         
     }

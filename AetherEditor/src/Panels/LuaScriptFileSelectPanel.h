@@ -1,29 +1,31 @@
 #pragma once
+#include "Aether/Core/Log.h"
 #include "Aether/ImGui/imgui.h"
-#include "Aether/Message/Message.h"
 #include "Aether/Message/SubscribeReclaimer.h"
+#include "Aether/Scene/Component.h"
 #include "Panel.h"
 #include "Aether/Message.h"
 #include "Message/EditorMessage.h"
 #include "Aether/UI/FileDialog.h"
 #include "Core/MainScene.h"
+#include "Aether/Utils/FileUtils.h"
 namespace Aether
 {
     namespace Editor
     {
-        class MeshFileSelectPanel:public Panel
+        class LuaScriptFileSelectPanel:public Panel
         {
         public:
-            MeshFileSelectPanel() 
+            LuaScriptFileSelectPanel() 
             {
                 m_SubscribeReclaimer
-                .Subscribe<::Aether::Editor::Message::SelectMeshFileBegin>
+                .Subscribe<::Aether::Editor::Message::SelectLuaScriptFileBegin>
                 ([this](::Aether::Message* msg){
                     m_Show=true;
                 });
 
             };
-            ~MeshFileSelectPanel() 
+            ~LuaScriptFileSelectPanel() 
             {
                 
             };
@@ -60,19 +62,30 @@ namespace Aether
                 if(save)
                 {
                     auto& scene=MainScene::GetInstance();
-                    if(scene.HasEntitySelected())
+                    if(!scene.HasEntitySelected())
                     {
-                        auto& entity=scene.GetEntitySelected();
-                        if (!entity.HasComponent<MeshComponent>())
-                        {
-                            entity.AddComponent<MeshComponent>();
-                        }
-                        auto& mc = entity.GetComponent<MeshComponent>();
-                        mc.filePath = m_FilePath;
+                    m_Show = false;
+
+                        AETHER_DEBUG_LOG_ERROR("no entity selected");
+                        return;
                     }
+                    auto script=FileUtils::ReadFileAsString(m_FilePath);
+                    if(!script)
+                    {
+                    m_Show = false;
+
+                        AETHER_DEBUG_LOG_ERROR("read file failed");
+                        return;
+                    }
+                    auto& entity=scene.GetEntitySelected();
+                    if (!entity.HasComponent<LuaScriptComponent>())
+                    {
+                        entity.AddComponent<LuaScriptComponent>();
+                    }
+                    auto& lsc = entity.GetComponent<LuaScriptComponent>();
+                    lsc.script=std::move(script.value());
                     m_Show = false;
                     return;
-                    
                 }
 
             }

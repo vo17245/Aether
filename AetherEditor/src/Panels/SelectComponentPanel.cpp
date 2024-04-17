@@ -12,6 +12,11 @@ namespace Aether
     {
         SelectComponentPanel::SelectComponentPanel()
         {
+            m_Reclaimer.Subscribe<Message::SelectComponentBegin>(
+                [this](Aether::Message* msg)
+            {
+                m_Show = true;
+            });
         }
 
         SelectComponentPanel::~SelectComponentPanel()
@@ -20,6 +25,10 @@ namespace Aether
 
         void SelectComponentPanel::OnImGuiRender()
         {
+            if(!m_Show)
+            {
+                return;
+            }
             ImVec2 windowPos = ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f,
              ImGui::GetIO().DisplaySize.y * 0.5f);
             ImVec2 windowPosPivot = ImVec2(0.5f, 0.5f);
@@ -27,27 +36,51 @@ namespace Aether
             windowPosPivot);
             ImGui::SetNextWindowFocus();
             ImGui::Begin("Select Component");
-            bool isClicked=ImGui::Button("Tag");
-            if(isClicked)
+            bool addTag=ImGui::Button("Tag");
+            bool addMesh = ImGui::Button("Mesh");
+            bool addLuaScript=ImGui::Button("LuaScript");
+            ImGui::End();
+            if (addMesh)
             {
-                auto& messageBus=MessageBus::GetSingleton();
-                auto* msg=new Message::ComponentSelected(
-                    ::Aether::TypeIdProvider<TagComponent>::ID()
-                );
-                messageBus.Publish<Message::ComponentSelected>(msg);
+                //add mesh
+                if(!MainScene::GetInstance().GetEntitySelected()
+                    .HasComponent<MeshComponent>())
+                {
+                    MainScene::GetInstance().GetEntitySelected()
+                        .AddComponent<MeshComponent>();
+                }
+                //open mesh file select panel
+                auto* msg = new Message::SelectMeshFileBegin();
+                MessageBus::GetSingleton().Publish<Message::SelectMeshFileBegin>(msg);
+                m_Show = false;
+            }
+            if(addTag)
+            {
+                //add tag
                 if (!MainScene::GetInstance().GetEntitySelected()
                     .HasComponent<TagComponent>())
                 {
                     MainScene::GetInstance().GetEntitySelected()
                         .AddComponent<TagComponent>("empty");
                 }
-                
+                //open tag edit panel
+                auto* msg = new Message::EditTagBegin();
+                MessageBus::GetSingleton().Publish<Message::EditTagBegin>(msg);
+                m_Show = false;
             }
-            bool addMesh = ImGui::Button("Mesh");
-            ImGui::End();
-            if (addMesh)
+            if(addLuaScript)
             {
-
+                //add lua script
+                if(!MainScene::GetInstance().GetEntitySelected()
+                    .HasComponent<LuaScriptComponent>())
+                {
+                    MainScene::GetInstance().GetEntitySelected()
+                        .AddComponent<LuaScriptComponent>();
+                }
+                //open lua script file select panel
+                auto* msg = new Message::SelectLuaScriptFileBegin();
+                MessageBus::GetSingleton().Publish<Message::SelectLuaScriptFileBegin>(msg);
+                m_Show = false;
             }
         }
     }

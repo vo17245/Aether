@@ -1,14 +1,13 @@
 #pragma once
 
 #include "Aether/Core/Layer.h"
-#include "Aether/Message/Message.h"
+#include "Aether/Message.h"
+#include "Aether/Message/SubscribeReclaimer.h"
 #include "Test/TestMenu.h"
 #include "TestLayer.h"
 #include <memory>
-#include "Aether/Message/MessageBus.h"
-#include "Aether/Core/Application.h"
+#include "Aether/Core.h"
 #include "Test/TestRegister.h"
-#include "SceneLayer.h"
 #include "Aether/Message.h"
 
 namespace Aether
@@ -25,7 +24,6 @@ namespace Aether
         void OnRender()override;
     private:
         Ref<TestLayer> m_TestLayer;
-        Ref<SceneLayer> m_SceneLayer;
         void OnTestLayerTriggle(Message* data)
         {
             if (m_TestLayer)
@@ -39,19 +37,7 @@ namespace Aether
                 Application::Get().PushLayer(m_TestLayer);
             }
         }
-        void OnSceneLayerTriggle(Message* data)
-        {
-            if (m_SceneLayer)
-            {
-                Application::Get().PopLayer(m_SceneLayer);
-                m_SceneLayer.reset();
-            }
-            else
-            {
-                m_SceneLayer = CreateRef<SceneLayer>();
-                Application::Get().PushLayer(m_SceneLayer);
-            }
-        }
-        std::vector<MessageBus::CallbackSignature> m_CallbackSignatures;
+       
+        SubscribeReclaimer m_Reclaimer;
     };
 }

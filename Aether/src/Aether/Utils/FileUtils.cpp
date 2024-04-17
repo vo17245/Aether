@@ -38,7 +38,7 @@ namespace Aether
     }
     std::optional<std::string> FileUtils::ReadFileAsString(const std::string& path)
     {
-        return ReadFileAsString(path);
+        return ReadFileAsString(std::filesystem::path(path));
     }
 
 }

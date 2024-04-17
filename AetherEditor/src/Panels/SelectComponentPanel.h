@@ -1,5 +1,7 @@
 #pragma once
+#include "Aether/Message/SubscribeReclaimer.h"
 #include "Panel.h"
+#include "Aether/Message.h"
 namespace Aether
 {
     namespace Editor
@@ -12,6 +14,7 @@ namespace Aether
             void OnImGuiRender() override;
         private:
             bool m_Show = false;
+            SubscribeReclaimer m_Reclaimer;
         };
     }
 }

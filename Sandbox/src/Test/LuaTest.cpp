@@ -2,6 +2,19 @@
 #include "Aether/Script/Lua/lauxlib.h"
 #include "Test/TestRegister.h"
 #include "Aether/Core/Assert.h"
+#include "Aether/Script/Lua.h"
+#include <string>
+extern "C"
+{
+	
+static int lua_log_info (lua_State *L) {
+	auto lop = Aether::LuaStateOperator(L);
+	auto msg=lop.GetArg<std::string>(1);
+	Aether::Log::Info("{}",msg);
+	return 0;
+}
+
+}
 namespace Aether
 {
 	namespace Test
@@ -10,20 +23,18 @@ namespace Aether
 		LuaTest::LuaTest()
 		{
 			L = luaL_newstate();
-			luaL_openlibs(L);
-			int retLoad = luaL_dofile(L, "D:/test.lua");
-			AETHER_ASSERT(retLoad == 0 && "failed to load lua src");
-			retLoad=luaL_dofile(L, "D:/test.lua");
-			AETHER_ASSERT(retLoad==0&&"failed to load lua src");
-			lua_getglobal(L, "Hello");
-			int retCall = lua_pcall(L, 0, 0, 0);
-			if (retCall != 0)
+			auto lop=LuaStateOperator(L);
+			lop.InitLibs();
+			lop.RegisterFunction("log_info",lua_log_info);
+
+			auto err = lop.DoString(R"(
+log_info("hello from lua");
+)");
+			if(err)
 			{
-				std::string err = lua_tostring(L, -1);
-				Log::Error("{}", err);
-				AETHER_ASSERT(false && "failed to call func");
+				Aether::Log::Error("{}",err.value());
 			}
-			lua_close(L);
+			lop.Close();
 		}
 		LuaTest::~LuaTest()
 		{

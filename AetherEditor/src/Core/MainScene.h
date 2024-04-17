@@ -25,8 +25,10 @@ namespace Aether
             {
                 m_SelectedEntity = msg->entity;
             }
+            void OnUpdate(float sec);
         private:
             MainScene();
+            Scope<LuaScriptSystem> m_LuaScriptSystem;
             Scene m_Scene;
             std::optional<Entity> m_SelectedEntity;
             MessageBus::CallbackSignature m_CallbackSignature;

@@ -18,6 +18,7 @@ namespace Aether
             ~EditorLayer();
             void OnImGuiRender()override; 
             void OnRender()override;
+            void OnUpdate(float sec)override;
         private:
             std::vector<std::unique_ptr<Panel>> m_Panels;
         };

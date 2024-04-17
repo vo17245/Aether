@@ -9,6 +9,8 @@
 #include "Panels/SceneHierarchyPanel.h"
 #include "Message/EditorMessage.h"
 #include "Panels/EntityPanel.h"
+#include "Panels/MeshFileSelectPanel.h"
+#include "Panels/LuaScriptFileSelectPanel.h"
 namespace Aether
 {
     namespace Editor
@@ -21,7 +23,8 @@ namespace Aether
             m_Panels.emplace_back(std::make_unique<EntityPanel>());
             m_Panels.emplace_back(std::make_unique<EntityTagEditPanel>());
             m_Panels.emplace_back(std::make_unique<SelectComponentPanel>());
-
+            m_Panels.emplace_back(std::make_unique<MeshFileSelectPanel>());
+            m_Panels.emplace_back(std::make_unique<LuaScriptFileSelectPanel>());
         }
         void EditorLayer::OnImGuiRender()
         {
@@ -108,6 +111,14 @@ namespace Aether
         EditorLayer::~EditorLayer()
         {
             
+        }
+        void EditorLayer::OnUpdate(float sec)
+        {
+            for (auto& panel : m_Panels)
+            {
+                panel->OnUpdate(sec);
+            }
+            MainScene::GetInstance().OnUpdate(sec);
         }
     }//namespace Editor
 }//namespace Aether

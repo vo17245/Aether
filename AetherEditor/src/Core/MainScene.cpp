@@ -22,10 +22,15 @@ namespace Aether
                 }
                 
             );
+            m_LuaScriptSystem=CreateScope<LuaScriptSystem>(&m_Scene);
         }
         MainScene::~MainScene()
         {
             MessageBus::GetSingleton().Unsubscribe(m_CallbackSignature);
+        }
+        void MainScene::OnUpdate(float sec)
+        {
+            m_LuaScriptSystem->OnUpdate(sec);
         }
     }
 }

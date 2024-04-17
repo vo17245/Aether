@@ -103,5 +103,13 @@ namespace Aether
 			:camera(fovy,zNear,zFar,aspectRatio){}
 		PerspectiveCameraComponent(const PerspectiveCameraComponent&)=default;
 	};
+	struct LuaScriptComponent
+	{
+		std::string script;
+		LuaScriptComponent() = default;
+		LuaScriptComponent(const LuaScriptComponent&) = default;
+		LuaScriptComponent(const std::string& _script)
+			:script(_script) {}
+	};
 	
 }

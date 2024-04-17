@@ -29,11 +29,34 @@ namespace Aether
                         MessageBus::GetSingleton().Publish<Message::EditTagBegin>(msg);
                     }
                 }
-                bool isClicked = ImGui::Button("Add Component");
-                if (isClicked)
+                //mesh?
+                if (entity.HasComponent<MeshComponent>())
                 {
-                    auto* msg = new Message::AddComponent();
-                    MessageBus::GetSingleton().Publish<Message::AddComponent>(nullptr);
+                    auto& mc = entity.GetComponent<MeshComponent>();
+                    std::string meshName;
+                    if (mc.filePath)
+                    {
+                        meshName = mc.filePath.value();
+                    }
+                    else 
+                    {
+                        if (mc.model)
+                        {
+                            meshName = "no name mesh";
+                        }
+                        else
+                        {
+                            meshName = "empty";
+                        }
+                    }
+                    ImGui::Text(fmt::format("Mesh: {}", meshName).c_str());
+                }
+                //add component ?
+                if (ImGui::Button("Add Component"))
+                {
+                    auto* msg = new Message::SelectComponentBegin();
+                    MessageBus::GetSingleton()
+                    .Publish<Message::SelectComponentBegin>(nullptr);
                 }
 
             }
