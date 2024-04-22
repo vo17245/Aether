@@ -28,6 +28,7 @@ file(GLOB_RECURSE GLOBAL_FILE
 )
 
 add_definitions(-DAETHER_ENABLE_ASSERT)
+add_definitions(-DAETHER_ENABLE_DEBUG_LOG)
 # compile mode
 #set(CMAKE_BUILD_TYPE "Debug")
 

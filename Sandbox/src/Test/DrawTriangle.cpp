@@ -110,7 +110,7 @@ namespace Aether
             primitive.AddAttribute("NORMAL", normal_accessor_index);
             primitive.AddAttribute("POSITION", pos_accessor_index);
             size_t primitive_index=m_Model->primitives.size();
-            m_Model->primitives.emplace_back(primitive);
+            m_Model->primitives.emplace_back(std::move(primitive));
             auto mesh=Mesh{primitive_index,0};
             size_t mesh_index=m_Model->meshes.size();
             m_Model->meshes.emplace_back(std::move(mesh));

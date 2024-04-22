@@ -35,19 +35,20 @@ constexpr Scope<T> CreateScope(Ts&&... args)
 
 
 #ifdef _WIN32
-	#include "Windows.h" // only aim to remove msvc macro redefine warning
-	#ifdef far
-		#undef far
-	#endif
-	#ifdef near
-		#undef near
-	#endif
-	#ifdef max
-		#undef max
-	#endif 
-	#ifdef min
-		#undef min
-	#endif
+	//#include "Windows.h" // only aim to remove msvc macro redefine warning
+	//#ifdef far
+	//	#undef far
+	//#endif
+	//#ifdef near
+	//	#undef near
+	//#endif
+	//#ifdef max
+	//	#undef max
+	//#endif 
+	//#ifdef min
+	//	#undef min
+	//#endif
+	#define AETHER_PLATFORM_WINDOWS
 #endif
 
 #define AETHER_BIND_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
