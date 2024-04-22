@@ -23,19 +23,12 @@ namespace Aether
             :m_Buffer(_buffer),m_Begin(_begin),m_End(_end),m_Model(model),
             m_Target(target)
         {}
-        BufferView(const BufferView&)=default;
+        BufferView(const BufferView&)=delete;
         BufferView(BufferView&&)=default;
-        bool operator==(const BufferView& other)
-        {
-            return m_Buffer==other.m_Buffer&&m_Begin==other.m_Begin&&m_End==other.m_End;
-        }
-        BufferView operator=(const BufferView& other)
-        {
-            m_Buffer=other.m_Buffer;
-            m_Begin=other.m_Begin;
-            m_End=other.m_End;
-            return *this;
-        }
+        BufferView& operator=(const BufferView&)=delete;
+        BufferView& operator=(BufferView&&)=default;
+       
+       
         inline size_t GetBuffer(){return m_Buffer;}
         inline size_t GetBegin(){return m_Begin;}
         inline size_t GetEnd(){return m_End;}

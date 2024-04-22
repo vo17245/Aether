@@ -84,6 +84,7 @@ namespace Aether
                     }
                     auto& lsc = entity.GetComponent<LuaScriptComponent>();
                     lsc.script=std::move(script.value());
+                    lsc.path=m_FilePath;
                     m_Show = false;
                     return;
                 }

@@ -106,10 +106,11 @@ namespace Aether
 	struct LuaScriptComponent
 	{
 		std::string script;
+		std::string path;
 		LuaScriptComponent() = default;
 		LuaScriptComponent(const LuaScriptComponent&) = default;
-		LuaScriptComponent(const std::string& _script)
-			:script(_script) {}
+		LuaScriptComponent(const std::string& _script, const std::string& _path)
+			:script(_script),path(_path) {}
 	};
 	
 }

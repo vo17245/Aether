@@ -10,3 +10,4 @@
 #include "Core/Core.h"
 #include "Core/UUID.h"
 #include "Core/TypeIdProvider.h"
+#include "Core/LocalRef.h"

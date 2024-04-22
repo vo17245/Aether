@@ -51,6 +51,12 @@ namespace Aether
                     }
                     ImGui::Text(fmt::format("Mesh: {}", meshName).c_str());
                 }
+                //lua script?
+                if (entity.HasComponent<LuaScriptComponent>())
+                {
+                    auto& lsc = entity.GetComponent<LuaScriptComponent>();
+                    ImGui::Text(fmt::format("Lua Script: {}", lsc.path).c_str());
+                }
                 //add component ?
                 if (ImGui::Button("Add Component"))
                 {

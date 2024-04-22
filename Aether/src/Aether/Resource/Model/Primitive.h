@@ -12,14 +12,17 @@ namespace Aether
     class Primitive
     {
     public:
-        Primitive()
-        {
+        Primitive()=default;
+        Primitive(const Primitive&)=delete;
+        Primitive(Primitive&&)=default;
 
-        }
         Primitive(Model* model)
             :m_Model(model)
         {}
+
         ~Primitive();
+        Primitive& operator=(const Primitive&)=delete;
+        Primitive& operator=(Primitive&&)=default;
         //create vertex array and bind
         void Bind();
         //release vertex array

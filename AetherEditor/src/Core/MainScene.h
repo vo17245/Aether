@@ -1,4 +1,5 @@
 #pragma once
+#include "Aether/Message/SubscribeReclaimer.h"
 #include "Aether/Scene.h"
 #include "Aether/Scene/Scene.h"
 #include "Message/EditorMessage.h"
@@ -31,7 +32,7 @@ namespace Aether
             Scope<LuaScriptSystem> m_LuaScriptSystem;
             Scene m_Scene;
             std::optional<Entity> m_SelectedEntity;
-            MessageBus::CallbackSignature m_CallbackSignature;
+            SubscribeReclaimer m_SubscribeReclaimer;
             
         };
     }

@@ -12,19 +12,22 @@ namespace Aether
     class Model
     {
     public:
+        Model()=default;
+        Model(Model&&) = default;
+        Model& operator=(Model&&) = default;
+        Model(const Model&) = delete;
+        Model& operator=(const Model&) = delete;
+        ~Model() { Unbind(); }
         std::vector<Buffer> buffers;
         std::vector<BufferView> bufferViews;
         std::vector<Accessor> accessors;
         std::vector<Primitive> primitives;
         std::vector<Mesh> meshes;
-        std::vector<Image> images;
-        std::vector<Material> materials;
         std::vector<Node> nodes;
         // check if a cycle in nodes 
         bool HasCycle();
         void Bind();//make instance in gpu
         void Unbind();//release instance in gpu
-        void Render();
-        ~Model() { Unbind(); }
+        void Render();//drawelement for each primitive
     };
 }

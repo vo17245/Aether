@@ -5,6 +5,7 @@
 #include "Aether/Resource/ModelCache.h"
 #include "Aether/Scene/Component.h"
 #include "Aether/Render/ShaderCache.h"
+#include "Aether/Scene/Entity.h"
 namespace Aether
 {
     void SceneRenderer::Render(Scene& scene,PerspectiveCamera& camera)
@@ -50,6 +51,7 @@ namespace Aether
         auto view = scene.GetAllEntitiesWith<MeshComponent, PbrMeterialComponent>();
         for (const auto& [entity, mc, pmc] : view.each())
         {
+            auto e=Entity(entity,&scene);
             //no model
             if(!mc.model && !mc.filePath)
                 continue;
@@ -81,7 +83,14 @@ namespace Aether
             AETHER_ASSERT(shader && "failed to get shader");
             shader->Bind();
             //set camera uniform
+            //transform?
             Mat4 modelMatrix = Mat4::Identity();
+            if (e.HasComponent<TransformComponent>())
+            {
+                auto& tc = e.GetComponent<TransformComponent>();
+                tc.CalculateMatrix();
+                modelMatrix=tc.matrix;
+            }
             shader->SetMat4f("u_Model", modelMatrix);
             Mat4 normalMatrix = modelMatrix.inverse();//rendering in world space
             normalMatrix.transposeInPlace();

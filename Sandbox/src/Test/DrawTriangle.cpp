@@ -113,7 +113,7 @@ namespace Aether
             m_Model->primitives.emplace_back(primitive);
             auto mesh=Mesh{primitive_index,0};
             size_t mesh_index=m_Model->meshes.size();
-            m_Model->meshes.emplace_back(mesh);
+            m_Model->meshes.emplace_back(std::move(mesh));
             auto node=Node();
             node.meshes.emplace_back(mesh_index);
             m_Model->nodes.emplace_back(node);

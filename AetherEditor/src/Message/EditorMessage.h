@@ -3,10 +3,12 @@
 #include "Aether/Scene/Scene.h"
 #include "Aether/Message.h"
 #include "Aether/Core.h"
+
 namespace Aether
 {
     namespace Editor
     {
+        namespace UI{class UI;}
         namespace Message
         {
             struct EntitySelected:public ::Aether::Message
@@ -23,6 +25,7 @@ namespace Aether
             };
             struct SelectMeshFileBegin:public ::Aether::Message{};
             struct SelectLuaScriptFileBegin:public ::Aether::Message{};
+            struct UILayerPop:public ::Aether::Message{UI::UI* ui;};
         }
         
     }

@@ -55,6 +55,11 @@ namespace Aether
     public:
         Accessor(size_t bufferViewIndex,size_t stride,ElementType elementType,size_t offset,
         Model* model);
+        Accessor(const Accessor&)=delete;
+        Accessor(Accessor&&)=default;
+        Accessor& operator=(const Accessor&)=delete;
+        Accessor& operator=(Accessor&&)=default;
+        ~Accessor(){}
         AccessorIterator Begin();
         AccessorIterator End();
         AccessorIterator begin();
