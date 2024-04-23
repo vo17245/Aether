@@ -13,13 +13,14 @@ ${VENDOR_DIR}
 "${DEPENDENCIES_DIR}/glfw-3.3.8.bin.WIN64/include"
 "${DEPENDENCIES_DIR}/assimp-5.3.0/include"
 "src"
+"${DEPENDENCIES_DIR}/x64_windows_msvc/samplerate/include"
 )
 set(GLOBAL_LINK_DIR 
 "${DEPENDENCIES_DIR}/glew-2.1.0/lib/x64"
 "${DEPENDENCIES_DIR}/glfw-3.3.8.bin.WIN64/lib-vc2022"
 "${DEPENDENCIES_DIR}/assimp-5.3.0/lib"
 )
-set(GLOBAL_LIB )
+set(GLOBAL_LIB "samplerate")
 file(GLOB_RECURSE GLOBAL_FILE
 "src/*.cpp" 
 "src/*.h"
@@ -37,6 +38,7 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(DEBUG_INCLUDE_DIR)
     set(DEBUG_LINK_DIR
     "${AETHER_ROOT}/build/Aether/Debug" 
+    "${DEPENDENCIES_DIR}/x64_windows_msvc/samplerate/debug/lib"
     )
     set(DEBUG_LIB "Aether")
     set(DEBUG_FILE)
@@ -44,7 +46,8 @@ elseif (${CMAKE_BUILD_TYPE} STREQUAL "Release")
     # Release Configure
     add_definitions(-DNDEBUG)
     set(RELEASE_INCLUDE_DIR)
-    set(RELEASE_LINK_DIR )
+    set(RELEASE_LINK_DIR 
+    "${DEPENDENCIES_DIR}/x64_windows_msvc/samplerate/lib")
     set(RELEASE_LIB)
     set(RELEASE_FILE)
 else ()

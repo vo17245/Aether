@@ -1,6 +1,8 @@
+#include "Aether/Core/Log.h"
 #include "AudioApi.h"
 #include "Aether/Core.h"
 #include <mmeapi.h>
+#include <winuser.h>
 
 
 //============ windows implmentation ============
@@ -52,7 +54,7 @@ namespace Aether
         return defaultDevice;
     }
     
-    void AudioApi::PlayPCMSync(AudioDeviceH device, const char *pcmData, size_t size, int depth, int frequency,int channels)
+    void AudioApi::PlayPCMSync(AudioDeviceH device, const char *pcmData, size_t frame_count, int depth, int frequency,int channels)
     {
     HRESULT hr;
     IMMDevice* audioDevice=(IMMDevice*)device.ptr;
@@ -146,7 +148,7 @@ namespace Aether
     // Start playing
     audioClient->Start();
     // upload pcm data
-    UINT32 totalFramesToWrite = size / (waveFormat.nChannels * waveFormat.wBitsPerSample / 8);
+    UINT32 totalFramesToWrite = frame_count;
 UINT32 framesWritten = 0;
 
 while (framesWritten < totalFramesToWrite)
@@ -211,6 +213,7 @@ while (framesWritten < totalFramesToWrite)
     if (FAILED(hr))
     {
         // Handle error
+        AETHER_DEBUG_LOG_ERROR("Failed to release buffer");
         return;
     }
 
@@ -219,88 +222,29 @@ while (framesWritten < totalFramesToWrite)
 
 
     
-    // Wait for the audio to finish playing
-    //padding = 0;
-    //do
-    //{
-    //    Sleep(100);  // Wait for a short time
-    //    hr = audioClient->GetCurrentPadding(&padding);
-    //    if (FAILED(hr))
-    //    {
-    //        // Handle error
-    //        break;
-    //    }
-    //} while (padding > 0);
+    
     
     
 }
+// Wait for the audio to finish playing
+UINT32 padding = 0;
+    do
+    {
+        //Sleep(100);  // Wait for a short time
+        hr = audioClient->GetCurrentPadding(&padding);
+        if (FAILED(hr))
+        {
+
+            // Handle error
+            AETHER_DEBUG_LOG_ERROR("Failed to get current padding");
+            break;
+        }
+    } while (padding > 0);
 // Clean up
 audioClient->Stop();
 audioRenderClient->Release();
 audioClient->Release();
-    // Get the audio buffer
-    //UINT32 bufferFrameCount;
-    //hr=audioClient->GetBufferSize(&bufferFrameCount);
-    //if (FAILED(hr))
-    //{
-    //    std::string msg="unknown error";
-    //    switch(hr)
-    //    {
-    //        case E_POINTER:
-    //            msg="The pNumBufferFrames parameter is NULL"; 
-    //            break;
-    //        case AUDCLNT_E_NOT_INITIALIZED:
-    //            msg="The audioClient has not been initialized"; 
-    //            break;
-    //        // Add more cases as needed
-    //    }
-    //    AETHER_DEBUG_LOG_ERROR("Failed to get buffer size,{}",msg);
-    //    return;
-    //}
-    //BYTE* audioData = nullptr;
-    //hr=audioRenderClient->GetBuffer(bufferFrameCount, &//audioData);
-    //if (FAILED(hr))
-    //{
-    //    std::string msg="unknown error";
-    //    switch(hr)
-    //    {
-    //        case E_POINTER:
-    //            msg="The pData parameter is NULL"; 
-    //            break;
-    //        case AUDCLNT_E_OUT_OF_ORDER:
-    //            msg="The method was called in the wrong order"; 
-    //            break;
-    //        case AUDCLNT_E_BUFFER_ERROR:
-    //            msg="An error occurred"; 
-    //            break;
-    //        // Add more cases as needed
-    //    }
-    //    AETHER_DEBUG_LOG_ERROR("Failed to get buffer,{}",msg);
-    //    return;
-    //}
-    //// Copy the PCM data to the audio buffer
-    ////memcpy(audioData, pcmData, size);
-    //memcpy(audioData, pcmData, bufferFrameCount * waveFormat.//nBlockAlign);
-    //// Release the audio buffer
-    //hr=audioRenderClient->ReleaseBuffer(bufferFrameCount, //0);
-    //if (FAILED(hr))
-    //{
-    //    std::string msg="unknown error";
-    //    switch(hr)
-    //    {
-    //        case AUDCLNT_E_BUFFER_TOO_LARGE:
-    //            msg="The pNumFramesWritten parameter is larger than the padding in //the buffer";
-    //            break;
-    //        case AUDCLNT_E_OUT_OF_ORDER:
-    //            msg="The call to ReleaseBuffer was not preceded by a call to //GetBuffer for the same buffer"; 
-    //            break;
-    //        case AUDCLNT_E_BUFFER_ERROR:
-    //            msg="An error occurred"; 
-    //            break;
-    //        // Add more cases as needed
-    //    }
-    //    AETHER_DEBUG_LOG_ERROR("Failed to release buffer,{}",msg);
-    //}
+    
     
 }
 void AudioApi::ReleaseDevice(AudioDeviceH device)

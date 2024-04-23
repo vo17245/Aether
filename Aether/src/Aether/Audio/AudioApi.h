@@ -11,6 +11,6 @@ namespace Aether
         static void Shutdown();
         static AudioDeviceH GetDefaultDevice();
         static void ReleaseDevice(AudioDeviceH device);
-        static void PlayPCMSync(AudioDeviceH device, const char* pcmData, size_t size, int depth, int frequency,int channels);
+        static void PlayPCMSync(AudioDeviceH device, const char* pcmData, size_t frame_count, int depth, int frequency,int channels);
     };
 }
