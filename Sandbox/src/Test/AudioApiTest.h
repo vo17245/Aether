@@ -11,11 +11,9 @@ namespace Aether
         public:
             AudioApiTest()
             {
-                Aether::AudioApi::Init();
             }
             virtual ~AudioApiTest()
             {
-                Aether::AudioApi::Shutdown();
             }
             void OnImGuiRender()override;
         };

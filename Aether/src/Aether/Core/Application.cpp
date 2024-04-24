@@ -8,11 +8,13 @@
 #include "../Event/KeyboardEvent.h"
 #include "../Event/MouseEvent.h"
 #include "Aether/Message/MessageBus.h"
+#include "Aether/Server/AudioServer/AudioServer.h"
 #include "Config.h"
 #include "../Render/Shader.h"
 #include "../Core/Log.h"
 #include "Aether/Render/Renderer3D.h"
 #include "Aether/Render/ShaderCache.h"
+#include "Aether/Server.h"
 #ifdef _WIN32
     #undef DispatchMessage
 #endif
@@ -30,6 +32,11 @@ Application::Application()
     Log::Get();
     //init renderer3d 
     Renderer3D::Init();
+    //init audio api
+    AudioApi::Init();
+    //init audio server
+
+    AudioServer::GetInstance().Init();
 }
 
 
@@ -297,6 +304,12 @@ bool Application::PopLayer(Ref<Layer> layer)
 }
 void Application::Close()
 {
+
+    //close window
     glfwSetWindowShouldClose(m_Window, true);
+    //close audio server
+    AudioServer::GetInstance().Shutdown();
+    //close audio api
+    AudioApi::Shutdown();
 }
 }//namespace Aether

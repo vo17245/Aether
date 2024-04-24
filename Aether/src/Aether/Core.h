@@ -11,3 +11,4 @@
 #include "Core/UUID.h"
 #include "Core/TypeIdProvider.h"
 #include "Core/LocalRef.h"
+#include "Core/RingBuffer.h"
