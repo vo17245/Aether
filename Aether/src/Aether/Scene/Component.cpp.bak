@@ -1,0 +1,9 @@
+#include "../Core/Config.h"
+#include "../Render/Transform.h"
+#include "Component.h"
+#include <filesystem>
+
+void Aether::TransformComponent::CalculateMatrix() {
+  matrix = Transform::Translation(position) * Transform::Rotation(rotation) *
+           Transform::Scale(scaling);
+}

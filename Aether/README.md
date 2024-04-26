@@ -9,6 +9,9 @@ in ONLY ONE .cpp file
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
 #include "Aether/Core/Config.h"
+#define MINIMP3_IMPLEMENTATION
+#include "minimp3.h"
+#include "minimp3_ex.h"
 namespace Aether
 {
     Config CreateConfig()

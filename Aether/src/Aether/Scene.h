@@ -5,3 +5,5 @@
 #include "Scene/SceneRenderer.h"
 #include "Scene/CameraController.h"
 #include "Scene/LuaScriptSystem.h"
+#include "Scene/CoreComponentFieldVariant.h"
+#include "Scene/Reflection.h"

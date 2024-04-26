@@ -36,7 +36,8 @@ Application::Application()
     AudioApi::Init();
     //init audio server
 
-    AudioServer::GetInstance().Init();
+    AETHER_ASSERT(AudioServer::GetInstance().Init() && "audio server init failed");
+
 }
 
 
