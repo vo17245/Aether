@@ -25,6 +25,8 @@ std::vector<Event*> Application::s_EventQueue;
 
 Application::Application()
 {
+    //init message bus
+    MessageBus::Init();
     InitWindow();
     InitGLEW();
     InitImGui();
@@ -148,7 +150,7 @@ int Application::Run()
         OnLoopEnd();
     }
     // Release resource before window destory
-    OnDestory();
+    //OnDestory();
     //destory window
     //glfwDestroyWindow(m_Window);
     //glfwTerminate();
@@ -270,7 +272,14 @@ void Application::OnImGuiRender()
 }
 void Application::OnDestory()
 {
+    
+    //close audio server
+    AudioServer::GetInstance().Shutdown();
+    //close audio api
+    AudioApi::Shutdown();
     m_Layers.clear();
+    //Release MessageBus
+    MessageBus::Release();
 }
 void Application::OnLoopBegin()
 {
@@ -308,9 +317,10 @@ void Application::Close()
 
     //close window
     glfwSetWindowShouldClose(m_Window, true);
-    //close audio server
-    AudioServer::GetInstance().Shutdown();
-    //close audio api
-    AudioApi::Shutdown();
+    
+}
+Application::~Application()
+{
+    OnDestory();
 }
 }//namespace Aether

@@ -6,8 +6,10 @@ using namespace Editor;
 int main()
 {
 	Application::Init();
-	::Aether::Editor::Editor::Get().Run();
+	::Aether::Editor::Editor* editor = new ::Aether::Editor::Editor();
+	editor->Run();
 	int ret=Application::Get().Run();
+	delete editor;
 	Application::Release();
 	return ret;
 }

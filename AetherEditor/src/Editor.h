@@ -2,7 +2,7 @@
 #include "Aether/Core.h"
 #include "Layers/EditorLayer.h"
 #include "Layers/UILayer.h"
-
+#include "Core/MainScene.h"
 namespace Aether
 {
     namespace Editor
@@ -10,12 +10,17 @@ namespace Aether
         class Editor
         {
         public:
-            static Editor& Get()
+            Editor()
             {
-                static Editor instance;
-                return instance;
+                MainScene::Init();
             }
-            ~Editor()=default;
+
+
+            
+            ~Editor()
+            {
+                MainScene::Release();
+            }
             void Run();
             EditorLayer& GetEditorLayer() 
             { 
@@ -26,7 +31,6 @@ namespace Aether
                 return *dynamic_cast<UILayer*>(m_UILayer.get());
             }
         private:
-            Editor()=default;
             Ref<Layer> m_EditorLayer;
             Ref<Layer> m_UILayer;
         };

@@ -27,8 +27,7 @@ public:
     };
     static MessageBus& GetSingleton()
     {
-        static MessageBus instance;
-        return instance;
+        return *s_Instance;
     } 
     template<typename T>
     CallbackSignature Subscribe(const std::function<void(Message*)>& callback)
@@ -69,6 +68,7 @@ public:
     
 private:
     MessageBus() = default;
+    ~MessageBus() = default;
     IDGenerator m_IDGenerator;
     std::unordered_map<size_t, std::vector<std::pair<size_t, std::function<void(Message*)>>>> m_Callbacks;
     std::vector<std::pair<size_t, Message*>> m_Messages;
@@ -87,5 +87,15 @@ private:
         m_Messages.clear();
     }
     std::mutex m_Mutex;
+private:
+    static void Init()
+    {
+        s_Instance = new MessageBus();
+    }
+    static void Release()
+    {
+        delete s_Instance;
+    }
+    static MessageBus* s_Instance;
 };
 }

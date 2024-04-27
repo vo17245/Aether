@@ -18,11 +18,17 @@ namespace Aether
         }
         m_Running=true;
         m_WorkerThread=new std::thread([this](){WorkerThreadFunc();});
-
+        return true;
     }
     void AudioServer::Shutdown()
     {
-        m_Running=false;
+        {
+            std::lock_guard<std::mutex> lock(m_Mutex);
+            m_Running = false;
+            m_Condition.notify_all();
+        }
+        
+        
         m_WorkerThread->join();
         delete m_WorkerThread;
         AudioApi::ReleaseDevice(m_AudioDevice);

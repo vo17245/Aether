@@ -9,10 +9,10 @@ int main()
 	//aether init
 	Application::Init();
 	//define app
-	Sandbox sandbox;
+	Sandbox* sandbox=new Sandbox();
 	//aether release
 	int rc=Application::Get().Run();
-	
+	delete sandbox;
 	Application::Release();
 	return rc;
 }

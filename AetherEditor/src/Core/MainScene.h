@@ -7,14 +7,15 @@ namespace Aether
 {
     namespace Editor
     {
+        class Editor;
         class MainScene
         {
+            friend class Editor;
         public:
             ~MainScene();
             static MainScene& GetInstance()
             {
-                static MainScene instance;
-                return instance;
+                return *s_Instance;
             }
             Scene& GetScene()
             {
@@ -33,6 +34,16 @@ namespace Aether
             Scene m_Scene;
             std::optional<Entity> m_SelectedEntity;
             SubscribeReclaimer m_SubscribeReclaimer;
+        private:
+            static MainScene* s_Instance;
+            static void Init()
+            {
+                s_Instance = new MainScene();
+            }
+            static void Release()
+            {
+                delete s_Instance;
+            }
             
         };
     }

@@ -19,7 +19,7 @@ class Application
 
 public:
     Application();
-    ~Application() {};
+    ~Application() ;
     void InitWindow();
     void InitGLEW();
     void InitImGui();
@@ -62,7 +62,7 @@ private:
     std::vector<Ref<Layer>> m_Layers;
 public:
     static void Init(){s_Instance=new Application;}
-    static void Release(){delete s_Instance;s_Instance=nullptr;}
+    static void Release() { delete s_Instance;s_Instance = nullptr; }
     static Application& Get(){return *s_Instance;}
 private:
     static Application* s_Instance;

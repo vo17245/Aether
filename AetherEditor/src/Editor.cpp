@@ -8,10 +8,10 @@ namespace Aether
         void Editor::Run()
         {
             m_EditorLayer=CreateRef<EditorLayer>();
-            m_UILayer=CreateRef<UILayer>();
             ::Aether::Application::Get().PushLayer(
                 m_EditorLayer
             );
+            m_UILayer=CreateRef<UILayer>();
             ::Aether::Application::Get().PushLayer(
                 m_UILayer
             );

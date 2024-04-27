@@ -6,6 +6,7 @@ namespace Aether
 {
     namespace Editor
     {
+        MainScene* MainScene::s_Instance = nullptr;
         MainScene::MainScene()
         {
             // primary camera
@@ -31,5 +32,5 @@ namespace Aether
         {
             m_LuaScriptSystem->OnUpdate(sec);
         }
-    }
-}
+    }//namesapce Editor
+}//namespace Aether
