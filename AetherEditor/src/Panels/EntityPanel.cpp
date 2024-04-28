@@ -4,6 +4,7 @@
 #include "Core/MainScene.h"
 #include <stdint.h>
 #include "Aether/Scene.h"
+#include "UI/ImGuiStorage.h"
 namespace Aether
 {
     namespace Editor
@@ -20,15 +21,69 @@ namespace Aether
                 return fullName;
             }
             res=fullName.substr(pos + 1);
-            //去掉component 后缀
-            pos = res.find("Component");
-            if (pos == std::string::npos)
-            {
-                return res;
-            }
+            ////去掉component 后缀
+            //pos = res.find("Component");
+            //if (pos == std::string::npos)
+            //{
+            //    return res;
+            //}
             res = res.substr(0, pos);
             return res;
         }
+        template<typename ComponentT>
+        struct FieldView
+        {
+            const char* name;
+            ComponentT& component;
+            FieldView(const char* _name, ComponentT& _component):name(_name),component(_component){}
+            template<typename T>
+            void operator()(T& field)
+            {
+                AETHER_DEBUG_LOG_ERROR("not implemented field type imgui edit ui {}", typeid(T).name());
+            }
+            template<>
+            void operator()(std::string& field)
+            {
+                //获得当前id
+                ImGuiID id = ImGui::GetID("");
+                //string 存储位置
+                char* storage = ImGuiStorage::Get(id);
+                bool ret=ImGui::InputText(name, storage, ImGuiStorage::MAX_STORAGE_SIZE);
+                if (ret)
+                {
+                    Reflection::Meta<ComponentT>::Set(component, name, std::string(storage));
+
+                }
+            }
+            template<>
+            void operator()(UUID& uuid)
+            {
+                ImGui::Text(fmt::format("{}: {}",name,size_t(uuid)).c_str());
+            }
+            template<>
+            void operator()(Mat4& mat)
+            {
+
+            }
+            template<>
+            void operator()(Mat3& mat)
+            {
+
+            }
+            
+        };
+        template<typename ComponentT>
+        struct FieldHandler
+		{
+            ComponentT& component;
+            FieldHandler(ComponentT& _component) :component(_component) {}
+			void operator()(const char* name, const char* type, const char* comment,
+				Reflection::CoreComponentFieldVariant& value)
+			{
+                std::visit(FieldView(name,component),value );
+			}
+		};
+        
         struct ComponentHandler
         {
             ComponentHandler(Entity& _e)
@@ -39,13 +94,14 @@ namespace Aether
             {
                 if (e.HasComponent<T>())
                 {
+                    auto& c = e.GetComponent<T>();
                     if (ImGui::TreeNode(
                         GetBriefName(
                             std::string(Aether::Reflection::GetComponentTypeString<T>())
                         ).c_str()
                     ))
                     {
-        
+                        Aether::Reflection::ForEachField(c, FieldHandler<T>(c));
                         ImGui::TreePop();
                     }
                 }

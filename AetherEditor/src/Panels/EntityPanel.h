@@ -1,12 +1,17 @@
 #pragma once
 #include "Panel.h"
 #include "Aether/Message.h"
+#include <unordered_map>
 namespace Aether
 {
     namespace Editor
     {
         class EntityPanel:public Panel
         {
+
+
+
+            
         public:
             EntityPanel() 
                 
@@ -17,7 +22,6 @@ namespace Aether
                
             };
             void OnImGuiRender() override;
-       
         };
 
     }//namespace Editor
