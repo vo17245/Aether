@@ -1,8 +1,10 @@
 #pragma once
 #include "Aether/Message/SubscribeReclaimer.h"
 #include "Aether/Scene.h"
+#include "Aether/Scene/PbrRenderer.h"
 #include "Aether/Scene/Scene.h"
 #include "Message/EditorMessage.h"
+#include "System/PlaneSystem.h"
 namespace Aether
 {
     namespace Editor
@@ -28,12 +30,15 @@ namespace Aether
                 m_SelectedEntity = msg->entity;
             }
             void OnUpdate(float sec);
+            void OnRender();
         private:
             MainScene();
             Scope<LuaScriptSystem> m_LuaScriptSystem;
+            Scope<PlaneSystem> m_PlaneSystem;
             Scene m_Scene;
             std::optional<Entity> m_SelectedEntity;
             SubscribeReclaimer m_SubscribeReclaimer;
+            Scope<PbrRenderer> m_PbrRenderer;
         private:
             static MainScene* s_Instance;
             static void Init()

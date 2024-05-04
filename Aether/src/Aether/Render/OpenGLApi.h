@@ -67,6 +67,7 @@ public:
     static void EnableDepthTest();
     static void ClearDepthBuffer();
     static void ClearColorBuffer();
+    static void ClearColorAndDepthBuffer();
     static void DrawElements(const VertexArray& va,const IndexBuffer& ib,size_t elementCnt,
     GLDrawMode mode=GLDrawMode::TRIANGLES);
     static void SetTexture2DConfig(const Texture2DConfig& config);

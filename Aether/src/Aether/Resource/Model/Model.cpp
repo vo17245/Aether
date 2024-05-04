@@ -24,6 +24,7 @@ namespace Aether
     }
     void Model::Bind()
     {
+        hasBind = true;
         //bind index/vertex buffer(submit data to gpu)
         for(auto& bufferView:bufferViews)
         {
@@ -141,6 +142,7 @@ namespace Aether
     }
     void Model::Unbind()
     {
+        hasBind = false;
         for(auto& primitive:primitives)
         {
             primitive.Unbind();

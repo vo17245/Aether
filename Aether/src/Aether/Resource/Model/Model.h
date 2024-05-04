@@ -24,6 +24,7 @@ namespace Aether
         std::vector<Primitive> primitives;
         std::vector<Mesh> meshes;
         std::vector<Node> nodes;
+        bool hasBind=false;
         // check if a cycle in nodes 
         bool HasCycle();
         void Bind();//make instance in gpu

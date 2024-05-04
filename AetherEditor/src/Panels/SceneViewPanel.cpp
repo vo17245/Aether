@@ -1,7 +1,7 @@
 #include "SceneViewPanel.h"
 #include "Aether/Render/FrameBuffer.h"
 #include "Aether/Scene.h"
-#include "Aether/Scene/SceneRenderer.h"
+#include "Core/MainScene.h"
 #include <algorithm>
 namespace Aether
 {
@@ -28,20 +28,18 @@ namespace Aether
              ImGuiWindowFlags_NoScrollbar ;
             ImGui::Begin("Scene View",nullptr,window_flags);
             ImVec2 windowSize = ImGui::GetWindowSize();
-            float width_scale=float(windowSize.x)/m_Width;
-            float height_scale=float(windowSize.y)/m_Height;
-            float image_scale=std::max(width_scale, height_scale);
+            m_PanelHeight = windowSize.y;
+            m_PanelWidth = windowSize.x;
+            ImGui::SetCursorPos({ 0, 0 });
             ImGui::Image((void*)(intptr_t)
             m_FrameBuffer->GetColorBuffer()->GetRendererId(), 
-            ImVec2(m_Width*image_scale, m_Height*image_scale));
+                windowSize);
             ImGui::End();
         }
         void SceneViewPanel::OnRender()
         {
             m_FrameBuffer->Bind();
-            //render scene
-            SceneRenderer::Get().Render(MainScene::GetInstance().GetScene(),
-            m_CameraController.GetCamera());
+            MainScene::GetInstance().OnRender();
             m_FrameBuffer->Unbind();
         }
         void SceneViewPanel::OnUpdate(Real ds)

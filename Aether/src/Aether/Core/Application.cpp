@@ -124,8 +124,8 @@ int Application::Run()
         m_TimeLastTickBegin = t;
          
         /* Render here */
-        OpenGLApi::ClearColorBuffer();
-        OpenGLApi::ClearDepthBuffer();
+        
+        OpenGLApi::ClearColorAndDepthBuffer();
         OnRender();
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();

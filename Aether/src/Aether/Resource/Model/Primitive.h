@@ -12,6 +12,8 @@ namespace Aether
     class Primitive
     {
     public:
+        
+    public:
         Primitive()=default;
         Primitive(const Primitive&)=delete;
         Primitive(Primitive&&)=default;

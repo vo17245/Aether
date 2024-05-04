@@ -28,7 +28,8 @@ namespace Aether
             {
                 if (m_Data.find(id) == m_Data.end())
                 {
-                    m_Data[id].resize(MAX_STORAGE_SIZE);
+                    m_Data[id].resize(MAX_STORAGE_SIZE,0);
+
                 }
                 return m_Data[id].data();
             }

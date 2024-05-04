@@ -48,6 +48,11 @@ void OpenGLApi::ClearColorBuffer()
     GLCall(glClear(GL_COLOR_BUFFER_BIT  ));
 }
 
+void OpenGLApi::ClearColorAndDepthBuffer()
+{
+    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+}
+
 void OpenGLApi::DrawElements(const VertexArray& va,const IndexBuffer& ib,size_t elementCnt,
     GLDrawMode mode)
 {

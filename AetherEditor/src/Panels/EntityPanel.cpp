@@ -45,10 +45,18 @@ namespace Aether
             void operator()(std::string& field)
             {
                 //获得当前id
-                ImGuiID id = ImGui::GetID("");
+                ImGuiID id = ImGui::GetID(name);
                 //string 存储位置
                 char* storage = ImGuiStorage::Get(id);
-                bool ret=ImGui::InputText(name, storage, ImGuiStorage::MAX_STORAGE_SIZE);
+                if (storage[0]==0)
+                {
+                    //初始化
+                    size_t bytes_to_copy = std::min(ImGuiStorage::MAX_STORAGE_SIZE - 1,
+                        field.size());
+                    memcpy(storage + 1, field.c_str(), bytes_to_copy);
+                    storage[0] = 1;
+                }
+                bool ret=ImGui::InputText(name, storage+1, ImGuiStorage::MAX_STORAGE_SIZE-1);
                 if (ret)
                 {
                     Reflection::Meta<ComponentT>::Set(component, name, std::string(storage));
@@ -116,6 +124,9 @@ namespace Aether
             if (mainScene.HasEntitySelected())
             {
                 auto& entity = mainScene.GetEntitySelected();
+                auto& ic = entity.GetComponent<IDComponent>();
+                ImGui::PushID(ic.id);
+
                 Reflection::ForEachComponentType(AllComponent{},ComponentHandler(entity));
                 //auto& entity = mainScene.GetEntitySelected();
                 //auto& ic = entity.GetComponent<IDComponent>();
@@ -166,12 +177,13 @@ namespace Aether
                     MessageBus::GetSingleton()
                     .Publish<Message::SelectComponentBegin>(nullptr);
                 }
-
+                ImGui::PopID();
             }
             else
             {
                 ImGui::Text("no entity selected");
             }
+            
             ImGui::End();
         }
     }

@@ -53,7 +53,10 @@ namespace Aether
     class Accessor
     {
     public:
-        Accessor(size_t bufferViewIndex,size_t stride,ElementType elementType,size_t offset,
+        Accessor(size_t bufferViewIndex,//buffer view index in model
+            size_t stride,//size from a element begin to next element begin
+            ElementType elementType,
+            size_t offset,//offset in bufferview,the first element begin
         Model* model);
         Accessor(const Accessor&)=delete;
         Accessor(Accessor&&)=default;
