@@ -12,13 +12,13 @@ namespace Aether
     {
         REGISTER_TEST(PbrDirectLight);
         PbrDirectLight::PbrDirectLight()
-            :m_Controller(3.1415926535 / 4, 0.1, 1000, 1)
+            :m_Camera(3.1415926535 / 4, 0.1, 1000, 1)
         {
             
-            m_Controller.GetCamera().GetPosition() = Vec3(-5.814, 10.517, 46.358);
+            m_Camera.GetPosition() = Vec3(-5.814, 10.517, 46.358);
             auto window_size = Application::Get().GetWindowSize();
             Real aspectRatio = Real(window_size.x()) / Real(window_size.y());
-            m_Controller.GetCamera().SetAspectRatio(aspectRatio);
+            m_Camera.SetAspectRatio(aspectRatio);
             
             
             auto model = ModelLoader::LoadFromFile(
@@ -55,9 +55,9 @@ namespace Aether
                 std::string color_label = fmt::format("light_{}_color", i);
                 ret |= ImGui::ColorEdit3(color_label.c_str(), &m_LightColor[i][0]);
             }
-            ImGui::InputFloat3("camera pos", &m_Controller.GetCamera().GetPosition()[0]);
+            ImGui::InputFloat3("camera pos", &m_Camera.GetPosition()[0]);
             ImGui::InputFloat3("camera face", 
-                &m_Controller.GetCamera().GetFace()[0]);
+                &m_Camera.GetFace()[0]);
             ImGui::End();
             if(ret)
             {
@@ -68,7 +68,7 @@ namespace Aether
         {
             m_Shader->Bind();
             UpdateUniform();
-            auto& camera = m_Controller.GetCamera();
+            auto& camera = m_Camera;
             camera.CalculateProjection();
             camera.CalculateView();
             Vec3 cameraPos = camera.GetPosition();

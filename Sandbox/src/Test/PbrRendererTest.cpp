@@ -10,13 +10,13 @@ namespace Aether
     {
         REGISTER_TEST(PbrRendererTest);
         PbrRendererTest::PbrRendererTest()
-            :m_CameraController(3.1415926535 / 4, 0.1, 1000, 1)
+            :m_Camera(3.1415926535 / 4, 0.1, 1000, 1)
         {
             m_Renderer=CreateScope<PbrRenderer>();
             //set aspect ratio
             auto window_size = Application::Get().GetWindowSize();
             Real aspectRatio = Real(window_size.x()) / Real(window_size.y());
-            m_CameraController.GetCamera().SetAspectRatio(aspectRatio);
+            m_Camera.SetAspectRatio(aspectRatio);
             CreateSkybox();
             CreateSphere();
         }
@@ -48,17 +48,17 @@ namespace Aether
         bool PbrRendererTest::OnWindowResize(WindowResizeEvent& e)
         {
             Real aspectRatio = Real(e.GetWidth()) / e.GetHeight();
-            m_CameraController.GetCamera().SetAspectRatio(aspectRatio);
+            m_Camera.SetAspectRatio(aspectRatio);
             OpenGLApi::SetViewport(0, 0, e.GetWidth(), e.GetHeight());
             return true;
         }
         void PbrRendererTest::OnUpdate(float sec)
         {
-            m_CameraController.OnUpdate(sec);
+            m_CameraController.OnUpdate(sec,m_Camera);
         }
         void PbrRendererTest::OnRender()
         {
-            m_Renderer->Render(m_Scene, m_CameraController.GetCamera());
+            m_Renderer->Render(m_Scene, m_Camera);
         }
         void PbrRendererTest::CreateSphere()
         {

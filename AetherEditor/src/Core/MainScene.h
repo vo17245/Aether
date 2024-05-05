@@ -1,6 +1,7 @@
 #pragma once
 #include "Aether/Message/SubscribeReclaimer.h"
 #include "Aether/Scene.h"
+#include "Aether/Scene/CameraController.h"
 #include "Aether/Scene/PbrRenderer.h"
 #include "Aether/Scene/Scene.h"
 #include "Message/EditorMessage.h"
@@ -30,7 +31,7 @@ namespace Aether
                 m_SelectedEntity = msg->entity;
             }
             void OnUpdate(float sec);
-            void OnRender();
+            void OnRender(float aspectRatio);
         private:
             MainScene();
             Scope<LuaScriptSystem> m_LuaScriptSystem;
@@ -49,6 +50,8 @@ namespace Aether
             {
                 delete s_Instance;
             }
+        private:
+            PerspectiveCameraController m_CameraController;
             
         };
     }

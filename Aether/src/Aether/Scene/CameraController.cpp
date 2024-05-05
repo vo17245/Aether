@@ -4,9 +4,9 @@
 #include "Aether/Render/Transform.h"
 #include <iostream>
 namespace Aether {
-void PerspectiveCameraController::OnUpdate(float ds) {
-  Vec3 face = m_Camera.GetFace();
-  Vec3 up = m_Camera.GetUp();
+void PerspectiveCameraController::OnUpdate(float ds,PerspectiveCamera& camera) {
+  Vec3 face = camera.GetFace();
+  Vec3 up = camera.GetUp();
   face.normalize();
   up.normalize();
   Eigen::Vector3f right = up.cross(face).normalized();
@@ -14,22 +14,22 @@ void PerspectiveCameraController::OnUpdate(float ds) {
   up = face.cross(right).normalized();
 
   if (Input::Get().Pressed(KeyboardCode::KEY_W)) {
-    m_Camera.GetPosition() += (face * ds * m_Speed);
+    camera.GetPosition() += (face * ds * m_Speed);
   }
   if (Input::Get().Pressed(KeyboardCode::KEY_S)) {
-    m_Camera.GetPosition() -= (face * ds * m_Speed);
+    camera.GetPosition() -= (face * ds * m_Speed);
   }
   if (Input::Get().Pressed(KeyboardCode::KEY_A)) {
-    m_Camera.GetPosition() -= (right * ds * m_Speed);
+    camera.GetPosition() -= (right * ds * m_Speed);
   }
   if (Input::Get().Pressed(KeyboardCode::KEY_D)) {
-    m_Camera.GetPosition() += (right * ds * m_Speed);
+    camera.GetPosition() += (right * ds * m_Speed);
   }
   if (Input::Get().Pressed(KeyboardCode::KEY_SPACE)) {
-    m_Camera.GetPosition() += (up * ds * m_Speed);
+    camera.GetPosition() += (up * ds * m_Speed);
   }
   if (Input::Get().Pressed(KeyboardCode::KEY_X)) {
-    m_Camera.GetPosition() -= (up * ds * m_Speed);
+    camera.GetPosition() -= (up * ds * m_Speed);
   }
 
   Vec4 h_face;
@@ -63,8 +63,8 @@ void PerspectiveCameraController::OnUpdate(float ds) {
     Mat4 rm = Transform::Rotation(-face, ds * m_RotateSpeed);
     h_up = rm * h_up;
   }
-  m_Camera.GetFace() = h_face.head<3>();
-  m_Camera.GetUp() = h_up.head<3>();
+  camera.GetFace() = h_face.head<3>();
+  camera.GetUp() = h_up.head<3>();
 }
 
 } // namespace Aether

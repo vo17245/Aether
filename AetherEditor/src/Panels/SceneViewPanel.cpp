@@ -1,5 +1,6 @@
 #include "SceneViewPanel.h"
 #include "Aether/Render/FrameBuffer.h"
+#include "Aether/Render/OpenGLApi.h"
 #include "Aether/Scene.h"
 #include "Core/MainScene.h"
 #include <algorithm>
@@ -8,7 +9,6 @@ namespace Aether
     namespace Editor
     {
         SceneViewPanel::SceneViewPanel()
-            :m_CameraController(Math::PI / 4, 0.1, 1000, 1)
         {
             //create framebuffer for scene rendering
             FrameBuffer::Spec spec;
@@ -31,20 +31,22 @@ namespace Aether
             m_PanelHeight = windowSize.y;
             m_PanelWidth = windowSize.x;
             ImGui::SetCursorPos({ 0, 0 });
+            ImVec2 uv0 = ImVec2(0.0f, 1.0f);
+            ImVec2 uv1 = ImVec2(1.0f, 0.0f);
             ImGui::Image((void*)(intptr_t)
             m_FrameBuffer->GetColorBuffer()->GetRendererId(), 
-                windowSize);
+                windowSize,uv0,uv1);
             ImGui::End();
         }
         void SceneViewPanel::OnRender()
         {
             m_FrameBuffer->Bind();
-            MainScene::GetInstance().OnRender();
+            OpenGLApi::SetViewport(0,0,m_Width,m_Height);
+            MainScene::GetInstance().OnRender(float(m_PanelWidth)/m_PanelHeight);
             m_FrameBuffer->Unbind();
         }
         void SceneViewPanel::OnUpdate(Real ds)
         {
-            m_CameraController.OnUpdate(ds);
         }
     }
 }

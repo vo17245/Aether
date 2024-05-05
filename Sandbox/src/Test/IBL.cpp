@@ -11,12 +11,12 @@ namespace Aether
     {
         REGISTER_TEST(IBL);
         IBL::IBL()
-            :m_Controller(3.1415926535 / 4, 0.1, 1000, 1)
+            :m_Camera(3.1415926535 / 4, 0.1, 1000, 1)
         {
             //set aspect ratio
             auto window_size = Application::Get().GetWindowSize();
             Real aspectRatio = Real(window_size.x()) / Real(window_size.y());
-            m_Controller.GetCamera().SetAspectRatio(aspectRatio);
+           m_Camera.SetAspectRatio(aspectRatio);
             //load box
             {
                  auto model=ModelLoader::LoadFromFile("../../Asset/Model/cube.glb");
@@ -71,7 +71,7 @@ namespace Aether
         bool IBL::OnWindowResize(WindowResizeEvent& e)
         {
             Real aspectRatio = Real(e.GetWidth()) / e.GetHeight();
-            m_Controller.GetCamera().SetAspectRatio(aspectRatio);
+            m_Camera.SetAspectRatio(aspectRatio);
             OpenGLApi::SetViewport(0, 0, e.GetWidth(), e.GetHeight());
             return true;
         }
@@ -99,7 +99,7 @@ namespace Aether
         {
             m_SC.cubeMap->Bind(0);
             m_SC.shader->Bind();
-            auto& camera = m_Controller.GetCamera();
+            auto& camera =m_Camera;
             camera.CalculateProjection();
             camera.CalculateView();
             Mat4 view = camera.GetView();
@@ -127,7 +127,7 @@ namespace Aether
         {
             m_Shader->Bind();
             UpdateUniform();
-            auto& camera = m_Controller.GetCamera();
+            auto& camera = m_Camera;
             camera.CalculateProjection();
             camera.CalculateView();
             Vec3 cameraPos = camera.GetPosition();
@@ -181,7 +181,7 @@ namespace Aether
         }
         void IBL::OnUpdate(float sec)
         {
-            m_Controller.OnUpdate(sec);
+            m_Controller.OnUpdate(sec,m_Camera);
 
         }
         void IBL::OnEvent(Event& e)
@@ -191,7 +191,7 @@ namespace Aether
         }
         void IBL::OnImGuiRender()
         {
-            Vec3 face = m_Controller.GetCamera().GetFace();
+            Vec3 face = m_Camera.GetFace();
             face.normalize();
             Mat3 rotation = Transform::GetRotation(Vec3(0, 0, -1), face);
             Vec3 z_hat = -face;
@@ -204,11 +204,11 @@ namespace Aether
             ImGui::Begin("IBL");
             ImGui::ColorEdit3("Albedo", &m_Albedo[0]);
             ImGui::InputFloat3("camera pos",
-                &m_Controller.GetCamera().GetPosition()[0]);
+                &m_Camera.GetPosition()[0]);
             ImGui::InputFloat3("camera face",
-                &m_Controller.GetCamera().GetFace()[0]);
+                &m_Camera.GetFace()[0]);
             ImGui::InputFloat3("camera up",
-                &m_Controller.GetCamera().GetUp()[0]);
+                &m_Camera.GetUp()[0]);
             for (size_t i = 0;i < 4;i++)
             {
                 std::string pos_label = fmt::format("light_{}_pos", i);

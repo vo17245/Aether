@@ -70,6 +70,8 @@ void PbrRenderer::RenderObject(Scene &scene, PerspectiveCamera &camera,
     if (pmc.roughnessMap) {
       macro |= (uint32_t)BuiltinShaderPbrMacro::USE_ROUGHNESS_TEX;
     }
+    // gamma default
+    macro |= (uint32_t)BuiltinShaderPbrMacro::GAMMA;
     // get shader
     BuiltinShaderSignature signature(BuiltinShaderType::PBR, macro);
     auto shader = ShaderCache::GetInstance().GetShader(signature);

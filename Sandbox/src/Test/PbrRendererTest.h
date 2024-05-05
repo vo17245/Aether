@@ -18,6 +18,7 @@ namespace Aether
         private:
             Scene m_Scene;
             PerspectiveCameraController m_CameraController;
+            PerspectiveCamera m_Camera;
             void CreateSkybox();
             void CreateSphere();
             bool OnWindowResize(WindowResizeEvent& e);

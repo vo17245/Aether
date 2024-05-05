@@ -92,10 +92,10 @@ struct SkyboxComponent {
                   const Ref<Texture2D> &_brdfLUT)
       : model(_model), envMap(_envMap), irradianceMap(_irradianceMap),
         prefilterMap(_prefilterMap), brdfLUT(_brdfLUT) {}
-  SkyboxComponent() = default;
   SkyboxComponent(const SkyboxComponent &) = default;
   SkyboxComponent(SkyboxComponent &&) = default;
-
+  SkyboxComponent(const Ref<Model>& _model, const Ref<CubeMap>& _envMap)
+      :model(_model), envMap(_envMap) {}
   Ref<Model> model;
   Ref<CubeMap> envMap;
   Ref<CubeMap> irradianceMap;

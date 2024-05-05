@@ -25,7 +25,6 @@ namespace Aether
             //framebuffer size
             size_t m_Width=1920;
             size_t m_Height=1080;
-            PerspectiveCameraController m_CameraController;
             //panel size
             size_t m_PanelWidth = 1;
             size_t m_PanelHeight = 1;

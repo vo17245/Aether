@@ -11,7 +11,7 @@ namespace Aether
     {
         REGISTER_TEST(PbrTest);
         PbrTest::PbrTest()
-            :m_Controller(3.1415926535 / 4, 0.1, 1000, 1)
+            :m_Camera(3.1415926535 / 4, 0.1, 1000, 1)
         {
             
 
@@ -50,7 +50,7 @@ namespace Aether
                 std::string color_label = fmt::format("light_{}_color", i);
                 ret |= ImGui::ColorEdit3(color_label.c_str(), &m_LightColor[i][0]);
             }
-            ImGui::InputFloat3("camera pos", &m_Controller.GetCamera().GetPosition()[0]);
+            ImGui::InputFloat3("camera pos", &m_Camera.GetPosition()[0]);
             ImGui::End();
             if(ret)
             {
@@ -62,7 +62,7 @@ namespace Aether
         {
             Mat4 modelMatrix = Mat4::Identity();
             
-            auto& camera = m_Controller.GetCamera();
+            auto& camera = m_Camera;
             camera.CalculateProjection();
             camera.CalculateView();
             m_Shader->Bind();

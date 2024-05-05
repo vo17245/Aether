@@ -10,11 +10,11 @@ namespace Aether
     {
         REGISTER_TEST(Skybox);
         Skybox::Skybox()
-            :m_Controller(3.1415926535 / 4, 0.1, 1000, 1)
+            :m_Camera(3.1415926535 / 4, 0.1, 1000, 1)
         {
             auto window_size = Application::Get().GetWindowSize();
             Real aspectRatio = Real(window_size.x()) / Real(window_size.y());
-            m_Controller.GetCamera().SetAspectRatio(aspectRatio);
+            m_Camera.SetAspectRatio(aspectRatio);
 
             auto model=ModelLoader::LoadFromFile("../../Asset/Model/cube.glb");
             m_Model=model;
@@ -30,7 +30,7 @@ namespace Aether
             //    "../../Asset/Texture/container2.png");
             AETHER_ASSERT(image&&"Failed to load image");
             LoadCubeMap();
-            m_Controller.GetCamera().GetFace() = Vec3(0,0.5,0.5);
+            m_Camera.GetFace() = Vec3(0,0.5,0.5);
         }
         Skybox::~Skybox()
         {
@@ -39,7 +39,7 @@ namespace Aether
         {
             m_CubeMap->Bind();
             m_SkyboxShader->Bind();
-            auto& camera=m_Controller.GetCamera();
+            auto& camera=m_Camera;
             camera.CalculateProjection();
             camera.CalculateView();
             Mat4 view=camera.GetView();

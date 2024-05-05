@@ -7,3 +7,4 @@ compile_commands.json
 /Script/.ninja_log
 /build.ninja
 *.pyc
+/.ninja_log

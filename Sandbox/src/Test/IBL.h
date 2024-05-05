@@ -41,6 +41,7 @@ namespace Aether
             Ref<Model> m_Model;
             Ref<Shader> m_Shader;
             PerspectiveCameraController m_Controller;
+            PerspectiveCamera m_Camera;
             Vec3 m_Albedo=Vec3(1.0,0,0);
             Real m_Ao=1.0;
             Vec3 m_LightPos[4] = { 

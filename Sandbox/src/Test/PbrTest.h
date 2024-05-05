@@ -36,7 +36,7 @@ namespace Aether
             void OnImGuiRender()override;
             void OnUpdate(float sec)
             {
-                m_Controller.OnUpdate(sec);
+                m_Controller.OnUpdate(sec,m_Camera);
             }
             void OnEvent(Event& e)override
             {
@@ -54,10 +54,11 @@ namespace Aether
             Vec3 m_LightPos[4] = { Vec3::Zero(),Vec3::Zero() ,Vec3::Zero() ,Vec3::Zero() };
             Vec3 m_LightColor[4]= { Vec3::Zero(),Vec3::Zero() ,Vec3::Zero() ,Vec3::Zero() };
             PerspectiveCameraController m_Controller;
+            PerspectiveCamera m_Camera;
             bool OnWindowResize(WindowResizeEvent& e)
             {
                 Real aspectRatio = Real(e.GetWidth()) / e.GetHeight();
-                m_Controller.GetCamera().SetAspectRatio(aspectRatio);
+                m_Camera.SetAspectRatio(aspectRatio);
                 OpenGLApi::SetViewport(0, 0, e.GetWidth(), e.GetHeight());
                 return true;
             }

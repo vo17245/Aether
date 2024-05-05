@@ -24,7 +24,7 @@ namespace Aether
             void OnRender()override;
             void OnUpdate(float sec)
             {
-                m_Controller.OnUpdate(sec);
+                m_Controller.OnUpdate(sec,m_Camera);
                 
             }
             void OnEvent(Event& e)override
@@ -35,7 +35,7 @@ namespace Aether
             void OnImGuiRender()override
             {
 
-                Vec3 face = m_Controller.GetCamera().GetFace();
+                Vec3 face = m_Camera.GetFace();
 		        face.normalize();
 		        Mat3 rotation = Transform::GetRotation(Vec3(0, 0, -1), face);
 		        Vec3 z_hat = -face;
@@ -47,11 +47,11 @@ namespace Aether
 		        x_hat.normalize();
                 ImGui::Begin("Skybox");
                 ImGui::InputFloat3("camera pos",
-                 &m_Controller.GetCamera().GetPosition()[0]);
+                 &m_Camera.GetPosition()[0]);
                 ImGui::InputFloat3("camera face",
-                    &m_Controller.GetCamera().GetFace()[0]);
+                    &m_Camera.GetFace()[0]);
                 ImGui::InputFloat3("camera up",
-                    &m_Controller.GetCamera().GetUp()[0]);
+                    &m_Camera.GetUp()[0]);
                 ImGui::End();
                     
             }
@@ -59,11 +59,12 @@ namespace Aether
             Ref<Model> m_Model;
             Ref<Shader> m_SkyboxShader;
             PerspectiveCameraController m_Controller;
+            PerspectiveCamera m_Camera;
             Ref<CubeMap> m_CubeMap;
             bool OnWindowResize(WindowResizeEvent& e)
             {
                 Real aspectRatio = Real(e.GetWidth()) / e.GetHeight();
-                m_Controller.GetCamera().SetAspectRatio(aspectRatio);
+                m_Camera.SetAspectRatio(aspectRatio);
                 OpenGLApi::SetViewport(0, 0, e.GetWidth(), e.GetHeight());
                 return true;
             }
