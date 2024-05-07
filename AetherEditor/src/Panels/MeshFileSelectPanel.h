@@ -7,79 +7,72 @@
 #include "Message/EditorMessage.h"
 #include "Aether/UI/FileDialog.h"
 #include "Core/MainScene.h"
-namespace Aether
+namespace Aether {
+namespace Editor {
+class MeshFileSelectPanel : public Panel
 {
-    namespace Editor
+public:
+    MeshFileSelectPanel()
     {
-        class MeshFileSelectPanel:public Panel
+        m_SubscribeReclaimer
+            .Subscribe<::Aether::Editor::Message::SelectMeshFileBegin>([this](::Aether::Message* msg) {
+                m_Show = true;
+            });
+    };
+    ~MeshFileSelectPanel(){
+
+    };
+    void OnImGuiRender() override
+    {
+        if (!m_Show)
         {
-        public:
-            MeshFileSelectPanel() 
+            return;
+        }
+        ImVec2 windowPos = ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f,
+                                  ImGui::GetIO().DisplaySize.y * 0.5f);
+        ImVec2 windowPosPivot = ImVec2(0.5f, 0.5f);
+        ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always,
+                                windowPosPivot);
+        ImGui::SetNextWindowFocus();
+        ImGui::Begin("Select Mesh File");
+        ImGui::Text(fmt::format("File Path:{}", m_FilePath).c_str());
+        bool openExplorer = ImGui::Button("open file explorer");
+        bool save = ImGui::Button("save");
+        bool cancel = ImGui::Button("cancel");
+        ImGui::End();
+        if (openExplorer)
+        {
+            m_FilePath = OpenFileDialog();
+            return;
+        }
+        if (cancel)
+        {
+            m_FilePath = "";
+            m_Show = false;
+            return;
+        }
+        if (save)
+        {
+            auto& scene = MainScene::GetInstance();
+            if (scene.HasEntitySelected())
             {
-                m_SubscribeReclaimer
-                .Subscribe<::Aether::Editor::Message::SelectMeshFileBegin>
-                ([this](::Aether::Message* msg){
-                    m_Show=true;
-                });
-
-            };
-            ~MeshFileSelectPanel() 
-            {
-                
-            };
-            void OnImGuiRender() override
-            {
-                if(!m_Show)
+                auto& entity = scene.GetEntitySelected();
+                if (!entity.HasComponent<MeshComponent>())
                 {
-                    return;
+                    entity.AddComponent<MeshComponent>();
                 }
-                ImVec2 windowPos = ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f,
-             ImGui::GetIO().DisplaySize.y * 0.5f);
-            ImVec2 windowPosPivot = ImVec2(0.5f, 0.5f);
-            ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, 
-            windowPosPivot);
-            ImGui::SetNextWindowFocus();
-                ImGui::Begin("Select Mesh File");
-                ImGui::Text(fmt::format("File Path:{}",m_FilePath).c_str());
-                bool openExplorer=ImGui::Button("open file explorer");
-                bool save =ImGui::Button("save");
-                bool cancel =ImGui::Button("cancel");
-                ImGui::End();
-                if(openExplorer)
-                {
-                    
-                    m_FilePath=OpenFileDialog();
-                    return;
-                }
-                if(cancel)
-                {
-                    m_FilePath="";
-                    m_Show=false;
-                    return;
-                }
-                if(save)
-                {
-                    auto& scene=MainScene::GetInstance();
-                    if(scene.HasEntitySelected())
-                    {
-                        auto& entity=scene.GetEntitySelected();
-                        if (!entity.HasComponent<MeshComponent>())
-                        {
-                            entity.AddComponent<MeshComponent>();
-                        }
-                        auto& mc = entity.GetComponent<MeshComponent>();
-                        mc.filePath = m_FilePath;
-                    }
-                    m_Show = false;
-                    return;
-                    
-                }
-
+                auto& mc = entity.GetComponent<MeshComponent>();
+                mc.filePath = m_FilePath;
             }
-        private:
-            bool m_Show=false;
-            std::string m_FilePath;
-            SubscribeReclaimer m_SubscribeReclaimer;
-        };
+            m_Show = false;
+            return;
+        }
     }
+
+private:
+    bool m_Show = false;
+    std::string m_FilePath;
+    SubscribeReclaimer m_SubscribeReclaimer;
+};
 }
+} // namespace Aether::Editor

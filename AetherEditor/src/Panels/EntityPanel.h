@@ -2,27 +2,26 @@
 #include "Panel.h"
 #include "Aether/Message.h"
 #include <unordered_map>
-namespace Aether
+#include "UI/UICommandHandler.h"
+namespace Aether {
+namespace Editor {
+class EntityPanel : public Panel
 {
-    namespace Editor
+public:
+    EntityPanel()
     {
-        class EntityPanel:public Panel
-        {
+        RegisterUICommand();
+    };
+    ~EntityPanel(){
 
+    };
+    void OnImGuiRender() override;
+    void OnUpdate(Real ds) override;
+    void RegisterUICommand();
 
+private:
+    UICommandHandler m_CommandHandler;
+};
 
-            
-        public:
-            EntityPanel() 
-                
-            {
-            };
-            ~EntityPanel() 
-            {
-               
-            };
-            void OnImGuiRender() override;
-        };
-
-    }//namespace Editor
-}//namespace Aether
+}
+} // namespace Aether::Editor

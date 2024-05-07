@@ -70,7 +70,8 @@ namespace Aether
             
             //sphere entity
             {
-                std::string sphere_model_path = "../../Asset/Model/sphere.fbx";
+                //std::string sphere_model_path = "../../Asset/Model/sphere.fbx";
+                std::string sphere_model_path = "../../Asset/Model/teapot.obj";
                 auto model = ModelLoader::LoadFromFile(sphere_model_path);
                 model->Bind();
                 auto entity = m_Scene.CreateEntity();

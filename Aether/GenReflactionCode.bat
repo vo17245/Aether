@@ -1,1 +1,0 @@
-python3 ../../AetherReflect/aether_reflect/entry.py component_reflection src/Aether/Scene CoreComponentFieldVariant.h ::Aether::Reflection::CoreComponentFieldVariant ::Aether::Reflection::Meta

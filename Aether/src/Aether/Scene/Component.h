@@ -4,522 +4,689 @@
 // Comment:
 
 #pragma once
-#include "../Core/Config.h"
-#include "../Core/UUID.h"
-#include "../Render/Light.h"
-#include "../Render/Transform.h"
-#include "Aether/Core/Math.h"
-#include "Aether/Render/Camera.h"
-#include "Aether/Render/CubeMap.h"
-#include "Aether/Render/Texture2D.h"
-#include "Aether/Resource/Model/Model.h"
-#include "Aether/Scene/Reflection.h"
 #include "CoreComponentFieldVariant.h"
+#include "Aether/Scene/Reflection.h"
+#include "../Core/UUID.h"
+#include "Aether/Core/Math.h"
+#include "Aether/Render/Texture2D.h"
 #include "Eigen/Core"
-#include <filesystem>
 #include <vector>
+#include "../Render/Light.h"
+#include "Aether/Resource/Model/Model.h"
+#include "Aether/Render/CubeMap.h"
+#include "Aether/Render/Camera.h"
+#include "../Core/Config.h"
+#include <filesystem>
+#include "../Render/Transform.h"
 
 namespace Aether {
-struct IDComponent {
+struct IDComponent
+{
+    IDComponent() = default;
+    IDComponent(const IDComponent&) = default;
+    IDComponent(const UUID& _id) :
+        id(_id)
+    {}
 
-  IDComponent() = default;
-  IDComponent(const IDComponent &) = default;
-  IDComponent(const UUID &_id) : id(_id) {}
-
-  UUID id;
+    UUID id;
 };
 } // namespace Aether
 namespace Aether {
-struct TagComponent {
+struct TagComponent
+{
+    TagComponent() = default;
+    TagComponent(const TagComponent&) = default;
+    TagComponent(const std::string& _tag) :
+        tag(_tag)
+    {}
 
-  TagComponent() = default;
-  TagComponent(const TagComponent &) = default;
-  TagComponent(const std::string &_tag) : tag(_tag) {}
-
-  std::string tag;
+    std::string tag;
 };
 } // namespace Aether
 namespace Aether {
-struct TransformComponent {
+struct TransformComponent
+{
+    TransformComponent(const TransformComponent&) = default;
+    TransformComponent() :
+        position(Eigen::Vector3f::Zero()),
+        rotation(Eigen::Vector3f::Zero()),
+        scaling(1, 1, 1), matrix(Eigen::Matrix4f::Identity())
+    {}
+    void CalculateMatrix()
+    {
+        matrix = Transform::Translation(position) * Transform::Rotation(rotation) * Transform::Scale(scaling);
+    }
 
-  TransformComponent(const TransformComponent &) = default;
-  TransformComponent()
-      : position(Eigen::Vector3f::Zero()), rotation(Eigen::Vector3f::Zero()),
-        scaling(1, 1, 1), matrix(Eigen::Matrix4f::Identity()) {}
-  void CalculateMatrix() {
-    matrix = Transform::Translation(position) * Transform::Rotation(rotation) *
-             Transform::Scale(scaling);
-  }
-
-  ::Eigen::Vector3f position;
-  ::Eigen::Vector3f rotation;
-  ::Eigen::Vector3f scaling;
-  Eigen::Matrix4f matrix;
+    ::Eigen::Vector3f position;
+    ::Eigen::Vector3f rotation;
+    ::Eigen::Vector3f scaling;
+    Eigen::Matrix4f matrix;
 };
 } // namespace Aether
 namespace Aether {
-struct PointLightComponent {
+struct PointLightComponent
+{
+    PointLightComponent(PointLightComponent&&) = default;
+    PointLightComponent(const PointLightComponent&) = default;
+    PointLightComponent() = default;
+    PointLightComponent(const ::Eigen::Vector3f& color, const ::Eigen::Vector3f& pos) :
+        light(color, pos)
+    {}
+    PointLightComponent& operator=(const PointLightComponent& plc)
+    {
+        light = plc.light;
+        return *this;
+    }
 
-  PointLightComponent(PointLightComponent &&) = default;
-  PointLightComponent(const PointLightComponent &) = default;
-  PointLightComponent() = default;
-  PointLightComponent(const ::Eigen::Vector3f &color,
-                      const ::Eigen::Vector3f &pos)
-      : light(color, pos) {}
-  PointLightComponent &operator=(const PointLightComponent &plc) {
-    light = plc.light;
-    return *this;
-  }
-
-  PointLight light;
+    PointLight light;
 };
 } // namespace Aether
 namespace Aether {
-struct MeshComponent {
+struct MeshComponent
+{
+    MeshComponent(const MeshComponent&) = default;
 
-  MeshComponent(const MeshComponent &) = default;
-
-  Ref<Model> model;
-  std::optional<std::string> filePath;
+    Ref<Model> model;
+    std::optional<std::string> filePath;
 };
 } // namespace Aether
 namespace Aether {
-struct SkyboxComponent {
+struct SkyboxComponent
+{
+    SkyboxComponent(const Ref<Model>& _model,
+                    const Ref<CubeMap>& _envMap,
+                    const Ref<CubeMap>& _irradianceMap,
+                    const Ref<CubeMap>& _prefilterMap,
+                    const Ref<Texture2D>& _brdfLUT) :
+        model(_model),
+        envMap(_envMap), irradianceMap(_irradianceMap),
+        prefilterMap(_prefilterMap), brdfLUT(_brdfLUT)
+    {}
+    SkyboxComponent() = default;
+    SkyboxComponent(const SkyboxComponent&) = default;
+    SkyboxComponent(SkyboxComponent&&) = default;
 
-  SkyboxComponent(const Ref<Model> &_model, const Ref<CubeMap> &_envMap,
-                  const Ref<CubeMap> &_irradianceMap,
-                  const Ref<CubeMap> &_prefilterMap,
-                  const Ref<Texture2D> &_brdfLUT)
-      : model(_model), envMap(_envMap), irradianceMap(_irradianceMap),
-        prefilterMap(_prefilterMap), brdfLUT(_brdfLUT) {}
-  SkyboxComponent(const SkyboxComponent &) = default;
-  SkyboxComponent(SkyboxComponent &&) = default;
-  SkyboxComponent(const Ref<Model>& _model, const Ref<CubeMap>& _envMap)
-      :model(_model), envMap(_envMap) {}
-  Ref<Model> model;
-  Ref<CubeMap> envMap;
-  Ref<CubeMap> irradianceMap;
-  Ref<CubeMap> prefilterMap;
-  Ref<Texture2D> brdfLUT;
+    Ref<Model> model;
+    Ref<CubeMap> envMap;
+    Ref<CubeMap> irradianceMap;
+    Ref<CubeMap> prefilterMap;
+    Ref<Texture2D> brdfLUT;
 };
 } // namespace Aether
 namespace Aether {
-struct PbrMeterialComponent {
+struct PbrMeterialComponent
+{
+    PbrMeterialComponent() = default;
+    PbrMeterialComponent(const PbrMeterialComponent&) = default;
+    PbrMeterialComponent(PbrMeterialComponent&&) = default;
 
-  PbrMeterialComponent() = default;
-  PbrMeterialComponent(const PbrMeterialComponent &) = default;
-  PbrMeterialComponent(PbrMeterialComponent &&) = default;
-
-  ::Eigen::Vector3f albedo;
-  float metallic;
-  float roughness;
-  float ao;
-  Ref<Texture2D> albedoMap;
-  Ref<Texture2D> metallicMap;
-  Ref<Texture2D> roughnessMap;
-  Ref<Texture2D> aoMap;
+    ::Eigen::Vector3f albedo;
+    float metallic;
+    float roughness;
+    float ao;
+    Ref<Texture2D> albedoMap;
+    Ref<Texture2D> metallicMap;
+    Ref<Texture2D> roughnessMap;
+    Ref<Texture2D> aoMap;
 };
 } // namespace Aether
 namespace Aether {
-struct PerspectiveCameraComponent {
+struct PerspectiveCameraComponent
+{
+    PerspectiveCameraComponent() :
+        camera(Math::PI / 4, 0.1, 1000, 1)
+    {}
+    PerspectiveCameraComponent(Real fovy, Real zNear, Real zFar, Real aspectRatio) :
+        camera(fovy, zNear, zFar, aspectRatio)
+    {}
+    PerspectiveCameraComponent(const PerspectiveCameraComponent&) = default;
 
-  PerspectiveCameraComponent() : camera(Math::PI / 4, 0.1, 1000, 1) {}
-  PerspectiveCameraComponent(Real fovy, Real zNear, Real zFar, Real aspectRatio)
-      : camera(fovy, zNear, zFar, aspectRatio) {}
-  PerspectiveCameraComponent(const PerspectiveCameraComponent &) = default;
-
-  bool isPrimary;
-  PerspectiveCamera camera;
+    bool isPrimary;
+    PerspectiveCamera camera;
 };
 } // namespace Aether
 namespace Aether {
-struct LuaScriptComponent {
+struct LuaScriptComponent
+{
+    LuaScriptComponent() = default;
+    LuaScriptComponent(const LuaScriptComponent&) = default;
+    LuaScriptComponent(const std::string& _script, const std::string& _path) :
+        script(_script), path(_path)
+    {}
 
-  LuaScriptComponent() = default;
-  LuaScriptComponent(const LuaScriptComponent &) = default;
-  LuaScriptComponent(const std::string &_script, const std::string &_path)
-      : script(_script), path(_path) {}
-
-  std::string script;
-  std::string path;
+    std::string script;
+    std::string path;
 };
-} // namespace Aether
-
-namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::IDComponent> {
-  static constexpr const inline char *name = "::Aether::IDComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 1;
-  static constexpr const inline char *field_names[] = {
-      "id",
-  };
-  static constexpr const inline char *field_types[] = {
-      "UUID",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::IDComponent &obj, const std::string &key) {
-    if (key == "id") {
-      return obj.id;
-    }
-  }
-  static void
-  Set(::Aether::IDComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
-
-    if (key == "id") {
-      obj.id = std::get<UUID>(value);
-    }
-  }
-};
-} // namespace Reflection
 } // namespace Aether
 namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::TagComponent> {
-  static constexpr const inline char *name = "::Aether::TagComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 1;
-  static constexpr const inline char *field_names[] = {
-      "tag",
-  };
-  static constexpr const inline char *field_types[] = {
-      "std::string",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::TagComponent &obj, const std::string &key) {
-    if (key == "tag") {
-      return obj.tag;
-    }
-  }
-  static void
-  Set(::Aether::TagComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
+struct LuaCameraScriptComponent
+{
+    LuaCameraScriptComponent() = default;
+    LuaCameraScriptComponent(const LuaCameraScriptComponent&) = default;
+    LuaCameraScriptComponent(const std::string& _script, const std::string& _path) :
+        script(_script), path(_path)
+    {}
 
-    if (key == "tag") {
-      obj.tag = std::get<std::string>(value);
-    }
-  }
+    std::string script;
+    std::string path;
 };
-} // namespace Reflection
 } // namespace Aether
-namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::TransformComponent> {
-  static constexpr const inline char *name = "::Aether::TransformComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 4;
-  static constexpr const inline char *field_names[] = {
-      "position",
-      "rotation",
-      "scaling",
-      "matrix",
-  };
-  static constexpr const inline char *field_types[] = {
-      "::Eigen::Vector3f",
-      "::Eigen::Vector3f",
-      "::Eigen::Vector3f",
-      "Eigen::Matrix4f",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "",
-      "旋转顺序为x y z",
-      "",
-      "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::TransformComponent &obj, const std::string &key) {
-    if (key == "position") {
-      return obj.position;
-    } else if (key == "rotation") {
-      return obj.rotation;
-    } else if (key == "scaling") {
-      return obj.scaling;
-    } else if (key == "matrix") {
-      return obj.matrix;
-    }
-  }
-  static void
-  Set(::Aether::TransformComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
 
-    if (key == "position") {
-      obj.position = std::get<::Eigen::Vector3f>(value);
-    } else if (key == "rotation") {
-      obj.rotation = std::get<::Eigen::Vector3f>(value);
-    } else if (key == "scaling") {
-      obj.scaling = std::get<::Eigen::Vector3f>(value);
-    } else if (key == "matrix") {
-      obj.matrix = std::get<Eigen::Matrix4f>(value);
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::IDComponent>
+{
+    static constexpr const inline char* name = "::Aether::IDComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 1;
+    static constexpr const inline char* field_names[] = {
+        "id",
+    };
+    static constexpr const inline char* field_types[] = {
+        "UUID",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::IDComponent& obj, const std::string& key)
+    {
+        if (key == "id")
+        {
+            return obj.id;
+        }
     }
-  }
+    static void Set(::Aether::IDComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "id")
+        {
+            obj.id = std::get<UUID>(value);
+        }
+    }
 };
-} // namespace Reflection
-} // namespace Aether
-namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::PointLightComponent> {
-  static constexpr const inline char *name = "::Aether::PointLightComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 1;
-  static constexpr const inline char *field_names[] = {
-      "light",
-  };
-  static constexpr const inline char *field_types[] = {
-      "PointLight",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::PointLightComponent &obj, const std::string &key) {
-    if (key == "light") {
-      return obj.light;
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::TagComponent>
+{
+    static constexpr const inline char* name = "::Aether::TagComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 1;
+    static constexpr const inline char* field_names[] = {
+        "tag",
+    };
+    static constexpr const inline char* field_types[] = {
+        "std::string",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::TagComponent& obj, const std::string& key)
+    {
+        if (key == "tag")
+        {
+            return obj.tag;
+        }
     }
-  }
-  static void
-  Set(::Aether::PointLightComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
-
-    if (key == "light") {
-      obj.light = std::get<PointLight>(value);
+    static void Set(::Aether::TagComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "tag")
+        {
+            obj.tag = std::get<std::string>(value);
+        }
     }
-  }
 };
-} // namespace Reflection
-} // namespace Aether
-namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::MeshComponent> {
-  static constexpr const inline char *name = "::Aether::MeshComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 2;
-  static constexpr const inline char *field_names[] = {
-      "model",
-      "filePath",
-  };
-  static constexpr const inline char *field_types[] = {
-      "Ref<Model>",
-      "std::optional<std::string>",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "",
-      "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::MeshComponent &obj, const std::string &key) {
-    if (key == "model") {
-      return obj.model;
-    } else if (key == "filePath") {
-      return obj.filePath;
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::TransformComponent>
+{
+    static constexpr const inline char* name = "::Aether::TransformComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 4;
+    static constexpr const inline char* field_names[] = {
+        "position",
+        "rotation",
+        "scaling",
+        "matrix",
+    };
+    static constexpr const inline char* field_types[] = {
+        "::Eigen::Vector3f",
+        "::Eigen::Vector3f",
+        "::Eigen::Vector3f",
+        "Eigen::Matrix4f",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+        "旋转顺序为x y z",
+        "",
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::TransformComponent& obj, const std::string& key)
+    {
+        if (key == "position")
+        {
+            return obj.position;
+        }
+        else if (key == "rotation")
+        {
+            return obj.rotation;
+        }
+        else if (key == "scaling")
+        {
+            return obj.scaling;
+        }
+        else if (key == "matrix")
+        {
+            return obj.matrix;
+        }
     }
-  }
-  static void
-  Set(::Aether::MeshComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
-
-    if (key == "model") {
-      obj.model = std::get<Ref<Model>>(value);
-    } else if (key == "filePath") {
-      obj.filePath = std::get<std::optional<std::string>>(value);
+    static void Set(::Aether::TransformComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "position")
+        {
+            obj.position = std::get<::Eigen::Vector3f>(value);
+        }
+        else if (key == "rotation")
+        {
+            obj.rotation = std::get<::Eigen::Vector3f>(value);
+        }
+        else if (key == "scaling")
+        {
+            obj.scaling = std::get<::Eigen::Vector3f>(value);
+        }
+        else if (key == "matrix")
+        {
+            obj.matrix = std::get<Eigen::Matrix4f>(value);
+        }
     }
-  }
 };
-} // namespace Reflection
-} // namespace Aether
-namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::SkyboxComponent> {
-  static constexpr const inline char *name = "::Aether::SkyboxComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 5;
-  static constexpr const inline char *field_names[] = {
-      "model", "envMap", "irradianceMap", "prefilterMap", "brdfLUT",
-  };
-  static constexpr const inline char *field_types[] = {
-      "Ref<Model>",   "Ref<CubeMap>",   "Ref<CubeMap>",
-      "Ref<CubeMap>", "Ref<Texture2D>",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "", "", "", "", "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::SkyboxComponent &obj, const std::string &key) {
-    if (key == "model") {
-      return obj.model;
-    } else if (key == "envMap") {
-      return obj.envMap;
-    } else if (key == "irradianceMap") {
-      return obj.irradianceMap;
-    } else if (key == "prefilterMap") {
-      return obj.prefilterMap;
-    } else if (key == "brdfLUT") {
-      return obj.brdfLUT;
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::PointLightComponent>
+{
+    static constexpr const inline char* name = "::Aether::PointLightComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 1;
+    static constexpr const inline char* field_names[] = {
+        "light",
+    };
+    static constexpr const inline char* field_types[] = {
+        "PointLight",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::PointLightComponent& obj, const std::string& key)
+    {
+        if (key == "light")
+        {
+            return obj.light;
+        }
     }
-  }
-  static void
-  Set(::Aether::SkyboxComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
-
-    if (key == "model") {
-      obj.model = std::get<Ref<Model>>(value);
-    } else if (key == "envMap") {
-      obj.envMap = std::get<Ref<CubeMap>>(value);
-    } else if (key == "irradianceMap") {
-      obj.irradianceMap = std::get<Ref<CubeMap>>(value);
-    } else if (key == "prefilterMap") {
-      obj.prefilterMap = std::get<Ref<CubeMap>>(value);
-    } else if (key == "brdfLUT") {
-      obj.brdfLUT = std::get<Ref<Texture2D>>(value);
+    static void Set(::Aether::PointLightComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "light")
+        {
+            obj.light = std::get<PointLight>(value);
+        }
     }
-  }
 };
-} // namespace Reflection
-} // namespace Aether
-namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::PbrMeterialComponent> {
-  static constexpr const inline char *name = "::Aether::PbrMeterialComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 8;
-  static constexpr const inline char *field_names[] = {
-      "albedo",    "metallic",    "roughness",    "ao",
-      "albedoMap", "metallicMap", "roughnessMap", "aoMap",
-  };
-  static constexpr const inline char *field_types[] = {
-      "::Eigen::Vector3f", "float",          "float",          "float",
-      "Ref<Texture2D>",    "Ref<Texture2D>", "Ref<Texture2D>", "Ref<Texture2D>",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "", "", "", "", "", "", "", "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::PbrMeterialComponent &obj, const std::string &key) {
-    if (key == "albedo") {
-      return obj.albedo;
-    } else if (key == "metallic") {
-      return obj.metallic;
-    } else if (key == "roughness") {
-      return obj.roughness;
-    } else if (key == "ao") {
-      return obj.ao;
-    } else if (key == "albedoMap") {
-      return obj.albedoMap;
-    } else if (key == "metallicMap") {
-      return obj.metallicMap;
-    } else if (key == "roughnessMap") {
-      return obj.roughnessMap;
-    } else if (key == "aoMap") {
-      return obj.aoMap;
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::MeshComponent>
+{
+    static constexpr const inline char* name = "::Aether::MeshComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 2;
+    static constexpr const inline char* field_names[] = {
+        "model",
+        "filePath",
+    };
+    static constexpr const inline char* field_types[] = {
+        "Ref<Model>",
+        "std::optional<std::string>",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::MeshComponent& obj, const std::string& key)
+    {
+        if (key == "model")
+        {
+            return obj.model;
+        }
+        else if (key == "filePath")
+        {
+            return obj.filePath;
+        }
     }
-  }
-  static void
-  Set(::Aether::PbrMeterialComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
-
-    if (key == "albedo") {
-      obj.albedo = std::get<::Eigen::Vector3f>(value);
-    } else if (key == "metallic") {
-      obj.metallic = std::get<float>(value);
-    } else if (key == "roughness") {
-      obj.roughness = std::get<float>(value);
-    } else if (key == "ao") {
-      obj.ao = std::get<float>(value);
-    } else if (key == "albedoMap") {
-      obj.albedoMap = std::get<Ref<Texture2D>>(value);
-    } else if (key == "metallicMap") {
-      obj.metallicMap = std::get<Ref<Texture2D>>(value);
-    } else if (key == "roughnessMap") {
-      obj.roughnessMap = std::get<Ref<Texture2D>>(value);
-    } else if (key == "aoMap") {
-      obj.aoMap = std::get<Ref<Texture2D>>(value);
+    static void Set(::Aether::MeshComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "model")
+        {
+            obj.model = std::get<Ref<Model>>(value);
+        }
+        else if (key == "filePath")
+        {
+            obj.filePath = std::get<std::optional<std::string>>(value);
+        }
     }
-  }
 };
-} // namespace Reflection
-} // namespace Aether
-namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::PerspectiveCameraComponent> {
-  static constexpr const inline char *name =
-      "::Aether::PerspectiveCameraComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 2;
-  static constexpr const inline char *field_names[] = {
-      "isPrimary",
-      "camera",
-  };
-  static constexpr const inline char *field_types[] = {
-      "bool",
-      "PerspectiveCamera",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "",
-      "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::PerspectiveCameraComponent &obj, const std::string &key) {
-    if (key == "isPrimary") {
-      return obj.isPrimary;
-    } else if (key == "camera") {
-      return obj.camera;
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::SkyboxComponent>
+{
+    static constexpr const inline char* name = "::Aether::SkyboxComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 5;
+    static constexpr const inline char* field_names[] = {
+        "model",
+        "envMap",
+        "irradianceMap",
+        "prefilterMap",
+        "brdfLUT",
+    };
+    static constexpr const inline char* field_types[] = {
+        "Ref<Model>",
+        "Ref<CubeMap>",
+        "Ref<CubeMap>",
+        "Ref<CubeMap>",
+        "Ref<Texture2D>",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+        "",
+        "",
+        "",
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::SkyboxComponent& obj, const std::string& key)
+    {
+        if (key == "model")
+        {
+            return obj.model;
+        }
+        else if (key == "envMap")
+        {
+            return obj.envMap;
+        }
+        else if (key == "irradianceMap")
+        {
+            return obj.irradianceMap;
+        }
+        else if (key == "prefilterMap")
+        {
+            return obj.prefilterMap;
+        }
+        else if (key == "brdfLUT")
+        {
+            return obj.brdfLUT;
+        }
     }
-  }
-  static void
-  Set(::Aether::PerspectiveCameraComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
-
-    if (key == "isPrimary") {
-      obj.isPrimary = std::get<bool>(value);
-    } else if (key == "camera") {
-      obj.camera = std::get<PerspectiveCamera>(value);
+    static void Set(::Aether::SkyboxComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "model")
+        {
+            obj.model = std::get<Ref<Model>>(value);
+        }
+        else if (key == "envMap")
+        {
+            obj.envMap = std::get<Ref<CubeMap>>(value);
+        }
+        else if (key == "irradianceMap")
+        {
+            obj.irradianceMap = std::get<Ref<CubeMap>>(value);
+        }
+        else if (key == "prefilterMap")
+        {
+            obj.prefilterMap = std::get<Ref<CubeMap>>(value);
+        }
+        else if (key == "brdfLUT")
+        {
+            obj.brdfLUT = std::get<Ref<Texture2D>>(value);
+        }
     }
-  }
 };
-} // namespace Reflection
-} // namespace Aether
-namespace Aether {
-namespace Reflection {
-template <> struct Meta<::Aether::LuaScriptComponent> {
-  static constexpr const inline char *name = "::Aether::LuaScriptComponent";
-  static constexpr const inline char *comment = "";
-  static constexpr const inline size_t field_count = 2;
-  static constexpr const inline char *field_names[] = {
-      "script",
-      "path",
-  };
-  static constexpr const inline char *field_types[] = {
-      "std::string",
-      "std::string",
-  };
-  static constexpr const inline char *field_comments[] = {
-      "",
-      "",
-  };
-  static ::Aether::Reflection::CoreComponentFieldVariant
-  Get(const ::Aether::LuaScriptComponent &obj, const std::string &key) {
-    if (key == "script") {
-      return obj.script;
-    } else if (key == "path") {
-      return obj.path;
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::PbrMeterialComponent>
+{
+    static constexpr const inline char* name = "::Aether::PbrMeterialComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 8;
+    static constexpr const inline char* field_names[] = {
+        "albedo",
+        "metallic",
+        "roughness",
+        "ao",
+        "albedoMap",
+        "metallicMap",
+        "roughnessMap",
+        "aoMap",
+    };
+    static constexpr const inline char* field_types[] = {
+        "::Eigen::Vector3f",
+        "float",
+        "float",
+        "float",
+        "Ref<Texture2D>",
+        "Ref<Texture2D>",
+        "Ref<Texture2D>",
+        "Ref<Texture2D>",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::PbrMeterialComponent& obj, const std::string& key)
+    {
+        if (key == "albedo")
+        {
+            return obj.albedo;
+        }
+        else if (key == "metallic")
+        {
+            return obj.metallic;
+        }
+        else if (key == "roughness")
+        {
+            return obj.roughness;
+        }
+        else if (key == "ao")
+        {
+            return obj.ao;
+        }
+        else if (key == "albedoMap")
+        {
+            return obj.albedoMap;
+        }
+        else if (key == "metallicMap")
+        {
+            return obj.metallicMap;
+        }
+        else if (key == "roughnessMap")
+        {
+            return obj.roughnessMap;
+        }
+        else if (key == "aoMap")
+        {
+            return obj.aoMap;
+        }
     }
-  }
-  static void
-  Set(::Aether::LuaScriptComponent &obj, const std::string &key,
-      const ::Aether::Reflection::CoreComponentFieldVariant &value) {
-
-    if (key == "script") {
-      obj.script = std::get<std::string>(value);
-    } else if (key == "path") {
-      obj.path = std::get<std::string>(value);
+    static void Set(::Aether::PbrMeterialComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "albedo")
+        {
+            obj.albedo = std::get<::Eigen::Vector3f>(value);
+        }
+        else if (key == "metallic")
+        {
+            obj.metallic = std::get<float>(value);
+        }
+        else if (key == "roughness")
+        {
+            obj.roughness = std::get<float>(value);
+        }
+        else if (key == "ao")
+        {
+            obj.ao = std::get<float>(value);
+        }
+        else if (key == "albedoMap")
+        {
+            obj.albedoMap = std::get<Ref<Texture2D>>(value);
+        }
+        else if (key == "metallicMap")
+        {
+            obj.metallicMap = std::get<Ref<Texture2D>>(value);
+        }
+        else if (key == "roughnessMap")
+        {
+            obj.roughnessMap = std::get<Ref<Texture2D>>(value);
+        }
+        else if (key == "aoMap")
+        {
+            obj.aoMap = std::get<Ref<Texture2D>>(value);
+        }
     }
-  }
 };
-} // namespace Reflection
-} // namespace Aether
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::PerspectiveCameraComponent>
+{
+    static constexpr const inline char* name = "::Aether::PerspectiveCameraComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 2;
+    static constexpr const inline char* field_names[] = {
+        "isPrimary",
+        "camera",
+    };
+    static constexpr const inline char* field_types[] = {
+        "bool",
+        "PerspectiveCamera",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::PerspectiveCameraComponent& obj, const std::string& key)
+    {
+        if (key == "isPrimary")
+        {
+            return obj.isPrimary;
+        }
+        else if (key == "camera")
+        {
+            return obj.camera;
+        }
+    }
+    static void Set(::Aether::PerspectiveCameraComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "isPrimary")
+        {
+            obj.isPrimary = std::get<bool>(value);
+        }
+        else if (key == "camera")
+        {
+            obj.camera = std::get<PerspectiveCamera>(value);
+        }
+    }
+};
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::LuaScriptComponent>
+{
+    static constexpr const inline char* name = "::Aether::LuaScriptComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 2;
+    static constexpr const inline char* field_names[] = {
+        "script",
+        "path",
+    };
+    static constexpr const inline char* field_types[] = {
+        "std::string",
+        "std::string",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::LuaScriptComponent& obj, const std::string& key)
+    {
+        if (key == "script")
+        {
+            return obj.script;
+        }
+        else if (key == "path")
+        {
+            return obj.path;
+        }
+    }
+    static void Set(::Aether::LuaScriptComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "script")
+        {
+            obj.script = std::get<std::string>(value);
+        }
+        else if (key == "path")
+        {
+            obj.path = std::get<std::string>(value);
+        }
+    }
+};
+}} // namespace Aether::Reflection
+namespace Aether { namespace Reflection {
+template <>
+struct Meta<::Aether::LuaCameraScriptComponent>
+{
+    static constexpr const inline char* name = "::Aether::LuaCameraScriptComponent";
+    static constexpr const inline char* comment = "";
+    static constexpr const inline size_t field_count = 2;
+    static constexpr const inline char* field_names[] = {
+        "script",
+        "path",
+    };
+    static constexpr const inline char* field_types[] = {
+        "std::string",
+        "std::string",
+    };
+    static constexpr const inline char* field_comments[] = {
+        "",
+        "",
+    };
+    static ::Aether::Reflection::CoreComponentFieldVariant Get(const ::Aether::LuaCameraScriptComponent& obj, const std::string& key)
+    {
+        if (key == "script")
+        {
+            return obj.script;
+        }
+        else if (key == "path")
+        {
+            return obj.path;
+        }
+    }
+    static void Set(::Aether::LuaCameraScriptComponent& obj, const std::string& key, const ::Aether::Reflection::CoreComponentFieldVariant& value)
+    {
+        if (key == "script")
+        {
+            obj.script = std::get<std::string>(value);
+        }
+        else if (key == "path")
+        {
+            obj.path = std::get<std::string>(value);
+        }
+    }
+};
+}} // namespace Aether::Reflection

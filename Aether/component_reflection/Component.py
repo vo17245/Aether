@@ -224,7 +224,22 @@ structs=[
 			:script(_script),path(_path) {}
             """
         ]
-    }
+    },
+    {
+        "name":"::Aether::LuaCameraScriptComponent",
+        "fields":[
+            {"type":"std::string","name":"script" },
+		    {"type":"std::string","name":"path"}
+        ],
+        "constructors":[
+            """
+            LuaCameraScriptComponent() = default;
+		LuaCameraScriptComponent(const LuaCameraScriptComponent&) = default;
+		LuaCameraScriptComponent(const std::string& _script, const std::string& _path)
+			:script(_script),path(_path) {}
+            """
+        ]
+    },
 
 
 ]#optional

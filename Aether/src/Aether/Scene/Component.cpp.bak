@@ -3,7 +3,7 @@
 #include "Component.h"
 #include <filesystem>
 
-void Aether::TransformComponent::CalculateMatrix() {
-  matrix = Transform::Translation(position) * Transform::Rotation(rotation) *
-           Transform::Scale(scaling);
+void Aether::TransformComponent::CalculateMatrix()
+{
+    matrix = Transform::Translation(position) * Transform::Rotation(rotation) * Transform::Scale(scaling);
 }

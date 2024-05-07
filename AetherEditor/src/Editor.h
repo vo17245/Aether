@@ -3,36 +3,34 @@
 #include "Layers/EditorLayer.h"
 #include "Layers/UILayer.h"
 #include "Core/MainScene.h"
-namespace Aether
+#include "UI/UICommandHandler.h"
+namespace Aether {
+namespace Editor {
+class Editor
 {
-    namespace Editor
+public:
+    Editor()
     {
-        class Editor
-        {
-        public:
-            Editor()
-            {
-                MainScene::Init();
-            }
-
-
-            
-            ~Editor()
-            {
-                MainScene::Release();
-            }
-            void Run();
-            EditorLayer& GetEditorLayer() 
-            { 
-                return *dynamic_cast<EditorLayer*>(m_EditorLayer.get());
-            }
-            UILayer& GetUILayer() 
-            {
-                return *dynamic_cast<UILayer*>(m_UILayer.get());
-            }
-        private:
-            Ref<Layer> m_EditorLayer;
-            Ref<Layer> m_UILayer;
-        };
+        MainScene::Init();
     }
+
+    ~Editor()
+    {
+        MainScene::Release();
+    }
+    void Run();
+    EditorLayer& GetEditorLayer()
+    {
+        return *dynamic_cast<EditorLayer*>(m_EditorLayer.get());
+    }
+    UILayer& GetUILayer()
+    {
+        return *dynamic_cast<UILayer*>(m_UILayer.get());
+    }
+
+private:
+    Ref<Layer> m_EditorLayer;
+    Ref<Layer> m_UILayer;
+};
 }
+} // namespace Aether::Editor
