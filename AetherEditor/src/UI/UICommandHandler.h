@@ -5,6 +5,7 @@
 #include "Aether/Core.h"
 namespace Aether {
 namespace Editor {
+
 class UICommandHandler
 {
 public:

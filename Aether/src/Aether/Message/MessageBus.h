@@ -82,7 +82,8 @@ private:
             {
                 callback.second(data);
             }
-            delete data;
+            if (data)
+                delete data;
         }
         m_Messages.clear();
     }

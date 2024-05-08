@@ -36,7 +36,7 @@ public:
         ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always,
                                 windowPosPivot);
         ImGui::SetNextWindowFocus();
-        ImGui::Begin("Select Mesh File");
+        ImGui::Begin("Select Lua Script File");
         ImGui::Text(fmt::format("File Path:{}", m_FilePath).c_str());
         bool openExplorer = ImGui::Button("open file explorer");
         bool save = ImGui::Button("save");

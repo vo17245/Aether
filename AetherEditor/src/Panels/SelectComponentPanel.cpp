@@ -39,6 +39,7 @@ namespace Aether
             bool addTag=ImGui::Button("Tag");
             bool addMesh = ImGui::Button("Mesh");
             bool addLuaScript=ImGui::Button("LuaScript");
+            bool addLuaCameraScript = ImGui::Button("LuaCameraScript");
             ImGui::End();
             if (addMesh)
             {
@@ -80,6 +81,11 @@ namespace Aether
                 //open lua script file select panel
                 auto* msg = new Message::SelectLuaScriptFileBegin();
                 MessageBus::GetSingleton().Publish<Message::SelectLuaScriptFileBegin>(msg);
+                m_Show = false;
+            }
+            if (addLuaCameraScript)
+            {
+                MessageBus::GetSingleton().Publish<Message::SelectLuaCameraScriptFileBegin>(nullptr);
                 m_Show = false;
             }
         }

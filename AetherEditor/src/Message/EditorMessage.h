@@ -26,6 +26,8 @@ namespace Aether
             struct SelectMeshFileBegin:public ::Aether::Message{};
             struct SelectLuaScriptFileBegin:public ::Aether::Message{};
             struct UILayerPop:public ::Aether::Message{UI::UI* ui;};
+            struct SelectLuaCameraScriptFileBegin : public ::Aether::Message
+            {};
         }
         
     }

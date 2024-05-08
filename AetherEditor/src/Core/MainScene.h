@@ -30,6 +30,10 @@ namespace Aether
             {
                 m_SelectedEntity = msg->entity;
             }
+            void CancelSelect()
+            {
+                m_SelectedEntity = std::nullopt;
+            }
             void OnUpdate(float sec);
             void OnRender(float aspectRatio);
         private:

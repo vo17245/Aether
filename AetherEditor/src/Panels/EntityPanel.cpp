@@ -9,6 +9,7 @@
 #include "Panels/EntityPanel.h"
 #include "UI/ImGuiStorage.h"
 #include "UI/UICommandHandler.h"
+#include "Aether/Utils/FileUtils.h"
 namespace Aether {
 namespace Editor {
 using AllComponent = Aether::Reflection::ComponentTypeGroup<
@@ -17,7 +18,9 @@ using AllComponent = Aether::Reflection::ComponentTypeGroup<
     TransformComponent,
     SkyboxComponent,
     MeshComponent,
-    PbrMeterialComponent>;
+    PbrMeterialComponent,
+    LuaCameraScriptComponent,
+    LuaScriptComponent>;
 static std::string GetBriefName(const std::string& fullName)
 {
     std::string res;
@@ -138,7 +141,19 @@ struct ComponentHandler
                         .c_str()))
             {
                 Aether::Reflection::ForEachField(c, FieldHandler<T>(c));
+                bool removeComponent = false;
+                if constexpr (!std::is_same_v<IDComponent, T>)
+                {
+                    removeComponent = ImGui::Button("Remove");
+                }
                 ImGui::TreePop();
+                if constexpr (!std::is_same_v<IDComponent, T>)
+                {
+                    if (removeComponent)
+                    {
+                        e.RemoveComponent<T>();
+                    }
+                }
             }
         }
     }
@@ -159,6 +174,29 @@ struct ComponentHandler
                 {
                     m_CommandHandler.PushCommand("reload_selected_entity_mesh");
                 }
+
+                ImGui::TreePop();
+            }
+        }
+    }
+    template <>
+    void operator()(Reflection::ComponentType<LuaCameraScriptComponent>)
+    {
+        if (e.HasComponent<LuaCameraScriptComponent>())
+        {
+            if (ImGui::TreeNode(
+                    GetBriefName(
+                        std::string(Aether::Reflection::GetComponentTypeString<LuaCameraScriptComponent>()))
+                        .c_str()))
+            {
+                auto& c = e.GetComponent<LuaCameraScriptComponent>();
+                Aether::Reflection::ForEachField(c, FieldHandler<LuaCameraScriptComponent>(c));
+                bool reloadMeshClicked = ImGui::Button("reload script");
+                if (reloadMeshClicked)
+                {
+                    m_CommandHandler.PushCommand("reload_selected_entity_lua_camera_script");
+                }
+
                 ImGui::TreePop();
             }
         }
@@ -167,7 +205,7 @@ struct ComponentHandler
 void EntityPanel::OnImGuiRender()
 {
     auto& mainScene = MainScene::GetInstance();
-
+    bool removeEntity = false;
     ImGui::Begin("Entity Panel");
     if (mainScene.HasEntitySelected())
     {
@@ -183,6 +221,7 @@ void EntityPanel::OnImGuiRender()
             MessageBus::GetSingleton()
                 .Publish<Message::SelectComponentBegin>(nullptr);
         }
+        removeEntity = ImGui::Button("Remove Entity");
         ImGui::PopID();
     }
     else
@@ -191,6 +230,15 @@ void EntityPanel::OnImGuiRender()
     }
 
     ImGui::End();
+    if (removeEntity)
+    {
+        // 获取选中的entity
+        auto& entity = MainScene::GetInstance().GetEntitySelected();
+        // 从MainScene 移除选中
+        MainScene::GetInstance().CancelSelect();
+        // 删除entity
+        MainScene::GetInstance().GetScene().DeleteEntity(entity);
+    }
 }
 void EntityPanel::OnUpdate(Real sec)
 {
@@ -225,6 +273,27 @@ void EntityPanel::RegisterUICommand()
             return;
         }
         mc.model = model;
+    });
+    // reload_selected_entity_lua_camera_script
+    m_CommandHandler.RegisterCommand("reload_selected_entity_lua_camera_script", []() {
+        if (!MainScene::GetInstance().HasEntitySelected())
+        {
+            return;
+        }
+        Entity& entity = MainScene::GetInstance().GetEntitySelected();
+        if (!entity.HasComponent<LuaCameraScriptComponent>())
+        {
+            return;
+        }
+        auto& lsc = entity.GetComponent<LuaCameraScriptComponent>();
+
+        auto& filePath = lsc.path;
+        auto script = FileUtils::ReadFileAsString(filePath);
+        if (!script)
+        {
+            return;
+        }
+        lsc.script = std::move(script.value());
     });
 }
 }
