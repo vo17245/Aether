@@ -1,8 +1,10 @@
-<window name="a">
-    <button>
-    </button>
-</window>
-<window name="b">
-    <button>
-    </button>
-</window>
+<root>
+    <window title="xml page test a">
+        <button>
+        </button>
+    </window>
+    <window title="xml page test b">
+        <button>
+        </button>
+    </window>
+</root>

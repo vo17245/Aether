@@ -16,32 +16,29 @@
 #include "Aether/Render/ShaderCache.h"
 #include "Aether/Server.h"
 #ifdef _WIN32
-    #undef DispatchMessage
+#undef DispatchMessage
 #endif
-namespace Aether
-{
-Application* Application::s_Instance=nullptr;
+namespace Aether {
+Application* Application::s_Instance = nullptr;
 std::vector<Event*> Application::s_EventQueue;
 
 Application::Application()
 {
-    //init message bus
+    // init message bus
     MessageBus::Init();
     InitWindow();
     InitGLEW();
     InitImGui();
     InitEvent();
     Log::Get();
-    //init renderer3d 
+    // init renderer3d
     Renderer3D::Init();
-    //init audio api
+    // init audio api
     AudioApi::Init();
-    //init audio server
+    // init audio server
 
     AETHER_ASSERT(AudioServer::GetInstance().Init() && "audio server init failed");
 }
-
-
 
 void Application::InitWindow()
 {
@@ -84,9 +81,9 @@ void Application::InitImGui()
     ImGuiContext* imguiContext = ImGui::CreateContext();
     m_ImGuiContext = imguiContext;
     ImGui::SetCurrentContext(imguiContext);
-    ImGuiIO& io = ImGui::GetIO(); 
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(m_Window, true);
@@ -103,14 +100,11 @@ void Application::InitEvent()
     glfwSetCursorPosCallback(m_Window, MousePositionEventCallback);
 }
 
-
-
-
 int Application::Run()
 {
-    //viewport init
+    // viewport init
     OpenGLApi::SetViewport(0, 0, 1600, 900);
-    //draw
+    // draw
     OpenGLApi::SetClearColor(0.4f, 0.5f, 0.6f, 1.0f);
     OpenGLApi::EnableDepthTest();
     /* Loop until the user closes the window */
@@ -119,12 +113,12 @@ int Application::Run()
         OnLoopBegin();
         /*Record Time*/
         auto begin = std::chrono::high_resolution_clock::now();
-        size_t t= std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
-        float ds = float(t - m_TimeLastTickBegin) / 1000000000;//nanoSec to sec 10^9
+        size_t t = std::chrono::time_point_cast<std::chrono::nanoseconds>(begin).time_since_epoch().count();
+        float ds = float(t - m_TimeLastTickBegin) / 1000000000; // nanoSec to sec 10^9
         m_TimeLastTickBegin = t;
-         
+
         /* Render here */
-        
+
         OpenGLApi::ClearColorAndDepthBuffer();
         OnRender();
         // Start the Dear ImGui frame
@@ -136,23 +130,23 @@ int Application::Run()
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         /* Swap front and back buffers */
         glfwSwapBuffers(m_Window);
-    
+
         /* Poll for and process events */
         ClearEventQueue();
         glfwPollEvents();
         DispatchEvent();
         /* OnUpdate*/
-       
+
         OnUpdate(ds);
         /*message*/
         MessageBus::GetSingleton().DispatchMessage();
         OnLoopEnd();
     }
     // Release resource before window destory
-    //OnDestory();
-    //destory window
-    //glfwDestroyWindow(m_Window);
-    //glfwTerminate();
+    // OnDestory();
+    // destory window
+    // glfwDestroyWindow(m_Window);
+    // glfwTerminate();
     return 0;
 }
 
@@ -164,17 +158,14 @@ void Application::DispatchEvent()
     }
 }
 
-
-
 void Application::WindowSizeCallback(GLFWwindow* window, int width, int height)
 {
     s_EventQueue.push_back(new WindowResizeEvent(width, height));
 }
 
-
 void Application::WindowFileDropCallback(GLFWwindow* window, int count, const char** paths)
 {
-    WindowFileDropEvent* event=new WindowFileDropEvent();
+    WindowFileDropEvent* event = new WindowFileDropEvent();
     for (size_t i = 0; i < count; i++)
     {
         event->AddPath(paths[i]);
@@ -184,10 +175,9 @@ void Application::WindowFileDropCallback(GLFWwindow* window, int count, const ch
 
 void Application::KeyboardEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    
     if (action == GLFW_RELEASE)
     {
-        s_EventQueue.push_back(new KeyboardReleaseEvent( static_cast<KeyboardCode>(key)));
+        s_EventQueue.push_back(new KeyboardReleaseEvent(static_cast<KeyboardCode>(key)));
     }
     else if (action == GLFW_PRESS)
     {
@@ -201,7 +191,6 @@ void Application::KeyboardEventCallback(GLFWwindow* window, int key, int scancod
     {
         s_EventQueue.push_back(new Event(EventType::UNKNOWN_EVENT));
     }
-
 }
 
 void Application::MouseButtonEventCallback(GLFWwindow* window, int button, int action, int mods)
@@ -237,7 +226,7 @@ void Application::ClearEventQueue()
 }
 void Application::MousePositionEventCallback(GLFWwindow* window, double xpos, double ypos)
 {
-    ImGui_ImplGlfw_CursorPosCallback(window,  xpos,  ypos);
+    ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
     s_EventQueue.push_back(new MousePositionEvent(xpos, ypos));
 }
 void Application::OnUpdate(float ds)
@@ -271,13 +260,12 @@ void Application::OnImGuiRender()
 }
 void Application::OnDestory()
 {
-    
-    //close audio server
+    // close audio server
     AudioServer::GetInstance().Shutdown();
-    //close audio api
+    // close audio api
     AudioApi::Shutdown();
     m_Layers.clear();
-    //Release MessageBus
+    // Release MessageBus
     MessageBus::Release();
 }
 void Application::OnLoopBegin()
@@ -298,14 +286,17 @@ void Application::OnLoopEnd()
 void Application::PushLayer(Ref<Layer> layer)
 {
     m_Layers.push_back(layer);
+    layer->OnAttach();
 }
 bool Application::PopLayer(Ref<Layer> layer)
 {
-    for (auto iter = m_Layers.begin();iter != m_Layers.end();iter++)
+    for (auto iter = m_Layers.begin(); iter != m_Layers.end(); iter++)
     {
         if (*iter == layer)
         {
+            layer->OnDetach();
             m_Layers.erase(iter);
+
             return true;
         }
     }
@@ -313,13 +304,11 @@ bool Application::PopLayer(Ref<Layer> layer)
 }
 void Application::Close()
 {
-
-    //close window
+    // close window
     glfwSetWindowShouldClose(m_Window, true);
-    
 }
 Application::~Application()
 {
     OnDestory();
 }
-}//namespace Aether
+} // namespace Aether

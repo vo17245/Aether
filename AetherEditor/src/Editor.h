@@ -31,6 +31,7 @@ public:
 private:
     Ref<Layer> m_EditorLayer;
     Ref<Layer> m_UILayer;
+    Ref<Layer> m_LuaLayer;
 };
 }
 } // namespace Aether::Editor
