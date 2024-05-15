@@ -6,7 +6,7 @@
 #include "Aether/ImGui/imgui.h"
 #include "Aether/Script/Lua.h"
 #include <memory>
-
+#include "UIAttributeParser.h"
 namespace Aether {
 namespace Editor {
 class UILayer : public Layer
@@ -15,10 +15,7 @@ public:
     UILayer(const std::string& xmlPath, const std::string& luaScriptPath)
         : m_XmlPath(xmlPath), m_LuaScriptPath(luaScriptPath)
     {}
-    // example: "(1,2,3)"
-    std::optional<Vec3> StringToVec3(const std::string& s)
-    {
-    }
+
     virtual ~UILayer() = default;
     void OnAttach() override
     {
@@ -82,13 +79,38 @@ public:
     }
     void RenderButton(XML::Element& e)
     {
+        int imguiStyleColorCnt = 0;
         auto title = e.GetAttribute("title");
         if (!title)
         {
             AETHER_DEBUG_LOG_ERROR("button title is null");
             return;
         }
-
+        auto colorStr = e.GetAttribute("color");
+        // style
+        // color
+        if (colorStr)
+        {
+            auto color = m_UIAttributeParser.GetVec4(colorStr.value());
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(color->x(), color->y(), color->z(), color->w()));
+            imguiStyleColorCnt++;
+        }
+        // hoverColor
+        auto hoverColorStr = e.GetAttribute("hoverColor");
+        if (hoverColorStr)
+        {
+            auto horverColor = m_UIAttributeParser.GetVec4(hoverColorStr.value());
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(horverColor->x(), horverColor->y(), horverColor->z(), horverColor->w()));
+            imguiStyleColorCnt++;
+        }
+        // activeColor
+        auto activeColorStr = e.GetAttribute("activeColor");
+        if (activeColorStr)
+        {
+            auto activeColor = m_UIAttributeParser.GetVec4(activeColorStr.value());
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(activeColor->x(), activeColor->y(), activeColor->z(), activeColor->w()));
+            imguiStyleColorCnt++;
+        }
         if (ImGui::Button(title.value().c_str()))
         {
             // onClick
@@ -103,6 +125,7 @@ public:
                 }
             }
         }
+        ImGui::PopStyleColor(imguiStyleColorCnt);
         // onHover
         if (ImGui::IsItemHovered())
         {
@@ -117,11 +140,11 @@ public:
                 }
             }
         }
-        // onActive / onPress
+        // onActive
         // in imgui onActive means the button is pressed
         if (ImGui::IsItemActive())
         {
-            auto onPress = e.GetAttribute("onPress");
+            auto onPress = e.GetAttribute("onActive");
             if (onPress)
             {
                 LuaStateOperator lop(m_LuaState);
@@ -147,6 +170,7 @@ private:
     std::string m_LuaScriptPath;
     lua_State* m_LuaState = nullptr;
     std::unique_ptr<XML> m_Xml = nullptr;
+    UIAttributeParser m_UIAttributeParser;
 };
 }
 } // namespace Aether::Editor

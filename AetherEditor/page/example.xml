@@ -1,6 +1,12 @@
 <root>
     <window title="xml page test a">
-        <button title="button1" onClick="log_info('button1 click')" onHover="log_info('button1 hover')" onPress="log_info('button1 press')">
+        <button title="button1"
+            onClick="log_info('button1 click')"
+            onHover="log_info('button1 hover')"
+            onActive="log_info('button1 active')"
+            color="(0.1,0.2,0.3,1)"
+            hoverColor="(1.0,0.0,0.0,1)"
+            activeColor="(1.0,1.0,0.0,1.0)">
 
         </button>
     </window>
