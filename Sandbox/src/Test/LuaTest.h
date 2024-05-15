@@ -1,7 +1,6 @@
 #pragma once
-#include "Aether/Script/Lua/lua.h"
-#include "Aether/Script/Lua/lualib.h"
-#include "Aether/Script/Lua/lauxlib.h"
+
+#include "Aether/Script/Lua.h"
 #include "Test/Test.h"
 namespace Aether
 {

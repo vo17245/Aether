@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 project(AetherEditor)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(AETHER_ROOT "..")
 set(VENDOR_DIR "${AETHER_ROOT}/Vendor")
 set(DEPENDENCIES_DIR "${AETHER_ROOT}/Dependencies")

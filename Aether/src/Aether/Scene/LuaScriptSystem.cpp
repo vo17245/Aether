@@ -1,23 +1,8 @@
 #include "Aether/Scene/LuaScriptSystem.h"
 #include "Aether/Scene/Component.h"
 #include "Aether/Script/Lua.h"
-#include "Aether/Script/Lua/lua.h"
+#include "Aether/Script/Lua/LuaCoreRuntime.h"
 #include <string>
-
-AETHER_LUA_C_FUNC(log_info)
-{
-    auto lop = Aether::LuaStateOperator(L);
-    auto msg = lop.GetArg<std::string>(1);
-    Aether::Log::Info("{}", msg);
-    return 0;
-}
-AETHER_LUA_C_FUNC(log_error)
-{
-    auto lop = Aether::LuaStateOperator(L);
-    auto msg = lop.GetArg<std::string>(1);
-    Aether::Log::Error("{}", msg);
-    return 0;
-}
 
 AETHER_LUA_C_FUNC(set_camera_position)
 {
@@ -38,8 +23,7 @@ void LuaScriptSystem::InitCameraScriptEnv()
 {
     auto lop = LuaStateOperator(L_Camera);
     // log
-    lop.RegisterFunction("log_info", AETHER_LUA_C_FUNC_NAME(log_info));
-    lop.RegisterFunction("log_error", AETHER_LUA_C_FUNC_NAME(log_error));
+    LuaCoreRuntime::Enable(L_Camera);
     // camera setter
     lop.RegisterFunction("set_camera_position_impl", AETHER_LUA_C_FUNC_NAME(set_camera_position));
     std::optional<std::string> err = lop.DoString(R"(
@@ -68,8 +52,7 @@ void LuaScriptSystem::InitCameraScriptEnv()
 void LuaScriptSystem::InitScriptEnv()
 {
     auto lop = LuaStateOperator(L);
-    lop.RegisterFunction("log_info", AETHER_LUA_C_FUNC_NAME(log_info));
-    lop.RegisterFunction("log_error", AETHER_LUA_C_FUNC_NAME(log_error));
+    LuaCoreRuntime::Enable(L);
     auto err = lop.DoString(R"(
             local ID="0";
             local ENTITY_STORAGE={}

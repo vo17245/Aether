@@ -116,7 +116,7 @@ struct FieldHandler
         component(_component)
     {}
     void operator()(const char* name, const char* type, const char* comment,
-                    Reflection::CoreComponentFieldVariant& value)
+                    Reflection::CoreComponentFieldVariant value)
     {
         std::visit(FieldView(name, component), value);
     }

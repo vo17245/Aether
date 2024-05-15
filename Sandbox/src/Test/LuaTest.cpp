@@ -1,5 +1,5 @@
 #include "LuaTest.h"
-#include "Aether/Script/Lua/lauxlib.h"
+#include "Aether/Script/Lua.h"
 #include "Test/TestRegister.h"
 #include "Aether/Core/Assert.h"
 #include "Aether/Script/Lua.h"

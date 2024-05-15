@@ -12,6 +12,9 @@ namespace Aether
         Mesh(const Mesh&) = delete;
         Mesh& operator=(const Mesh&) = delete;
         ~Mesh() = default;
+        Mesh(size_t _primitive, size_t _material)
+            : primitive(_primitive), material(_material)
+        {}
         size_t primitive;
         size_t material;
     };

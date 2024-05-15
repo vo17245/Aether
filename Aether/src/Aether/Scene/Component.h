@@ -24,8 +24,8 @@ struct IDComponent
 {
     IDComponent() = default;
     IDComponent(const IDComponent&) = default;
-    IDComponent(const UUID& _id) :
-        id(_id)
+    IDComponent(const UUID& _id)
+        : id(_id)
     {}
 
     UUID id;
@@ -36,8 +36,8 @@ struct TagComponent
 {
     TagComponent() = default;
     TagComponent(const TagComponent&) = default;
-    TagComponent(const std::string& _tag) :
-        tag(_tag)
+    TagComponent(const std::string& _tag)
+        : tag(_tag)
     {}
 
     std::string tag;
@@ -47,10 +47,10 @@ namespace Aether {
 struct TransformComponent
 {
     TransformComponent(const TransformComponent&) = default;
-    TransformComponent() :
-        position(Eigen::Vector3f::Zero()),
-        rotation(Eigen::Vector3f::Zero()),
-        scaling(1, 1, 1), matrix(Eigen::Matrix4f::Identity())
+    TransformComponent()
+        : position(Eigen::Vector3f::Zero()),
+          rotation(Eigen::Vector3f::Zero()),
+          scaling(1, 1, 1), matrix(Eigen::Matrix4f::Identity())
     {}
     void CalculateMatrix()
     {
@@ -69,8 +69,8 @@ struct PointLightComponent
     PointLightComponent(PointLightComponent&&) = default;
     PointLightComponent(const PointLightComponent&) = default;
     PointLightComponent() = default;
-    PointLightComponent(const ::Eigen::Vector3f& color, const ::Eigen::Vector3f& pos) :
-        light(color, pos)
+    PointLightComponent(const ::Eigen::Vector3f& color, const ::Eigen::Vector3f& pos)
+        : light(color, pos)
     {}
     PointLightComponent& operator=(const PointLightComponent& plc)
     {
@@ -84,8 +84,11 @@ struct PointLightComponent
 namespace Aether {
 struct MeshComponent
 {
+    MeshComponent() = default;
     MeshComponent(const MeshComponent&) = default;
-
+    MeshComponent(const Ref<Model> _model)
+        : model(_model)
+    {}
     Ref<Model> model;
     std::optional<std::string> filePath;
 };
@@ -97,10 +100,10 @@ struct SkyboxComponent
                     const Ref<CubeMap>& _envMap,
                     const Ref<CubeMap>& _irradianceMap,
                     const Ref<CubeMap>& _prefilterMap,
-                    const Ref<Texture2D>& _brdfLUT) :
-        model(_model),
-        envMap(_envMap), irradianceMap(_irradianceMap),
-        prefilterMap(_prefilterMap), brdfLUT(_brdfLUT)
+                    const Ref<Texture2D>& _brdfLUT)
+        : model(_model),
+          envMap(_envMap), irradianceMap(_irradianceMap),
+          prefilterMap(_prefilterMap), brdfLUT(_brdfLUT)
     {}
     SkyboxComponent() = default;
     SkyboxComponent(const SkyboxComponent&) = default;
@@ -133,11 +136,11 @@ struct PbrMeterialComponent
 namespace Aether {
 struct PerspectiveCameraComponent
 {
-    PerspectiveCameraComponent() :
-        camera(Math::PI / 4, 0.1, 1000, 1)
+    PerspectiveCameraComponent()
+        : camera(Math::PI / 4, 0.1, 1000, 1)
     {}
-    PerspectiveCameraComponent(Real fovy, Real zNear, Real zFar, Real aspectRatio) :
-        camera(fovy, zNear, zFar, aspectRatio)
+    PerspectiveCameraComponent(Real fovy, Real zNear, Real zFar, Real aspectRatio)
+        : camera(fovy, zNear, zFar, aspectRatio)
     {}
     PerspectiveCameraComponent(const PerspectiveCameraComponent&) = default;
 
@@ -150,8 +153,8 @@ struct LuaScriptComponent
 {
     LuaScriptComponent() = default;
     LuaScriptComponent(const LuaScriptComponent&) = default;
-    LuaScriptComponent(const std::string& _script, const std::string& _path) :
-        script(_script), path(_path)
+    LuaScriptComponent(const std::string& _script, const std::string& _path)
+        : script(_script), path(_path)
     {}
 
     std::string script;
@@ -163,8 +166,8 @@ struct LuaCameraScriptComponent
 {
     LuaCameraScriptComponent() = default;
     LuaCameraScriptComponent(const LuaCameraScriptComponent&) = default;
-    LuaCameraScriptComponent(const std::string& _script, const std::string& _path) :
-        script(_script), path(_path)
+    LuaCameraScriptComponent(const std::string& _script, const std::string& _path)
+        : script(_script), path(_path)
     {}
 
     std::string script;

@@ -40,8 +40,8 @@ public:
             {
                 return m_Ptr->Value();
             }
-            Attribute(tinyxml2::XMLAttribute* ptr) :
-                m_Ptr(ptr)
+            Attribute(tinyxml2::XMLAttribute* ptr)
+                : m_Ptr(ptr)
             {}
 
         private:
@@ -50,8 +50,8 @@ public:
         class AttributeIterator
         {
         public:
-            AttributeIterator(const AttributeIterator& other) :
-                m_Ptr(other.m_Ptr)
+            AttributeIterator(const AttributeIterator& other)
+                : m_Ptr(other.m_Ptr)
             {}
             AttributeIterator& operator=(const AttributeIterator& other)
             {
@@ -59,8 +59,8 @@ public:
                 return *this;
             }
 
-            AttributeIterator(tinyxml2::XMLAttribute* ptr) :
-                m_Ptr(ptr)
+            AttributeIterator(tinyxml2::XMLAttribute* ptr)
+                : m_Ptr(ptr)
             {}
             AttributeIterator& operator++()
             {
@@ -82,8 +82,8 @@ public:
         class AttributeIterable
         {
         public:
-            AttributeIterable(tinyxml2::XMLAttribute* ptr) :
-                m_Ptr(ptr)
+            AttributeIterable(tinyxml2::XMLAttribute* ptr)
+                : m_Ptr(ptr)
             {}
             AttributeIterator begin()
             {
@@ -102,8 +102,8 @@ public:
         {
             return AttributeIterable(const_cast<tinyxml2::XMLAttribute*>(m_Ptr->FirstAttribute()));
         }
-        Element(tinyxml2::XMLElement* ptr) :
-            m_Ptr(ptr)
+        Element(tinyxml2::XMLElement* ptr)
+            : m_Ptr(ptr)
         {}
         std::string GetName() const
         {
@@ -118,8 +118,8 @@ public:
     class DepthFirstElementIterator
     {
     public:
-        DepthFirstElementIterator(tinyxml2::XMLElement* ptr) :
-            m_Ptr(ptr)
+        DepthFirstElementIterator(tinyxml2::XMLElement* ptr)
+            : m_Ptr(ptr)
         {}
         DepthFirstElementIterator& operator++()
         {
@@ -165,8 +165,8 @@ public:
     class DepthFirstElementIterable
     {
     public:
-        DepthFirstElementIterable(tinyxml2::XMLElement* ptr) :
-            m_Ptr(ptr)
+        DepthFirstElementIterable(tinyxml2::XMLElement* ptr)
+            : m_Ptr(ptr)
         {}
         DepthFirstElementIterator begin()
         {
@@ -212,8 +212,8 @@ public:
     class ChildrenElementIterable
     {
     public:
-        ChildrenElementIterable(tinyxml2::XMLElement* parent) :
-            m_Ptr(parent)
+        ChildrenElementIterable(tinyxml2::XMLElement* parent)
+            : m_Ptr(parent)
         {}
         ChildrenElementIterator begin()
         {
