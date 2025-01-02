@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(Aether)
 set(CMAKE_CXX_STANDARD 23)
-set(AETHER_DEPENDENCIES_PREFIX "x64-windows")
+include("CMake/Local.cmake")
 add_subdirectory("Core")
 add_subdirectory("Core.Tests")
 add_subdirectory("Render")

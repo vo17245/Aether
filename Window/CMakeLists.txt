@@ -20,7 +20,7 @@ target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Math/src")
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Filesystem/src")
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Render/src")
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/ThirdParty/glfw-3.4/include")
-target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Dependencies/Vulkan/${AETHER_DEPENDENCIES_PREFIX}/Include")
+target_include_directories(${MODULE_NAME} PUBLIC "${VULKAN_INCLUDE_DIR}")
 target_link_libraries(${MODULE_NAME} Core)
 target_link_libraries(${MODULE_NAME} glfw)
 
