@@ -8,7 +8,7 @@
 #include "Window/Window.h"
 #include "Window/WindowContext.h"
 #include "Render/Vulkan/GlobalRenderContext.h"
-#include "Render/Mesh/VkGrid.h"
+#include "Render/Mesh/VkMesh.h"
 #include "Render/Mesh/Geometry.h"
 #include "Render/Shader/Compiler.h"
 #include "Render/Utils.h"
@@ -49,14 +49,14 @@ public:
             vk::GraphicsPipeline::Builder pipelineBuilder(renderPass, *pipelineLayout);
             pipelineBuilder.AddFragmentStage(*m_FragmentShader, "main");
             pipelineBuilder.AddVertexStage(*m_VertexShader, "main");
-            pipelineBuilder.PushVertexBufferLayouts(m_Grid->GetVertexBufferLayouts());
+            pipelineBuilder.PushVertexBufferLayouts(m_Mesh->GetVertexBufferLayouts());
             m_Pipeline=pipelineBuilder.BuildScope();
         }
         commandBuffer.BeginRenderPass(renderPass, framebuffer,Vec4f(1.0f,1.0f,1.0f,1.0f));
         commandBuffer.SetViewport(0, 0, 800, 600);
         commandBuffer.SetScissor(0, 0, 800, 600);
         commandBuffer.BindPipeline(*m_Pipeline);
-        Render::Utils::DrawGrid(commandBuffer, *m_Grid);
+        Render::Utils::DrawMesh(commandBuffer, *m_Mesh);
         commandBuffer.EndRenderPass();
     }
     virtual void OnAttach(Window* window) override
@@ -66,7 +66,7 @@ public:
         // create cpu grid
         auto sphere = Geometry::CreateBox();
         // create gpu grid
-        m_Grid = VkGrid::CreateScope(*m_CommandPool, sphere);
+        m_Mesh = VkMesh::CreateScope(*m_CommandPool, sphere);
         // compile shader in cpu
         auto vsBin = Shader::Compiler::GLSL2SPIRV(&vertexShaderCode, 1, Shader::ShaderType::Vertex);
         assert(vsBin);
@@ -80,7 +80,7 @@ public:
 
 private:
     Scope<vk::GraphicsPipeline> m_Pipeline;
-    Scope<VkGrid> m_Grid;
+    Scope<VkMesh> m_Mesh;
     Scope<vk::GraphicsCommandPool> m_CommandPool;
     Scope<vk::DescriptorSet> m_DescriptorSet;
     Scope<vk::ShaderModule> m_VertexShader;

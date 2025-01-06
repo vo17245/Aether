@@ -1,7 +1,7 @@
-#include "VkGrid.h"
+#include "VkMesh.h"
 #include "Render/Vulkan/Buffer.h"
 namespace Aether {
-void VkGrid::Update(vk::GraphicsCommandPool& commandPool, const Grid& mesh)
+void VkMesh::Update(vk::GraphicsCommandPool& commandPool, const Mesh& mesh)
 {
     // 更新buffer
     for (size_t i = 0; i < mesh.bufferViews.size(); i++)
@@ -12,11 +12,11 @@ void VkGrid::Update(vk::GraphicsCommandPool& commandPool, const Grid& mesh)
 
         if (vkBuffer.GetSize() < bufferView.size)
         {
-            if (bufferView.target == Grid::Target::Vertex)
+            if (bufferView.target == Mesh::Target::Vertex)
             {
                 vkBuffer = std::move(vk::Buffer::CreateForVertex(bufferView.size).value());
             }
-            else if (bufferView.target == Grid::Target::Index)
+            else if (bufferView.target == Mesh::Target::Index)
             {
                 vkBuffer = std::move(vk::Buffer::CreateForIndex(bufferView.size).value());
             }

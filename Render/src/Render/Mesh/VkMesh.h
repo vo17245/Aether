@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Base.h"
-#include "Grid.h"
+#include "Mesh.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -12,22 +12,22 @@
 #include <vector>
 #include <cassert>
 namespace Aether {
-inline constexpr VkIndexType GridComponentTypeToVkIndexType(Grid::ComponentType type)
+inline constexpr VkIndexType MeshComponentTypeToVkIndexType(Mesh::ComponentType type)
 {
     switch (type)
     {
-    case Grid::ComponentType::UINT8:
+    case Mesh::ComponentType::UINT8:
         return VK_INDEX_TYPE_UINT8_EXT;
-    case Grid::ComponentType::UINT16:
+    case Mesh::ComponentType::UINT16:
         return VK_INDEX_TYPE_UINT16;
-    case Grid::ComponentType::UINT32:
+    case Mesh::ComponentType::UINT32:
         return VK_INDEX_TYPE_UINT32;
     default:
         assert(false&&"unknown component type");
         return VK_INDEX_TYPE_MAX_ENUM;
     }
 }
-class VkGrid
+class VkMesh
 {
 public:
     struct PrimitiveVertexResource
@@ -43,7 +43,7 @@ public:
         uint32_t buffer = 0;
         uint32_t offset = 0;
         uint32_t count = 0;
-        Grid::ComponentType type = Grid::ComponentType::NONE;
+        Mesh::ComponentType type = Mesh::ComponentType::NONE;
     };
     struct Primitive
     {
@@ -52,62 +52,62 @@ public:
     };
 
 public:
-    static std::optional<VkGrid> Create(vk::GraphicsCommandPool& commandPool, const Grid& Grid)
+    static std::optional<VkMesh> Create(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
     {
-        VkGrid vkGrid;
-        if (!vkGrid.Init(commandPool, Grid))
+        VkMesh vkMesh;
+        if (!vkMesh.Init(commandPool, Mesh))
         {
             return std::nullopt;
         }
-        return vkGrid;
+        return vkMesh;
     }
-    static Ref<VkGrid> CreateRef(vk::GraphicsCommandPool& commandPool, const Grid& Grid)
+    static Ref<VkMesh> CreateRef(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
     {
-        Ref<VkGrid> vkGrid = Ref<VkGrid>(new VkGrid());
-        if (!vkGrid->Init(commandPool, Grid))
+        Ref<VkMesh> vkMesh = Ref<VkMesh>(new VkMesh());
+        if (!vkMesh->Init(commandPool, Mesh))
         {
             return nullptr;
         }
-        return vkGrid;
+        return vkMesh;
     }
-    static Scope<VkGrid> CreateScope(vk::GraphicsCommandPool& commandPool, const Grid& Grid)
+    static Scope<VkMesh> CreateScope(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
     {
-        Scope<VkGrid> vkGrid = Scope<VkGrid>(new VkGrid());
-        if (!vkGrid->Init(commandPool, Grid))
+        Scope<VkMesh> vkMesh = Scope<VkMesh>(new VkMesh());
+        if (!vkMesh->Init(commandPool, Mesh))
         {
             return nullptr;
         }
-        return vkGrid;
+        return vkMesh;
     }
-    VkGrid(const VkGrid&) = delete;
-    VkGrid& operator=(const VkGrid&) = delete;
-    VkGrid(VkGrid&&) = default;
-    VkGrid& operator=(VkGrid&&) = default;
+    VkMesh(const VkMesh&) = delete;
+    VkMesh& operator=(const VkMesh&) = delete;
+    VkMesh(VkMesh&&) = default;
+    VkMesh& operator=(VkMesh&&) = default;
     size_t GetVertexCount() const
     {
         return m_VertexCount;
     }
 
 private:
-    VkGrid() = default;
-    bool Init(vk::GraphicsCommandPool& commandPool, const Grid& Grid)
+    VkMesh() = default;
+    bool Init(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
     {
-        if (!CreateBuffers(commandPool, Grid))
+        if (!CreateBuffers(commandPool, Mesh))
         {
             return false;
         }
-        if (!CreatePrimitive(Grid))
+        if (!CreatePrimitive(Mesh))
         {
             return false;
         }
         return true;
     }
 
-    bool CreateBuffers(vk::GraphicsCommandPool& commandPool, const Grid& Grid)
+    bool CreateBuffers(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
     {
         // create staging buffer
         uint32_t maxBufferSize = 0;
-        for (const auto& bufferView : Grid.bufferViews)
+        for (const auto& bufferView : Mesh.bufferViews)
         {
             maxBufferSize = std::max(maxBufferSize, bufferView.size);
         }
@@ -119,12 +119,12 @@ private:
         }
         auto stagingBuffer = std::move(stagingBufferOpt.value());
         // create data for each bufferview and copy data
-        for (const auto& bufferView : Grid.bufferViews)
+        for (const auto& bufferView : Mesh.bufferViews)
         {
-            const auto& buffer = Grid.buffers[bufferView.buffer];
+            const auto& buffer = Mesh.buffers[bufferView.buffer];
             const size_t size = bufferView.size;
             const size_t offset = bufferView.offset;
-            if (bufferView.target == Grid::Target::Index)
+            if (bufferView.target == Mesh::Target::Index)
             {
                 auto vkBufferOpt = vk::Buffer::CreateForIndex(size);
                 if (!vkBufferOpt.has_value())
@@ -155,22 +155,22 @@ private:
         return true;
     }
 
-    bool CreatePrimitive(const Grid& Grid)
+    bool CreatePrimitive(const Mesh& Mesh)
     {
-        std::unordered_map<Grid::Primitive::Attribute, uint32_t> attributeLocation = {
-            {Grid::Primitive::Attribute::POSITION, 0},
-            {Grid::Primitive::Attribute::NORMAL, 1},
-            {Grid::Primitive::Attribute::TEXCOORD, 2},
-            {Grid::Primitive::Attribute::TANGENT, 3},
-            {Grid::Primitive::Attribute::COLOR, 4},
-            {Grid::Primitive::Attribute::BITANGENT, 5},
+        std::unordered_map<Mesh::Primitive::Attribute, uint32_t> attributeLocation = {
+            {Mesh::Primitive::Attribute::POSITION, 0},
+            {Mesh::Primitive::Attribute::NORMAL, 1},
+            {Mesh::Primitive::Attribute::TEXCOORD, 2},
+            {Mesh::Primitive::Attribute::TANGENT, 3},
+            {Mesh::Primitive::Attribute::COLOR, 4},
+            {Mesh::Primitive::Attribute::BITANGENT, 5},
         };
-        auto& primitive = Grid.primitive;
+        auto& primitive = Mesh.primitive;
         Primitive vkPrimitive;
         // index
         if (primitive.index.has_value())
         {
-            auto accessor = Grid.accessors[primitive.index.value()];
+            auto accessor = Mesh.accessors[primitive.index.value()];
             PrimitiveIndexResource indexResource;
 
             indexResource.buffer = accessor.bufferView;
@@ -182,19 +182,19 @@ private:
         // vertex
         PrimitiveVertexResource vertexResource;
         // sort attribute
-        std::vector<Grid::Primitive::Attribute> attributes;
+        std::vector<Mesh::Primitive::Attribute> attributes;
         for (const auto& [attribute, _] : primitive.attributes)
         {
             attributes.push_back(attribute);
         }
-        std::sort(attributes.begin(), attributes.end(), [](Grid::Primitive::Attribute a, Grid::Primitive::Attribute b) {
+        std::sort(attributes.begin(), attributes.end(), [](Mesh::Primitive::Attribute a, Mesh::Primitive::Attribute b) {
             return a < b;
         });
 
         for (auto attribute : attributes)
         {
             auto accessorIndex = primitive.attributes.at(attribute);
-            auto& accessor = Grid.accessors[accessorIndex];
+            auto& accessor = Mesh.accessors[accessorIndex];
             // 这个bufferView是否被使用过了
             {
                 auto iter = std::find(vertexResource.buffers.begin(), vertexResource.buffers.end(), accessor.bufferView);
@@ -213,13 +213,13 @@ private:
 
             switch (attribute)
             {
-            case Grid::Primitive::Attribute::POSITION: {
+            case Mesh::Primitive::Attribute::POSITION: {
                 BufferElementFormat format = BufferElementFormat::None;
-                if (accessor.type == Grid::Type::VEC3 && accessor.componentType == Grid::ComponentType::FLOAT32)
+                if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     format = BufferElementFormat::Vec3f;
                 }
-                else if (accessor.type == Grid::Type::VEC2 && accessor.componentType == Grid::ComponentType::FLOAT32)
+                else if (accessor.type == Mesh::Type::VEC2 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     format = BufferElementFormat::Vec2f;
                 }
@@ -231,15 +231,15 @@ private:
                 layout.PushAttribute(VertexBufferLayout::Attribute({attributeLocation[attribute], accessor.byteOffset, format}));
             }
             break;
-            case Grid::Primitive::Attribute::NORMAL: {
-                if (accessor.type == Grid::Type::VEC3 && accessor.componentType == Grid::ComponentType::FLOAT32)
+            case Mesh::Primitive::Attribute::NORMAL: {
+                if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
                         {attributeLocation[attribute],
                          accessor.byteOffset,
                          BufferElementFormat::Vec3f}));
                 }
-                else if (accessor.type == Grid::Type::VEC2 && accessor.componentType == Grid::ComponentType::FLOAT32)
+                else if (accessor.type == Mesh::Type::VEC2 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
                         {attributeLocation[attribute],
@@ -253,8 +253,8 @@ private:
                 }
             }
             break;
-            case Grid::Primitive::Attribute::TEXCOORD: {
-                if (accessor.type == Grid::Type::VEC2 && accessor.componentType == Grid::ComponentType::FLOAT32)
+            case Mesh::Primitive::Attribute::TEXCOORD: {
+                if (accessor.type == Mesh::Type::VEC2 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
                         {attributeLocation[attribute],
@@ -268,8 +268,8 @@ private:
                 }
             }
             break;
-            case Grid::Primitive::Attribute::TANGENT: {
-                if (accessor.type == Grid::Type::VEC3 && accessor.componentType == Grid::ComponentType::FLOAT32)
+            case Mesh::Primitive::Attribute::TANGENT: {
+                if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
                         {attributeLocation[attribute],
@@ -283,15 +283,15 @@ private:
                 }
             }
             break;
-            case Grid::Primitive::Attribute::COLOR: {
-                if (accessor.type == Grid::Type::VEC4 && accessor.componentType == Grid::ComponentType::FLOAT32)
+            case Mesh::Primitive::Attribute::COLOR: {
+                if (accessor.type == Mesh::Type::VEC4 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
                         {attributeLocation[attribute],
                          accessor.byteOffset,
                          BufferElementFormat::Vec4f}));
                 }
-                else if (accessor.type == Grid::Type::VEC3 && accessor.componentType == Grid::ComponentType::FLOAT32)
+                else if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
                         {attributeLocation[attribute],
@@ -305,8 +305,8 @@ private:
                 }
             }
             break;
-            case Grid::Primitive::Attribute::BITANGENT: {
-                if (accessor.type == Grid::Type::VEC3 && accessor.componentType == Grid::ComponentType::FLOAT32)
+            case Mesh::Primitive::Attribute::BITANGENT: {
+                if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
                         {attributeLocation[attribute],
@@ -327,14 +327,14 @@ private:
         }
         vkPrimitive.vertexResource = std::move(vertexResource);
         m_Primitive = std::move(vkPrimitive);
-        m_VertexCount = Grid.CalculateVertexCount();
+        m_VertexCount = Mesh.CalculateVertexCount();
         return true;
     }
-    // 把Grid的buffer数据更新到GPU，如果buffer大小不够，会重新创建buffer
-    // 只能使用创建时候使用的Grid来更新(或者布局相同的Grid)
+    // 把Mesh的buffer数据更新到GPU，如果buffer大小不够，会重新创建buffer
+    // 只能使用创建时候使用的Mesh来更新(或者布局相同的Mesh)
 
 public:
-    void Update(vk::GraphicsCommandPool& commandPool, const Grid& Grid);
+    void Update(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh);
     const std::vector<VertexBufferLayout>& GetVertexBufferLayouts()const
     {
         return m_Primitive.vertexResource.layouts;

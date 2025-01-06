@@ -1,7 +1,7 @@
 #include "Geometry.h"
 #include <cstdint>
 namespace Aether {
-Grid Geometry::CreateSphere(float radius, uint32_t segments)
+Mesh Geometry::CreateSphere(float radius, uint32_t segments)
 {
     std::vector<Vec3> positions;
     std::vector<uint32_t> indices;
@@ -40,73 +40,73 @@ Grid Geometry::CreateSphere(float radius, uint32_t segments)
         normals[i] = positions[i].normalized();
     }
 
-    Grid Grid;
-    uint32_t positionBufferIndex = Grid.buffers.size();
-    Grid.buffers.emplace_back(
-        Grid::Buffer(
+    Mesh Mesh;
+    uint32_t positionBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back(
+        Mesh::Buffer(
             (uint8_t*)positions.data(),
             (uint8_t*)(positions.data()) + positions.size() * sizeof(Vec3)));
-    uint32_t normalBufferIndex = Grid.buffers.size();
-    Grid.buffers.emplace_back(
-        Grid::Buffer(
+    uint32_t normalBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back(
+        Mesh::Buffer(
             (uint8_t*)normals.data(),
             (uint8_t*)(normals.data()) + normals.size() * sizeof(Vec3)));
-    uint32_t indexBufferIndex = Grid.buffers.size();
-    Grid.buffers.emplace_back(Grid::Buffer(
+    uint32_t indexBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back(Mesh::Buffer(
         (uint8_t*)indices.data(),
         (uint8_t*)(indices.data()) + indices.size() * sizeof(uint32_t)));
-    uint32_t psitionBufferViewIndex = Grid.bufferViews.size();
-    Grid.bufferViews.emplace_back(Grid::BufferView{
+    uint32_t psitionBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back(Mesh::BufferView{
         0,
         static_cast<uint32_t>(positions.size() * sizeof(Vec3)),
         positionBufferIndex,
-        Grid::Target::Vertex});
-    uint32_t normalBufferViewIndex = Grid.bufferViews.size();
-    Grid.bufferViews.emplace_back(Grid::BufferView{
+        Mesh::Target::Vertex});
+    uint32_t normalBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back(Mesh::BufferView{
         0,
         static_cast<uint32_t>(normals.size() * sizeof(Vec3)),
         normalBufferIndex,
-        Grid::Target::Vertex});
-    uint32_t indexBufferViewIndex = Grid.bufferViews.size();
-    Grid.bufferViews.emplace_back(Grid::BufferView{
+        Mesh::Target::Vertex});
+    uint32_t indexBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back(Mesh::BufferView{
         0,
         static_cast<uint32_t>(indices.size() * sizeof(uint32_t)),
         indexBufferIndex,
-        Grid::Target::Index});
-    uint32_t positionAccessorIndex = Grid.accessors.size();
-    Grid.accessors.emplace_back(Grid::Accessor{
+        Mesh::Target::Index});
+    uint32_t positionAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back(Mesh::Accessor{
         psitionBufferViewIndex,
         0,
-        Grid::ComponentType::FLOAT32,
+        Mesh::ComponentType::FLOAT32,
         8,
-        Grid::Type::VEC3,
+        Mesh::Type::VEC3,
         static_cast<uint32_t>(positions.size())});
-    uint32_t normalAccessorIndex = Grid.accessors.size();
-    Grid.accessors.emplace_back(Grid::Accessor{
+    uint32_t normalAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back(Mesh::Accessor{
         normalBufferViewIndex,
         0,
-        Grid::ComponentType::FLOAT32,
+        Mesh::ComponentType::FLOAT32,
         8,
-        Grid::Type::VEC3,
+        Mesh::Type::VEC3,
         static_cast<uint32_t>(normals.size())});
-    uint32_t indexAccessorIndex = Grid.accessors.size();
-    Grid.accessors.emplace_back(Grid::Accessor{
+    uint32_t indexAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back(Mesh::Accessor{
         indexBufferViewIndex,
         0,
-        Grid::ComponentType::UINT32,
+        Mesh::ComponentType::UINT32,
         static_cast<uint32_t>(indices.size()),
-        Grid::Type::SCALAR,
+        Mesh::Type::SCALAR,
         0});
-    auto primitive = Grid::Primitive{};
-    primitive.attributes[Grid::Primitive::Attribute::POSITION] = positionAccessorIndex;
-    primitive.attributes[Grid::Primitive::Attribute::NORMAL] = normalAccessorIndex;
+    auto primitive = Mesh::Primitive{};
+    primitive.attributes[Mesh::Primitive::Attribute::POSITION] = positionAccessorIndex;
+    primitive.attributes[Mesh::Primitive::Attribute::NORMAL] = normalAccessorIndex;
     primitive.index = indexAccessorIndex;
-    Grid.primitive = std::move(primitive);
-    return Grid;
+    Mesh.primitive = std::move(primitive);
+    return Mesh;
 }
-Grid Geometry::CreateBox()
+Mesh Geometry::CreateBox()
 {
-    Grid Grid;
+    Mesh Mesh;
     // =================Position=========
     std::array<Vec3, 24> positions = {
         Vec3(-1.0, -1.0, 1.0),
@@ -199,69 +199,69 @@ Grid Geometry::CreateBox()
         22,
         21};
     // buffer
-    size_t posBufferIndex = Grid.buffers.size();
-    Grid.buffers.emplace_back();
-    Grid.buffers[posBufferIndex].resize(positions.size() * sizeof(Vec3));
-    memcpy(Grid.buffers[posBufferIndex].data(),
+    size_t posBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back();
+    Mesh.buffers[posBufferIndex].resize(positions.size() * sizeof(Vec3));
+    memcpy(Mesh.buffers[posBufferIndex].data(),
            positions.data(),
-           Grid.buffers[posBufferIndex].size());
-    size_t normalBufferIndex = Grid.buffers.size();
-    Grid.buffers.emplace_back();
-    Grid.buffers[normalBufferIndex].resize(normals.size() * sizeof(Vec3));
-    memcpy(Grid.buffers[normalBufferIndex].data(), normals.data(), Grid.buffers[normalBufferIndex].size());
-    size_t indexBufferIndex = Grid.buffers.size();
-    Grid.buffers.emplace_back();
-    Grid.buffers[indexBufferIndex].resize(indices.size() * sizeof(uint16_t));
-    memcpy(Grid.buffers[indexBufferIndex].data(), indices.data(), Grid.buffers[indexBufferIndex].size());
+           Mesh.buffers[posBufferIndex].size());
+    size_t normalBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back();
+    Mesh.buffers[normalBufferIndex].resize(normals.size() * sizeof(Vec3));
+    memcpy(Mesh.buffers[normalBufferIndex].data(), normals.data(), Mesh.buffers[normalBufferIndex].size());
+    size_t indexBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back();
+    Mesh.buffers[indexBufferIndex].resize(indices.size() * sizeof(uint16_t));
+    memcpy(Mesh.buffers[indexBufferIndex].data(), indices.data(), Mesh.buffers[indexBufferIndex].size());
     // buffer view
-    size_t posBufferViewIndex = Grid.bufferViews.size();
-    Grid.bufferViews.emplace_back();
-    Grid.bufferViews[posBufferIndex].buffer = posBufferIndex;
-    Grid.bufferViews[posBufferIndex].offset = 0;
-    Grid.bufferViews[posBufferIndex].size = Grid.buffers[posBufferIndex].size();
-    Grid.bufferViews[posBufferIndex].target = Grid::Target::Vertex;
-    size_t normalBufferViewIndex = Grid.bufferViews.size();
-    Grid.bufferViews.emplace_back();
-    Grid.bufferViews[normalBufferViewIndex].buffer = normalBufferIndex;
-    Grid.bufferViews[normalBufferViewIndex].offset = 0;
-    Grid.bufferViews[normalBufferViewIndex].size = Grid.buffers[normalBufferIndex].size();
-    Grid.bufferViews[normalBufferViewIndex].target = Grid::Target::Vertex;
-    size_t indexBufferViewIndex = Grid.bufferViews.size();
-    Grid.bufferViews.emplace_back();
-    Grid.bufferViews[indexBufferViewIndex].buffer = indexBufferIndex;
-    Grid.bufferViews[indexBufferViewIndex].offset = 0;
-    Grid.bufferViews[indexBufferViewIndex].size = Grid.buffers[indexBufferIndex].size();
-    Grid.bufferViews[indexBufferViewIndex].target = Grid::Target::Index;
+    size_t posBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back();
+    Mesh.bufferViews[posBufferIndex].buffer = posBufferIndex;
+    Mesh.bufferViews[posBufferIndex].offset = 0;
+    Mesh.bufferViews[posBufferIndex].size = Mesh.buffers[posBufferIndex].size();
+    Mesh.bufferViews[posBufferIndex].target = Mesh::Target::Vertex;
+    size_t normalBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back();
+    Mesh.bufferViews[normalBufferViewIndex].buffer = normalBufferIndex;
+    Mesh.bufferViews[normalBufferViewIndex].offset = 0;
+    Mesh.bufferViews[normalBufferViewIndex].size = Mesh.buffers[normalBufferIndex].size();
+    Mesh.bufferViews[normalBufferViewIndex].target = Mesh::Target::Vertex;
+    size_t indexBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back();
+    Mesh.bufferViews[indexBufferViewIndex].buffer = indexBufferIndex;
+    Mesh.bufferViews[indexBufferViewIndex].offset = 0;
+    Mesh.bufferViews[indexBufferViewIndex].size = Mesh.buffers[indexBufferIndex].size();
+    Mesh.bufferViews[indexBufferViewIndex].target = Mesh::Target::Index;
     // accessor
-    size_t posAccessorIndex = Grid.accessors.size();
-    Grid.accessors.emplace_back();
-    Grid.accessors[posAccessorIndex].bufferView = posBufferViewIndex;
-    Grid.accessors[posAccessorIndex].byteOffset = 0;
-    Grid.accessors[posAccessorIndex].componentType = Grid::ComponentType::FLOAT32;
-    Grid.accessors[posAccessorIndex].count = positions.size();
-    Grid.accessors[posAccessorIndex].type = Grid::Type::VEC3;
-    Grid.accessors[posAccessorIndex].byteStride = sizeof(Vec3);
-    size_t normalAccessorIndex = Grid.accessors.size();
-    Grid.accessors.emplace_back();
-    Grid.accessors[normalAccessorIndex].bufferView = normalBufferViewIndex;
-    Grid.accessors[normalAccessorIndex].byteOffset = 0;
-    Grid.accessors[normalAccessorIndex].componentType = Grid::ComponentType::FLOAT32;
-    Grid.accessors[normalAccessorIndex].count = normals.size();
-    Grid.accessors[normalAccessorIndex].type = Grid::Type::VEC3;
-    Grid.accessors[normalAccessorIndex].byteStride = sizeof(Vec3);
-    size_t indexAccessorIndex = Grid.accessors.size();
-    Grid.accessors.emplace_back();
-    Grid.accessors[indexAccessorIndex].bufferView = indexBufferViewIndex;
-    Grid.accessors[indexAccessorIndex].byteOffset = 0;
-    Grid.accessors[indexAccessorIndex].componentType = Grid::ComponentType::UINT16;
-    Grid.accessors[indexAccessorIndex].count = indices.size();
-    Grid.accessors[indexAccessorIndex].type = Grid::Type::SCALAR;
-    Grid.accessors[indexAccessorIndex].byteStride = sizeof(uint16_t);
+    size_t posAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back();
+    Mesh.accessors[posAccessorIndex].bufferView = posBufferViewIndex;
+    Mesh.accessors[posAccessorIndex].byteOffset = 0;
+    Mesh.accessors[posAccessorIndex].componentType = Mesh::ComponentType::FLOAT32;
+    Mesh.accessors[posAccessorIndex].count = positions.size();
+    Mesh.accessors[posAccessorIndex].type = Mesh::Type::VEC3;
+    Mesh.accessors[posAccessorIndex].byteStride = sizeof(Vec3);
+    size_t normalAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back();
+    Mesh.accessors[normalAccessorIndex].bufferView = normalBufferViewIndex;
+    Mesh.accessors[normalAccessorIndex].byteOffset = 0;
+    Mesh.accessors[normalAccessorIndex].componentType = Mesh::ComponentType::FLOAT32;
+    Mesh.accessors[normalAccessorIndex].count = normals.size();
+    Mesh.accessors[normalAccessorIndex].type = Mesh::Type::VEC3;
+    Mesh.accessors[normalAccessorIndex].byteStride = sizeof(Vec3);
+    size_t indexAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back();
+    Mesh.accessors[indexAccessorIndex].bufferView = indexBufferViewIndex;
+    Mesh.accessors[indexAccessorIndex].byteOffset = 0;
+    Mesh.accessors[indexAccessorIndex].componentType = Mesh::ComponentType::UINT16;
+    Mesh.accessors[indexAccessorIndex].count = indices.size();
+    Mesh.accessors[indexAccessorIndex].type = Mesh::Type::SCALAR;
+    Mesh.accessors[indexAccessorIndex].byteStride = sizeof(uint16_t);
     // primitive
-    Grid.primitive.attributes[Grid::Primitive::Attribute::POSITION] = posAccessorIndex;
-    Grid.primitive.attributes[Grid::Primitive::Attribute::NORMAL] = normalAccessorIndex;
-    Grid.primitive.index = indexAccessorIndex;
-    return Grid;
+    Mesh.primitive.attributes[Mesh::Primitive::Attribute::POSITION] = posAccessorIndex;
+    Mesh.primitive.attributes[Mesh::Primitive::Attribute::NORMAL] = normalAccessorIndex;
+    Mesh.primitive.index = indexAccessorIndex;
+    return Mesh;
 }
 
 } // namespace Kamui

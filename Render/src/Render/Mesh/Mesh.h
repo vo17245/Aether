@@ -11,7 +11,7 @@ namespace Aether {
  *   每个BufferView对应一个VkBuffer
  *   每个primitive确定一组BufferView和布局(意味着一个mesh可能需要多个pipeline)
  */
-struct Grid
+struct Mesh
 {
     enum class Target
     {

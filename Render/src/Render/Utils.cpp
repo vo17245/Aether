@@ -3,7 +3,7 @@
 namespace Aether {
 namespace Render {
 
-void Utils::DrawGrid(vk::GraphicsCommandBuffer& cb, VkGrid& mesh)
+void Utils::DrawMesh(vk::GraphicsCommandBuffer& cb, VkMesh& mesh)
 {
     cb.BindVertexBuffers(mesh.PackPrimitiveVertexBufferHandles().data(),
                          mesh.GetPrimitive().vertexResource.buffers.size());
@@ -11,7 +11,7 @@ void Utils::DrawGrid(vk::GraphicsCommandBuffer& cb, VkGrid& mesh)
     if (mesh.GetPrimitive().indexResource)
     {
         cb.BindIndexBuffer(mesh.GetBuffers()[mesh.GetPrimitive().indexResource->buffer],
-                           GridComponentTypeToVkIndexType(mesh.GetPrimitive().indexResource->type),
+                           MeshComponentTypeToVkIndexType(mesh.GetPrimitive().indexResource->type),
                            mesh.GetPrimitive().indexResource->offset);
         cb.DrawIndexed(mesh.GetPrimitive().indexResource->count);
     }
