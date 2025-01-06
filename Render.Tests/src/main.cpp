@@ -53,8 +53,8 @@ public:
             m_Pipeline=pipelineBuilder.BuildScope();
         }
         commandBuffer.BeginRenderPass(renderPass, framebuffer,Vec4f(1.0f,1.0f,1.0f,1.0f));
-        commandBuffer.SetViewport(0, 0, 800, 600);
-        commandBuffer.SetScissor(0, 0, 800, 600);
+        commandBuffer.SetViewport(0, 0, framebuffer.GetSize().width, framebuffer.GetSize().height);
+        commandBuffer.SetScissor(0, 0, framebuffer.GetSize().width,framebuffer.GetSize().height);
         commandBuffer.BindPipeline(*m_Pipeline);
         Render::Utils::DrawMesh(commandBuffer, *m_Mesh);
         commandBuffer.EndRenderPass();
