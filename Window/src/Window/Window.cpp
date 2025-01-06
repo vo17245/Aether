@@ -1,5 +1,7 @@
 #include "Window.h"
 #include "Core/Base.h"
+#include "Render/Vulkan/Def.h"
+#include "Render/Vulkan/GraphicsCommandBuffer.h"
 #include "Render/Vulkan/Semaphore.h"
 #include "vulkan/vulkan_core.h"
 #include <cstdlib>
@@ -18,6 +20,7 @@
 #include "WindowContext.h"
 #include "EventBaseMethod.h"
 #include "Render/Vulkan/GlobalRenderContext.h"
+#include <ranges>
 namespace Aether {
 using namespace vk;
 Window::~Window()
@@ -154,6 +157,13 @@ std::vector<FrameBuffer>& Window::GetFrameBuffers()
 {
     return m_SwapChainFramebuffers;
 }
+void Window::CreateCommandBuffer()
+{
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        m_GraphicsCommandBuffer[i] = vk::GraphicsCommandBuffer::CreateScope(vk::GRC::GetGraphicsCommandPool());
+    }
+}
 bool Window::CreateRenderObject()
 {
     VkInstance instance = GRC::GetInstance();
@@ -165,6 +175,7 @@ bool Window::CreateRenderObject()
     CreateRenderPass(m_SwapChainImageFormat);
     CreateFramebuffers();
     CreateSyncObjects();
+    CreateCommandBuffer();
     return true;
 }
 void Window::ReleaseRenderObject()
@@ -186,6 +197,10 @@ void Window::ReleaseRenderObject()
     {
         vkDestroySurfaceKHR(GRC::GetInstance(), m_Surface, nullptr);
         m_Surface = VK_NULL_HANDLE;
+    }
+    for (size_t i : std::views::iota(0, MAX_FRAMES_IN_FLIGHT))
+    {
+        m_GraphicsCommandBuffer[i].reset();
     }
 }
 VkSurfaceKHR Window::GetSurface() const
@@ -297,7 +312,7 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
 
     if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
     {
-        throw std::runtime_error("failed to create swap chain!");
+        assert(false&&"failed to create swap chain!");
     }
 
     vkGetSwapchainImagesKHR(device, m_SwapChain, &imageCount, nullptr);
@@ -358,7 +373,8 @@ void Window::OnRender()
     }
     m_CommandBufferFences[m_CurrentFrame]->Reset();
 
-    // async render to present
+    // record command buffer
+    m_GraphicsCommandBuffer[m_CurrentFrame]->Begin();
     size_t lastFrame = (m_CurrentFrame + MAX_FRAMES_IN_FLIGHT - 1) % MAX_FRAMES_IN_FLIGHT;
     bool anyLayerNeedRender = false;
     for (size_t i = 0; i < m_Layers.size(); ++i)
@@ -366,19 +382,22 @@ void Window::OnRender()
         auto* layer = m_Layers[i];
         layer->OnRender(*m_RenderPass[m_CurrentFrame],
                         m_SwapChainFramebuffers[imageIndex],
-                        *m_ImageAvailableSemaphore[m_CurrentFrame],
-                        *m_LayerRenderFinishedSemaphore[m_CurrentFrame][i],
-                        *m_CommandBufferFences[m_CurrentFrame],
-                        *m_CommandBufferFences[lastFrame],
-                        m_CurrentFrame);
+                        *m_GraphicsCommandBuffer[m_CurrentFrame]);
     }
-
+    m_GraphicsCommandBuffer[m_CurrentFrame]->End();
+    // commit command buffer
+    auto imageAvailableSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle();
+    static VkPipelineStageFlags  stage=VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+    auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetHandle();
+    m_GraphicsCommandBuffer[m_CurrentFrame]->Submit(1,
+    &imageAvailableSemaphore,
+      &stage, 1, &renderFinishedSemaphore, m_CommandBufferFences[m_CurrentFrame]->GetHandle());
     // async present
-    VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphore[m_CurrentFrame]->GetHandle()};
+    
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
+    presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
     VkSwapchainKHR swapChains[] = {m_SwapChain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
@@ -414,6 +433,13 @@ bool Window::ReleaseSyncObjects()
     for (auto& semaphore : m_RenderFinishedSemaphore)
     {
         semaphore.reset();
+    }
+    for (auto& arr:m_LayerRenderFinishedSemaphore)
+    {
+        for (auto& semaphore:arr)
+        {
+            semaphore.reset();
+        }
     }
     return true;
 }

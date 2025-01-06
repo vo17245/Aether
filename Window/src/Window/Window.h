@@ -79,11 +79,12 @@ private:
     VkFormat m_SwapChainImageFormat{};
     VkExtent2D m_SwapChainExtent{};
     VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
-    GLFWwindow* m_Handle;
+    GLFWwindow* m_Handle=nullptr;
     std::unique_ptr<vk::RenderPass> m_RenderPass[MAX_FRAMES_IN_FLIGHT];
     std::unique_ptr<vk::Semaphore> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
     std::unique_ptr<vk::Semaphore> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
     Scope<vk::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
+    Scope<vk::GraphicsCommandBuffer> m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
     uint32_t m_CurrentFrame = 0;
 
 private:
@@ -109,7 +110,7 @@ private:
      */
     void CreateImageViews();
     void CreateRenderPass(VkFormat format);
-
+    void CreateCommandBuffer();
 private:
     Input m_Input;
 };

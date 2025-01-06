@@ -5,23 +5,24 @@
 namespace Aether {
 namespace vk {
 
-std::optional<ShaderModule> ShaderModule::CreateFromBinaryCode(const std::vector<char>& code)
+std::optional<ShaderModule> ShaderModule::CreateFromBinaryCode(const std::span<uint32_t> code)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
+    createInfo.codeSize = code.size()*4;
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(GRC::GetDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
     {
-        throw std::runtime_error("failed to create shader module!");
+        assert(false&&"failed to create shader module");
     }
 
     return ShaderModule(shaderModule);
 }
-Scope<ShaderModule> ShaderModule::CreateScopeFromBinaryCode(const std::vector<char>& code)
+Scope<ShaderModule> ShaderModule::CreateScopeFromBinaryCode(const std::span<uint32_t> code)
 {
+    assert(!code.empty());
     auto opt = CreateFromBinaryCode(code);
     if (!opt)
     {
@@ -32,11 +33,16 @@ Scope<ShaderModule> ShaderModule::CreateScopeFromBinaryCode(const std::vector<ch
 std::optional<ShaderModule> ShaderModule::CreateFromBinaryFile(const std::string& filepath)
 {
     auto code = Filesystem::ReadFile(filepath);
+    
     if (!code)
     {
         return std::nullopt;
     }
-    return CreateFromBinaryCode(code.value());
+    if(code->size()%4!=0)
+    {
+        return std::nullopt;
+    }
+    return CreateFromBinaryCode(std::span<uint32_t>((uint32_t*)code->data(),code->size()/4));
 }
 ShaderModule::~ShaderModule()
 {

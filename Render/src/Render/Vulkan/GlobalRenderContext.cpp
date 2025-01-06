@@ -1,9 +1,20 @@
 #include "GlobalRenderContext.h"
+#include "Allocator.h"
+#include "GraphicsCommandPool.h"
 #include "Window/Window.h"
 namespace Aether {
 namespace vk {
 
-RenderContext* GlobalRenderContext::s_Context;
+RenderContext* GlobalRenderContext::s_Context=nullptr;
+thread_local std::unique_ptr<GraphicsCommandPool> GlobalRenderContext::s_GraphicsCommandPool;
+thread_local std::once_flag GlobalRenderContext::s_GraphicsCommandPoolFlag;
+GraphicsCommandPool& GlobalRenderContext::GetGraphicsCommandPool()
+{
+    std::call_once(GlobalRenderContext::s_GraphicsCommandPoolFlag, []() {
+        GlobalRenderContext::s_GraphicsCommandPool = GraphicsCommandPool::CreateScope();
+    });
+    return *GlobalRenderContext::s_GraphicsCommandPool;
+}
 void GlobalRenderContext::Set(RenderContext* context)
 {
     s_Context = context;
@@ -58,10 +69,14 @@ void GlobalRenderContext::Init(Window* window, bool enableValidationLayers)
     renderContext->enableValidationLayers = enableValidationLayers;
     vk::GlobalRenderContext::Set(renderContext);
     renderContext->Init(window);
-    vk::GRC::GetMainWindow().CreateSyncObjects();
+    //vk::GRC::GetMainWindow().CreateSyncObjects();
+    vk::Allocator::Init();
+    
 }
 void GlobalRenderContext::Cleanup()
 {
+    s_GraphicsCommandPool.reset();
+    vk::Allocator::Release();
     s_Context->Cleanup();
 }
 }

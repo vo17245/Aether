@@ -1,6 +1,9 @@
 #pragma once
+#include "GraphicsCommandPool.h"
 #include "RenderContext.h"
 #include "vulkan/vulkan_core.h"
+#include <mutex>
+
 namespace Aether {
 namespace vk {
 
@@ -21,9 +24,14 @@ public:
     static VkSwapchainKHR GetSwapChain();
     static QueueFamilyIndices GetQueueFamilyIndices();
     static void Cleanup();
-
+    /**
+     * @brief get current thread's GraphicsCommandPool
+    */
+    static GraphicsCommandPool& GetGraphicsCommandPool();
 private:
     static RenderContext* s_Context;
+    static thread_local std::unique_ptr<GraphicsCommandPool> s_GraphicsCommandPool;
+    static thread_local std::once_flag s_GraphicsCommandPoolFlag;
 };
 
 using GRC = GlobalRenderContext;

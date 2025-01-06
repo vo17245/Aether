@@ -128,6 +128,20 @@ void GraphicsCommandBuffer::DrawIndexed(uint32_t indexCnt)
 {
     vkCmdDrawIndexed(m_CommandBuffer, indexCnt, 1, 0, 0, 0);
 }
+void GraphicsCommandBuffer::BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer, const Vec4f& clearValue)
+{
+    static_assert(sizeof(Vec4f) == sizeof(VkClearValue), "Vec4f size must be equal to VkClearValue size");
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = renderPass.GetHandle();
+    renderPassInfo.framebuffer = framebuffer.GetHandle();
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = framebuffer.GetSize();
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = (VkClearValue*)&clearValue;
+
+    return vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
 void GraphicsCommandBuffer::BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer)
 {
     VkRenderPassBeginInfo renderPassInfo{};

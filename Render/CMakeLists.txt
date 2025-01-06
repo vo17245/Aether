@@ -18,11 +18,10 @@ target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Core/src")
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Filesystem/src")
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Window/src")
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/ThirdParty/glfw-3.4/include")
-target_link_libraries(${MODULE_NAME} "${VULKAN_LIB_DIR}/vulkan-1.lib")
-
-
-
-
+target_link_libraries(${MODULE_NAME} PUBLIC "${VULKAN_LIB_DIR}/vulkan-1.lib")
+target_link_libraries(${MODULE_NAME} PUBLIC Filesystem )
+target_link_libraries(${MODULE_NAME} PUBLIC glslang )
+#target_link_libraries(${MODULE_NAME} PUBLIC "${VULKAN_LIB_DIR}/MachineIndependent.lib" )
 
 
 

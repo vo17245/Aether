@@ -29,11 +29,7 @@ public:
     virtual void OnRender(
         vk::RenderPass& renderPass,
         vk::FrameBuffer& framebuffer,
-        vk::Semaphore& wait,   // gpu上等待framebuffer可用
-        vk::Semaphore& signal, // gpu上通知framebuffer已经渲染完毕
-        vk::Fence& fence,      // cpu上通知framebuffer已经渲染完毕
-        vk::Fence& lastFence,//layer渲染时需要等待上一帧结束
-        uint32_t currentFrame // fence是调用者的第几个fence
+        vk::GraphicsCommandBuffer& commandBuffer
     )
     {
     }

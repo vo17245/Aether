@@ -6,18 +6,10 @@ namespace vk {
 
 class Allocator
 {
-    friend class Aether::Application;
-
 public:
     static VmaAllocator Get()
     {
         return GetSingleton().m_Allocator;
-    }
-
-private:
-    ~Allocator()
-    {
-        vmaDestroyAllocator(m_Allocator);
     }
     static void Init()
     {
@@ -27,6 +19,13 @@ private:
     {
         delete s_Instance;
     }
+
+private:
+    ~Allocator()
+    {
+        vmaDestroyAllocator(m_Allocator);
+    }
+
     static Allocator& GetSingleton()
     {
         return *s_Instance;

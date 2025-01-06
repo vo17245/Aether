@@ -17,7 +17,21 @@
 #include "GraphicsCommandPool.h"
 namespace Aether {
 namespace vk {
-
+template <typename T>
+struct IndexType
+{
+    static_assert(sizeof(T) == 0 && "unsupported index type");
+};
+template <>
+struct IndexType<uint16_t>
+{
+    inline constexpr static VkIndexType type = VK_INDEX_TYPE_UINT16;
+};
+template <>
+struct IndexType<uint32_t>
+{
+    inline constexpr static VkIndexType type = VK_INDEX_TYPE_UINT32;
+};
 /**
 @note
 Reset() //optional
@@ -107,6 +121,7 @@ public:
     void Draw(uint32_t vertexCnt);
     void DrawIndexed(uint32_t indexCnt);
     void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer);
+    void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer, const Vec4f& clearColor);
     template <typename... Ts>
     void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer, Ts... color)
     {
@@ -133,36 +148,14 @@ public:
     void BindVertexBuffers(const VkBuffer* buffers, uint32_t bufferCnt, uint32_t firstBinding,
                            const VkDeviceSize* offsets);
     void BindVertexBuffers(const std::vector<VkBuffer>& buffers, uint32_t firstBinding = 0);
-    /**
-     * @brief BindIndexBuffer<uint32_t> or BindIndexBuffer<uint16_t>
-     */
-    template <typename T>
-        requires std::is_same_v<T, uint16_t> || std::is_same_v<T, uint32_t>
-    void BindIndexBuffer(Buffer& buffer, uint32_t offset = 0)
-    {
-        vkCmdBindIndexBuffer(m_CommandBuffer, buffer.GetHandle(), offset, IndexType<T>::type);
-    }
-    void BindIndexBuffer(Buffer& buffer, VkIndexType type, uint32_t offset = 0);
+
+    void BindIndexBuffer(Buffer& buffer, VkIndexType type, uint32_t offset );
     void BindDescriptorSet(DescriptorSet& descriptorSet, PipelineLayout& pipelineLayout, uint32_t setIndex);
     void UpdatePushConstants(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout, vk::ShaderStage stage);
     void UpdatePushConstantsOnVertexStage(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout);
     void UpdatePushConstantsOnFragmentStage(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout);
 
 private:
-    template <typename T>
-    struct IndexType
-    {};
-    template <>
-    struct IndexType<uint16_t>
-    {
-        inline constexpr static VkIndexType type = VK_INDEX_TYPE_UINT16;
-    };
-    template <>
-    struct IndexType<uint32_t>
-    {
-        inline constexpr static VkIndexType type = VK_INDEX_TYPE_UINT32;
-    };
-
 private:
     GraphicsCommandBuffer(VkCommandBuffer commandBuffer, const GraphicsCommandPool* commandPool);
     VkCommandBuffer m_CommandBuffer;

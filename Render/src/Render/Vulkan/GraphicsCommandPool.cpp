@@ -8,6 +8,7 @@ std::optional<GraphicsCommandPool> GraphicsCommandPool::Create()
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    assert(GRC::GetQueueFamilyIndices().graphicsFamily.has_value());
     poolInfo.queueFamilyIndex = GRC::GetQueueFamilyIndices().graphicsFamily.value();
     VkCommandPool commandPool;
     if (vkCreateCommandPool(GRC::GetDevice(), &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
