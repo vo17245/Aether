@@ -30,3 +30,51 @@ set(VULKAN_LIB_DIR "D:\\vulkan_sdk\\Lib")
 - CodeLLDB 
 
 在运行Script/CreateProject.bat 之后，拷贝Build\compile_commands.json 作为clangd配置文件
+
+## vscode config
+
+.vscode/launch.json
+```json
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    {
+        "type": "lldb",
+        "request": "launch",
+        "name": "Launch",
+        //"program": "${workspaceFolder}/Build/Render.Tests/Unit/Render.Tests.Unit.exe",
+        //"program": "${workspaceFolder}/Build/Core.Tests/Core.Tests.exe",
+        "program": "${workspaceFolder}/Build/Filesystem.Tests/Filesystem.Tests.exe",
+        //"program": "${workspaceFolder}/Build/Window.Tests/Window.Tests.exe",
+        "args": [],
+        "cwd": "${workspaceFolder}",
+        "preLaunchTask": "build"
+    }
+    ]
+}
+```
+
+.vscode/tasks.json
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "cmake --build Build --config Debug > Build/build.log",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      //"options": {
+      //"cwd": "${workspaceFolder}/Script"
+      //},
+    }
+  ]
+}
+```
