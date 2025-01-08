@@ -1,7 +1,22 @@
 #include "String.h"
 #include <cstdint>
 namespace Aether {
-
+U8String::U8String(const std::string_view data)
+{
+    // 数据拷贝
+    for (auto byte : data)
+    {
+        m_Data.push_back(byte);
+    }
+    // 计算字符数量
+    size_t offset = 0;
+    Unicode c;
+    while (offset < m_Data.size())
+    {
+        if (!Next(offset, c)) break;
+        m_CharCount++;
+    }
+}
 uint8_t Unicode2Utf8(Unicode unicode, uint32_t& utf8)
 {
     uint8_t* res = (uint8_t*)&utf8;
@@ -212,5 +227,10 @@ U8String& U8String::operator=(const U8String& other)
     m_Data = other.m_Data;
     m_CharCount = other.m_CharCount;
     return *this;
+}
+U32String::U32String(const std::string_view data)
+{
+    U8String u8str(data);
+    *this = (U32String)u8str;
 }
 } // namespace Aether

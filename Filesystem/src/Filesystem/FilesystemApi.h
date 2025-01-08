@@ -15,12 +15,13 @@ inline size_t Write(FileHandle& handle, std::span<const char> buffer)
     return Write(handle, {reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size()});
 }
 bool CloseFile(FileHandle& handle);
-bool Exists(const Path& path);
-bool IsDirectory(const Path& path);
+
+bool Exists(const std::string_view path);
+bool IsDirectory(const std::string_view path);
 size_t GetFileSize(FileHandle& handle);
-bool CreateDirectory(const Path& path);
+bool CreateDirectory(const std::string_view path);
 int64_t GetLastError();
-bool RemoveFile(const Path& path);
-bool RemoveDirectory(const Path& path);
+bool RemoveFile(const std::string_view path);
+bool RemoveDirectory(const std::string_view path);
 }
 } // namespace Aether::Filesystem

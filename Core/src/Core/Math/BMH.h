@@ -6,7 +6,7 @@ namespace Aether {
 namespace Math {
 // Boyer-Moore-Horspool 子串查找算法
 template <typename T>
-inline std::vector<size_t> BoyerMooreHorspool(const std::span<T> haystack, const std::span<T> needle)
+inline std::vector<size_t> BoyerMooreHorspool(std::span<const T> haystack, std::span<const T> needle)
 {
     std::vector<size_t> result;
 

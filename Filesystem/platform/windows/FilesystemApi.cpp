@@ -8,21 +8,26 @@
 #undef RemoveDirectory
 #endif
 namespace Aether {
-static bool Utf8ToUtf16le(const Aether::U8String utf8str, std::wstring& utf16str)
+
+static bool Utf8ToUtf16le(const std::string_view utf8str, std::wstring& utf16str)
 {
     // 计算所需的 UTF-16 缓冲区大小
     int utf16len = MultiByteToWideChar(CP_UTF8,
-                                       0, (char*)utf8str.GetData().data(),
-                                       utf8str.GetData().size(),
+                                       0, (char*)utf8str.data(),
+                                       utf8str.size(),
                                        NULL, 0);
     // 分配缓冲区
     utf16str.resize(utf16len);
     // 进行转换
     int res = MultiByteToWideChar(CP_UTF8, 0,
-                                  (char*)utf8str.GetData().data(),
-                                  utf8str.GetData().size(),
+                                  (char*)utf8str.data(),
+                                  utf8str.size(),
                                   &utf16str[0], utf16len);
     return res != 0;
+}
+static bool Utf8ToUtf16le(const Aether::U8String& utf8str, std::wstring& utf16str)
+{
+    return Utf8ToUtf16le(std::string_view(utf8str), utf16str);
 }
 } // namespace Aether
 namespace Aether {
@@ -66,7 +71,7 @@ bool OpenFile(const Path& path, ActionFlags actions, FileHandle& handle)
     handle.data = ::CreateFileW(wpath.c_str(), access, share, NULL, disposition, flags, NULL);
     if (handle.data == INVALID_HANDLE_VALUE)
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
         return false;
     }
     return true;
@@ -76,7 +81,7 @@ size_t Read(FileHandle& handle, std::span<uint8_t> buffer)
     DWORD bytesRead = 0;
     if (!::ReadFile(handle.data, buffer.data(), buffer.size_bytes(), &bytesRead, NULL))
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
     }
     return bytesRead;
 }
@@ -85,7 +90,7 @@ size_t Write(FileHandle& handle, std::span<const uint8_t> buffer)
     DWORD bytesWritten = 0;
     if (!::WriteFile(handle.data, buffer.data(), buffer.size_bytes(), &bytesWritten, NULL))
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
     }
     return bytesWritten;
 }
@@ -98,36 +103,36 @@ bool CloseFile(FileHandle& handle)
     }
     else
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
         return false;
     }
 }
-bool Exists(const Path& path)
+bool Exists(const std::string_view path)
 {
     std::wstring wpath;
-    if (!Utf8ToUtf16le(path.GetStr(), wpath))
+    if (!Utf8ToUtf16le(path, wpath))
     {
         return false;
     }
     DWORD attr = ::GetFileAttributesW(wpath.c_str());
     if (attr == INVALID_FILE_ATTRIBUTES)
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
         return false;
     }
     return true;
 }
-bool IsDirectory(const Path& path)
+bool IsDirectory(const std::string_view path)
 {
     std::wstring wpath;
-    if (!Utf8ToUtf16le(path.GetStr(), wpath))
+    if (!Utf8ToUtf16le(path, wpath))
     {
         return false;
     }
     DWORD attr = ::GetFileAttributesW(wpath.c_str());
     if (attr == INVALID_FILE_ATTRIBUTES)
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
         return false;
     }
     return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0;
@@ -137,52 +142,52 @@ size_t GetFileSize(FileHandle& handle)
     LARGE_INTEGER size;
     if (!::GetFileSizeEx(handle.data, &size))
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
         return 0;
     }
     return size.QuadPart;
 }
-bool CreateDirectory(const Path& path)
+bool CreateDirectory(const std::string_view path)
 {
     std::wstring wpath;
-    if (!Utf8ToUtf16le(path.GetStr(), wpath))
+    if (!Utf8ToUtf16le(path, wpath))
     {
         return false;
     }
     if (!::CreateDirectoryW(wpath.c_str(), NULL))
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
         return false;
     }
     return true;
 }
-bool RemoveFile(const Path& path)
+bool RemoveFile(const std::string_view path)
 {
     std::wstring wpath;
-    if (!Utf8ToUtf16le(path.GetStr(), wpath))
+    if (!Utf8ToUtf16le(path, wpath))
     {
         return false;
     }
     if (!::DeleteFileW(wpath.c_str()))
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
         return false;
     }
     return true;
 }
-bool RemoveDirectory(const Path& path)
+bool RemoveDirectory(const std::string_view path)
 {
     std::wstring wpath;
-    if (!Utf8ToUtf16le(path.GetStr(), wpath))
+    if (!Utf8ToUtf16le(path, wpath))
     {
         return false;
     }
     if (!::RemoveDirectoryW(wpath.c_str()))
     {
-        //DWORD err = ::GetLastError();
+        // DWORD err = ::GetLastError();
         return false;
     }
     return true;
 }
-} // namespace Filesystem
+}
 } // namespace Aether::Filesystem

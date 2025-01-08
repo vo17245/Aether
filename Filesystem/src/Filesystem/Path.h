@@ -12,6 +12,10 @@ public:
         m_Path(path)
     {
     }
+    Path(const std::string_view path) :
+        m_Path(path)
+    {
+    }
     Path(const char* path) :
         m_Path(path)
     {
@@ -37,6 +41,11 @@ public:
     {
         m_Path = other.m_Path;
         return *this;
+    }
+    operator std::string_view()const
+    {
+        auto view=m_Path.GetData();
+        return std::string_view((char*)view.data(),view.size());
     }
     
 

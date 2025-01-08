@@ -1,5 +1,7 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
+#include <shared_mutex>
 #include <span>
 #include <variant>
 #include <vector>
@@ -8,14 +10,162 @@
 #include "Math.h"
 #include "Math/BMH.h"
 namespace Aether {
-
 using Unicode = uint32_t;
-using U32String = std::vector<Unicode>;
 /**
  * @param out utf8 converted from unicode
  * @return the length of utf8
  */
 uint8_t Unicode2Utf8(Unicode unicode, uint32_t& utf8);
+class U32String
+{
+public://constructors
+    U32String(std::span<const uint32_t> data):m_Data(data.begin(),data.end())
+    {
+    }
+    U32String(const std::vector<uint32_t>& data):m_Data(data)
+    {
+    }
+    U32String(const U32String& other) = default;
+    U32String(U32String&& other) = default;
+    U32String() = default;
+    U32String& operator=(const U32String& other) = default;
+    U32String& operator=(U32String&& other) = default;
+    U32String(const std::string_view data);
+public://operators
+    U32String operator+(const U32String& other) const
+    {
+        U32String result(*this);
+        result.m_Data.insert(result.m_Data.end(), other.m_Data.begin(), other.m_Data.end());
+        return result;
+    }
+    U32String& operator+=(const U32String& other)
+    {
+        m_Data.insert(m_Data.end(), other.m_Data.begin(), other.m_Data.end());
+        return *this;
+    }
+    bool operator==(const U32String& other) const
+    {
+        return m_Data == other.m_Data;
+    }
+    bool operator!=(const U32String& other) const
+    {
+        return m_Data != other.m_Data;
+    }
+public://getters/setters
+    size_t Size() const
+    {
+        return m_Data.size();
+    }
+    std::span<const uint32_t> GetDataView() const
+    {
+        return std::span<const uint32_t>(m_Data.data(), m_Data.size());
+    }
+    std::vector<uint32_t>& GetData() 
+    {
+        return m_Data;
+    }
+    inline const std::vector<uint32_t>& GetData() const
+    {
+        return m_Data;
+    }
+    uint32_t& operator[](size_t index)
+    {
+        return m_Data[index];
+    }
+    const uint32_t& operator[](size_t index) const
+    {
+        return m_Data[index];
+    }
+public://string utils
+    std::vector<size_t> Find(const U32String& sub,size_t begin,size_t length)const
+    {
+        auto res=Math::BoyerMooreHorspool(
+            std::span<const uint32_t>(m_Data.data()+begin,m_Data.data()+begin+length),
+         sub.GetDataView());
+        for(auto& val:res)
+        {
+            val+=begin;
+        }
+        return res;
+    }
+    std::vector<size_t> Find(const U32String& sub)const
+    {
+        return Find(sub,0,m_Data.size());
+    }
+    std::vector<size_t> Find(const std::string_view sub)const
+    {
+        U32String u32sub(sub);
+        return Find(u32sub);
+    }
+    std::vector<size_t> Find(const std::string_view sub,size_t begin,size_t length)const
+    {
+        U32String u32sub(sub);
+        return Find(u32sub,begin,length);
+    }
+    std::vector<U32String> Split(const U32String& delimiter)const
+    {
+        std::vector<U32String> res;
+        size_t begin=0;
+        size_t end=0;
+        while(true)
+        {
+            auto pos=Find(delimiter,begin,m_Data.size()-begin);
+            if(pos.empty())
+            {
+                res.push_back(std::span<const uint32_t>(m_Data.data()+begin,m_Data.data()+m_Data.size()));
+                break;
+            }
+            end=pos[0];
+            res.push_back(std::span<const uint32_t>(m_Data.data()+begin,m_Data.data()+end));
+            begin=end+delimiter.Size();
+        }
+        return res;
+    }
+    std::vector<U32String> Split(const std::string_view delimiter)const
+    {
+        U32String u32delim(delimiter);
+        return Split(u32delim);
+    }
+    
+    std::optional<size_t> FindLast(const U32String& sub)const
+    {
+        auto res=Find(sub);
+        if(res.empty())
+        {
+            return std::nullopt;
+        }
+        return res.back();
+    }
+    std::optional<size_t> FindLast(const std::string_view sub)const
+    {
+        auto u32sub=U32String(sub);
+        return FindLast(u32sub);
+    }
+    std::optional<size_t> FindFirst(const U32String& sub)const
+    {
+        auto res=Find(sub);
+        if(res.empty())
+        {
+            return std::nullopt;
+        }
+        return res.front();
+    }
+    std::optional<size_t> FindFirst(const std::string_view sub)const
+    {
+        auto u32sub=U32String(sub);
+        return FindFirst(u32sub);
+    }
+    bool operator==(const std::string_view other) const
+    {
+        U32String u32other(other);
+        return m_Data == u32other.GetData();
+    }
+    
+
+private:
+    std::vector<uint32_t> m_Data;
+};
+
 class U8String
 {
 public:
@@ -28,6 +178,7 @@ public:
     U8String(const U8String& other) = default;
     U8String(U8String&& other) = default;
     U8String() = default;
+    U8String(const std::string_view data);
 
 public:
     std::span<const uint8_t> GetData() const
@@ -61,7 +212,7 @@ public:
         while (offset < m_Data.size())
         {
             if (!Next(offset, c)) break;
-            res.push_back(c);
+            res.GetData().push_back(c);
         }
         return res;
     }
@@ -100,9 +251,9 @@ public:
             while (offset < beginBytes)
             {
                 if (!Next(offset, c)) break;
-                skip.push_back(c);
+                skip.GetData().push_back(c);
             }
-            unicodeOffset=skip.size();
+            unicodeOffset=skip.GetData().size();
         }
 
         U32String u32str;
@@ -111,11 +262,11 @@ public:
         while (offset < beginBytes+lengthBytes)
         {
             if (!Next(offset, c)) break;
-            u32str.push_back(c);
+            u32str.GetData().push_back(c);
         }
         U32String u32sub=sub;
-        auto res=Math::BoyerMooreHorspool(std::span<uint32_t>(u32str.data(),u32str.data()+u32str.size()),
-         std::span<uint32_t>(u32sub.data(),u32sub.data()+u32sub.size()));
+        auto res=Math::BoyerMooreHorspool(std::span<const uint32_t>(u32str.GetData().data(),u32str.GetData().data()+u32str.GetData().size()),
+         std::span<const uint32_t>(u32sub.GetData().data(),u32sub.GetData().data()+u32sub.GetData().size()));
         for(auto& val:res)
         {
             val+=unicodeOffset;
@@ -183,6 +334,10 @@ public:
         size_t endByte;
         At(end,c,endByte);
         return std::span<const uint8_t>(m_Data.data()+beginByte,m_Data.data()+endByte);
+    }
+    operator std::string_view() const
+    {
+        return std::string_view((char*)m_Data.data(),m_Data.size());
     }
 
 private:
