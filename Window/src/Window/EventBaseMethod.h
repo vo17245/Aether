@@ -12,13 +12,14 @@ public:
     {
         return event.IsHandled();
     }
-    template <>
-    bool operator()(const std::monostate& event)
-    {
-        assert(false&&"EventBaseOperator: IsHandled: invalid event type");
-        return false;
-    }
+    
 };
+template <>
+inline bool EventBaseIsHandledVisitor::operator()(const std::monostate& event)
+{
+    assert(false&&"EventBaseOperator: IsHandled: invalid event type");
+    return false;
+}
 inline bool EventBaseIsHandled(const Event& event)
 {
     return std::visit(EventBaseIsHandledVisitor{}, event);
@@ -31,13 +32,14 @@ public:
     {
         return event.ToString();
     }
-    template <>
-    std::string operator()(const std::monostate& event)
-    {
-        assert(false&&"EventBaseOperator: ToString: invalid event type");
-        return "EmptyEvent";
-    }
+    
 };
+template <>
+inline std::string EventBaseToStringVisitor::operator()(const std::monostate& event)
+{
+    assert(false&&"EventBaseOperator: ToString: invalid event type");
+    return "EmptyEvent";
+}
 inline std::string EventBaseToString(const Event& event)
 {
     return std::visit(EventBaseToStringVisitor{}, event);
@@ -51,12 +53,12 @@ public:
     {
         event.Handle();
     }
-    template <>
-    void operator()(std::monostate& event)
-    {
-        assert(false&&"EventBaseOperator: Handle: invalid event type");
-    }
 };
+template <>
+inline void EventBaseHandleVisitor::operator()(std::monostate& event)
+{
+    assert(false&&"EventBaseOperator: Handle: invalid event type");
+}
 inline void EventBaseHandle(Event& event)
 {
     return std::visit(EventBaseHandleVisitor{}, event);

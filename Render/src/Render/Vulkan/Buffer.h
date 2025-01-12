@@ -7,6 +7,7 @@
 #include <optional>
 #include <type_traits>
 #include "vma/vk_mem_alloc.h"
+#include <cstring>
 namespace Aether {
 class Application;
 namespace vk {
