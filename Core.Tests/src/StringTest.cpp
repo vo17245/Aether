@@ -12,7 +12,7 @@ TEST_CASE("U8String chinese char count")
 TEST_CASE("U8String to U32String")
 {
     U8String str("我能吞下玻璃而不伤身体");
-    auto res = (U32String)str;
+    auto res = str.ToU32String();
     CHECK(res.GetData().size() == 11);
     CHECK(res[0] == 25105);  // 我
     CHECK(res[1] == 33021);  // 能
@@ -33,7 +33,7 @@ TEST_CASE("U8String operator +")
     U8String str2("而不伤身体");
     auto u8_res = str1 + str2;
     CHECK(u8_res.CharCount() == 11);
-    auto u32_res = (U32String)u8_res;
+    auto u32_res = u8_res.ToU32String();
     CHECK(u32_res[0] == 25105);  // 我
     CHECK(u32_res[1] == 33021);  // 能
     CHECK(u32_res[2] == 21534);  // 吞
@@ -53,7 +53,7 @@ TEST_CASE("U8String operator +=")
     auto u8_res = str1;
     u8_res += str2;
     CHECK(u8_res.CharCount() == 11);
-    auto u32_res = (U32String)u8_res;
+    auto u32_res = u8_res.ToU32String();
     CHECK(u32_res[0] == 25105);  // 我
     CHECK(u32_res[1] == 33021);  // 能
     CHECK(u32_res[2] == 21534);  // 吞

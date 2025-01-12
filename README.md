@@ -102,3 +102,7 @@ link_libraries("C:\\opt\\w64devkit\\lib\\gcc\\x86_64-w64-mingw32\\14.2.0\\libstd
 ## 单元测试
 
 所有单元测试的工作目录都在项目根目录
+运行
+> Script/RunUnitTest.bat
+来运行所有单元测试
+注意: 需要安装python3

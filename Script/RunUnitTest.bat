@@ -1,3 +1,4 @@
+python3 BeforeRunUnitTest.py
 cd ..
 Build\Core.Tests\Core.Tests.exe
 Build\Filesystem.Tests\Filesystem.Tests.exe

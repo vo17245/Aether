@@ -51,7 +51,16 @@ public://operators
     {
         return m_Data != other.m_Data;
     }
-public://getters/setters
+    uint32_t& operator[](int i)
+    {
+        return m_Data[i];
+    }
+    const uint32_t& operator[](int i)const
+    {
+        return m_Data[i];
+    }
+
+public: // getters/setters
     size_t Size() const
     {
         return m_Data.size();
@@ -204,7 +213,7 @@ public:
     {
         return std::string(m_Data.begin(), m_Data.end());
     }
-    operator U32String() const
+    U32String ToU32String()const
     {
         U32String res;
         size_t offset = 0;
@@ -216,6 +225,11 @@ public:
         }
         return res;
     }
+    operator U32String()const
+    {
+        return ToU32String();
+    }
+
     U8String& operator+=(const U8String& other)
     {
         m_Data.insert(m_Data.end(), other.m_Data.begin(), other.m_Data.end());
