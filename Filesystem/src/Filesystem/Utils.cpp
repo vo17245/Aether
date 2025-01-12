@@ -38,5 +38,17 @@ bool WriteFile(const Filesystem::Path& path, const std::span<char> data)
 {
     return WriteFile(path, std::span<uint8_t>((uint8_t*)data.data(), data.size()));
 }
+bool RemoveTree(const std::string_view path)
+{
+    if(!Exists(path))
+    {
+        return true;
+    }
+    if(!IsDirectory(path))
+    {
+        return RemoveFile(path);
+    }
+
+}
 }
 } // namespace Aether::Filesystem

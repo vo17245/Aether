@@ -78,3 +78,7 @@ set(VULKAN_LIB_DIR "D:\\vulkan_sdk\\Lib")
   ]
 }
 ```
+
+## 单元测试
+
+所有单元测试的工作目录都在项目根目录

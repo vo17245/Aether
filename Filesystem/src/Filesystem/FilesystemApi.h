@@ -23,5 +23,7 @@ bool CreateDirectory(const std::string_view path);
 int64_t GetLastError();
 bool RemoveFile(const std::string_view path);
 bool RemoveDirectory(const std::string_view path);
+std::optional<FileHandle> FindFirst(const std::string_view path);
+std::optional<FileHandle> FindNext(FileHandle& handle);
 }
 } // namespace Aether::Filesystem

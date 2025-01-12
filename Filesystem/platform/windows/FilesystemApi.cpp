@@ -1,4 +1,5 @@
 #include "Filesystem/FilesystemApi.h"
+#include "Filesystem/Def.h"
 #include "windows.h"
 #ifdef CreateDirectory
 #undef CreateDirectory
@@ -8,7 +9,6 @@
 #undef RemoveDirectory
 #endif
 namespace Aether {
-
 static bool Utf8ToUtf16le(const std::string_view utf8str, std::wstring& utf16str)
 {
     // 计算所需的 UTF-16 缓冲区大小
@@ -189,5 +189,32 @@ bool RemoveDirectory(const std::string_view path)
     }
     return true;
 }
+std::optional<FileHandle> FindFirst(const std::string_view path)
+{
+    std::wstring wpath;
+    if (!Utf8ToUtf16le(path, wpath))
+    {
+        return std::nullopt;
+    }
+
+    WIN32_FIND_DATAW findParam{};// 初始化 WIN32_FIND_DATAW
+    HANDLE handle=FindFirstFileW(wpath.c_str(), &findParam);
+    if(handle==INVALID_HANDLE_VALUE)
+    {
+        return std::nullopt;
+    }
+    FileHandle fileHandle;
+    fileHandle.data=handle;
+    return fileHandle;
 }
-} // namespace Aether::Filesystem
+std::optional<FileHandle> FindNext(FileHandle& handle)
+{
+    WIN32_FIND_DATAW findParam{};
+    if(!FindNextFileW(handle.data, &findParam))
+    {
+        return std::nullopt;
+    }
+    return handle;
+}
+}// namespace Filesystem
+} // namespace Aether

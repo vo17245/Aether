@@ -16,6 +16,11 @@ struct FileHandle
 {
     void* data;
 };
+/**
+* @note Entry 是一个非透明的数据
+*                  在Windows下为WIN32_FIND_DAT
+*/
+
 // clang-format on
 enum class FileType : uint32_t
 {
