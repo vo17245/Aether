@@ -1,7 +1,9 @@
 #include "Utils.h"
 #include "Def.h"
+#include "Filesystem/FilesystemApi.h"
 #include <cstdint>
 #include <span>
+#include <print>
 namespace Aether {
 namespace Filesystem {
 std::optional<std::vector<char>> ReadFile(const Filesystem::Path& path)
@@ -48,6 +50,34 @@ bool RemoveTree(const std::string_view path)
     {
         return RemoveFile(path);
     }
+    std::string searchPath (path);
+    searchPath.append("/*");
+    auto entry=FindFirst(searchPath);
+    while(entry)
+    {
+        if(entry->findData.name!="."&&entry->findData.name!="..")
+        {
+            std::string fullPath (path);
+            fullPath.append("/");
+            fullPath.append(entry->findData.name.ToStdString());
+            if(entry->findData.type==FileType::Directory)
+            {
+                if(!RemoveTree(fullPath))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if(!RemoveFile(fullPath))
+                {
+                    return false;
+                }
+            }
+        }
+        entry=FindNext(entry->handle);
+    }
+    return RemoveDirectory(path);
 
 }
 bool CreateDirectories(const Path& path)
@@ -65,6 +95,24 @@ bool CreateDirectories(const Path& path)
         }
     }
     return CreateDirectory(path);
+}
+std::vector<U8String> ListFiles(const std::string_view path)
+{
+    std::vector<U8String> res;
+    std::string searchPath (path);
+    searchPath.append("/*");
+
+    auto entry=FindFirst(searchPath);
+    std::print("entry->findData.name:{}",entry->findData.name.ToStdString());
+    while(entry)
+    {
+        if(entry->findData.name!="."&&entry->findData.name!="..")
+        {
+            res.push_back(entry->findData.name);
+        }
+        entry=FindNext(entry->handle);
+    }
+    return res;
 }
 }
 } // namespace Aether::Filesystem

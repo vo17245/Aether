@@ -24,3 +24,15 @@ TEST_CASE("Filesystem Find Test")
     }
     CHECK(files.size() == 7);
 }
+
+TEST_CASE("Filesystem ListFiles")
+{
+    Filesystem::CreateDirectories("tmp/Filesystem/ListFiles");
+    Filesystem::WriteFile("tmp/Filesystem/ListFiles/test1.txt", std::span<uint8_t>());
+    Filesystem::WriteFile("tmp/Filesystem/ListFiles/test2.txt", std::span<uint8_t>());
+    Filesystem::WriteFile("tmp/Filesystem/ListFiles/test3.txt", std::span<uint8_t>());
+    Filesystem::WriteFile("tmp/Filesystem/ListFiles/test4.txt", std::span<uint8_t>());
+    Filesystem::WriteFile("tmp/Filesystem/ListFiles/中文.txt", std::span<uint8_t>());
+    auto files = Filesystem::ListFiles("tmp/Filesystem/ListFiles");
+    CHECK(files.size() == 5);
+}
