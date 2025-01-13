@@ -3,6 +3,7 @@
 #include <vector>
 #include <span>
 #include <stdio.h>
+#include "Core/String.h"
 namespace Aether {
 namespace Filesystem {
 
@@ -16,16 +17,23 @@ struct FileHandle
 {
     void* data;
 };
-/**
-* @note Entry 是一个非透明的数据
-*                  在Windows下为WIN32_FIND_DAT
-*/
+
 
 // clang-format on
 enum class FileType : uint32_t
 {
     Regular,
     Directory,
+};
+struct FindData
+{
+    U8String name;
+    FileType type;
+};
+struct FindResult
+{
+    FileHandle handle;
+    FindData findData;
 };
 enum class Action : uint32_t
 {

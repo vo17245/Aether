@@ -189,7 +189,7 @@ bool RemoveDirectory(const std::string_view path)
     }
     return true;
 }
-std::optional<FileHandle> FindFirst(const std::string_view path)
+std::optional<FindResult> FindFirst(const std::string_view path)
 {
     std::wstring wpath;
     if (!Utf8ToUtf16le(path, wpath))
@@ -205,16 +205,43 @@ std::optional<FileHandle> FindFirst(const std::string_view path)
     }
     FileHandle fileHandle;
     fileHandle.data=handle;
-    return fileHandle;
+    FindData findData;
+    findData.name=U8String(reinterpret_cast<const char*>(findParam.cFileName));
+    if(findParam.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
+    {
+        findData.type=FileType::Directory;
+    }
+    else
+    {
+        findData.type=FileType::Regular;
+    }
+    FindResult result;
+    result.handle=fileHandle;
+    result.findData=std::move(findData);
+    return result;
 }
-std::optional<FileHandle> FindNext(FileHandle& handle)
+std::optional<FindResult> FindNext(FileHandle& handle)
 {
     WIN32_FIND_DATAW findParam{};
     if(!FindNextFileW(handle.data, &findParam))
     {
         return std::nullopt;
     }
-    return handle;
+    FindData findData;
+    findData.name=U8String(reinterpret_cast<const char*>(findParam.cFileName));
+    if(findParam.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
+    {
+        findData.type=FileType::Directory;
+    }
+    else
+    {
+        findData.type=FileType::Regular;
+    }
+    FindResult result;
+    result.handle=handle;
+    result.findData=std::move(findData);
+    return result;
 }
+
 }// namespace Filesystem
 } // namespace Aether
