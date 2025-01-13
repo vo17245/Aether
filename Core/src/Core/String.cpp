@@ -231,6 +231,6 @@ U8String& U8String::operator=(const U8String& other)
 U32String::U32String(const std::string_view data)
 {
     U8String u8str(data);
-    *this = (U32String)u8str;
+    *this = u8str.ToU32String();
 }
 } // namespace Aether

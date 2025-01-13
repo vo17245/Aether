@@ -12,12 +12,32 @@ set(VULKAN_LIB_DIR "D:\\vulkan_sdk\\Lib")
 
 ## 编译
 
-工具链
-- llvm 
-- ninja 
-- cmake
+
+
+### windows
+
+#### 选择工具链
+
+项目使用cmake编译，cmake会自己选择工具链，如果需要指定cmake使用的工具链的话，修改Script/CreateProject.bat
+example:
+指定使用mingw
+```
+-DCMAKE_C_COMPILER="C:/mingw/bin/gcc.exe" -DCMAKE_CXX_COMPILER="C:/mingw/bin/g++.exe"
+
+```
+#### 使用llvm-clang或者visual studio
 
 运行Script/CreateProject.bat 生成项目
+运行Script/Build.bat 编译
+
+#### 使用mingw
+
+在CMake/Local.cmake中添加对libstdc++exp.a的链接，用于支持c++23的std::print
+这个库文件在mingw安装目录下
+```
+link_libraries("C:\\opt\\w64devkit\\lib\\gcc\\x86_64-w64-mingw32\\14.2.0\\libstdc++exp.a")
+```
+然后运行Script/CreateProject.bat 生成项目
 运行Script/Build.bat 编译
 
 ## 开发
@@ -82,3 +102,7 @@ set(VULKAN_LIB_DIR "D:\\vulkan_sdk\\Lib")
 ## 单元测试
 
 所有单元测试的工作目录都在项目根目录
+运行
+> Script/RunUnitTest.bat
+来运行所有单元测试
+注意: 需要安装python3

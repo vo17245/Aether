@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <set>
 #include <string>
+#include <cstdint>
+#include <limits>
 namespace Aether {
 namespace vk {
 
