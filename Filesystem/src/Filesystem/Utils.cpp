@@ -50,5 +50,21 @@ bool RemoveTree(const std::string_view path)
     }
 
 }
+bool CreateDirectories(const Path& path)
+{
+    if(Exists(path))
+    {
+        return true;
+    }
+    Path parent = path.Parent();
+    if(!parent.Empty()&&!Exists(parent))
+    {
+        if(!CreateDirectories(parent))
+        {
+            return false;
+        }
+    }
+    return CreateDirectory(path);
+}
 }
 } // namespace Aether::Filesystem

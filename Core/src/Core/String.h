@@ -353,6 +353,10 @@ public:
     {
         return std::string_view((char*)m_Data.data(),m_Data.size());
     }
+    std::string ToStdString()const
+    {
+        return std::string((char*)m_Data.data(),m_Data.size());
+    }
 
 private:
     std::vector<uint8_t> m_Data;

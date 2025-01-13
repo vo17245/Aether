@@ -8,6 +8,7 @@
 #ifdef RemoveDirectory
 #undef RemoveDirectory
 #endif
+#include <print>
 namespace Aether {
 static bool Utf8ToUtf16le(const std::string_view utf8str, std::wstring& utf16str)
 {
@@ -28,6 +29,13 @@ static bool Utf8ToUtf16le(const std::string_view utf8str, std::wstring& utf16str
 static bool Utf8ToUtf16le(const Aether::U8String& utf8str, std::wstring& utf16str)
 {
     return Utf8ToUtf16le(std::string_view(utf8str), utf16str);
+}
+static bool Utf16leToUtf8(const std::wstring& utf16str,std::string& u8string)
+{
+    int utf8len = WideCharToMultiByte(CP_UTF8, 0, utf16str.c_str(), utf16str.size(), NULL, 0, NULL, NULL);
+    u8string.resize(utf8len);
+    int res = WideCharToMultiByte(CP_UTF8, 0, utf16str.c_str(), utf16str.size(), (char*)u8string.data(), utf8len, NULL, NULL);
+    return res != 0;
 }
 } // namespace Aether
 namespace Aether {
@@ -206,7 +214,9 @@ std::optional<FindResult> FindFirst(const std::string_view path)
     FileHandle fileHandle;
     fileHandle.data=handle;
     FindData findData;
-    findData.name=U8String(reinterpret_cast<const char*>(findParam.cFileName));
+    std::string u8name;
+    Utf16leToUtf8(findParam.cFileName, u8name);
+    findData.name=U8String(u8name);
     if(findParam.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
     {
         findData.type=FileType::Directory;
@@ -228,7 +238,9 @@ std::optional<FindResult> FindNext(FileHandle& handle)
         return std::nullopt;
     }
     FindData findData;
-    findData.name=U8String(reinterpret_cast<const char*>(findParam.cFileName));
+    std::string u8name;
+    Utf16leToUtf8(findParam.cFileName, u8name);
+    findData.name=U8String(u8name);
     if(findParam.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
     {
         findData.type=FileType::Directory;
