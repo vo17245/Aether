@@ -17,7 +17,10 @@ namespace Shader
     class Compiler
     {
     public:
+        static void Init();
+        static void Shutdown();
         static std::expected<std::vector<uint32_t>,std::string> GLSL2SPIRV(const char** codes,size_t codeCnt,ShaderType shaderType);
+        static std::expected<std::vector<uint32_t>,std::string> HLSL2SPIRV(const char** codes,size_t codeCnt,ShaderType shaderType);
     };
 }
 }

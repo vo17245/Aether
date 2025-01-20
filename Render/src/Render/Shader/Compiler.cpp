@@ -2,6 +2,8 @@
 #include <expected>
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
+#include <format>
+#include "../Config.h"
 namespace Aether {
 namespace Shader {
 static void InitResources(TBuiltInResource& Resources)
@@ -159,6 +161,58 @@ std::expected<std::vector<uint32_t>, std::string> Compiler::GLSL2SPIRV(const cha
     std::vector<uint32_t> spirv;
     glslang::GlslangToSpv(*program.getIntermediate(glslangShaderType), spirv);
     return spirv;
+}
+std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char** codes,size_t codeCnt,ShaderType shaderType)
+{
+    EShLanguage glslangShaderType;
+    switch (shaderType)
+    {
+    case ShaderType::Vertex:
+        glslangShaderType = EShLangVertex;
+        break;
+    case ShaderType::Fragment:
+        glslangShaderType = EShLangFragment;
+        break;
+    case ShaderType::Compute:
+        glslangShaderType = EShLangCompute;
+        break;
+    }
+
+
+    glslang::TShader shader(glslangShaderType);
+    shader.setStrings(codes, codeCnt);
+    // Set the shader to HLSL
+    shader.setEnvInput(glslang::EShSourceHlsl, glslangShaderType, glslang::EShClientVulkan, Render::StaticConfig::VulkanApiVersionNumber);
+    TBuiltInResource resources;
+    InitResources(resources);
+
+    EShMessages messages = EShMsgDefault;
+    if (!shader.parse(&resources, 100, false, messages)) {
+        return std::unexpected<std::string>(std::format("GLSL Parsing Failed: {}",shader.getInfoLog())); 
+
+    }
+
+    glslang::TProgram program;
+    program.addShader(&shader);
+
+    if (!program.link(messages)) {
+        return std::unexpected<std::string>(std::format("GLSL Parsing Failed: {}",shader.getInfoLog())); 
+    }
+
+    std::vector<uint32_t> spirv;
+    glslang::GlslangToSpv(*program.getIntermediate(glslangShaderType), spirv);
+
+    // Finalize glslang process
+    glslang::FinalizeProcess();
+    return spirv;
+}
+void Compiler::Init()
+{
+    glslang::InitializeProcess();
+}
+void Compiler::Shutdown()
+{
+    glslang::FinalizeProcess();
 }
 }
 } // namespace Aether::Shader
