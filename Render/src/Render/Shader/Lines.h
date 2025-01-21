@@ -113,6 +113,7 @@ public:
                 return LineIterator{m_Code, pos, len};
             }
         }
+        return LineIterator{m_Code, 0, m_Code.size()};
     }
     LineIterator end() const
     {
