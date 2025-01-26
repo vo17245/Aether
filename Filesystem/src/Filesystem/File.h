@@ -35,7 +35,7 @@ public:
     {
         return ::Aether::Filesystem::Read(m_Handle, buffer);
     }
-    size_t Write(std::span<const uint8_t> buffer)
+    size_t Write(const std::span<const uint8_t> buffer)
     {
         return ::Aether::Filesystem::Write(m_Handle, buffer);
     }

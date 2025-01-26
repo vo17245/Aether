@@ -4,11 +4,18 @@ namespace Aether
 {
     namespace Render
     {
-        class StaticConfig
+        enum class Api
+        {
+            Vulkan,
+            OpenGL,
+            DirectX
+        };
+        class Config
         {
         public:
-            static const inline constexpr int VulkanApiVersion=VK_API_VERSION_1_3;
-            static const inline constexpr int VulkanApiVersionNumber=130;
+            static Api RenderApi;
+            static int VulkanApiVersion;
+            static int VulkanApiVersionNumber;
         };
     }
 }

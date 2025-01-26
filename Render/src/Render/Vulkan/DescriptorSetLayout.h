@@ -36,7 +36,10 @@ public:
         Builder& EndSamplerBinding();
         Builder& BeginSSBO();
         Builder& EndSSBO();
-
+        void SetBindingIndex(uint32_t index)
+        {
+            m_BindingIndex = index;
+        }
     private:
         VkDescriptorSetLayoutBinding m_Binding;
         uint32_t m_BindingIndex = 0;

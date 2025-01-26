@@ -68,10 +68,10 @@ public:
         // create gpu grid
         m_Mesh = VkMesh::CreateScope(*m_CommandPool, sphere);
         // compile shader in cpu
-        auto vsBin = Shader::Compiler::GLSL2SPIRV(&vertexShaderCode, 1, Shader::ShaderType::Vertex);
+        auto vsBin = Shader::Compiler::GLSL2SPIRV(&vertexShaderCode, 1, ShaderStageType::Vertex);
         assert(vsBin);
         std::print("vertex shader size: {}\n", vsBin->size());
-        auto fsBin = Shader::Compiler::GLSL2SPIRV(&fragmentShaderCode, 1, Shader::ShaderType::Fragment);
+        auto fsBin = Shader::Compiler::GLSL2SPIRV(&fragmentShaderCode, 1, ShaderStageType::Fragment);
         assert(fsBin);
         std::print("fragment shader size: {}\n", fsBin->size());
         m_VertexShader = vk::ShaderModule::CreateScopeFromBinaryCode(*vsBin);

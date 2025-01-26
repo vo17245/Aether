@@ -110,18 +110,18 @@ static void InitResources(TBuiltInResource& Resources)
     Resources.limits.generalVariableIndexing = 1;
     Resources.limits.generalConstantMatrixVectorIndexing = 1;
 }
-std::expected<std::vector<uint32_t>, std::string> Compiler::GLSL2SPIRV(const char** codes, size_t codeCnt, ShaderType shaderType)
+std::expected<std::vector<uint32_t>, std::string> Compiler::GLSL2SPIRV(const char** codes, size_t codeCnt, ShaderStageType shaderType)
 {
     EShLanguage glslangShaderType;
     switch (shaderType)
     {
-    case ShaderType::Vertex:
+    case ShaderStageType::Vertex:
         glslangShaderType = EShLangVertex;
         break;
-    case ShaderType::Fragment:
+    case ShaderStageType::Fragment:
         glslangShaderType = EShLangFragment;
         break;
-    case ShaderType::Compute:
+    case ShaderStageType::Compute:
         glslangShaderType = EShLangCompute;
         break;
     }
@@ -162,18 +162,18 @@ std::expected<std::vector<uint32_t>, std::string> Compiler::GLSL2SPIRV(const cha
     glslang::GlslangToSpv(*program.getIntermediate(glslangShaderType), spirv);
     return spirv;
 }
-std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char** codes,size_t codeCnt,ShaderType shaderType)
+std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char** codes,size_t codeCnt,ShaderStageType shaderType)
 {
     EShLanguage glslangShaderType;
     switch (shaderType)
     {
-    case ShaderType::Vertex:
+    case ShaderStageType::Vertex:
         glslangShaderType = EShLangVertex;
         break;
-    case ShaderType::Fragment:
+    case ShaderStageType::Fragment:
         glslangShaderType = EShLangFragment;
         break;
-    case ShaderType::Compute:
+    case ShaderStageType::Compute:
         glslangShaderType = EShLangCompute;
         break;
     }
@@ -182,7 +182,7 @@ std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char
     glslang::TShader shader(glslangShaderType);
     shader.setStrings(codes, codeCnt);
     // Set the shader to HLSL
-    shader.setEnvInput(glslang::EShSourceHlsl, glslangShaderType, glslang::EShClientVulkan, Render::StaticConfig::VulkanApiVersionNumber);
+    shader.setEnvInput(glslang::EShSourceHlsl, glslangShaderType, glslang::EShClientVulkan, Render::Config::VulkanApiVersionNumber);
     TBuiltInResource resources;
     InitResources(resources);
 
@@ -213,6 +213,23 @@ void Compiler::Init()
 void Compiler::Shutdown()
 {
     glslang::FinalizeProcess();
+}
+std::expected<std::vector<uint32_t>,std::string> Compiler::Compile(const ShaderSource& source)
+{
+    switch (source.GetLanguage()) {
+        case ShaderLanguage::GLSL:
+        {
+            const char* code=source.GetCode().c_str();
+            return GLSL2SPIRV(&code,1,source.GetStageType());
+        }
+        case ShaderLanguage::HLSL:
+        {
+            const char* code=source.GetCode().c_str();
+            return HLSL2SPIRV(&code,1,source.GetStageType());
+        }
+        default:
+            return std::unexpected<std::string>("Unsupported Shader Language");
+    }
 }
 }
 } // namespace Aether::Shader
