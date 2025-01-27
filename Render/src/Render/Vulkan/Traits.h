@@ -2,7 +2,7 @@
 #include <concepts>
 #include <tuple>
 #include "ImageView.h"
-#include "Render/VertexBufferLayout.h"
+#include "Render/Mesh/VertexBufferLayout.h"
 #include <array>
 #include <utility>
 #include <vector>

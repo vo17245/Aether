@@ -1,10 +1,15 @@
 #pragma once
 #include <cstdint>
+#include <cstdio>
+#include <future>
 #include <limits>
+#include <numeric>
 #include <vector>
 #include <unordered_map>
 #include <optional>
 #include <string>
+#include "VertexBufferLayout.h"
+#include "Core/Base.h"
 namespace Aether {
 /**
  * @note
@@ -158,6 +163,39 @@ struct Mesh
     size_t CalculateVertexCount() const
     {
         return accessors[primitive.attributes.at(Primitive::Attribute::POSITION)].count;
+    }
+    std::vector<VertexBufferLayout> CreateVertexBufferLayouts()const
+    {
+        // sort attribute by index in enum
+        std::vector<Primitive::Attribute> attributes;
+        for(const auto& [attribute,_]:primitive.attributes)
+        {
+            attributes.push_back(attribute);
+        }
+        std::sort(attributes.begin(),attributes.end(),[](Primitive::Attribute a,Primitive::Attribute b){
+            return a<b;
+        });
+        // create layout for each bufferView
+        std::vector<VertexBufferLayout> layouts;
+        for(auto&& [index,_]:std::views::enumerate(bufferViews))
+        {
+            VertexBufferLayout layout;
+            layout.SetBinding(index);
+        }
+        // add attribute to layout
+        for(auto&& [index,attribute]:std::views::enumerate(attributes))
+        {
+            auto& accessorIndex=primitive.attributes.at(attribute);
+            auto& accessor=accessors[accessorIndex];
+            auto& bufferView=bufferViews[accessor.bufferView];
+            auto& layout=layouts[accessor.bufferView];
+            layout.PushAttribute(VertexBufferLayout::Attribute{
+                static_cast<uint32_t>(index),
+                accessor.byteOffset,
+                BufferElementFormat::Vec3f
+            });
+        }
+        return layouts;
     }
 };
 } // namespace Kamui

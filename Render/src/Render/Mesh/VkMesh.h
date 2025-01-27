@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <optional>
-#include "Render/VertexBufferLayout.h"
+#include "Render/Mesh/VertexBufferLayout.h"
 #include "Render/Vulkan/Buffer.h"
 #include "vulkan/vulkan_core.h"
 #include <unordered_map>

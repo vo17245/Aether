@@ -4,7 +4,7 @@
 #include <span>
 #include <string_view>
 #include "Traits.h"
-#include "Render/VertexBufferLayout.h"
+#include "Render/Mesh/VertexBufferLayout.h"
 #include "vulkan/vulkan_core.h"
 #include "PipelineLayout.h"
 #include "ShaderModule.h"
@@ -45,9 +45,9 @@ public:
         {
             for (size_t i = 0; i < size; i++)
             {
-                auto vertexBindingDescriotion = layouts[i].CreateBindingDescription();
+                auto vertexBindingDescriotion = layouts[i].CreateVulkanBindingDescription();
                 m_VertexBindingDescriptions.emplace_back(vertexBindingDescriotion);
-                auto vertexAttributeDescriptions = layouts[i].CreateAttributeDescriptions();
+                auto vertexAttributeDescriptions = layouts[i].CreateVulkanAttributeDescriptions();
                 m_AttributeDescriptions.insert(m_AttributeDescriptions.end(),
                                                vertexAttributeDescriptions.begin(),
                                                vertexAttributeDescriptions.end());

@@ -143,7 +143,7 @@ public:
     struct Attribute
     {
         uint32_t location;
-        uint32_t offset;
+        uint32_t offset;// offset in element, *NOT* in vertex buffer
         BufferElementFormat format;
         bool operator==(const Attribute& other) const
         {
@@ -231,7 +231,7 @@ public:
     {
         return m_Attributes;
     }
-    VkVertexInputBindingDescription CreateBindingDescription() const
+    VkVertexInputBindingDescription CreateVulkanBindingDescription() const
     {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = m_Binding;
@@ -239,7 +239,7 @@ public:
         bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         return bindingDescription;
     }
-    std::vector<VkVertexInputAttributeDescription> CreateAttributeDescriptions() const
+    std::vector<VkVertexInputAttributeDescription> CreateVulkanAttributeDescriptions() const
     {
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
         for (const auto& attribute : m_Attributes)

@@ -3,3 +3,7 @@
 #include "RenderApi/DeviceShader.h"
 #include "RenderApi/DeviceTexture.h"
 #include "RenderApi/DevicePipeline.h"
+#include "RenderApi/DeviceFrameBuffer.h"
+#include "RenderApi/DeviceCommandBuffer.h"
+#include "RenderApi/DeviceDescriptorPool.h"
+#include "RenderApi/DeviceRenderPass.h"

@@ -35,7 +35,7 @@ public:
         std::vector<Accessor> samplers;
         std::vector<Accessor> ssbos;
     };
-    std::optional<DescriptorResource> CreateSet(int uboCount, int samplerCount, int ssboCount)
+    std::optional<DescriptorResource> CreateSet(size_t uboCount, size_t samplerCount, size_t ssboCount)
     {
         DescriptorResource res;
         uint32_t uboIndex = 0;

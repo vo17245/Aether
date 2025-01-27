@@ -1,19 +1,22 @@
 #pragma once
 #include <cstdint>
 #include <memory>
+#include <ranges>
+#include <vector>
 
 // clang-format on
-namespace Aether {
+namespace Aether
+{
 
 inline constexpr uint64_t Bit(uint8_t bit)
 {
     return 1ULL << bit;
 }
-template<typename... Ts>
+template <typename... Ts>
 inline constexpr uint64_t PackBits(Ts... bits)
 {
     return (Bit(bits) | ...);
-} 
+}
 
 template <typename T>
 using Ref = std::shared_ptr<T>;
