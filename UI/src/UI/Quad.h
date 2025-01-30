@@ -7,16 +7,17 @@ namespace UI
 {
 struct QuadDesc
 {
-    Vec2f position;
-    Vec2f size;
-    Vec4f color;
-    Vec2f uvOffset;
+    Vec2f position;// screen space, left-top corner
+    Vec2f size;// screen space
+    Vec4f color;// [0,1]
+    Vec2f uvOffset;// in [0,1] texture space ,offset in left-bottom corner
+    Vec2f uvSize;// in [0,1] texture space
 };
 class Quad
 {
 public:
     Quad(const QuadDesc& desc) :
-        m_Position(desc.position), m_Size(desc.size), m_Color(desc.color), m_UVOffset(desc.uvOffset)
+        m_Position(desc.position), m_Size(desc.size), m_Color(desc.color), m_UVOffset(desc.uvOffset), m_UVSize(desc.uvSize)
     {
     }
     void SetTexture(const Ref<DeviceTexture>& texture)

@@ -32,5 +32,7 @@ Mat4d Castf2d(const Mat4& m);
  * @return tuple[T,Q,S] ([T,R,S])
  */
 std::tuple<Vec3, Quat, Vec3> DecomposeTransform(const Mat4& matrix);
+Mat3 MergeTranslation(const Mat2& m,const Vec2& v);
+Mat4 MergeTranslation(const Mat3& m,const Vec3& v);
 }
 } // namespace Aether::Math

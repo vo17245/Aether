@@ -1,8 +1,11 @@
 #pragma once
 #include "Def.h"
 #include "Path.h"
-namespace Aether {
-namespace Filesystem {
+#ifdef CreateDirectory
+#undef CreateDirectory
+#endif
+namespace Aether::Filesystem
+{
 bool OpenFile(const Path& path, ActionFlags actions, FileHandle& handle);
 inline bool OpenFile(const Path& path, Action actions, FileHandle& handle)
 {
@@ -25,5 +28,4 @@ bool RemoveFile(const std::string_view path);
 bool RemoveDirectory(const std::string_view path);
 std::optional<FindResult> FindFirst(const std::string_view path);
 std::optional<FindResult> FindNext(FileHandle& handle);
-}
 } // namespace Aether::Filesystem

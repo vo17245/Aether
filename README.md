@@ -85,7 +85,7 @@ link_libraries("C:\\opt\\w64devkit\\lib\\gcc\\x86_64-w64-mingw32\\14.2.0\\libstd
     {
       "label": "build",
       "type": "shell",
-      "command": "cmake --build Build --config Debug > Build/build.log",
+      "command": "cmake --build Build --config Debug 2>&1 | tee  Build/build.log",
       "group": {
         "kind": "build",
         "isDefault": true

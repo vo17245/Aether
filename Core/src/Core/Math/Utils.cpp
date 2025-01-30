@@ -203,6 +203,20 @@ std::tuple<Vec3, Quat, Vec3> DecomposeTransform(const Mat4& matrix)
     Eigen::Quaternionf Q(R);
     return std::make_tuple(T, Q, S);
 }
+Mat3 MergeTranslation(const Mat2& m,const Vec2& v)
+{
+    Mat3 result = Mat3::Identity();
+    result.block<2, 2>(0, 0) = m;
+    result.block<2, 1>(0, 2) = v;
+    return result;
+}
+Mat4 MergeTranslation(const Mat3& m,const Vec3& v)
+{
+    Mat4 result = Mat4::Identity();
+    result.block<3, 3>(0, 0) = m;
+    result.block<3, 1>(0, 3) = v;
+    return result;
+}
 }
 
 } // namespace Aether::Math
