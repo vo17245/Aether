@@ -37,7 +37,7 @@ namespace Aether
             /**
             * @note z range is [0,1]
             */
-            return Basis3D{Vec3f(0,0,0),Vec3f(1,0,0),Vec3f(0,1,0),Vec3f(0,0,1)};
+            return Basis3D{Vec3f(0,0,0),Vec3f(1,0,0),Vec3f(0,-1,0),Vec3f(0,0,1)};
         }
         else {
             assert(false&&"Not implemented");

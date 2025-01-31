@@ -61,6 +61,19 @@ public:
         }
         return vkMesh;
     }
+    /**
+     * @note caller should delete the pointer
+    */
+    static VkMesh* CreateRaw(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
+    {
+        VkMesh* vkMesh = new VkMesh();
+        if (!vkMesh->Init(commandPool, Mesh))
+        {
+            delete vkMesh;
+            return nullptr;
+        }
+        return vkMesh;
+    }
     static Ref<VkMesh> CreateRef(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
     {
         Ref<VkMesh> vkMesh = Ref<VkMesh>(new VkMesh());

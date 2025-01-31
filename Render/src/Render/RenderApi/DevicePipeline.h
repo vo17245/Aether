@@ -4,5 +4,6 @@
 #include <variant>
 namespace Aether
 {
+    using DevicePipelineLayout=std::variant<std::monostate,vk::PipelineLayout>;
     using DevicePipeline=std::variant<std::monostate,vk::GraphicsPipeline>;
 }

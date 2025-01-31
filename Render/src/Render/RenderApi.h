@@ -7,3 +7,4 @@
 #include "RenderApi/DeviceCommandBuffer.h"
 #include "RenderApi/DeviceDescriptorPool.h"
 #include "RenderApi/DeviceRenderPass.h"
+#include "RenderApi/DeviceBuffer.h"

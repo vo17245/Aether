@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <future>
@@ -164,6 +165,55 @@ struct Mesh
     {
         return accessors[primitive.attributes.at(Primitive::Attribute::POSITION)].count;
     }
+    static BufferElementFormat GetBufferElementFormat(Type type,ComponentType componentType)
+    {
+        switch (type) 
+        {
+        case Type::SCALAR:
+            if(componentType==ComponentType::FLOAT32)
+            {
+                return BufferElementFormat::Float32;
+            }
+            else {
+                assert(false&&"not implemented");
+                return BufferElementFormat::Float32;
+            }
+            break;
+        case Type::VEC2:
+            if(componentType==ComponentType::FLOAT32)
+            {
+                return BufferElementFormat::Vec2f;
+            }
+            else {
+                assert(false&&"not implemented");
+                return BufferElementFormat::Float32;
+            }
+            break;
+        case Type::VEC3:
+            if(componentType==ComponentType::FLOAT32)
+            {
+                return BufferElementFormat::Vec3f;
+            }
+            else {
+                assert(false&&"not implemented");
+                return BufferElementFormat::Float32;
+            }
+            break;
+        case Type::VEC4:
+            if(componentType==ComponentType::FLOAT32)
+            {
+                return BufferElementFormat::Vec4f;
+            }
+            else {
+                assert(false&&"not implemented");
+                return BufferElementFormat::Float32;
+            }
+            break;
+        default:
+            assert(false&&"not implemented");
+            return BufferElementFormat::Float32;
+        }
+    }
     std::vector<VertexBufferLayout> CreateVertexBufferLayouts()const
     {
         // sort attribute by index in enum
@@ -175,12 +225,20 @@ struct Mesh
         std::sort(attributes.begin(),attributes.end(),[](Primitive::Attribute a,Primitive::Attribute b){
             return a<b;
         });
-        // create layout for each bufferView
+        // create layout for each bufferView used in vertex
         std::vector<VertexBufferLayout> layouts;
-        for(auto&& [index,_]:std::views::enumerate(bufferViews))
+        std::vector<int> bufferViewToLayout(bufferViews.size(),-1);
+        for(auto&& [attribute,accessorIndex]:primitive.attributes)
         {
-            VertexBufferLayout layout;
-            layout.SetBinding(index);
+            auto& accessor = accessors[accessorIndex];
+            auto& bufferViewIndex=accessor.bufferView;
+            if(bufferViewToLayout[bufferViewIndex]==-1)
+            {
+                bufferViewToLayout[bufferViewIndex]=layouts.size();
+                auto layout=VertexBufferLayout();
+                layout.SetBinding(layouts.size());
+                layouts.push_back(layout);
+            }
         }
         // add attribute to layout
         for(auto&& [index,attribute]:std::views::enumerate(attributes))
@@ -188,11 +246,11 @@ struct Mesh
             auto& accessorIndex=primitive.attributes.at(attribute);
             auto& accessor=accessors[accessorIndex];
             auto& bufferView=bufferViews[accessor.bufferView];
-            auto& layout=layouts[accessor.bufferView];
+            auto& layout=layouts[bufferViewToLayout[accessor.bufferView]];
             layout.PushAttribute(VertexBufferLayout::Attribute{
                 static_cast<uint32_t>(index),
                 accessor.byteOffset,
-                BufferElementFormat::Vec3f
+                GetBufferElementFormat(accessor.type, accessor.componentType)
             });
         }
         return layouts;

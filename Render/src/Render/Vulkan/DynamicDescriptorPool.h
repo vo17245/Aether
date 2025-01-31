@@ -34,6 +34,11 @@ public:
         std::vector<Accessor> ubos;
         std::vector<Accessor> samplers;
         std::vector<Accessor> ssbos;
+        DescriptorResource() = default;
+        DescriptorResource(DescriptorResource&&) = default;
+        DescriptorResource& operator=(DescriptorResource&&) = default;
+        DescriptorResource(const DescriptorResource&) = delete; 
+        DescriptorResource& operator=(const DescriptorResource&) = delete;
     };
     std::optional<DescriptorResource> CreateSet(size_t uboCount, size_t samplerCount, size_t ssboCount)
     {

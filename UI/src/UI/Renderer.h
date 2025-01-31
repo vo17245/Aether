@@ -4,6 +4,7 @@
 #include "Render/RenderApi/DeviceCommandBuffer.h"       
 #include "Render/RenderApi/DeviceDescriptorPool.h"
 #include "QuadArrayMesh.h"
+#include "Render/Temporary.h"
 namespace Aether::UI
 {
     class Renderer
@@ -32,12 +33,25 @@ namespace Aether::UI
         Renderer()=default;
         bool CreateDescriptorPool();
         // ====== basic
+        struct BasicUniformBlock
+        {
+            Mat4 model=Mat4::Identity();
+            Mat4 view=Mat4::Identity();
+        };
+        static_assert(sizeof(BasicUniformBlock)==4*16*2);
+        DeviceBuffer m_BasicUboStaging;
+        DeviceBuffer m_BasicUboBuffer;
         DevicePipeline m_BasicPipeline;// only draw quad with color
+        DevicePipelineLayout m_BasicPipelineLayout;
         DeviceDescriptorSet m_BasicDescriptorSet;
         DeviceShader m_BasicShader;
+        BasicUniformBlock m_BasicUboLocalBuffer;
         bool CreateBasicPipeline(DeviceRenderPassView _renderPass);
         bool CreateBasicDescriptorSet();
         bool CreateBasicShader();
+        bool CreateBasicBuffer();
+        bool UploadBasicBuffer();
+
         //============
         DevicePipeline m_TexturePipeline;// draw quad with texture
         DeviceDescriptorPool m_DescriptorPool;
@@ -52,5 +66,7 @@ namespace Aether::UI
         Vec2f m_ScreenSize=Vec2f(0,0);
     private:
         DeviceCommandBuffer m_TransformCommandBuffer;// for vertex data transform
+    private:
+        Temporary<DeviceMesh> m_Temporary;
     }; 
 }

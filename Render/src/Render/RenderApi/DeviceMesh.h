@@ -4,24 +4,84 @@
 #include "../Mesh/VkMesh.h"
 #include <expected>
 #include "../Config.h"
+#include "Render/Config.h"
 #include "Render/Vulkan/GlobalRenderContext.h"
 namespace Aether
 {
-using DeviceMesh=std::variant<std::monostate,VkMesh>;
-inline std::expected<DeviceMesh,std::string> CreateDeviceMesh(const Mesh& mesh)
+class DeviceMesh
 {
-    switch (Render::Config::RenderApi) {
-        case Render::Api::Vulkan:
-        {
-            auto vkMesh=VkMesh::Create(vk::GRC::GetGraphicsCommandPool(),mesh);
-            if(!vkMesh)
-            {
-                return std::unexpected<std::string>("Failed to create Vulkan Mesh");
-            }
-            return std::move(vkMesh.value());
-        }
-        default:
-            return std::unexpected<std::string>("Unsupported Render API");
+public:
+    DeviceMesh() = default;
+    DeviceMesh(const DeviceMesh&) = delete;
+    DeviceMesh(DeviceMesh&&) = default;
+    DeviceMesh& operator=(const DeviceMesh&) = delete;
+    DeviceMesh& operator=(DeviceMesh&&) = default;
+    bool Empty() const
+    {
+        return m_Mesh.index() == 0;
     }
-}
-}
+    static DeviceMesh Create(const Mesh& mesh)
+    {
+        DeviceMesh res;
+        switch (Render::Config::RenderApi)
+        {
+            case Render::Api::Vulkan:
+            {
+                auto vkMesh=VkMesh::Create(vk::GRC::GetGraphicsCommandPool(), mesh);
+                if(!vkMesh)
+                {
+                    return res;
+                }
+                res.m_Mesh=std::move(vkMesh.value());
+                return res;
+            }
+            break;
+            default:
+            {
+                assert(false && "Not implemented");
+                return res;
+            }
+        
+        }
+    }
+    static DeviceMesh* CreateRaw(const Mesh& mesh)
+    {
+        DeviceMesh* res=new DeviceMesh();
+        switch (Render::Config::RenderApi)
+        {
+            case Render::Api::Vulkan:
+            {
+                auto vkMesh=VkMesh::Create(vk::GRC::GetGraphicsCommandPool(), mesh);
+                if(!vkMesh)
+                {
+                    delete res;
+                    return nullptr;
+                }
+                res->m_Mesh=std::move(vkMesh.value());
+                return res;
+            }
+            break;
+            default:
+            {
+                assert(false && "Not implemented");
+                delete res;
+                return nullptr;
+            }
+        
+        }
+    }
+
+    template<typename T>
+    T& Get()
+    {
+        return std::get<T>(m_Mesh);
+    }
+    template<typename T>
+    const T& Get() const
+    {
+        return std::get<T>(m_Mesh);
+    }
+private:
+    std::variant<std::monostate, VkMesh> m_Mesh;
+};
+} // namespace Aether

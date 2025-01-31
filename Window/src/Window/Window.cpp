@@ -374,9 +374,15 @@ void Window::OnRender()
     m_CommandBufferFences[m_CurrentFrame]->Reset();
 
     // record command buffer
-    m_GraphicsCommandBuffer[m_CurrentFrame]->Begin();
     size_t lastFrame = (m_CurrentFrame + MAX_FRAMES_IN_FLIGHT - 1) % MAX_FRAMES_IN_FLIGHT;
-    bool anyLayerNeedRender = false;
+    auto& curCommandBuffer=*m_GraphicsCommandBuffer[m_CurrentFrame];
+    auto& curRenderPass=*m_RenderPass[m_CurrentFrame];
+    auto& curFrameBuffer=m_SwapChainFramebuffers[imageIndex];
+    Vec4 clearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    curCommandBuffer.Reset();
+    curCommandBuffer.Begin();
+    curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
+    
     for (size_t i = 0; i < m_Layers.size(); ++i)
     {
         auto* layer = m_Layers[i];
@@ -384,7 +390,8 @@ void Window::OnRender()
                         m_SwapChainFramebuffers[imageIndex],
                         *m_GraphicsCommandBuffer[m_CurrentFrame]);
     }
-    m_GraphicsCommandBuffer[m_CurrentFrame]->End();
+    curCommandBuffer.EndRenderPass();
+    curCommandBuffer.End();
     // commit command buffer
     auto imageAvailableSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle();
     static VkPipelineStageFlags  stage=VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;

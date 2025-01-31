@@ -25,7 +25,12 @@ public:
         vk::FrameBuffer& framebuffer,
         vk::GraphicsCommandBuffer& commandBuffer) override
     {
-
+        m_Renderer->Begin(renderPass, framebuffer, Vec2f(800, 600));
+        for(auto& quad:m_Quads)
+        {
+            m_Renderer->DrawQuad(quad);
+        }
+        m_Renderer->End(commandBuffer);
     }
     virtual void OnAttach(Window* window) override
     {
@@ -36,10 +41,24 @@ public:
             std::cout<<renderer.error()<<std::endl;
             return;
         }
+
         m_Renderer=CreateScope<UI::Renderer>(std::move(renderer.value()));
+        m_Renderer->SetScreenSize(Vec2f(800,600));
         // create quads
         UI::QuadDesc desc;
-
+        desc.color=Vec4f(1,0,0,1);
+        desc.position=Vec2f(100,100);
+        desc.size=Vec2f(100,100);
+        m_Quads.push_back(UI::Quad(desc));
+        desc.position.y()+=110;
+        desc.color=Vec4f(0,1,0,1);
+        m_Quads.push_back(UI::Quad(desc));
+        desc.position.x()+=110;
+        desc.color=Vec4f(0,0,1,1);
+        m_Quads.push_back(UI::Quad(desc));
+        desc.position.y()-=110;
+        desc.color=Vec4f(1,1,0,1);
+        m_Quads.push_back(UI::Quad(desc));
     }
 
 private:
