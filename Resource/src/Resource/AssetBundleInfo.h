@@ -6,19 +6,21 @@ namespace Aether::Resource
 {
     struct AssetBundleInfo
     {
-        std::unordered_map<Address, Scope<AssetInfo>, AddressHash> assets;
+        std::unordered_map<std::string, Scope<AssetInfo>> assets;
     };
     template<>
     struct ToJsonImpl<AssetBundleInfo>
     {
         Json operator()(const AssetBundleInfo& t)
         {
-            Json json = Json::object();
+            Json json_assets = Json::object();
             for (const auto& [address, asset] : t.assets)
             {
-                json[address.GetAddress()] = ToJson(asset);
+                json_assets[address] = ToJson(asset.get());
             }
-            return json;
+            Json res;
+            res["assets"] = std::move(json_assets);
+            return res;
         }
     };
     template<>
@@ -30,10 +32,17 @@ namespace Aether::Resource
             {
                 return std::unexpected<std::string>("AssetBundleInfo should be an object");
             }
-            AssetBundleInfo res;
-            for (const auto& [key, value] : json.items())
+            // get assets
+            auto json_assets_iter = json.find("assets");
+            if (json_assets_iter == json.end())
             {
-                auto address = Address(key);
+                return std::unexpected<std::string>("AssetBundleInfo should has assets filed");
+            }
+            auto& json_assets = json["assets"];
+            AssetBundleInfo res;
+            for (const auto& [key, value] : json_assets.items())
+            {
+                auto address = key;
                 auto asset = FromJson<AssetInfo*>(value);
                 if (!asset)
                 {

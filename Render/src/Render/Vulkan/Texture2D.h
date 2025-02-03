@@ -6,7 +6,7 @@
 #include "vulkan/vulkan_core.h"
 namespace Aether {
 namespace vk {
-
+class GraphicsCommandBuffer;
 class Texture2D
 {
 public:
@@ -25,7 +25,14 @@ public:
     Texture2D& operator=(Texture2D&& other) noexcept;
 
     void SyncTransitionLayout(GraphicsCommandPool& commandPool, VkImageLayout oldLayout, VkImageLayout newLayout);
-    void SyncCopyBuffer(GraphicsCommandPool& commandPool, Buffer& buffer);
+    void SyncTransitionLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
+    void AsyncTransitionLayout(GraphicsCommandBuffer& commandBuffer,VkImageLayout oldLayout,VkImageLayout newLayout);
+    /**
+     * @brief 将device buffer的数据拷贝到texture中
+    */
+    void SyncCopyBuffer(GraphicsCommandPool& commandPool,const Buffer& buffer);
+    void SyncCopyBuffer(const Buffer& buffer);
+
     VkImage GetHandle() const;
     PixelFormat GetFormat() const;
     uint32_t GetWidth() const;
@@ -54,7 +61,7 @@ public:
         Unknown,
     };
 
-    Usage GetUsage()
+    Usage GetUsage()const
     {
         return m_Usage;
     }

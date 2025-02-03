@@ -6,7 +6,33 @@
 #include "Render/Config.h"
 namespace Aether
 {
-using DeviceDescriptorSet = std::variant<std::monostate, vk::DynamicDescriptorPool::DescriptorResource>;
+class DeviceDescriptorSet
+{
+public:
+    DeviceDescriptorSet(vk::DynamicDescriptorPool::DescriptorResource&& resource) :
+        m_DescriptorSet(std::move(resource))
+    {
+    }
+    operator bool() const
+    {
+        return m_DescriptorSet.index() != 0;
+    }
+    DeviceDescriptorSet()=default;
+    vk::DynamicDescriptorPool::DescriptorResource& GetVk()
+    {
+        return std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet);
+    }
+    const vk::DynamicDescriptorPool::DescriptorResource& GetVk() const
+    {
+        return std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet);
+    }
+    bool Empty()
+    {
+        return m_DescriptorSet.index() == 0;
+    }
+private:
+    std::variant<std::monostate, vk::DynamicDescriptorPool::DescriptorResource> m_DescriptorSet;
+};
 
 class DeviceDescriptorPool
 {
@@ -63,7 +89,7 @@ inline DeviceDescriptorSet DeviceDescriptorPool::CreateSetImpl::Create(vk::Dynam
 template <>
 inline DeviceDescriptorSet DeviceDescriptorPool::CreateSetImpl::Create(std::monostate& pool)
 {
-    assert(false&&"not implemented");
+    assert(false && "not implemented");
     return {};
 }
 } // namespace Aether

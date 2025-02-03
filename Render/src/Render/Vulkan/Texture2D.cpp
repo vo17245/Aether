@@ -3,8 +3,9 @@
 #include "GlobalRenderContext.h"
 #include "Render/PixelFormat.h"
 #include "Allocator.h"
-namespace Aether {
-namespace vk {
+#include "vulkan/vulkan_core.h"
+namespace Aether::vk
+{
 
 VkFormat Texture2D::GetVkFormat() const
 {
@@ -117,22 +118,19 @@ Texture2D& Texture2D::operator=(Texture2D&& other) noexcept
     }
     return *this;
 }
-
-void Texture2D::SyncTransitionLayout(GraphicsCommandPool& commandPool, VkImageLayout oldLayout, VkImageLayout newLayout)
+static void SetTransitionLayoutParam(VkImageMemoryBarrier& barrier,
+VkPipelineStageFlags& sourceStage ,
+    VkPipelineStageFlags& destinationStage ,
+    VkImageLayout oldLayout, VkImageLayout newLayout,
+    VkImage image
+)
 {
-    auto fenceOpt = Fence::Create();
-    auto fence = std::move(fenceOpt.value());
-
-    auto cbopt = GraphicsCommandBuffer::Create(commandPool);
-    GraphicsCommandBuffer cb = std::move(cbopt.value());
-    cb.BeginSingleTime();
-    VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = oldLayout;
     barrier.newLayout = newLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = m_Image;
+    barrier.image = image;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
@@ -141,8 +139,6 @@ void Texture2D::SyncTransitionLayout(GraphicsCommandPool& commandPool, VkImageLa
     barrier.srcAccessMask = 0; // TODO
     barrier.dstAccessMask = 0; // TODO
 
-    VkPipelineStageFlags sourceStage = 0;
-    VkPipelineStageFlags destinationStage = 0;
 
     if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
     {
@@ -160,10 +156,53 @@ void Texture2D::SyncTransitionLayout(GraphicsCommandPool& commandPool, VkImageLa
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
+    else if ((oldLayout) == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && (newLayout) == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+    {
+        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    }
+    else if ((oldLayout) == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && (newLayout) == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        sourceStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if ((oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) && (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if((oldLayout ==VK_IMAGE_LAYOUT_UNDEFINED)&&(newLayout==VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL))
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    }
     else
     {
         assert(false && "unsupported layout transition!");
     }
+}
+
+void Texture2D::SyncTransitionLayout(GraphicsCommandPool& commandPool, VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+    auto fenceOpt = Fence::Create();
+    auto fence = std::move(fenceOpt.value());
+
+    auto cbopt = GraphicsCommandBuffer::Create(commandPool);
+    GraphicsCommandBuffer cb = std::move(cbopt.value());
+    cb.BeginSingleTime();
+    VkImageMemoryBarrier barrier{};
+    VkPipelineStageFlags sourceStage = 0;
+    VkPipelineStageFlags destinationStage = 0;
+
+    SetTransitionLayoutParam(barrier, sourceStage, destinationStage, oldLayout, newLayout,m_Image);
     vkCmdPipelineBarrier(
         cb.GetHandle(),
         sourceStage, destinationStage,
@@ -175,7 +214,7 @@ void Texture2D::SyncTransitionLayout(GraphicsCommandPool& commandPool, VkImageLa
     cb.BeginSubmit().Fence(fence).EndSubmit();
     fence.Wait();
 }
-void Texture2D::SyncCopyBuffer(GraphicsCommandPool& commandPool, Buffer& buffer)
+void Texture2D::SyncCopyBuffer(GraphicsCommandPool& commandPool, const Buffer& buffer)
 {
     auto fenceOpt = Fence::Create();
     auto fence = std::move(fenceOpt.value());
@@ -212,6 +251,10 @@ VkImage Texture2D::GetHandle() const
 {
     return m_Image;
 }
+void Texture2D::SyncCopyBuffer(const Buffer& buffer)
+{
+    SyncCopyBuffer(GRC::GetGraphicsCommandPool(), buffer);
+}
 PixelFormat Texture2D::GetFormat() const
 {
     return m_Format;
@@ -239,5 +282,30 @@ std::optional<Texture2D> Texture2D::CreateForDepthAttachment(uint32_t width, uin
     res->m_Usage = Usage::DepthAttachment;
     return res;
 }
+void Texture2D::SyncTransitionLayout(VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+    SyncTransitionLayout(GRC::GetGraphicsCommandPool(), oldLayout, newLayout);
 }
+
+void Texture2D::AsyncTransitionLayout(GraphicsCommandBuffer& cb, VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+    auto fenceOpt = Fence::Create();
+    auto fence = std::move(fenceOpt.value());
+
+    VkImageMemoryBarrier barrier{};
+  
+
+    VkPipelineStageFlags sourceStage = 0;
+    VkPipelineStageFlags destinationStage = 0;
+
+    SetTransitionLayoutParam(barrier, sourceStage, destinationStage, oldLayout, newLayout,m_Image);
+    vkCmdPipelineBarrier(
+        cb.GetHandle(),
+        sourceStage, destinationStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier);
+}
+
 } // namespace Aether::vk

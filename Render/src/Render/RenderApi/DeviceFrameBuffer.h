@@ -1,6 +1,11 @@
 #pragma once
 #include "../Vulkan/FrameBuffer.h"
+#include <cassert>
 #include <variant>
+#include "DeviceTexture.h"
+#include "Render/Config.h"
+#include "DeviceRenderPass.h"
+#include "Render/Vulkan/ImageView.h"
 namespace Aether
 {
 class DeviceFrameBuffer
@@ -31,6 +36,31 @@ public:
     DeviceFrameBuffer()
     {
     }
+    static DeviceFrameBuffer CreateFromTexture(const DeviceRenderPassView& renderPass,DeviceTexture& texture)
+    {
+        if (Render::Config::RenderApi == Render::Api::Vulkan)
+        {
+            auto& vkTexture=texture.Get<vk::Texture2D>();
+            auto& vkRenderPass=renderPass.Get<vk::RenderPass>();
+            VkExtent2D size={vkTexture.GetWidth(),vkTexture.GetHeight()};
+            auto& imageView=texture.GetOrCreateDefaultImageView().Get<vk::ImageView>();
+            auto frameBuffer=vk::FrameBuffer::Create(vkRenderPass, size,imageView);
+            return DeviceFrameBuffer(std::move(frameBuffer.value()));
+        }
+        else
+        {
+            assert(false && "not implemented");
+            return {};
+        }
+    }
+    vk::FrameBuffer& GetVk()
+    {
+        return std::get<vk::FrameBuffer>(m_Data);
+    }
+    const vk::FrameBuffer& GetVk() const
+    {
+        return std::get<vk::FrameBuffer>(m_Data);
+    }
 
 private:
     std::variant<std::monostate, vk::FrameBuffer> m_Data;
@@ -47,10 +77,21 @@ public:
     DeviceFrameBufferView()
     {
     }
-    template <typename T>
-    DeviceFrameBufferView(T& t) :
+    DeviceFrameBufferView(vk::FrameBuffer& t) :
         m_Data(&t)
     {
+    }
+    DeviceFrameBufferView(DeviceFrameBuffer& t)
+    {
+        if (std::holds_alternative<vk::FrameBuffer>(t.GetData()))
+        {
+            auto& frameBuffer = t.Get<vk::FrameBuffer>();
+            m_Data = &frameBuffer;
+        }
+        else if (std::holds_alternative<std::monostate>(t.GetData()))
+        {
+            m_Data = std::monostate();
+        }
     }
     DeviceFrameBufferView(std::monostate) :
         m_Data(std::monostate())
@@ -67,6 +108,14 @@ public:
     const auto& GetData() const
     {
         return m_Data;
+    }
+    vk::FrameBuffer& GetVk()
+    {
+        return *std::get<vk::FrameBuffer*>(m_Data);
+    }
+    const vk::FrameBuffer& GetVk() const
+    {
+        return *std::get<vk::FrameBuffer*>(m_Data);
     }
 
 private:

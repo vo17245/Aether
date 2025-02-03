@@ -14,7 +14,7 @@ class FrameBuffer
 public:
     template <typename... Attachments>
         requires AreAllImageView<Attachments...>
-    static std::optional<FrameBuffer> Create(const RenderPass& renderPass, VkExtent2D size, const Attachments&... attachments)
+    static std::optional<FrameBuffer> Create(const RenderPass& renderPass, const VkExtent2D& size, const Attachments&... attachments)
     {
         auto attachmentsArray = make_image_view_handle_array(attachments...);
         VkFramebufferCreateInfo framebufferInfo{};

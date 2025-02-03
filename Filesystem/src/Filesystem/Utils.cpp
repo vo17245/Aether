@@ -4,8 +4,7 @@
 #include <cstdint>
 #include <span>
 #include <print>
-namespace Aether {
-namespace Filesystem {
+namespace Aether::Filesystem {
 std::optional<std::vector<char>> ReadFile(const Filesystem::Path& path)
 {
     File file(path, Filesystem::Action::Read);
@@ -114,5 +113,19 @@ std::vector<U8String> ListFiles(const std::string_view path)
     }
     return res;
 }
+bool ReadFile(uint8_t* buffer,size_t bufferSize,const std::string_view path)
+{
+    File file(path,Action::Read);
+    if(!file.IsOpened())
+    {
+        return false;
+    }
+    size_t fileSize=file.GetSize();
+    if(fileSize>bufferSize)
+    {
+        return false;
+    }
+    file.Read(std::span<uint8_t>(buffer,fileSize));
+    return true;
 }
 } // namespace Aether::Filesystem

@@ -381,7 +381,7 @@ void Window::OnRender()
     Vec4 clearColor(0.0f, 0.0f, 0.0f, 1.0f);
     curCommandBuffer.Reset();
     curCommandBuffer.Begin();
-    curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
+    //curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
     
     for (size_t i = 0; i < m_Layers.size(); ++i)
     {
@@ -390,7 +390,7 @@ void Window::OnRender()
                         m_SwapChainFramebuffers[imageIndex],
                         *m_GraphicsCommandBuffer[m_CurrentFrame]);
     }
-    curCommandBuffer.EndRenderPass();
+    //curCommandBuffer.EndRenderPass();
     curCommandBuffer.End();
     // commit command buffer
     auto imageAvailableSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle();

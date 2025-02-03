@@ -20,6 +20,10 @@ public:
     {
         return m_Mesh.index() == 0;
     }
+    operator bool()
+    {
+        return !Empty();
+    }
     static DeviceMesh Create(const Mesh& mesh)
     {
         DeviceMesh res;
@@ -81,6 +85,14 @@ public:
     {
         return std::get<T>(m_Mesh);
     }
+    VkMesh& GetVk()
+    {
+        return Get<VkMesh>();
+    }
+    const VkMesh& GetVk() const
+    {
+        return Get<VkMesh>();
+    } 
 private:
     std::variant<std::monostate, VkMesh> m_Mesh;
 };

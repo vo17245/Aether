@@ -6,6 +6,7 @@ namespace vk {
 
 Sampler::Builder::Builder()
 {
+    InitCreateInfo();
 }
 Sampler::Builder& Sampler::Builder::SetMagFilter(Filter filter)
 {

@@ -2,7 +2,7 @@
 #include "GlobalRenderContext.h"
 namespace Aether {
 namespace vk {
-std::optional<ImageView> ImageView::Create(Texture2D& texture)
+std::optional<ImageView> ImageView::Create(const Texture2D& texture)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

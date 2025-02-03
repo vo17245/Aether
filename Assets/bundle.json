@@ -1,0 +1,9 @@
+{
+    "assets": {
+        "Images/tiles.png":{
+            "type":"Image",
+            "address":"Images/tiles.png",
+            "colorSpace":"SRGB"
+        }
+    }
+}

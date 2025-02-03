@@ -52,7 +52,7 @@ constexpr auto make_image_view_handle_array(const ImageViews&... imageViews)
 template <AreAllVertexBufferLayout... VertexBufferLayouts>
 constexpr auto make_vertex_input_binding_description_array(const VertexBufferLayouts&... vertexBufferLayouts)
 {
-    return make_array(vertexBufferLayouts.CreateBindingDescription()...);
+    return make_array(vertexBufferLayouts.CreateVulkanBindingDescription()...);
 }
 
 template <typename T, typename... Ts>
@@ -67,7 +67,7 @@ auto merge_vector(const T& first, const Ts&... ts)
 template <typename... Ts>
 auto merge_vertex_attribute_description(const Ts&... ts)
 {
-    return merge_vector(ts.CreateAttributeDescriptions()...);
+    return merge_vector(ts.CreateVulkanAttributeDescriptions()...);
 }
 template <typename T>
 concept IsSemaphore = std::is_same_v<T, Semaphore>;

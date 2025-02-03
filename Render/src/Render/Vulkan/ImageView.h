@@ -10,7 +10,7 @@ namespace vk {
 class ImageView
 {
 public:
-    static std::optional<ImageView> Create(Texture2D& texture);
+    static std::optional<ImageView> Create(const Texture2D& texture);
     static std::optional<ImageView> CreateForDepthAttachment(Texture2D& texture);
     // create for swapchain image
     static std::optional<ImageView> Create(VkImage image, VkFormat format, uint32_t width, uint32_t height);

@@ -9,7 +9,7 @@ struct ImageInfo : public AssetInfo
         SRGB,
         LINEAR,
     };
-    ImageInfo(const Address& _address) :
+    ImageInfo(const std::string_view _address) :
         AssetInfo(AssetType::Image, _address)
     {
     }
@@ -18,6 +18,10 @@ struct ImageInfo : public AssetInfo
     ImageInfo& operator=(const ImageInfo&) = default;
     ImageInfo& operator=(ImageInfo&&) = default;
     ColorSpace colorSpace = ColorSpace::SRGB;
+    virtual AssetInfo* Clone()const override
+    {
+        return new ImageInfo(*this);
+    }
 };
 template <>
 struct ToJsonImpl<ImageInfo::ColorSpace>
@@ -62,7 +66,7 @@ struct ToJsonImpl<ImageInfo>
     {
         Json j;
         j["type"] = ToJson(t.type);
-        j["address"] = t.address.GetAddress();
+        j["address"] = t.address;
         j["colorSpace"] = ToJson(t.colorSpace);
         return j;
     }
@@ -98,7 +102,7 @@ struct FromJsonImpl<ImageInfo>
         {
             return std::unexpected<std::string>("ImageInfo should have address field");
         }
-        ImageInfo info(FromJson<Address>(json["address"]).value());
+        ImageInfo info(FromJson<std::string>(json["address"]).value());
         // get colorSpace
         auto json_colorSpace_iter = json.find("colorSpace");
         if (json_colorSpace_iter == json.end())

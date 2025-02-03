@@ -4,13 +4,16 @@
 #include <optional>
 #include <span>
 #include <string_view>
-namespace Aether {
-namespace Filesystem {
+namespace Aether::Filesystem
+{
 std::optional<std::vector<char>> ReadFile(const Filesystem::Path& path);
+/**
+ * @brief 读取整个文件到buffer中,如果bufferSize小于文件大小,则返回false
+ */
+bool ReadFile(uint8_t* buffer, size_t bufferSize, const std::string_view path);
 bool WriteFile(const Filesystem::Path& path, const std::span<uint8_t> data);
 bool WriteFile(const Filesystem::Path& path, const std::span<char> data);
 bool RemoveTree(const std::string_view path);
 bool CreateDirectories(const Path& path);
 std::vector<U8String> ListFiles(const std::string_view path);
-}
-} // namespace Aether::Filesystem
+} // namespace Aether::FIlesystem

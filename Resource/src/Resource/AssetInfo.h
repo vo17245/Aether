@@ -1,5 +1,4 @@
 #pragma once
-#include "Address.h"
 #include <IO/Json.h>
 #include <unordered_map>
 #include "Core/Base.h"
@@ -53,8 +52,8 @@ struct FromJsonImpl<AssetType>
 struct AssetInfo
 {
     AssetType type;
-    Address address;
-    AssetInfo(AssetType _type, const Address& _address) :
+    std::string address;
+    AssetInfo(AssetType _type, const std::string_view _address) :
         type(_type), address(_address)
     {
     }
@@ -62,6 +61,7 @@ struct AssetInfo
     AssetInfo(AssetInfo&&) = default;
     AssetInfo& operator=(const AssetInfo&) = default;
     AssetInfo& operator=(AssetInfo&&) = default;
+    virtual AssetInfo* Clone()const=0;
+    virtual ~AssetInfo() = default;
 };
-
 } // namespace Aether::Resource

@@ -1,5 +1,7 @@
 #pragma once
 #include "../Vulkan/GraphicsCommandBuffer.h"
+#include "Render/Vulkan/GraphicsCommandBuffer.h"
+#include <cassert>
 #include <variant>
 namespace Aether
 {
@@ -29,6 +31,14 @@ public:
     {
         return m_Data.index() == 0;
     }
+    vk::GraphicsCommandBuffer& GetVk()
+    {
+        return std::get<vk::GraphicsCommandBuffer>(m_Data);
+    }
+    const vk::GraphicsCommandBuffer& GetVk()const
+    {
+        return std::get<vk::GraphicsCommandBuffer>(m_Data);
+    }
 
 private:
     std::variant<std::monostate, vk::GraphicsCommandBuffer> m_Data;
@@ -43,10 +53,24 @@ public:
         return *std::get<T*>(m_Data);
     }
 
-    template <typename T>
-    DeviceCommandBufferView(T& t) :
+    DeviceCommandBufferView(vk::GraphicsCommandBuffer& t) :
         m_Data(&t)
     {
+    }
+    DeviceCommandBufferView(DeviceCommandBuffer& t)
+    {
+        if (t.Empty())
+        {
+            m_Data = std::monostate();
+        }
+        else if(std::holds_alternative<vk::GraphicsCommandBuffer>(t.GetData()))
+        {
+            m_Data = &std::get<vk::GraphicsCommandBuffer>(t.GetData());
+        }
+        else
+        {
+            assert(false&&"unsupported command buffer type");
+        }
     }
     DeviceCommandBufferView(std::monostate) :
         m_Data(std::monostate())
@@ -59,6 +83,14 @@ public:
     auto& GetData()
     {
         return m_Data;
+    }
+    vk::GraphicsCommandBuffer& GetVk()
+    {
+        return *std::get<vk::GraphicsCommandBuffer*>(m_Data);
+    }
+    const vk::GraphicsCommandBuffer& GetVk() const
+    {
+        return *std::get<vk::GraphicsCommandBuffer*>(m_Data);
     }
 
 private:

@@ -1,7 +1,274 @@
 #pragma once
 #include "../Vulkan/Texture2D.h"
+#include "Render/Config.h"
+#include "Render/PixelFormat.h"
+#include "Render/RenderApi/DeviceCommandBuffer.h"
+#include "Render/RenderApi/DeviceTexture.h"
+#include <cassert>
 #include <variant>
+#include <expected>
+#include "../Config.h"
+#include "Render/Vulkan/Buffer.h"
+#include "Render/Vulkan/GlobalRenderContext.h"
+#include "DeviceBuffer.h"
+#include "Render/Vulkan/ImageView.h"
+#include "vulkan/vulkan_core.h"
 namespace Aether
 {
-using DeviceTexture=std::variant<std::monostate,vk::Texture2D>;
+class DeviceImageView
+{
+public:
+    bool Empty() const
+    {
+        return m_ImageView.index() == 0;
+    }
+    template <typename T>
+    T& Get()
+    {
+        return std::get<T>(m_ImageView);
+    }
+    template <typename T>
+    const T& Get() const
+    {
+        return std::get<T>(m_ImageView);
+    }
+    DeviceImageView(std::monostate) :
+        m_ImageView(std::monostate{})
+    {
+    }
+    DeviceImageView(vk::ImageView&& imageView) :
+        m_ImageView(std::move(imageView))
+    {
+    }
+    DeviceImageView()
+    {
+
+    }
+    vk::ImageView& GetVk()
+    {
+        return std::get<vk::ImageView>(m_ImageView);
+    }
+    const vk::ImageView& GetVk()const 
+    {
+        return std::get<vk::ImageView>(m_ImageView);
+    }
+
+private:
+    std::variant<std::monostate, vk::ImageView> m_ImageView;
+};
+enum class DeviceImageLayout
+{
+    Present,
+    ColorAttachment,
+    Texture,
+    Undefined,
+};
+inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
+{
+    switch (layout)
+    {
+    case DeviceImageLayout::Present:
+        return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    case DeviceImageLayout::ColorAttachment:
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    case DeviceImageLayout::Texture:
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    case DeviceImageLayout::Undefined:
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    default:
+        assert(false && "Invalid layout");
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    }
 }
+class DeviceTexture
+{
+public:
+    DeviceTexture() = default;
+    bool Empty() const
+    {
+        return m_Texture.index() == 0;
+    }
+    template <typename T>
+    T& Get()
+    {
+        return std::get<T>(m_Texture);
+    }
+    template <typename T>
+    const T& Get() const
+    {
+        return std::get<T>(m_Texture);
+    }
+    template <typename T>
+    DeviceTexture(T&& t) :
+        m_Texture(std::forward<T>(t))
+    {
+    }
+    DeviceTexture(std::monostate) :
+        m_Texture(std::monostate{})
+    {
+    }
+    /**
+     * @note data should be in rgba_int8 format
+     */
+    static std::expected<DeviceTexture, std::string> CreateForTexture(int width, int height, PixelFormat format)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto texture = vk::Texture2D::CreateForTexture(width, height, PixelFormat::RGBA8888);
+            if (!texture)
+            {
+                return std::unexpected<std::string>("Failed to create texture");
+            }
+            return DeviceTexture(std::move(texture.value()));
+        }
+        break;
+        default:
+            return std::unexpected<std::string>("Not implemented");
+        }
+    }
+    static std::expected<DeviceTexture,std::string> CreateForColorAttachment(int width,int height,PixelFormat format)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto texture = vk::Texture2D::CreateForColorAttachment(width, height, format);
+            if (!texture)
+            {
+                return std::unexpected<std::string>("Failed to create texture");
+            }
+            return DeviceTexture(std::move(texture.value()));
+        }
+        break;
+        default:
+            return std::unexpected<std::string>("Not implemented");
+        }
+    }
+    std::optional<std::string> CopyBuffer(const DeviceBuffer& buffer)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto& vkBuffer=buffer.Get<vk::Buffer>();
+            auto& texture = Get<vk::Texture2D>();
+            texture.SyncCopyBuffer(vkBuffer);
+            return std::nullopt;
+        }
+        break;
+        default:
+            return "Not implemented";
+        }
+    }
+    DeviceImageView& GetOrCreateDefaultImageView()
+    {
+        if (m_DefaultImageView.Empty())
+        {
+            switch (Render::Config::RenderApi)
+            {
+            case Render::Api::Vulkan: {
+                auto& texture = Get<vk::Texture2D>();
+                auto imageView = vk::ImageView::Create(texture);
+                if (!imageView)
+                {
+                    assert(false && "Failed to create image view");
+                    return m_DefaultImageView;
+                }
+                m_DefaultImageView = DeviceImageView(std::move(imageView.value()));
+            }
+            break;
+            default:
+                assert(false && "Not implemented");
+                return m_DefaultImageView;
+            }
+        }
+        return m_DefaultImageView;
+    }
+    DeviceImageView& GetDefaultImageView()
+    {
+        return m_DefaultImageView;
+    }
+    const DeviceImageView& GetDefaultImageView() const
+    {
+        return m_DefaultImageView;
+    }
+    size_t GetWidth()const
+    {
+        return std::visit(GetWidthImpl{}, m_Texture);
+    }
+    size_t GetHeight()const
+    {
+        return std::visit(GetHeightImpl{}, m_Texture);
+    }
+    vk::Texture2D& GetVk()
+    {
+        return Get<vk::Texture2D>();
+    }
+    const vk::Texture2D& GetVk() const
+    {
+        return Get<vk::Texture2D>();
+    }
+    void AsyncTransitionLayout(DeviceImageLayout oldLayout, DeviceImageLayout newLayout, DeviceCommandBufferView commandBuffer)
+    {
+        std::visit(AsyncTransitionLayoutImpl{oldLayout, newLayout, commandBuffer}, m_Texture);
+    }
+    void SyncTransitionLayout(DeviceImageLayout oldLayout, DeviceImageLayout newLayout)
+    {
+        std::visit(SyncTransitionLayoutImpl{oldLayout, newLayout}, m_Texture);
+    }
+    
+private:
+    struct GetWidthImpl
+    {
+        size_t operator()(const vk::Texture2D& texture) const
+        {
+            return texture.GetWidth();
+        }
+        size_t operator()(std::monostate) const
+        {
+            return 0;
+        }
+    };
+    struct GetHeightImpl
+    {
+        size_t operator()(const vk::Texture2D& texture) const
+        {
+            return texture.GetHeight();
+        }
+        size_t operator()(std::monostate) const
+        {
+            return 0;
+        }
+    };
+    struct AsyncTransitionLayoutImpl
+    {
+        DeviceImageLayout oldLayout;
+        DeviceImageLayout newLayout;
+        DeviceCommandBufferView commandBuffer;
+        void operator()(vk::Texture2D& texture)
+        {
+            auto& cb=commandBuffer.GetVk();
+            texture.AsyncTransitionLayout(cb, DeviceImageLayoutToVk(oldLayout), DeviceImageLayoutToVk(newLayout));
+        }
+        void operator()(std::monostate&)
+        {
+            assert(false&&"texture is empty");
+        }
+    };
+    struct SyncTransitionLayoutImpl
+    {
+        DeviceImageLayout oldLayout;
+        DeviceImageLayout newLayout;
+        void operator()(vk::Texture2D& texture)
+        {
+            texture.SyncTransitionLayout(DeviceImageLayoutToVk(oldLayout), DeviceImageLayoutToVk(newLayout));
+        }
+        void operator()(std::monostate&)
+        {
+            assert(false && "texture is empty");
+        }
+    };
+    
+    std::variant<std::monostate, vk::Texture2D> m_Texture;
+    DeviceImageView m_DefaultImageView;
+};
+} // namespace Aether

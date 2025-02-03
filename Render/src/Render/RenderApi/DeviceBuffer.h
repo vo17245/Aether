@@ -89,6 +89,14 @@ public:
     {
         SetData(data.data(), data.size());
     }
+    vk::Buffer& GetVk()
+    {
+        return Get<vk::Buffer>();
+    }
+    const vk::Buffer& GetVk() const
+    {
+        return Get<vk::Buffer>();
+    }
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
 };

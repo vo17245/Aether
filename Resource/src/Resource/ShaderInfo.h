@@ -5,7 +5,7 @@ namespace Aether::Resource
 
 struct ShaderInfo : public AssetInfo
 {
-    ShaderInfo(const Address& _address) :
+    ShaderInfo(const std::string_view _address) :
         AssetInfo(AssetType::Shader, _address)
     {
     }
@@ -24,6 +24,10 @@ struct ShaderInfo : public AssetInfo
     };
     ShaderStageType stage = ShaderStageType::Vertex;
     std::string entryPoint = "main";
+    virtual AssetInfo* Clone()const override
+    {
+        return new ShaderInfo(*this);
+    }
 };
 template <>
 struct ToJsonImpl<ShaderInfo::ShaderLanguage>
@@ -116,7 +120,7 @@ struct ToJsonImpl<ShaderInfo>
     {
         Json j;
         j["type"] = ToJson(t.type);
-        j["address"] = t.address.GetAddress();
+        j["address"] = t.address;
         j["language"] = ToJson(t.language);
         j["stage"] = ToJson(t.stage);
         j["entryPoint"] = t.entryPoint;
@@ -154,7 +158,7 @@ struct FromJsonImpl<ShaderInfo>
         {
             return std::unexpected<std::string>("ShaderInfo should have address field");
         }
-        ShaderInfo info(FromJson<Address>(json["address"]).value());
+        ShaderInfo info(FromJson<std::string>(json["address"]).value());
         // get language
         auto json_language_iter = json.find("language");
         if (json_language_iter == json.end())

@@ -11,6 +11,9 @@ inline bool OpenFile(const Path& path, Action actions, FileHandle& handle)
 {
     return OpenFile(path, static_cast<ActionFlags>(actions), handle);
 }
+/**
+ * @brief 读取buffer.size()个byte到buffer中
+*/
 size_t Read(FileHandle& handle, std::span<uint8_t> buffer);
 size_t Write(FileHandle& handle, std::span<const uint8_t> buffer);
 inline size_t Write(FileHandle& handle, std::span<const char> buffer)
@@ -21,6 +24,7 @@ bool CloseFile(FileHandle& handle);
 
 bool Exists(const std::string_view path);
 bool IsDirectory(const std::string_view path);
+bool IsFile(const std::string_view path);
 size_t GetFileSize(FileHandle& handle);
 bool CreateDirectory(const std::string_view path);
 int64_t GetLastError();

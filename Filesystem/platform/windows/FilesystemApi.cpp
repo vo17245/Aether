@@ -254,6 +254,10 @@ std::optional<FindResult> FindNext(FileHandle& handle)
     result.findData=std::move(findData);
     return result;
 }
+bool IsFile(const std::string_view path)
+{
+    return !IsDirectory(path);
+}
 
 }// namespace Filesystem
 } // namespace Aether

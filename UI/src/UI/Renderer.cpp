@@ -18,27 +18,14 @@
 #include "Render/Basis.h"
 namespace Aether::UI
 {
-bool Renderer::CreateDescriptorPool()
-{
-    if (Render::Config::RenderApi != Render::Api::Vulkan)
-    {
-        assert(false && "not implemented");
-    }
-    auto poolEx = DeviceDescriptorPool::Create();
-    if (!poolEx)
-    {
-        return false;
-    }
-    m_DescriptorPool = std::move(poolEx.value());
-    return true;
-}
+
 bool Renderer::CreateBasicPipeline(DeviceRenderPassView _renderPass)
 {
     if (Render::Config::RenderApi != Render::Api::Vulkan)
     {
         assert(false && "not implemented");
     }
-    auto& vkDescriptorSet = std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_BasicDescriptorSet);
+    auto& vkDescriptorSet = m_BasicDescriptorSet.GetVk();
     vk::PipelineLayout::Builder layoutBuilder;
     for (auto& layout : vkDescriptorSet.layouts)
     {
@@ -53,7 +40,7 @@ bool Renderer::CreateBasicPipeline(DeviceRenderPassView _renderPass)
     auto dummyMesh = QuadArrayMesh();
     auto vertextLayouts = dummyMesh.GetMesh().CreateVertexBufferLayouts();
     auto& renderPass = _renderPass.Get<vk::RenderPass>();
-    auto& shader = std::get<VulkanShader>(m_BasicShader);
+    auto& shader = m_BasicShader.GetVk();
     vk::GraphicsPipeline::Builder builder(renderPass, layout.value());
     builder.PushVertexBufferLayouts(vertextLayouts);
     builder.AddVertexStage(shader.vertex, "main");
@@ -73,14 +60,32 @@ void Renderer::Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView fram
     m_RenderPass = renderPass;
     m_ScreenSize = screenSize;
     // clear quad mesh
-    m_BasicQuadArray = QuadArrayMesh();
-    m_Temporary.ClearAll();
+    m_BasicQuadArray = QuadArrayMesh();// clear basic quads
+    m_QuadsWithTexture.clear();// clear quads with texture
+    m_Temporary.ClearAll();// clear temporary(e.g. device mesh in last frame)
 }
 void Renderer::DrawQuad(const Quad& quad)
 {
     if (!quad.GetShader() && !quad.GetTexture())
     {
         m_BasicQuadArray.PushQuad(quad);
+    }
+    else if(!quad.GetShader()&&quad.GetTexture())
+    {
+        // has same texture yet?
+        for(auto& q:m_QuadsWithTexture)
+        {
+            if(q.texture==quad.GetTexture())
+            {
+                q.mesh.PushQuad(quad);
+                return;
+            }
+        }
+        // create new 
+        QuadWithTexture qwt;
+        qwt.texture=quad.GetTexture();
+        qwt.mesh.PushQuad(quad);
+        m_QuadsWithTexture.push_back(qwt);
     }
     else
     {
@@ -98,15 +103,15 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
             m_BasicUboLocalBuffer.view=Mat4::Identity();
             UploadBasicBuffer();
         }
-        auto& descriptorResource = std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_BasicDescriptorSet);
+        auto& descriptorResource = m_BasicDescriptorSet.GetVk();
         
 
         // record command in input command buffer
         auto& commandBuffer = _commandBuffer.Get<vk::GraphicsCommandBuffer>();
         auto& renderPass = m_RenderPass.Get<vk::RenderPass>();
         auto& frameBuffer = m_FrameBuffer.Get<vk::FrameBuffer>();
-        auto& pipeline = std::get<vk::GraphicsPipeline>(m_BasicPipeline);
-        auto& pipelineLayout = std::get<vk::PipelineLayout>(m_BasicPipelineLayout);
+        auto& pipeline = m_BasicPipeline.GetVk();
+        auto& pipelineLayout = m_BasicPipelineLayout.GetVk();
         auto* meshp=DeviceMesh::CreateRaw(m_BasicQuadArray.GetMesh());
         assert(meshp && "failed to create mesh");
         m_Temporary.Push(meshp);
@@ -125,13 +130,11 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
         //commandBuffer.EndRenderPass();
     }
 }
-std::expected<Renderer, std::string> Renderer::Create(DeviceRenderPassView renderPass)
+std::expected<Renderer, std::string> Renderer::Create(DeviceRenderPassView renderPass,const RenderResource& resource)
 {
     Renderer renderer;
-    if (!renderer.CreateDescriptorPool())
-    {
-        return std::unexpected<std::string>("Failed to create descriptor pool");
-    }
+    renderer.m_RenderResource=resource;
+
     if (!renderer.CreateBasicShader())
     {
         return std::unexpected<std::string>("Failed to create basic shader");
@@ -152,7 +155,8 @@ std::expected<Renderer, std::string> Renderer::Create(DeviceRenderPassView rende
 }
 bool Renderer::CreateBasicDescriptorSet()
 {
-    m_BasicDescriptorSet = m_DescriptorPool.CreateSet(1, 0, 0);
+    auto& descriptorPool=*m_RenderResource.m_DescriptorPool;
+    m_BasicDescriptorSet = descriptorPool.CreateSet(1, 0, 0);
     return true;
 }
 bool Renderer::CreateBasicShader()
@@ -185,7 +189,7 @@ void main()
     v_Color=a_Color;
 }
 )";
-    auto shaderEx = CreateDeviceShader(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert),
+    auto shaderEx = DeviceShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert),
                                        ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, frag));
     if (!shaderEx)
     {
@@ -215,17 +219,13 @@ bool Renderer::CreateBasicBuffer()
     {
         return false;
     }
-    m_BasicUboStaging=DeviceBuffer::CreateForStaging(sizeof(BasicUniformBlock));
-    if(m_BasicUboStaging.Empty())
-    {
-        return false;
-    }
+
     return true;
 }
 bool Renderer::UploadBasicBuffer()
 {
     // get descriptor
-    auto& descriptorResource=std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_BasicDescriptorSet);
+    auto& descriptorResource=m_BasicDescriptorSet.GetVk();
     auto& uboAccessor=descriptorResource.ubos[0];
     auto& set=descriptorResource.sets[uboAccessor.set];
     auto binding=uboAccessor.binding;
@@ -237,5 +237,42 @@ bool Renderer::UploadBasicBuffer()
     // update data
     uboBuffer.SetData((const uint8_t*)&m_BasicUboLocalBuffer, sizeof(BasicUniformBlock));
     return true;
+}
+bool Renderer::CreateQuadWithTextureShader()
+{
+        static const char* frag = R"(
+#version 450
+layout(location=0)in vec4 v_Color;
+layout(location=0)out vec4 FragColor;
+layout(location=1)uniform sampler2D u_Texture;
+layout(location=2) in vec2 v_UV;
+void main()
+{
+    FragColor=texture(u_Texture,v_UV);
+}
+)";
+    static const char* vert = R"(
+#version 450
+layout(location=0)in vec2 a_Position;
+layout(location=1)in vec2 a_UV;
+layout(location=2)in vec4 a_Color;
+layout(location=0)out vec4 v_Color;
+layout(location=1)out vec2 v_UV;
+layout(std140,binding=0)uniform UniformBufferObject
+{
+    mat4 u_Model;
+    mat4 u_View;
+}ubo;
+void main()
+{
+    vec4 pos=vec4(a_Position,0.0,1.0);
+
+    gl_Position=ubo.u_View*ubo.u_Model*pos;
+    v_UV=a_UV;
+    v_Color=a_Color;
+}
+)";
+        return true;
+
 }
 } // namespace Aether::UI

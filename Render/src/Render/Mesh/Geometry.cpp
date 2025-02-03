@@ -1,6 +1,7 @@
 #include "Geometry.h"
 #include <cstdint>
-namespace Aether {
+namespace Aether
+{
 Mesh Geometry::CreateSphere(float radius, uint32_t segments)
 {
     std::vector<Vec3> positions;
@@ -263,5 +264,84 @@ Mesh Geometry::CreateBox()
     Mesh.primitive.index = indexAccessorIndex;
     return Mesh;
 }
+Mesh Geometry::CreateQuad()
+{
+    Mesh Mesh;
+    static const std::array<Vec2, 4> positions = {
+        Vec2(-1.0, -1.0),
+        Vec2(1.0, -1.0),
+        Vec2(-1.0, 1.0),
+        Vec2(1.0, 1.0)};
+    static const std::array<Vec2, 4> texCoords = {
+        Vec2(0.0, 0.0),
+        Vec2(1.0, 0.0),
+        Vec2(0.0, 1.0),
+        Vec2(1.0, 1.0)};
+    static const std::array<uint16_t, 6> indices = {
+        0,
+        1,
+        2,
+        1,
+        3,
+        2};
+    size_t posBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back();
+    Mesh.buffers[posBufferIndex].resize(positions.size() * sizeof(Vec2));
+    memcpy(Mesh.buffers[posBufferIndex].data(), positions.data(), Mesh.buffers[posBufferIndex].size());
+    size_t texCoordBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back();
+    Mesh.buffers[texCoordBufferIndex].resize(texCoords.size() * sizeof(Vec2));
+    memcpy(Mesh.buffers[texCoordBufferIndex].data(), texCoords.data(), Mesh.buffers[texCoordBufferIndex].size());
+    size_t indexBufferIndex = Mesh.buffers.size();
+    Mesh.buffers.emplace_back();
+    Mesh.buffers[indexBufferIndex].resize(indices.size() * sizeof(uint16_t));
+    memcpy(Mesh.buffers[indexBufferIndex].data(), indices.data(), Mesh.buffers[indexBufferIndex].size());
+    size_t posBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back();
+    Mesh.bufferViews[posBufferViewIndex].buffer = posBufferIndex;
+    Mesh.bufferViews[posBufferViewIndex].offset = 0;
+    Mesh.bufferViews[posBufferViewIndex].size = Mesh.buffers[posBufferIndex].size();
+    Mesh.bufferViews[posBufferViewIndex].target = Mesh::Target::Vertex;
+    size_t texCoordBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back();
+    Mesh.bufferViews[texCoordBufferViewIndex].buffer = texCoordBufferIndex;
+    Mesh.bufferViews[texCoordBufferViewIndex].offset = 0;
+    Mesh.bufferViews[texCoordBufferViewIndex].size = Mesh.buffers[texCoordBufferIndex].size();
+    Mesh.bufferViews[texCoordBufferViewIndex].target = Mesh::Target::Vertex;
+    size_t indexBufferViewIndex = Mesh.bufferViews.size();
+    Mesh.bufferViews.emplace_back();
+    Mesh.bufferViews[indexBufferViewIndex].buffer = indexBufferIndex;
+    Mesh.bufferViews[indexBufferViewIndex].offset = 0;
+    Mesh.bufferViews[indexBufferViewIndex].size = Mesh.buffers[indexBufferIndex].size();
+    Mesh.bufferViews[indexBufferViewIndex].target = Mesh::Target::Index;
+    size_t posAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back();
+    Mesh.accessors[posAccessorIndex].bufferView = posBufferViewIndex;
+    Mesh.accessors[posAccessorIndex].byteOffset = 0;
+    Mesh.accessors[posAccessorIndex].componentType = Mesh::ComponentType::FLOAT32;
+    Mesh.accessors[posAccessorIndex].count = positions.size();
+    Mesh.accessors[posAccessorIndex].type = Mesh::Type::VEC2;
+    Mesh.accessors[posAccessorIndex].byteStride = sizeof(Vec2);
+    size_t texCoordAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back();
+    Mesh.accessors[texCoordAccessorIndex].bufferView = texCoordBufferViewIndex;
+    Mesh.accessors[texCoordAccessorIndex].byteOffset = 0;
+    Mesh.accessors[texCoordAccessorIndex].componentType = Mesh::ComponentType::FLOAT32;
+    Mesh.accessors[texCoordAccessorIndex].count = texCoords.size();
+    Mesh.accessors[texCoordAccessorIndex].type = Mesh::Type::VEC2;
+    Mesh.accessors[texCoordAccessorIndex].byteStride = sizeof(Vec2);
+    size_t indexAccessorIndex = Mesh.accessors.size();
+    Mesh.accessors.emplace_back();
+    Mesh.accessors[indexAccessorIndex].bufferView = indexBufferViewIndex;
+    Mesh.accessors[indexAccessorIndex].byteOffset = 0;
+    Mesh.accessors[indexAccessorIndex].componentType = Mesh::ComponentType::UINT16;
+    Mesh.accessors[indexAccessorIndex].count = indices.size();
+    Mesh.accessors[indexAccessorIndex].type = Mesh::Type::SCALAR;
+    Mesh.accessors[indexAccessorIndex].byteStride = sizeof(uint16_t);
+    Mesh.primitive.attributes[Mesh::Primitive::Attribute::POSITION] = posAccessorIndex;
+    Mesh.primitive.attributes[Mesh::Primitive::Attribute::TEXCOORD] = texCoordAccessorIndex;
+    Mesh.primitive.index = indexAccessorIndex;
+    return Mesh;
+}
 
-} // namespace Kamui
+} // namespace Aether

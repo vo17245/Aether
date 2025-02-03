@@ -1,13 +1,21 @@
 #pragma once
 #include <optional>
 #include "vulkan/vulkan_core.h"
-namespace Aether {
-namespace vk {
+namespace Aether
+{
+namespace vk
+{
 
 class RenderPass
 {
 public:
     static std::optional<RenderPass> CreateForPresent(VkFormat colorAttachmentFormat);
+    /**
+     * @brief create a default render pass
+     *    load op: clear
+     *    color attachment format: rgba8_linear unorm(0-255)
+     */
+    static std::optional<RenderPass> CreateDefault();
 
     ~RenderPass();
     RenderPass(const RenderPass&) = delete;
@@ -20,7 +28,11 @@ public:
 private:
     RenderPass() = default;
     VkRenderPass m_RenderPass = VK_NULL_HANDLE;
-    static std::optional<VkRenderPass> createRenderPass(VkFormat colorAttachmentFormat);
-};
-}
-} // namespace Aether::vk
+    /**
+     * @brief create for present
+    */
+    static std::optional<VkRenderPass> CreateRenderPass(VkFormat colorAttachmentFormat);
+    static std::optional<VkRenderPass> CreateDefaultImpl();
+ };
+} // namespace vk
+} // namespace Aether
