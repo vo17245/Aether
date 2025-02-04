@@ -20,6 +20,14 @@ public:
         uint32_t maxSampler = 0;
         uint32_t maxSsbo = 0;
         uint32_t maxSets = 0;
+        void Reset()
+        {
+            freeUbo = maxUbo;
+            freeSampler = maxSampler;
+            freeSsbo = maxSsbo;
+            freeSets = maxSets;
+            pool.ClearDescriptorSet();
+        }
     };
     struct DescriptorResource
     {
@@ -192,10 +200,51 @@ public:
         }
         return res;
     }
+    void Clear()
+    {
+        // reset pool
+        for (auto& pool : m_UboPools)
+        {
+            pool.Reset();
+        }
+        for (auto& pool : m_SamplerPools)
+        {
+            pool.Reset();
+        }
+        for (auto& pool : m_SsboPools)
+        {
+            pool.Reset();
+        }
+        // move to cache
+        for(auto& pool:m_UboPools)
+        {
+            m_UboPoolCache.push_back(std::move(pool));
+        }
+        for(auto& pool:m_SamplerPools)
+        {
+            m_SamplerPoolCache.push_back(std::move(pool));
+        }
+        for(auto& pool:m_SsboPools)
+        {
+            m_SsboPoolCache.push_back(std::move(pool));
+        }
+        // clear pool
+        m_UboPools.clear();
+        m_SamplerPools.clear();
+        m_SsboPools.clear();
+    }
 
 private:
     bool AddUboPool()
     {
+        // from cache?
+        if (!m_UboPoolCache.empty())
+        {
+            m_UboPools.push_back(std::move(m_UboPoolCache.back()));
+            m_UboPoolCache.pop_back();
+            return true;
+        }
+        // create new
         DescriptorPool::Builder builder;
         builder.MaxSets(m_MaxSets);
         builder.PushUBO(m_UboPoolCapacity);
@@ -212,6 +261,14 @@ private:
     }
     bool AddSamplerPool()
     {
+        // from cache?
+        if (!m_SamplerPoolCache.empty())
+        {
+            m_SamplerPools.push_back(std::move(m_SamplerPoolCache.back()));
+            m_SamplerPoolCache.pop_back();
+            return true;
+        }
+        // create new
         DescriptorPool::Builder builder;
         builder.MaxSets(m_MaxSets);
         builder.PushSampler(m_SamplerPoolCapacity);
@@ -228,6 +285,14 @@ private:
     }
     bool AddSsboPool()
     {
+        // from cache?
+        if (!m_SsboPoolCache.empty())
+        {
+            m_SsboPools.push_back(std::move(m_SsboPoolCache.back()));
+            m_SsboPoolCache.pop_back();
+            return true;
+        }
+        // create new
         DescriptorPool::Builder builder;
         builder.MaxSets(m_MaxSets);
         builder.PushSSBO(m_SsboPoolCapacity);
@@ -242,12 +307,17 @@ private:
                                0, 0, m_SsboPoolCapacity, m_MaxSets});
         return true;
     }
-    uint32_t m_UboPoolCapacity = 32;
-    uint32_t m_SamplerPoolCapacity = 32;
-    uint32_t m_SsboPoolCapacity = 32;
-    uint32_t m_MaxSets = 32;
+    uint32_t m_UboPoolCapacity = 1000;
+    uint32_t m_SamplerPoolCapacity = 1000;
+    uint32_t m_SsboPoolCapacity = 1000;
+    uint32_t m_MaxSets = 1000;
+    // clear per frame
     std::vector<PoolStorage> m_UboPools;
     std::vector<PoolStorage> m_SamplerPools;
     std::vector<PoolStorage> m_SsboPools;
+    // cache for reuse
+    std::vector<PoolStorage> m_UboPoolCache;
+    std::vector<PoolStorage> m_SamplerPoolCache;
+    std::vector<PoolStorage> m_SsboPoolCache;
 };
 } // namespace Aether::vk

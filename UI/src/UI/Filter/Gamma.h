@@ -52,7 +52,7 @@ public:
     }
 
 private:
-    bool UpdateDescriptor(DeviceTexture& from);
+    bool UpdateDescriptor(DeviceTexture& from);// per frame
     GammaFilter()=default;
     DeviceShader m_Shader;
     DevicePipeline m_Pipeline;
@@ -80,7 +80,7 @@ private:
         float gamma=2.2f;
     } m_HostUniformBuffer;
     bool CreatePipeline(const DeviceRenderPassView renderPass);
-    bool CreateDescriptor();
+    bool CreateDescriptor();// per frame
     bool CreateShader()
     {
         static const char* frag = R"(

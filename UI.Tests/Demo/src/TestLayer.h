@@ -30,6 +30,7 @@ public:
         vk::FrameBuffer& framebuffer,
         vk::GraphicsCommandBuffer& commandBuffer) override
     {
+        m_RenderResource.m_DescriptorPool->Clear();
         m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::ColorAttachment, commandBuffer);
         commandBuffer.BeginRenderPass(m_RenderPass.GetVk(), m_FinalFrameBuffer.GetVk(),{0,0,0,1.0});
         // render quads to final image

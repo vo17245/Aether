@@ -52,8 +52,22 @@ public:
     {
         return m_DescriptorPool.index() != 0;
     }
-
+    void Clear()
+    {
+        std::visit(ClearImpl{}, m_DescriptorPool);
+    }
 private:
+    struct ClearImpl
+    {
+        void operator()(std::monostate& pool)
+        {
+            assert(false && "not implemented");
+        }
+        void operator()(vk::DynamicDescriptorPool& pool)
+        {
+            pool.Clear();
+        }
+    };
     struct CreateSetImpl
     {
         size_t ubo;

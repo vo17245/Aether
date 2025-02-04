@@ -68,6 +68,7 @@ bool GammaFilter::Render(DeviceTexture& _from, DeviceFrameBufferView _to, Device
     auto& descriptorResource = m_DescriptorSet.GetVk();
     auto& pipeline = m_Pipeline.GetVk();
     auto& mesh=m_DeviceMesh.GetVk();
+    CreateDescriptor();
     // update uniform buffer
     UpdateDescriptor(_from);
     _commandBuffer.GetVk();
