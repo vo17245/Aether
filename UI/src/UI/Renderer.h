@@ -7,6 +7,7 @@
 #include "Render/RenderApi/DeviceSampler.h"
 #include "Render/Temporary.h"
 #include "RenderResource.h"
+#include "Pool.h"
 namespace Aether::UI
 {
 class Renderer
@@ -33,6 +34,16 @@ public:
 
 private:
     Renderer() = default;
+    struct SamplerCreator
+    {
+        DeviceSampler operator()()
+        {
+            return CreateQuadWithTextureSampler();
+        }
+    };
+    using DeviceSamplerPool = Pool<DeviceSampler, SamplerCreator>;
+    DeviceSamplerPool m_SamplerPool;
+    RenderResource m_RenderResource;
     // ====== basic
     struct BasicUniformBlock
     {
@@ -47,10 +58,10 @@ private:
     DeviceShader m_BasicShader;
     BasicUniformBlock m_BasicUboLocalBuffer;
     bool CreateBasicPipeline(DeviceRenderPassView _renderPass);
-    bool CreateBasicDescriptorSet();// per frame create
+    bool CreateBasicDescriptorSet(); // per frame create
     bool CreateBasicShader();
     bool CreateBasicBuffer();
-    bool UploadBasicBuffer();// per frame update
+    bool UploadBasicBuffer(); // per frame update
 
     //============
     //============ quad with texture
@@ -58,31 +69,31 @@ private:
     {
         Ref<DeviceTexture> texture;
         QuadArrayMesh mesh;
+        DeviceDescriptorSet descriptorSet;
+        DeviceSamplerPool::Resource sampler;
     };
     std::vector<QuadWithTexture> m_QuadsWithTexture;
     struct QuadWithTextureUniformBlock
     {
         Mat4 model = Mat4::Identity();
         Mat4 view = Mat4::Identity();
-        Mat4 texCoord=Mat4::Identity();//只有左上角的3x3矩阵有用，其他部分是为了shader中16字节内存对齐
+        Mat4 texCoord = Mat4::Identity(); // 只有左上角的3x3矩阵有用，其他部分是为了shader中16字节内存对齐
     };
     DeviceBuffer m_QuadWithTextureUboBuffer;
     DevicePipeline m_QuadWithTexturePipeline;
     DevicePipelineLayout m_QuadWithTexturePipelineLayout;
-    DeviceDescriptorSet m_QuadWithTextureDescriptorSet;
     DeviceShader m_QuadWithTextureShader;
     QuadWithTextureUniformBlock m_QuadWithTextureUboLocalBuffer;
     bool CreateQuadWithTexturePipeline(DeviceRenderPassView _renderPass);
     DeviceSampler m_QuadWithTextureSampler;
     bool CreateQuadWithTextureShader();
-    bool CreateQuadWithTextureDescriptorSet();
-    bool CreateQuadWithTextureSampler();
-
+    DeviceDescriptorSet CreateQuadWithTextureDescriptorSet();
+    static DeviceSampler CreateQuadWithTextureSampler();
+    bool UpdateQuadWithTextureDeviceUniformBuffer();
+    bool UpdateQuadWithTextureDescriptor(QuadWithTexture& quad);
+    bool CreateQuadWithTextureBuffer();
     //============
-    RenderResource m_RenderResource;
-    /**
-     * @brief create model matrix for quad, translate from screen space to NDC space
-     */
+
 private:
     QuadArrayMesh m_BasicQuadArray; // quad with color
 private:

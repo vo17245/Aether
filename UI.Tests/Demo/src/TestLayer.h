@@ -21,6 +21,8 @@
 #include <print>
 #include "UI/Renderer.h"
 #include "UI/Filter/Gamma.h"
+#include "UI/LoadTextureToLinear.h"
+#include "Resource/Finder.h"
 using namespace Aether;
 class TestLayer : public Layer
 {
@@ -49,6 +51,7 @@ public:
     }
     virtual void OnAttach(Window* window) override
     {
+        m_Finder.AddBundleDir("Assets");
         // create render resource
         CreateRenderResource();
         // create render pass
@@ -57,13 +60,13 @@ public:
         auto renderer = UI::Renderer::Create(m_RenderPass,m_RenderResource);
         if (!renderer)
         {
-            std::cout << renderer.error() << std::endl;
+            assert(false && "failed to create ui renderer");
             return;
         }
 
         m_Renderer = CreateScope<UI::Renderer>(std::move(renderer.value()));
         m_Renderer->SetScreenSize(Vec2f(800, 600));
-        // create quads
+        // create basic quads
         UI::QuadDesc desc;
         desc.color = Vec4f(1, 0, 0, 1);
         desc.position = Vec2f(100, 100);
@@ -78,11 +81,22 @@ public:
         desc.position.y() -= 110;
         desc.color = Vec4f(0.8392, 0.1215, 0.8549, 1);
         m_Quads.push_back(UI::Quad(desc));
-        
+        // create quad with texture
+        desc.position.x() += 110;
+        auto quad=UI::Quad(desc);
+        auto image=m_Finder.Find("Images/tiles.png");
+        assert(image);
+        assert(image->info);
+        assert(image->info->type==Resource::AssetType::Image);
+        auto& imageInfo=*(Resource::ImageInfo*)image->info.get();
+        quad.SetTexture(CreateRef<DeviceTexture>(UI::LoadTextureToLinear(image->path, imageInfo,*m_RenderResource.m_StagingBuffer).value()));
+        m_Quads.push_back(std::move(quad));
         // create final texture
-        m_FinalTexture = DeviceTexture::CreateForColorAttachment(window->GetSize().x(),
+        auto  textureEx= DeviceTexture::CreateForColorAttachment(window->GetSize().x(),
                                                          window->GetSize().y(),
-                                                         PixelFormat::RGBA8888).value();
+                                                         PixelFormat::RGBA8888);
+        assert(textureEx);
+        m_FinalTexture = std::move(textureEx.value());
         // create final frame buffer
         m_FinalFrameBuffer=DeviceFrameBuffer::CreateFromTexture(m_RenderPass, m_FinalTexture);
         m_FinalTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
@@ -115,4 +129,5 @@ private:
     DeviceRenderPass m_RenderPass;
     Scope<UI::GammaFilter> m_GammaFilter;
     UI::RenderResource m_RenderResource;
+    Resource::Finder m_Finder;
 };

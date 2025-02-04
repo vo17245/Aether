@@ -85,7 +85,9 @@ void Renderer::DrawQuad(const Quad& quad)
         QuadWithTexture qwt;
         qwt.texture = quad.GetTexture();
         qwt.mesh.PushQuad(quad);
-        m_QuadsWithTexture.push_back(qwt);
+        qwt.descriptorSet = CreateQuadWithTextureDescriptorSet();
+        qwt.sampler = m_SamplerPool.GetOrCreate();
+        m_QuadsWithTexture.push_back(std::move(qwt));
     }
     else
     {
@@ -117,7 +119,6 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
         m_Temporary.Push(meshp);
         auto& mesh = (*meshp).Get<VkMesh>();
 
-        // commandBuffer.BeginRenderPass(renderPass, frameBuffer);
         commandBuffer.BindPipeline(pipeline);
         commandBuffer.SetViewport(0, 0, m_ScreenSize.x(), m_ScreenSize.y());
         commandBuffer.SetScissor(0, 0, m_ScreenSize.x(), m_ScreenSize.y());
@@ -127,7 +128,34 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
             commandBuffer.BindDescriptorSet(set, pipelineLayout, 0);
         }
         Render::Utils::DrawMesh(commandBuffer, mesh);
-        // commandBuffer.EndRenderPass();
+    }
+    // quad with texture
+    {
+        UpdateQuadWithTextureDeviceUniformBuffer();
+        for (auto& qwt : m_QuadsWithTexture)
+        {
+            UpdateQuadWithTextureDescriptor(qwt);
+            auto& descriptorResource = qwt.descriptorSet.GetVk();
+            auto& commandBuffer = _commandBuffer.Get<vk::GraphicsCommandBuffer>();
+            auto& renderPass = m_RenderPass.Get<vk::RenderPass>();
+            auto& frameBuffer = m_FrameBuffer.Get<vk::FrameBuffer>();
+            auto& pipeline = m_QuadWithTexturePipeline.GetVk();
+            auto& pipelineLayout = m_QuadWithTexturePipelineLayout.GetVk();
+            auto* meshp = DeviceMesh::CreateRaw(qwt.mesh.GetMesh());
+            assert(meshp && "failed to create mesh");
+            m_Temporary.Push(meshp);
+            auto& mesh = (*meshp).Get<VkMesh>();
+
+            commandBuffer.BindPipeline(pipeline);
+            commandBuffer.SetViewport(0, 0, m_ScreenSize.x(), m_ScreenSize.y());
+            commandBuffer.SetScissor(0, 0, m_ScreenSize.x(), m_ScreenSize.y());
+            for (size_t i = 0; i < descriptorResource.sets.size(); ++i)
+            {
+                auto& set = descriptorResource.sets[i];
+                commandBuffer.BindDescriptorSet(set, pipelineLayout, i);
+            }
+            Render::Utils::DrawMesh(commandBuffer, mesh);
+        }
     }
 }
 std::expected<Renderer, std::string> Renderer::Create(DeviceRenderPassView renderPass, const RenderResource& resource)
@@ -152,10 +180,6 @@ std::expected<Renderer, std::string> Renderer::Create(DeviceRenderPassView rende
         return std::unexpected<std::string>("Failed to create basic buffer");
     }
     // texture
-    if(!renderer.CreateQuadWithTextureShader())
-    {
-        return std::unexpected<std::string>("Failed to create quad with texture shader");
-    }
     if (!renderer.CreateQuadWithTextureShader())
     {
         return std::unexpected<std::string>("Failed to create quad with texture shader");
@@ -163,6 +187,14 @@ std::expected<Renderer, std::string> Renderer::Create(DeviceRenderPassView rende
     if (!renderer.CreateQuadWithTextureDescriptorSet())
     {
         return std::unexpected<std::string>("Failed to create quad with texture descriptor set");
+    }
+    if (!renderer.CreateQuadWithTexturePipeline(renderPass))
+    {
+        return std::unexpected<std::string>("Failed to create quad with texture pipeline");
+    }
+    if(!renderer.CreateQuadWithTextureBuffer())
+    {
+        return std::unexpected<std::string>("Failed to create quad with texture uniform buffer");
     }
     return renderer;
 }
@@ -257,11 +289,14 @@ bool Renderer::CreateQuadWithTextureShader()
 #version 450
 layout(location=0)in vec4 v_Color;
 layout(location=0)out vec4 FragColor;
-layout(location=1)uniform sampler2D u_Texture;
-layout(location=2) in vec2 v_UV;
+layout(set=1,binding=0)uniform sampler2D u_Texture;
+layout(location=1) in vec2 v_UV;
+
+
 void main()
 {
     FragColor=texture(u_Texture,v_UV);
+    //FragColor=vec4(v_UV,1.0,1.0);//debug
 }
 )";
     static const char* vert = R"(
@@ -271,33 +306,45 @@ layout(location=1)in vec2 a_UV;
 layout(location=2)in vec4 a_Color;
 layout(location=0)out vec4 v_Color;
 layout(location=1)out vec2 v_UV;
-layout(std140,binding=0)uniform UniformBufferObject
+layout(std140,set=0,binding=0)uniform UniformBufferObject
 {
     mat4 u_Model;
     mat4 u_View;
+    mat4 u_TexCoord;
 }ubo;
+mat3 ExtractMat3(mat4 m) {
+    return mat3(m[0].xyz, m[1].xyz, m[2].xyz);
+}
 void main()
 {
     vec4 pos=vec4(a_Position,0.0,1.0);
-
+    mat3 texCoordMatrix=ExtractMat3(ubo.u_TexCoord);
     gl_Position=ubo.u_View*ubo.u_Model*pos;
-    v_UV=a_UV;
+    v_UV=(texCoordMatrix*vec3(a_UV,1.0)).xy;
     v_Color=a_Color;
 }
 )";
+    auto shaderEx = DeviceShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert),
+                                         ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, frag));
+    if (!shaderEx)
+    {
+        return false;
+    }
+    m_QuadWithTextureShader = std::move(shaderEx.value());
     return true;
 }
-bool Renderer::CreateQuadWithTextureDescriptorSet()
+DeviceDescriptorSet Renderer::CreateQuadWithTextureDescriptorSet()
 {
     auto& descriptorPool = *m_RenderResource.m_DescriptorPool;
-    m_QuadWithTextureDescriptorSet = descriptorPool.CreateSet(1, 0, 1);
-    return true;
+    auto set = descriptorPool.CreateSet(1, 0, 1);
+    return set;
 }
 bool Renderer::CreateQuadWithTexturePipeline(DeviceRenderPassView _renderPass)
 {
     assert(Render::Config::RenderApi == Render::Api::Vulkan && "only support vulkan now");
     // pipeline layout
-    auto& vkDescriptorSet = m_QuadWithTextureDescriptorSet.GetVk();
+    auto descriptorSet = CreateQuadWithTextureDescriptorSet();
+    auto& vkDescriptorSet = descriptorSet.GetVk();
     vk::PipelineLayout::Builder layoutBuilder;
     for (auto& layout : vkDescriptorSet.layouts)
     {
@@ -326,8 +373,9 @@ bool Renderer::CreateQuadWithTexturePipeline(DeviceRenderPassView _renderPass)
     m_QuadWithTexturePipelineLayout = std::move(layout.value());
     return true;
 }
-bool Renderer::CreateQuadWithTextureSampler()
+DeviceSampler Renderer::CreateQuadWithTextureSampler()
 {
+    // create new
     assert(Render::Api::Vulkan == Render::Config::RenderApi && "only support vulkan now");
     vk::Sampler::Builder builder;
     builder.SetMagFilter(vk::Sampler::Filter::Linear);
@@ -339,9 +387,51 @@ bool Renderer::CreateQuadWithTextureSampler()
     auto sampler = builder.Build();
     if (!sampler)
     {
+        return {};
+    }
+    return std::move(sampler.value());
+}
+bool Renderer::UpdateQuadWithTextureDescriptor(QuadWithTexture& quad)
+{
+    // update device uniform buffer
+    m_QuadWithTextureUboBuffer.SetData((const uint8_t*)&m_QuadWithTextureUboLocalBuffer, sizeof(QuadWithTextureUniformBlock));
+    // update descriptor
+    auto& descriptorResource = quad.descriptorSet.GetVk();
+    // ubo
+    {
+        auto& accessor = descriptorResource.ubos[0];
+        auto& set = descriptorResource.sets[accessor.set];
+        auto binding = accessor.binding;
+        vk::DescriptorSetOperator op(set);
+        op.BindUBO(binding, m_QuadWithTextureUboBuffer.Get<vk::Buffer>());
+        op.Apply();
+    }
+    // sampler
+    {
+        auto& accessor = descriptorResource.samplers[0];
+        auto& set = descriptorResource.sets[accessor.set];
+        auto binding = accessor.binding;
+        vk::DescriptorSetOperator op(set);
+        op.BindSampler(binding, quad.sampler.Get().GetVk(), quad.texture->GetOrCreateDefaultImageView().GetVk());
+        op.Apply();
+    }
+    return true;
+}
+bool Renderer::UpdateQuadWithTextureDeviceUniformBuffer()
+{
+    // update local uniform buffer
+    m_QuadWithTextureUboLocalBuffer.model = CalculateModelMatrix();
+    m_QuadWithTextureUboLocalBuffer.view = Mat4::Identity();
+    m_QuadWithTextureUboLocalBuffer.texCoord = Mat4::Identity();
+    return true;
+}
+bool Renderer::CreateQuadWithTextureBuffer()
+{
+    m_QuadWithTextureUboBuffer = DeviceBuffer::CreateForUniform(sizeof(QuadWithTextureUniformBlock));
+    if (m_QuadWithTextureUboBuffer.Empty())
+    {
         return false;
     }
-    m_QuadWithTextureSampler = std::move(sampler.value());
     return true;
 }
 } // namespace Aether::UI

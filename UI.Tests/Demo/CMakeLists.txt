@@ -23,6 +23,7 @@ target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/UI/src")
 target_link_libraries(${MODULE_NAME} Window)
 target_link_libraries(${MODULE_NAME} UI)
 target_link_libraries(${MODULE_NAME} Render)
+target_link_libraries(${MODULE_NAME} IO)
 
 
 

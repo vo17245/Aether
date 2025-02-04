@@ -44,6 +44,8 @@ public:
     {
 
     }
+    DeviceImageView(DeviceImageView&&) = default;
+    DeviceImageView& operator=(DeviceImageView&&) = default;
     vk::ImageView& GetVk()
     {
         return std::get<vk::ImageView>(m_ImageView);
@@ -62,6 +64,7 @@ enum class DeviceImageLayout
     ColorAttachment,
     Texture,
     Undefined,
+    TransferDst,
 };
 inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
 {
@@ -75,6 +78,8 @@ inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
         return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     case DeviceImageLayout::Undefined:
         return VK_IMAGE_LAYOUT_UNDEFINED;
+    case DeviceImageLayout::TransferDst:
+        return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     default:
         assert(false && "Invalid layout");
         return VK_IMAGE_LAYOUT_UNDEFINED;
@@ -98,11 +103,12 @@ public:
     {
         return std::get<T>(m_Texture);
     }
-    template <typename T>
-    DeviceTexture(T&& t) :
-        m_Texture(std::forward<T>(t))
+    DeviceTexture(vk::Texture2D&& t) :
+        m_Texture(std::move(t))
     {
     }
+    DeviceTexture(DeviceTexture&& t) = default;
+    DeviceTexture& operator=(DeviceTexture&&) = default;
     DeviceTexture(std::monostate) :
         m_Texture(std::monostate{})
     {

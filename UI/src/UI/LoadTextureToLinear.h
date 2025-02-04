@@ -1,5 +1,6 @@
 #pragma once
 #include "Render/RenderApi.h"
+#include "Render/RenderApi/DeviceTexture.h"
 #include "Resource/ImageInfo.h"
 #include "DynamicStagingBuffer.h"
 #include "IO/Image.h"
@@ -27,10 +28,12 @@ inline std::expected<DeviceTexture, std::string> LoadTextureToLinear(const std::
     }
     // create texture rgba int8
     auto texture = DeviceTexture::CreateForTexture(image->GetWidth(), image->GetHeight(), imagePixelFormat);
+    texture->SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::TransferDst);
     // upload data to staging buffer
     stagingBuffer.SetData(image->GetData(), image->GetDataSize());
     // copy data to texture
     texture->CopyBuffer(stagingBuffer.GetBuffer());
+    texture->SyncTransitionLayout(DeviceImageLayout::TransferDst, DeviceImageLayout::Texture);
     return texture;
 }
 } // namespace Aether::UI

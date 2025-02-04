@@ -7,11 +7,11 @@ namespace UI
 {
 struct QuadDesc
 {
-    Vec2f position;// screen space, left-top corner
-    Vec2f size;// screen space
-    Vec4f color;// [0,1]
-    Vec2f uvOffset;// in [0,1] texture space ,offset in left-bottom corner
-    Vec2f uvSize;// in [0,1] texture space
+    Vec2f position=Vec2f(0.0,0.0);// screen space, left-top corner
+    Vec2f size=Vec2f(100,100);// screen space
+    Vec4f color=Vec4f(1.0,1.0,1.0,1.0);// [0,1]
+    Vec2f uvOffset=Vec2f(0.0,0.0);// in [0,1] texture space ,offset in left-bottom corner
+    Vec2f uvSize=Vec2f(1.0,1.0);// in [0,1] texture space
 };
 class Quad
 {
