@@ -13,8 +13,6 @@ add_executable(${MODULE_NAME}  ${FILES})
 
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Vendor")
-target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Core/src")
-target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Filesystem/src")
 target_link_libraries(${MODULE_NAME} Filesystem)
 
 

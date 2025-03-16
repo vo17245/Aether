@@ -1,4 +1,7 @@
 #pragma once
+#include <cstdint>
+#include <type_traits>
+#include <cstddef>
 namespace Aether
 {
 template <typename T, typename... Ts>

@@ -2,6 +2,7 @@
 #include <string>
 #include <expected>
 #include <variant>
+#include <cstdint>
 namespace Aether
 {
 

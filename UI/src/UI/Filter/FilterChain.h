@@ -90,8 +90,8 @@ private:
     }
     void CreateTempTexture(size_t width, size_t height)
     {
-        m_Textures[0] = DeviceTexture::CreateForTexture(width, height, PixelFormat::RGBA8888);
-        m_Textures[1] = DeviceTexture::CreateForTexture(width, height, PixelFormat::RGBA8888);
+        m_Textures[0] = DeviceTexture::CreateForTexture(width, height, PixelFormat::RGBA8888).value();
+        m_Textures[1] = DeviceTexture::CreateForTexture(width, height, PixelFormat::RGBA8888).value();
         m_FrameBuffers[0] = DeviceFrameBuffer::CreateFromTexture(m_RenderPass, m_Textures[0]);
         m_FrameBuffers[1] = DeviceFrameBuffer::CreateFromTexture(m_RenderPass, m_Textures[1]);
     }
