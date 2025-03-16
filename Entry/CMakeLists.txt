@@ -3,22 +3,16 @@ if(MSVC)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-set(MODULE_NAME UI.Tests.Demo)
+set(MODULE_NAME Entry)
 file(GLOB_RECURSE FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" 
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
 
-add_executable(${MODULE_NAME}  ${FILES})
+add_library(${MODULE_NAME} STATIC ${FILES})
 
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/Vendor")
-target_link_libraries(${MODULE_NAME} Window)
-target_link_libraries(${MODULE_NAME} UI)
-target_link_libraries(${MODULE_NAME} Render)
-target_link_libraries(${MODULE_NAME} IO)
-target_link_libraries(${MODULE_NAME} Entry)
-
-
+target_link_libraries(${MODULE_NAME} PUBLIC Window)
 
 
