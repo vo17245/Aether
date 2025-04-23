@@ -8,8 +8,10 @@
 #include "Render/Temporary.h"
 #include "RenderResource.h"
 #include "Pool.h"
+#include "Render/Scene/Camera2D.h"
 namespace Aether::UI
 {
+
 class Renderer
 {
 public:
@@ -26,11 +28,14 @@ public:
     static std::expected<Renderer, std::string> Create(DeviceRenderPassView renderPass, const RenderResource& resource);
     // for unit test
     static Renderer CreateEmpty();
-    inline void SetScreenSize(Vec2f screenSize)
+    inline const Camera2D& GetCamera() const
     {
-        m_ScreenSize = screenSize;
+        return m_Camera;
     }
-    Mat4 CalculateModelMatrix();
+    inline Camera2D& GetCamera()
+    {
+        return m_Camera;
+    }
 
 private:
     Renderer() = default;
@@ -99,11 +104,13 @@ private:
 private:
     DeviceFrameBufferView m_FrameBuffer;
     DeviceRenderPassView m_RenderPass;
-    Vec2f m_ScreenSize = Vec2f(0, 0);
 
 private:
     DeviceCommandBuffer m_TransformCommandBuffer; // for vertex data transform
 private:
     Temporary<DeviceMesh> m_Temporary;
+
+private:
+    Camera2D m_Camera;
 };
 } // namespace Aether::UI

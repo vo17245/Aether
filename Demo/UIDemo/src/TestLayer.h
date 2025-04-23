@@ -69,7 +69,7 @@ public:
 
         m_Renderer = CreateScope<UI::Renderer>(std::move(renderer.value()));
         m_WindowSize = {window->GetSize().x(), window->GetSize().y()};
-        m_Renderer->SetScreenSize(m_WindowSize);
+        m_Renderer->GetCamera().screenSize=m_WindowSize;
         // load texture
         auto image = m_Finder.Find("Images/tiles.png");
         assert(image);
@@ -131,7 +131,7 @@ public:
 private:
     void CreateQuad(Vec2f windowSize)
     {
-        m_Renderer->SetScreenSize(windowSize);
+        m_Renderer->GetCamera().screenSize=windowSize;
         m_Quads.clear();
         float quadSize = std::min(windowSize.x(), windowSize.y()) * 0.3;
         // create basic quads

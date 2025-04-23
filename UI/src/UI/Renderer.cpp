@@ -58,7 +58,7 @@ void Renderer::Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView fram
 {
     m_FrameBuffer = frameBuffer;
     m_RenderPass = renderPass;
-    m_ScreenSize = screenSize;
+    m_Camera.screenSize = screenSize;
     // clear quad mesh
     m_BasicQuadArray = QuadArrayMesh(); // clear basic quads
     m_QuadsWithTexture.clear();         // clear quads with texture
@@ -101,7 +101,8 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
         CreateBasicDescriptorSet();
         // update uniform
         {
-            auto modelMatrix = CalculateModelMatrix();
+            m_Camera.CalculateMatrix();
+            auto& modelMatrix = m_Camera.matrix;
             m_BasicUboLocalBuffer.model = modelMatrix;
             m_BasicUboLocalBuffer.view = Mat4::Identity();
             UploadBasicBuffer();
@@ -120,8 +121,9 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
         auto& mesh = (*meshp).Get<VkMesh>();
 
         commandBuffer.BindPipeline(pipeline);
-        commandBuffer.SetViewport(0, 0, m_ScreenSize.x(), m_ScreenSize.y());
-        commandBuffer.SetScissor(0, 0, m_ScreenSize.x(), m_ScreenSize.y());
+        auto& screenSize = m_Camera.screenSize;
+        commandBuffer.SetViewport(0, 0, screenSize.x(), screenSize.y());
+        commandBuffer.SetScissor(0, 0, screenSize.x(), screenSize.y());
         for (size_t i = 0; i < descriptorResource.sets.size(); ++i)
         {
             auto& set = descriptorResource.sets[i];
@@ -147,8 +149,9 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
             auto& mesh = (*meshp).Get<VkMesh>();
 
             commandBuffer.BindPipeline(pipeline);
-            commandBuffer.SetViewport(0, 0, m_ScreenSize.x(), m_ScreenSize.y());
-            commandBuffer.SetScissor(0, 0, m_ScreenSize.x(), m_ScreenSize.y());
+            auto& screenSize = m_Camera.screenSize;
+            commandBuffer.SetViewport(0, 0, screenSize.x(), screenSize.y());
+            commandBuffer.SetScissor(0, 0, screenSize.x(), screenSize.y());
             for (size_t i = 0; i < descriptorResource.sets.size(); ++i)
             {
                 auto& set = descriptorResource.sets[i];
@@ -243,16 +246,7 @@ void main()
     m_BasicShader = std::move(shaderEx.value());
     return true;
 }
-Mat4 Renderer::CalculateModelMatrix()
-{
-    Mat4 m = Mat4::Identity();
-    // normalize screen space to [0,1]
-    m = Math::Scale(Vec3f(1 / m_ScreenSize.x(), 1 / m_ScreenSize.y(), 1)) * m;
-    Mat4 m1 = CalculateBasisTransform(GetNormalizedScreenBasis(), GetNdcBasis());
-    // translate screen coord to NDC space coord
-    m = m1 * m;
-    return m;
-}
+
 Renderer Renderer::CreateEmpty()
 {
     return Renderer();
@@ -420,7 +414,8 @@ bool Renderer::UpdateQuadWithTextureDescriptor(QuadWithTexture& quad)
 bool Renderer::UpdateQuadWithTextureDeviceUniformBuffer()
 {
     // update local uniform buffer
-    m_QuadWithTextureUboLocalBuffer.model = CalculateModelMatrix();
+    m_Camera.CalculateMatrix();
+    m_QuadWithTextureUboLocalBuffer.model = m_Camera.matrix;
     m_QuadWithTextureUboLocalBuffer.view = Mat4::Identity();
     m_QuadWithTextureUboLocalBuffer.texCoord = Mat4::Identity();
     return true;

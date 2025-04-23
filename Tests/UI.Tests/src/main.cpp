@@ -7,8 +7,9 @@ using namespace Aether;
 TEST_CASE("Test Renderer::CalculateModelMatrix")
 {
     UI::Renderer renderer=UI::Renderer::CreateEmpty();
-    renderer.SetScreenSize(Vec2f(1920,1080));
-    auto m=renderer.CalculateModelMatrix();
+    renderer.GetCamera().screenSize=Vec2f(1920,1080);
+    renderer.GetCamera().CalculateMatrix();
+    auto m=renderer.GetCamera().matrix;
     Vec2f p(0,1080);
     auto ph=Vec4f(p.x(),p.y(),0,1);
     auto ph2=m*ph;
