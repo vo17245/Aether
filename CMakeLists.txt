@@ -20,4 +20,5 @@ add_subdirectory("Dependencies")
 add_subdirectory("Entry")
 add_subdirectory("Demo")
 add_subdirectory("Tests")
+add_subdirectory("Scene")
 

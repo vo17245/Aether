@@ -17,5 +17,6 @@ target_link_libraries(${MODULE_NAME} PUBLIC Render)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
 target_link_libraries(${MODULE_NAME} PUBLIC Window)
 target_link_libraries(${MODULE_NAME} PUBLIC Resource)
+target_link_libraries(${MODULE_NAME} PUBLIC Scene)
 
 

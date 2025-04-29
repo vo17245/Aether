@@ -27,7 +27,7 @@
 #include "Resource/Finder.h"
 #include "Window/WindowEvent.h"
 using namespace Aether;
-class TestLayer : public Layer
+class HierarchyLayer : public Layer
 {
 public:
     virtual void OnRender(
@@ -137,7 +137,7 @@ private:
         // create basic quads
         UI::QuadDesc desc;
         desc.color = Vec4f(1, 0, 0, 1);
-        desc.position = Vec3f(10, 10,0);
+        desc.position = Vec2f(10, 10);
         desc.size = Vec2f(quadSize, quadSize);
         m_Quads.push_back(UI::Quad(desc));
         desc.position.y() += quadSize + 10;

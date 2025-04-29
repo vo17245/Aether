@@ -9,7 +9,7 @@ public:
         m_Position(position)
     {
     }
-    Vec2 GetPosition() const
+    const Vec2& GetPosition() const
     {
         return m_Position;
     }

@@ -220,7 +220,7 @@ void main()
 )";
     static const char* vert = R"(
 #version 450
-layout(location=0)in vec2 a_Position;
+layout(location=0)in vec3 a_Position;
 layout(location=1)in vec2 a_UV;
 layout(location=2)in vec4 a_Color;
 layout(location=0)out vec4 v_Color;
@@ -231,7 +231,7 @@ layout(std140,binding=0)uniform UniformBufferObject
 }ubo;
 void main()
 {
-    vec4 pos=vec4(a_Position,0.0,1.0);
+    vec4 pos=vec4(a_Position,1.0);
 
     gl_Position=ubo.u_View*ubo.u_Model*pos;
     v_Color=a_Color;
@@ -295,7 +295,7 @@ void main()
 )";
     static const char* vert = R"(
 #version 450
-layout(location=0)in vec2 a_Position;
+layout(location=0)in vec3 a_Position;
 layout(location=1)in vec2 a_UV;
 layout(location=2)in vec4 a_Color;
 layout(location=0)out vec4 v_Color;
@@ -311,7 +311,7 @@ mat3 ExtractMat3(mat4 m) {
 }
 void main()
 {
-    vec4 pos=vec4(a_Position,0.0,1.0);
+    vec4 pos=vec4(a_Position,1.0);
     mat3 texCoordMatrix=ExtractMat3(ubo.u_TexCoord);
     gl_Position=ubo.u_View*ubo.u_Model*pos;
     v_UV=(texCoordMatrix*vec3(a_UV,1.0)).xy;

@@ -41,6 +41,7 @@ namespace Aether
         }
         else {
             assert(false&&"Not implemented");
+            return Basis3D{Vec3f(0,0,0),Vec3f(1,0,0),Vec3f(0,-1,0),Vec3f(0,0,1)};
         }
     }
 

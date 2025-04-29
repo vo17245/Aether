@@ -40,7 +40,7 @@ public:
         0,
         Mesh::ComponentType::FLOAT32,
         0,
-        Mesh::Type::VEC2,
+        Mesh::Type::VEC3,
         0});
         // uv accessor
         m_UvAccessorIndex=m_Mesh.accessors.size();
@@ -80,12 +80,12 @@ public:
         const auto& uvSize=quad.GetUVSize();
         const auto& color=quad.GetColor();
 
-        std::array<Vec2f,4> positions=
+        std::array<Vec3f,4> positions=
         {
             position,//left-top
-            position+Vec2f(size.x(),0),//right-top
-            position+size,//right-bottom
-            position+Vec2f(0,size.y())//left-bottom
+            position+Vec3f(size.x(),0,0),//right-top
+            position+Vec3f(size.x(),size.y(),0),//right-bottom
+            position+Vec3f(0,size.y(),0)//left-bottom
         };
         std::array<Vec2f,4> uvs=
         {
