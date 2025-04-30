@@ -26,6 +26,7 @@
 #include "UI/Render/LoadTextureToLinear.h"
 #include "Resource/Finder.h"
 #include "Window/WindowEvent.h"
+#include "ApplicationResource.h"    
 using namespace Aether;
 class HierarchyLayer : public Layer
 {
@@ -35,7 +36,10 @@ public:
         vk::FrameBuffer& framebuffer,
         vk::GraphicsCommandBuffer& commandBuffer) override
     {
-       
+        auto& defaultRenderPass= ApplicationResource::s_Instance->renderPass;
+        auto& renderResource=ApplicationResource::s_Instance->renderResource;
+        auto& renderer=*ApplicationResource::s_Instance->renderer;
+        
     }
     virtual void OnAttach(Window* window) override
     {

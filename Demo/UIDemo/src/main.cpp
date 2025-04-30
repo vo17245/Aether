@@ -1,6 +1,7 @@
 #include "TestLayer.h"
 #include "Entry/Application.h"
 #include "ApplicationResource.h"
+#include "UpdateLayer.h"
 using namespace Aether;
 
 class UIDemo : public Application
@@ -9,12 +10,23 @@ public:
     virtual void OnInit(Window& window) override
     {
         ApplicationResource::Init(window.GetSize());
-        m_Layer = new TestLayer();
-        window.PushLayer(m_Layer);
+        m_MainWindow = &window;
+        PushLayer<UpdateLayer>();
+        PushLayer<TestLayer>();
+    }
+    template<typename T>
+    void PushLayer()
+    {
+        m_Layers.push_back(new T());
+        m_MainWindow->PushLayer(m_Layers.back());
     }
     virtual void OnShutdown()override
     {
-        delete m_Layer;
+        for(auto* layer:m_Layers)
+        {
+            m_MainWindow->PopLayer(layer);
+            delete layer;
+        }
         ApplicationResource::Destroy();
     }
     virtual void OnFrameBegin()override
@@ -28,5 +40,7 @@ public:
     }
 private:
     TestLayer* m_Layer;
+    std::vector<Layer*> m_Layers;
+    Window* m_MainWindow;
 };
 DEFINE_APPLICATION(UIDemo);

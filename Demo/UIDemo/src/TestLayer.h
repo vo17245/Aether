@@ -101,10 +101,7 @@ public:
             {
                 return;
             }
-            renderer.GetCamera().screenSize.x() = e.GetWidth();
-            renderer.GetCamera().screenSize.y() = e.GetHeight();
             // create final texture
-            
             auto textureEx = DeviceTexture::CreateForColorAttachment(m_WindowSize.x(),
                                                                      m_WindowSize.y(),
                                                                      PixelFormat::RGBA8888);
