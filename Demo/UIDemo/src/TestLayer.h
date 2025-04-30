@@ -26,6 +26,7 @@
 #include "UI/Render/LoadTextureToLinear.h"
 #include "Resource/Finder.h"
 #include "Window/WindowEvent.h"
+#include "ApplicationResource.h"
 using namespace Aether;
 class TestLayer : public Layer
 {
@@ -35,16 +36,18 @@ public:
         vk::FrameBuffer& framebuffer,
         vk::GraphicsCommandBuffer& commandBuffer) override
     {
-        m_RenderResource.m_DescriptorPool->Clear();
+        auto& defaultRenderPass= ApplicationResource::s_Instance->renderPass;
+        auto& renderResource=ApplicationResource::s_Instance->renderResource;
+        auto& renderer=*ApplicationResource::s_Instance->renderer;
         m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::ColorAttachment, commandBuffer);
-        commandBuffer.BeginRenderPass(m_RenderPass.GetVk(), m_FinalFrameBuffer.GetVk(), {0, 0, 0, 1.0});
+        commandBuffer.BeginRenderPass(defaultRenderPass.GetVk(), m_FinalFrameBuffer.GetVk(), {0, 0, 0, 1.0});
         // render quads to final image
-        m_Renderer->Begin(m_RenderPass, m_FinalFrameBuffer, m_WindowSize);
+        renderer.Begin(renderPass, m_FinalFrameBuffer, m_WindowSize);
         for (auto& quad : m_Quads)
         {
-            m_Renderer->DrawQuad(quad);
+            renderer.DrawQuad(quad);
         }
-        m_Renderer->End(commandBuffer);
+        renderer.End(commandBuffer);
         commandBuffer.EndRenderPass();
         m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::ColorAttachment, DeviceImageLayout::Texture, commandBuffer);
         commandBuffer.BeginRenderPass(renderPass, framebuffer, {0, 0, 0, 1.0});
@@ -54,29 +57,17 @@ public:
     }
     virtual void OnAttach(Window* window) override
     {
-        m_Finder.AddBundleDir("Assets");
-        // create render resource
-        CreateRenderResource();
-        // create render pass
-        assert(CreateRenderPass() && "failed to create render pass for final image");
-        //  create renderer
-        auto renderer = UI::Renderer::Create(m_RenderPass, m_RenderResource);
-        if (!renderer)
-        {
-            assert(false && "failed to create ui renderer");
-            return;
-        }
-
-        m_Renderer = CreateScope<UI::Renderer>(std::move(renderer.value()));
-        m_WindowSize = {window->GetSize().x(), window->GetSize().y()};
-        m_Renderer->GetCamera().screenSize=m_WindowSize;
+        m_Finder.AddBundleDir("Assets/bundle");
+        auto& renderResource = ApplicationResource::s_Instance->renderResource;
+        auto& renderer = *ApplicationResource::s_Instance->renderer;
+        auto& renderPass = ApplicationResource::s_Instance->renderPass;
         // load texture
         auto image = m_Finder.Find("Images/tiles.png");
         assert(image);
         assert(image->info);
         assert(image->info->type == Resource::AssetType::Image);
         auto& imageInfo = *(Resource::ImageInfo*)image->info.get();
-        m_Texture = CreateRef<DeviceTexture>(UI::LoadTextureToLinear(image->path, imageInfo, *m_RenderResource.m_StagingBuffer).value());
+        m_Texture = CreateRef<DeviceTexture>(UI::LoadTextureToLinear(image->path, imageInfo, *renderResource.m_StagingBuffer).value());
         // create basic quads
         CreateQuad({window->GetSize().x(), window->GetSize().y()});
         // create final texture
@@ -86,44 +77,41 @@ public:
         assert(textureEx);
         m_FinalTexture = std::move(textureEx.value());
         // create final frame buffer
-        m_FinalFrameBuffer = DeviceFrameBuffer::CreateFromTexture(m_RenderPass, m_FinalTexture);
+        m_FinalFrameBuffer = DeviceFrameBuffer::CreateFromTexture(renderPass, m_FinalTexture);
         m_FinalTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
         // create gamma filter
-        auto gammaFilter = UI::GammaFilter::Create(window->GetRenderPass(0), m_RenderResource.m_DescriptorPool.get());
+        auto gammaFilter = UI::GammaFilter::Create(window->GetRenderPass(0), renderResource.m_DescriptorPool.get());
         assert(gammaFilter && "failed to create gamma filter");
         m_GammaFilter = CreateScope<UI::GammaFilter>(std::move(gammaFilter.value()));
         m_GammaFilter->SetGamma(2.2f);
+        m_WindowSize.x()=window->GetSize().x();
+        m_WindowSize.y()=window->GetSize().y();
     }
-    bool CreateRenderPass();
-    bool CreateRenderResource()
-    {
-        // descriptor pool
-        auto descriptorPool = DeviceDescriptorPool::Create();
-        if (!descriptorPool)
-        {
-            return false;
-        }
-        m_RenderResource.m_DescriptorPool = CreateScope<DeviceDescriptorPool>(std::move(descriptorPool.value()));
-        // staging buffer
-        auto stagingBuffer = UI::DynamicStagingBuffer(1024);
-        m_RenderResource.m_StagingBuffer = CreateScope<UI::DynamicStagingBuffer>(std::move(stagingBuffer));
-        return true;
-    }
+
     virtual void OnEvent(Event& event) override
     {
+        auto& renderPass= ApplicationResource::s_Instance->renderPass;
+        auto& renderer= *ApplicationResource::s_Instance->renderer;
         if (std::holds_alternative<WindowResizeEvent>(event))
         {
             auto& e = std::get<WindowResizeEvent>(event);
             CreateQuad({e.GetWidth(), e.GetHeight()});
             m_WindowSize = {e.GetWidth(), e.GetHeight()};
+            if(m_WindowSize.x() == 0 || m_WindowSize.y() == 0)
+            {
+                return;
+            }
+            renderer.GetCamera().screenSize.x() = e.GetWidth();
+            renderer.GetCamera().screenSize.y() = e.GetHeight();
             // create final texture
+            
             auto textureEx = DeviceTexture::CreateForColorAttachment(m_WindowSize.x(),
                                                                      m_WindowSize.y(),
                                                                      PixelFormat::RGBA8888);
             assert(textureEx);
             m_FinalTexture = std::move(textureEx.value());
             // create final frame buffer
-            m_FinalFrameBuffer = DeviceFrameBuffer::CreateFromTexture(m_RenderPass, m_FinalTexture);
+            m_FinalFrameBuffer = DeviceFrameBuffer::CreateFromTexture(renderPass, m_FinalTexture);
             m_FinalTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
         }
     }
@@ -131,7 +119,6 @@ public:
 private:
     void CreateQuad(Vec2f windowSize)
     {
-        m_Renderer->GetCamera().screenSize=windowSize;
         m_Quads.clear();
         float quadSize = std::min(windowSize.x(), windowSize.y()) * 0.3;
         // create basic quads
@@ -157,13 +144,10 @@ private:
     }
 
 private:
-    Scope<UI::Renderer> m_Renderer;
     std::vector<UI::Quad> m_Quads;
     DeviceTexture m_FinalTexture;
     DeviceFrameBuffer m_FinalFrameBuffer;
-    DeviceRenderPass m_RenderPass;
     Scope<UI::GammaFilter> m_GammaFilter;
-    UI::RenderResource m_RenderResource;
     Resource::Finder m_Finder;
     // texture
     Ref<DeviceTexture> m_Texture;

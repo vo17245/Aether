@@ -352,13 +352,16 @@ void Window::OnUpdate(float sec)
         layer->OnUpdate(sec);
     }
 }
+void Window::WaitLastFrameComplete()
+{
+    m_CommandBufferFences[m_CurrentFrame]->Wait();
+}
 void Window::OnRender()
 {
     if (m_Layers.empty()) return;
     if (GetSize().x() == 0 || GetSize().y() == 0) return;
-    // wait last frame
-    // m_InFlightFence->Wait();
-    m_CommandBufferFences[m_CurrentFrame]->Wait();
+   
+    
     // async acquire next image
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(GRC::GetDevice(),

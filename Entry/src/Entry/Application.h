@@ -13,6 +13,14 @@ namespace Aether
         {
             //e.q. pop layer and destory layer 
         }
+        virtual void OnFrameBegin()
+        {
+            // e.q. clear last frame temporary resource
+        }
+        virtual const char* GetName()const
+        {
+            return "Aether Application";
+        }
     };
 }
 

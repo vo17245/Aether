@@ -46,13 +46,13 @@ public:
             // create pipeline
             vk::PipelineLayout::Builder layoutBuilder;
             auto pipelineLayout = layoutBuilder.Build();
-            vk::GraphicsPipeline::Builder pipelineBuilder(renderPass, *pipelineLayout);
+            vk::GraphicsPipeline::Builder pipelineBuilder(*m_RenderPass, *pipelineLayout);
             pipelineBuilder.AddFragmentStage(*m_FragmentShader, "main");
             pipelineBuilder.AddVertexStage(*m_VertexShader, "main");
             pipelineBuilder.PushVertexBufferLayouts(m_Mesh->GetVertexBufferLayouts());
             m_Pipeline=pipelineBuilder.BuildScope();
         }
-        commandBuffer.BeginRenderPass(renderPass, framebuffer,Vec4f(1.0f,1.0f,1.0f,1.0f));
+        commandBuffer.BeginRenderPass(*m_RenderPass, framebuffer,Vec4f(1.0f,1.0f,1.0f,1.0f));
         commandBuffer.SetViewport(0, 0, framebuffer.GetSize().width, framebuffer.GetSize().height);
         commandBuffer.SetScissor(0, 0, framebuffer.GetSize().width,framebuffer.GetSize().height);
         commandBuffer.BindPipeline(*m_Pipeline);
@@ -76,6 +76,7 @@ public:
         std::print("fragment shader size: {}\n", fsBin->size());
         m_VertexShader = vk::ShaderModule::CreateScopeFromBinaryCode(*vsBin);
         m_FragmentShader = vk::ShaderModule::CreateScopeFromBinaryCode(*fsBin);
+        m_RenderPass=CreateScope<vk::RenderPass>(vk::RenderPass::CreateDefault().value());
     }
 
 private:
@@ -85,7 +86,7 @@ private:
     Scope<vk::DescriptorSet> m_DescriptorSet;
     Scope<vk::ShaderModule> m_VertexShader;
     Scope<vk::ShaderModule> m_FragmentShader;
-
+    Scope<vk::RenderPass> m_RenderPass;
     
 };
 int main()

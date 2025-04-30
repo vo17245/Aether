@@ -67,7 +67,7 @@ public:
     Input& GetInput();
     void OnLoopEnd();
     void OnLoopBegin();
-
+    void WaitLastFrameComplete();
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
