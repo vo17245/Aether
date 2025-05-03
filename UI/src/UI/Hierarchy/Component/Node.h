@@ -2,7 +2,7 @@
 #include "../Node.h"
 namespace Aether::UI
 {
-    class NodeComponent
+    struct NodeComponent
     {
         Node* node;
     };

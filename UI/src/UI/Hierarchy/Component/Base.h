@@ -7,5 +7,6 @@ namespace Aether::UI
     {
         Vec2f position = {0, 0};
         Vec2f size = {0, 0};
+        float z=0;
     };
 }

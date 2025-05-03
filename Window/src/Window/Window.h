@@ -1,8 +1,11 @@
 #pragma once
+#include "Render/RenderApi/DeviceTexture.h"
+#include "Render/Vulkan/DescriptorPool.h"
 #include "Render/Vulkan/Fence.h"
 #include "Render/Vulkan/GraphicsCommandBuffer.h"
 #include "Render/Vulkan/RenderPass.h"
 #include "Render/Vulkan/Semaphore.h"
+#include "Render/Vulkan/Texture2D.h"
 #include "vulkan/vulkan_core.h"
 #include <memory>
 #define GLFW_INCLUDE_VULKAN
@@ -13,6 +16,7 @@
 #include "Render/Vulkan/FrameBuffer.h"
 #include "Render/Vulkan/ImageView.h"
 #include "Input.h"
+#include "GammaFilter.h"
 namespace Aether {
 namespace vk {
 class RenderContext;
@@ -68,6 +72,8 @@ public:
     void OnLoopEnd();
     void OnLoopBegin();
     void WaitLastFrameComplete();
+    void ReleaseFinalImage();
+    bool CreateFinalImage();
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
@@ -86,7 +92,13 @@ private:
     Scope<vk::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
     Scope<vk::GraphicsCommandBuffer> m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
     uint32_t m_CurrentFrame = 0;
-
+    //=========== final image
+    DeviceTexture m_FinalTexture;
+    Scope<vk::FrameBuffer> m_FinalFrameBuffer;
+    Scope<vk::RenderPass> m_FinalRenderPass; 
+    Scope<WindowInternal::GammaFilter> m_GammaFilter;
+    DeviceDescriptorPool m_DescriptorPool;
+    //================================
 private:
     /**
      * @brief create framebuffers
@@ -111,6 +123,7 @@ private:
     void CreateImageViews();
     void CreateRenderPass(VkFormat format);
     void CreateCommandBuffer();
+    
 private:
     Input m_Input;
 };

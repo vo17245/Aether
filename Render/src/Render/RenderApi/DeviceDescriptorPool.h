@@ -20,10 +20,12 @@ public:
     DeviceDescriptorSet()=default;
     vk::DynamicDescriptorPool::DescriptorResource& GetVk()
     {
+        assert(std::holds_alternative<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet) && "not a vk descriptor set");
         return std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet);
     }
     const vk::DynamicDescriptorPool::DescriptorResource& GetVk() const
     {
+        assert(std::holds_alternative<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet) && "not a vk descriptor set");
         return std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet);
     }
     bool Empty()
@@ -56,6 +58,23 @@ public:
     {
         std::visit(ClearImpl{}, m_DescriptorPool);
     }
+    DeviceDescriptorPool(DeviceDescriptorPool&& other)
+    {
+        m_DescriptorPool = std::move(other.m_DescriptorPool);
+        other.m_DescriptorPool = std::monostate();
+    }
+    DeviceDescriptorPool& operator=(DeviceDescriptorPool&& other)
+    {
+        if (this != &other)
+        {
+            m_DescriptorPool = std::move(other.m_DescriptorPool);
+            other.m_DescriptorPool = std::monostate();
+        }
+        return *this;
+    }
+    DeviceDescriptorPool(const DeviceDescriptorPool&) = delete;
+    DeviceDescriptorPool& operator=(const DeviceDescriptorPool&) = delete;
+    DeviceDescriptorPool() = default;
 private:
     struct ClearImpl
     {

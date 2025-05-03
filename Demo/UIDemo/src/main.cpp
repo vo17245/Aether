@@ -2,6 +2,7 @@
 #include "Entry/Application.h"
 #include "ApplicationResource.h"
 #include "UpdateLayer.h"
+#include "HierarchyLayer.h"
 using namespace Aether;
 
 class UIDemo : public Application
@@ -12,7 +13,8 @@ public:
         ApplicationResource::Init(window.GetSize());
         m_MainWindow = &window;
         PushLayer<UpdateLayer>();
-        PushLayer<TestLayer>();
+        //PushLayer<TestLayer>();
+        PushLayer<HierarchyLayer>();
     }
     template<typename T>
     void PushLayer()
@@ -39,7 +41,6 @@ public:
         return "UIDemo";
     }
 private:
-    TestLayer* m_Layer;
     std::vector<Layer*> m_Layers;
     Window* m_MainWindow;
 };

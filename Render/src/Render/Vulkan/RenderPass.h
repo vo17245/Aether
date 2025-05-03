@@ -1,5 +1,6 @@
 #pragma once
 #include <optional>
+#include "Render/PixelFormat.h"
 #include "vulkan/vulkan_core.h"
 namespace Aether
 {
@@ -15,7 +16,7 @@ public:
      *    load op: clear
      *    color attachment format: rgba8_linear unorm(0-255)
      */
-    static std::optional<RenderPass> CreateDefault();
+    static std::optional<RenderPass> CreateDefault(PixelFormat format=PixelFormat::RGBA8888);
 
     ~RenderPass();
     RenderPass(const RenderPass&) = delete;
@@ -32,7 +33,7 @@ private:
      * @brief create for present
     */
     static std::optional<VkRenderPass> CreateRenderPass(VkFormat colorAttachmentFormat);
-    static std::optional<VkRenderPass> CreateDefaultImpl();
+    static std::optional<VkRenderPass> CreateDefaultImpl(VkFormat format);
  };
 } // namespace vk
 } // namespace Aether

@@ -216,7 +216,7 @@ std::optional<FindResult> FindFirst(const std::string_view path)
     FindData findData;
     std::string u8name;
     Utf16leToUtf8(findParam.cFileName, u8name);
-    findData.name=U8String(u8name);
+    findData.name=u8name;
     if(findParam.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
     {
         findData.type=FileType::Directory;

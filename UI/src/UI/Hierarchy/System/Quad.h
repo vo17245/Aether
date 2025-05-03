@@ -30,7 +30,7 @@ public:
         renderer.Begin(renderPass, frameBuffer, screenSize);
         for (const auto& [entity, node, base, quad] : view.each())
         {
-            quad.quad.SetPosition(base.position);
+            quad.quad.SetPosition(Vec3f(base.position.x(),base.position.y(),base.z));
             quad.quad.SetSize(base.size);
             renderer.DrawQuad(quad.quad);
         }
