@@ -15,8 +15,7 @@
 #include "GraphicsCommandPool.h"
 #include "GraphicsCommandBuffer.h"
 #include "GlobalRenderContext.h"
-namespace Aether {
-namespace vk {
+namespace Aether::vk {
 
 std::optional<GraphicsCommandBuffer> GraphicsCommandBuffer::Create(const GraphicsCommandPool& pool)
 {
@@ -252,6 +251,17 @@ GraphicsCommandBuffer::GraphicsCommandBuffer(VkCommandBuffer commandBuffer, cons
     m_CommandBuffer(commandBuffer), m_CommandPool(commandPool)
 {
 }
-
+void GraphicsCommandBuffer::BeginRenderPass(const RenderPass& renderpass,const FrameBuffer& framebuffer,std::span<VkClearValue> clearValues)
+{
+ VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = renderpass.GetHandle();
+    renderPassInfo.framebuffer = framebuffer.GetHandle();
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = framebuffer.GetSize();
+    renderPassInfo.clearValueCount= clearValues.size();
+    renderPassInfo.pClearValues = clearValues.data();
+    return vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
+
 } // namespace Aether::vk

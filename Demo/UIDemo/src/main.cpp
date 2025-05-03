@@ -10,7 +10,7 @@ class UIDemo : public Application
 public:
     virtual void OnInit(Window& window) override
     {
-        ApplicationResource::Init(window.GetSize());
+        ApplicationResource::Init(window.GetSize(),window.GetFinalTexture());
         m_MainWindow = &window;
         PushLayer<UpdateLayer>();
         //PushLayer<TestLayer>();

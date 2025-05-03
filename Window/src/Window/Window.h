@@ -74,6 +74,7 @@ public:
     void WaitLastFrameComplete();
     void ReleaseFinalImage();
     bool CreateFinalImage();
+    DeviceTexture& GetFinalTexture();
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;

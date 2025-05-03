@@ -32,6 +32,7 @@ public:
     */
     void SyncCopyBuffer(GraphicsCommandPool& commandPool,const Buffer& buffer);
     void SyncCopyBuffer(const Buffer& buffer);
+    void AsyncCopyTexture(GraphicsCommandBuffer& commandBuffer, const Texture2D& texture);
 
     VkImage GetHandle() const;
     PixelFormat GetFormat() const;
@@ -50,7 +51,6 @@ private:
     PixelFormat m_Format;
     uint32_t m_Width;
     uint32_t m_Height;
-    VkFormat m_VkFormat;
 
 public:
     enum class Usage

@@ -45,23 +45,27 @@ public:
     }
     ~Hierarchy()
     {
-
+        if (m_Root)
+        {
+            DestroyNode(m_Root);
+        }
         for (auto system : m_Systems)
         {
             delete system;
         }
     }
 
-    void RebuildLayout(const Vec2f& screenSize)
+    void RebuildLayout(const Vec2f& screenSize,float far)
     {
         m_LayoutBuilder.Begin(screenSize);
         struct NodeInfo
         {
             Node* node;
             size_t containerId;
+            float containerZ;
         };
         std::queue<NodeInfo> nodes;
-        nodes.push({m_Root, 0});
+        nodes.push({m_Root, 0,far});
         size_t boxId = 0;
         while (!nodes.empty())
         {
@@ -72,10 +76,11 @@ public:
             auto& base = m_Scene.GetComponent<BaseComponent>(node->id);
 
             base.position = m_LayoutBuilder.PushBox(base.size, containerId);
+            base.z = nodeInfo.containerZ-1;
             boxId++;
             for (auto& child : node->children)
             {
-                nodes.push({child, boxId});
+                nodes.push({child, boxId, base.z});
             }
         }
         m_LayoutBuilder.End();
@@ -90,8 +95,7 @@ public:
     void OnRender(DeviceCommandBufferView commandBuffer,
                   DeviceRenderPassView renderPass,
                   DeviceFrameBufferView frameBuffer,
-                  Vec2f screenSize
-                 )
+                  Vec2f screenSize)
     {
         for (auto* system : m_Systems)
         {
@@ -99,9 +103,8 @@ public:
         }
     }
     /**
-     * @note Hierarchy will NOT destroy the root node
-     *       you should destroy it by yourself  
-    */
+     * @note Hierarchy will destroy the root node when destroyed
+     */
     void SetRoot(Node* root)
     {
         m_Root = root;
@@ -109,7 +112,7 @@ public:
 
 private:
     Scene m_Scene;
-    Node* m_Root=nullptr;
+    Node* m_Root = nullptr;
     std::vector<SystemI*> m_Systems;
     LayoutBuilder m_LayoutBuilder;
 };

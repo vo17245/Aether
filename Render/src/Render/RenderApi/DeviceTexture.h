@@ -65,6 +65,7 @@ enum class DeviceImageLayout
     Texture,
     Undefined,
     TransferDst,
+    DepthStencilAttachment,
 };
 inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
 {
@@ -80,6 +81,8 @@ inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
         return VK_IMAGE_LAYOUT_UNDEFINED;
     case DeviceImageLayout::TransferDst:
         return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    case DeviceImageLayout::DepthStencilAttachment:
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     default:
         assert(false && "Invalid layout");
         return VK_IMAGE_LAYOUT_UNDEFINED;
@@ -139,6 +142,23 @@ public:
         {
         case Render::Api::Vulkan: {
             auto texture = vk::Texture2D::CreateForColorAttachment(width, height, format);
+            if (!texture)
+            {
+                return std::unexpected<std::string>("Failed to create texture");
+            }
+            return DeviceTexture(std::move(texture.value()));
+        }
+        break;
+        default:
+            return std::unexpected<std::string>("Not implemented");
+        }
+    }
+    static std::expected<DeviceTexture,std::string> CreateForDepthAttachment(int width,int height,PixelFormat format)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto texture = vk::Texture2D::CreateForDepthAttachment(width, height, format);
             if (!texture)
             {
                 return std::unexpected<std::string>("Failed to create texture");

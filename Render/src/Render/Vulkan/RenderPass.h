@@ -14,10 +14,16 @@ public:
     /**
      * @brief create a default render pass
      *    load op: clear
-     *    color attachment format: rgba8_linear unorm(0-255)
+     *    color attachment format: param format
      */
     static std::optional<RenderPass> CreateDefault(PixelFormat format=PixelFormat::RGBA8888);
-
+    /**
+     * @brief create a render pass
+     * load op: clear
+     * color attachment(attach 0) format: rgba8888 linear unorm(0-255)
+     * depth attachment(attach 1) format: depth32
+    */
+    static std::optional<RenderPass> CreateForDepthTest();
     ~RenderPass();
     RenderPass(const RenderPass&) = delete;
     RenderPass& operator=(const RenderPass&) = delete;

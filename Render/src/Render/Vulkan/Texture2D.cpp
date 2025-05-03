@@ -119,11 +119,11 @@ Texture2D& Texture2D::operator=(Texture2D&& other) noexcept
     return *this;
 }
 static void SetTransitionLayoutParam(VkImageMemoryBarrier& barrier,
-VkPipelineStageFlags& sourceStage ,
-    VkPipelineStageFlags& destinationStage ,
-    VkImageLayout oldLayout, VkImageLayout newLayout,
-    VkImage image
-)
+                                     VkPipelineStageFlags& sourceStage,
+                                     VkPipelineStageFlags& destinationStage,
+                                     VkImageLayout oldLayout, VkImageLayout newLayout,
+                                     VkImage image,
+                                     VkImageAspectFlags aspectMask)
 {
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = oldLayout;
@@ -131,14 +131,13 @@ VkPipelineStageFlags& sourceStage ,
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.aspectMask = aspectMask;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
     barrier.srcAccessMask = 0; // TODO
     barrier.dstAccessMask = 0; // TODO
-
 
     if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
     {
@@ -177,12 +176,19 @@ VkPipelineStageFlags& sourceStage ,
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
-    else if((oldLayout ==VK_IMAGE_LAYOUT_UNDEFINED)&&(newLayout==VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL))
+    else if ((oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) && (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL))
     {
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    }
+    else if ((oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) && (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL))
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     }
     else
     {
@@ -201,8 +207,16 @@ void Texture2D::SyncTransitionLayout(GraphicsCommandPool& commandPool, VkImageLa
     VkImageMemoryBarrier barrier{};
     VkPipelineStageFlags sourceStage = 0;
     VkPipelineStageFlags destinationStage = 0;
-
-    SetTransitionLayoutParam(barrier, sourceStage, destinationStage, oldLayout, newLayout,m_Image);
+    VkImageAspectFlags aspectMask;
+    if (m_Format == PixelFormat::R_FLOAT32_DEPTH)
+    {
+        aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    }
+    else
+    {
+        aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+    SetTransitionLayoutParam(barrier, sourceStage, destinationStage, oldLayout, newLayout, m_Image, aspectMask);
     vkCmdPipelineBarrier(
         cb.GetHandle(),
         sourceStage, destinationStage,
@@ -293,12 +307,19 @@ void Texture2D::AsyncTransitionLayout(GraphicsCommandBuffer& cb, VkImageLayout o
     auto fence = std::move(fenceOpt.value());
 
     VkImageMemoryBarrier barrier{};
-  
 
     VkPipelineStageFlags sourceStage = 0;
     VkPipelineStageFlags destinationStage = 0;
-
-    SetTransitionLayoutParam(barrier, sourceStage, destinationStage, oldLayout, newLayout,m_Image);
+    VkImageAspectFlags aspectMask;
+    if (m_Format == PixelFormat::R_FLOAT32_DEPTH)
+    {
+        aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    }
+    else
+    {
+        aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    }
+    SetTransitionLayoutParam(barrier, sourceStage, destinationStage, oldLayout, newLayout, m_Image, aspectMask);
     vkCmdPipelineBarrier(
         cb.GetHandle(),
         sourceStage, destinationStage,
@@ -306,6 +327,10 @@ void Texture2D::AsyncTransitionLayout(GraphicsCommandBuffer& cb, VkImageLayout o
         0, nullptr,
         0, nullptr,
         1, &barrier);
+}
+void Texture2D::AsyncCopyTexture(GraphicsCommandBuffer& commandBuffer, const Texture2D& texture)
+{
+    assert(false && "not implement");
 }
 
 } // namespace Aether::vk

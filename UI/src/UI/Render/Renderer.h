@@ -109,7 +109,7 @@ private:
     DeviceCommandBuffer m_TransformCommandBuffer; // for vertex data transform
 private:
     Temporary<DeviceMesh> m_Temporary;
-
+    
 private:
     Camera2D m_Camera;
 };

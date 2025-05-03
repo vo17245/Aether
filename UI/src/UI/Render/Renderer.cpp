@@ -45,6 +45,8 @@ bool Renderer::CreateBasicPipeline(DeviceRenderPassView _renderPass)
     builder.PushVertexBufferLayouts(vertextLayouts);
     builder.AddVertexStage(shader.vertex, "main");
     builder.AddFragmentStage(shader.fragment, "main");
+    builder.EnableDepthTest();
+    builder.EnableBlend();
     auto pipeline = builder.Build();
     if (!pipeline)
     {
@@ -358,6 +360,8 @@ bool Renderer::CreateQuadWithTexturePipeline(DeviceRenderPassView _renderPass)
     builder.PushVertexBufferLayouts(vertextLayouts);
     builder.AddVertexStage(shader.vertex, "main");
     builder.AddFragmentStage(shader.fragment, "main");
+    builder.EnableDepthTest();
+    builder.EnableBlend();
     auto pipeline = builder.Build();
     if (!pipeline)
     {

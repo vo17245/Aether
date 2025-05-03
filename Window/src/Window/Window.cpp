@@ -569,4 +569,8 @@ bool Window::ReleaseVulkanObjects()
     ReleaseRenderObject();
     return ReleaseSyncObjects();
 }
+DeviceTexture& Window::GetFinalTexture()
+{
+    return m_FinalTexture;
+}
 } // namespace Aether

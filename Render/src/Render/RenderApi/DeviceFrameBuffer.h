@@ -1,6 +1,7 @@
 #pragma once
 #include "../Vulkan/FrameBuffer.h"
 #include <cassert>
+#include <type_traits>
 #include <variant>
 #include "DeviceTexture.h"
 #include "Render/Config.h"
@@ -45,6 +46,28 @@ public:
             VkExtent2D size={vkTexture.GetWidth(),vkTexture.GetHeight()};
             auto& imageView=texture.GetOrCreateDefaultImageView().Get<vk::ImageView>();
             auto frameBuffer=vk::FrameBuffer::Create(vkRenderPass, size,imageView);
+            return DeviceFrameBuffer(std::move(frameBuffer.value()));
+        }
+        else
+        {
+            assert(false && "not implemented");
+            return {};
+        }
+    }
+    static DeviceFrameBuffer CreateFromColorAttachmentAndDepthAttachment(const DeviceRenderPassView& renderPass,
+    DeviceTexture& color,DeviceTexture& depth)
+    {
+        if (Render::Config::RenderApi == Render::Api::Vulkan)
+        {
+            auto& vkColor=color.Get<vk::Texture2D>();
+            auto& vkRenderPass=renderPass.Get<vk::RenderPass>();
+            VkExtent2D size={vkColor.GetWidth(),vkColor.GetHeight()};
+            auto& colorImageView=color.GetOrCreateDefaultImageView().Get<vk::ImageView>();
+            auto& vkDepth=depth.Get<vk::Texture2D>();
+            auto& depthImageView=depth.GetOrCreateDefaultImageView().Get<vk::ImageView>();
+
+            auto frameBuffer=vk::FrameBuffer::Create(vkRenderPass,
+             size,colorImageView,depthImageView);
             return DeviceFrameBuffer(std::move(frameBuffer.value()));
         }
         else

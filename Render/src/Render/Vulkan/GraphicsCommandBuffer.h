@@ -122,21 +122,21 @@ public:
     void DrawIndexed(uint32_t indexCnt);
     void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer);
     void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer, const Vec4f& clearColor);
-    template <typename... Ts>
-    void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer, Ts... color)
-    {
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass.GetHandle();
-        renderPassInfo.framebuffer = framebuffer.GetHandle();
-        renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = framebuffer.GetSize();
-        auto clearColor = make_array(color...);
-        renderPassInfo.clearValueCount = clearColor.size();
-        renderPassInfo.pClearValues = clearColor.data();
-
-        return vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    }
+    //template <typename... Ts>
+    //void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer, Ts... color)
+    //{
+    //    VkRenderPassBeginInfo renderPassInfo{};
+    //    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    //    renderPassInfo.renderPass = renderPass.GetHandle();
+    //    renderPassInfo.framebuffer = framebuffer.GetHandle();
+    //    renderPassInfo.renderArea.offset = {0, 0};
+    //    renderPassInfo.renderArea.extent = framebuffer.GetSize();
+    //    auto clearColor = make_array(color...);
+    //    renderPassInfo.clearValueCount = clearColor.size();
+    //    renderPassInfo.pClearValues = clearColor.data();
+    //    return vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    //}
+    void BeginRenderPass(const RenderPass& renderpass,const FrameBuffer& framebuffer,std::span<VkClearValue> clearValues);
     void EndRenderPass();
 
     SubmitBuilder BeginSubmit();

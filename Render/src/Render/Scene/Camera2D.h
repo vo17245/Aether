@@ -36,8 +36,8 @@ struct Camera2D
         //==========
         // to NDC space (projection)
         // screen to [0,1]
-        m=Math::Translation(Vec3f(0,0,-near))*m;
-        m=Math::Scale(Vec3f(1/screenSize.x(), 1/screenSize.y(), far-near))*m;
+        m=Math::Translation(Vec3f(0,0,-near-(far-near)/2.0))*m;
+        m=Math::Scale(Vec3f(1/screenSize.x(), 1/screenSize.y(), 1/(far-near)))*m;
         // screen to NDC
         m=CalculateBasisTransform(GetNormalizedScreenBasis(), GetNdcBasis())*m;
         //=============

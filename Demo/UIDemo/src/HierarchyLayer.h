@@ -38,7 +38,6 @@ class HierarchyLayer : public Layer
 public:
     ~HierarchyLayer()
     {
-        m_Hierarchy.DestroyNode(m_Root);
     }
     virtual void OnRender(
         vk::RenderPass& renderPass,
@@ -47,7 +46,12 @@ public:
     {
         auto& renderer = *ApplicationResource::s_Instance->renderer;
         renderer.GetCamera().target = Vec2f(m_ScreenSize.x() / 2, m_ScreenSize.y() / 2);
-        commandBuffer.BeginRenderPass(renderPass, framebuffer, {0, 0, 0, 1.0});
+        std::vector<VkClearValue> clearValues(2);
+        clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+        clearValues[1].depthStencil = {1.0f, 0};
+        commandBuffer.BeginRenderPass(ApplicationResource::s_Instance->renderPass.GetVk(),
+                                      ApplicationResource::s_Instance->frameBuffer.GetVk(),
+                                      clearValues);
         m_Hierarchy.OnRender(commandBuffer, renderPass, framebuffer,
                              m_ScreenSize);
         commandBuffer.EndRenderPass();
@@ -60,23 +64,33 @@ public:
         UI::QuadSystem* quadSystem = new UI::QuadSystem();
         quadSystem->renderer = ApplicationResource::s_Instance->renderer.get();
         m_Hierarchy.AddSystem(quadSystem);
-        InitHierarchy();
-        //InitHierarchyFromXml();
+        // InitHierarchy();
+        InitHierarchyFromXml();
     }
     void InitHierarchyFromXml()
     {
-        const std::string hierarchyXml=R"(
-        <quad width="100" height="100" color="1,0,1,1">
+        const std::string hierarchyXml = std::format(R"(
+        <quad width="{}" height="{}" color="0,0,0,1">
+            <quad width="110" height="110" color="1,0,1,0">
+            <quad width="100" height="100" color="1,0,1,1"/>
+            </quad>
+            <quad width="110" height="110" color="1,0,1,0">
+            <quad width="100" height="100" color="1,0,1,1"/>
+            </quad>
         </quad>
-        )";
+
+        )",
+                                                     m_ScreenSize.x(), m_ScreenSize.y());
         UI::HierarchyLoader loader;
         loader.PushNodeCreator<UI::QuadNodeCreator>("quad");
-        auto err=loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
+        auto err = loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
         if (err)
         {
             std::println("Error loading hierarchy: {}", err.value());
             return;
         }
+        auto& renderer = *ApplicationResource::s_Instance->renderer;
+        m_Hierarchy.RebuildLayout(m_ScreenSize,renderer.GetCamera().far);
     }
     void InitHierarchy()
     {
@@ -123,8 +137,8 @@ public:
             grid->children.push_back(node);
             m_Root->children.push_back(grid);
         }
-
-        m_Hierarchy.RebuildLayout(m_ScreenSize);
+        auto& renderer = *ApplicationResource::s_Instance->renderer;
+        m_Hierarchy.RebuildLayout(m_ScreenSize,renderer.GetCamera().far);
     }
 
     virtual void OnEvent(Event& event) override
