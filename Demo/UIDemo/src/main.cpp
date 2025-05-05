@@ -34,6 +34,7 @@ public:
     virtual void OnFrameBegin()override
     {
         ApplicationResource::s_Instance->renderResource.m_DescriptorPool->Clear();
+        ApplicationResource::s_Instance->renderer->OnFrameBegin();
 
     }
     virtual const char* GetName() const override

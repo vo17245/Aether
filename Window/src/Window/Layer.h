@@ -33,11 +33,9 @@ public:
     )
     {
     }
-    virtual void OnLoopEnd()
+    virtual void OnFrameBegin()
     {
     }
-    virtual void OnLoopBegin()
-    {
-    }
+   
 };
 } // namespace Aether

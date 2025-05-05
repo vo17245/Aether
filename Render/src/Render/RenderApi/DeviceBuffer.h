@@ -97,6 +97,17 @@ public:
     {
         return Get<vk::Buffer>();
     }
+    const size_t GetSize()const
+    {
+        if(std::holds_alternative<vk::Buffer>(m_Buffer))
+        {
+            auto& vkBuffer=GetVk();
+            return vkBuffer.GetSize();
+        }
+        else {
+            assert(false&&"not implement");
+        }
+    }
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
 };

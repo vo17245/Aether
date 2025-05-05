@@ -14,6 +14,7 @@ public:
     class Builder
     {
     public:
+        Builder& AddDescriptorSetLayouts(std::span<DescriptorSetLayout> layouts);
         Builder& AddDescriptorSetLayout(const DescriptorSetLayout& layout);
         Builder& AddPushConstantRange(uint32_t size, vk::ShaderStage stages, uint32_t offset = 0);
         std::optional<PipelineLayout> Build() const;

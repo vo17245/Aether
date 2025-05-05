@@ -69,8 +69,7 @@ public:
     void OnRender();
     void PushEvent(const Event& e);
     Input& GetInput();
-    void OnLoopEnd();
-    void OnLoopBegin();
+
     void WaitLastFrameComplete();
     void ReleaseFinalImage();
     bool CreateFinalImage();

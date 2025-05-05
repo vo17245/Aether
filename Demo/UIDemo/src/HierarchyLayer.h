@@ -72,10 +72,10 @@ public:
         const std::string hierarchyXml = std::format(R"(
         <quad width="{}" height="{}" color="0,0,0,1">
             <quad width="110" height="110" color="1,0,1,0">
-            <quad width="100" height="100" color="1,0,1,1"/>
+                <quad width="100" height="100" color="1,0,1,1"/>
             </quad>
             <quad width="110" height="110" color="1,0,1,0">
-            <quad width="100" height="100" color="1,0,1,1"/>
+                <quad width="100" height="100" color="1,0,1,1"/>
             </quad>
         </quad>
 
@@ -90,7 +90,7 @@ public:
             return;
         }
         auto& renderer = *ApplicationResource::s_Instance->renderer;
-        m_Hierarchy.RebuildLayout(m_ScreenSize,renderer.GetCamera().far);
+        m_Hierarchy.RebuildLayout(m_ScreenSize, renderer.GetCamera().far);
     }
     void InitHierarchy()
     {
@@ -138,7 +138,7 @@ public:
             m_Root->children.push_back(grid);
         }
         auto& renderer = *ApplicationResource::s_Instance->renderer;
-        m_Hierarchy.RebuildLayout(m_ScreenSize,renderer.GetCamera().far);
+        m_Hierarchy.RebuildLayout(m_ScreenSize, renderer.GetCamera().far);
     }
 
     virtual void OnEvent(Event& event) override

@@ -11,7 +11,10 @@
 #include "Render/Scene/Camera2D.h"
 namespace Aether::UI
 {
-
+/**
+ * TODO 
+ * allow multiple draw in one frame
+*/
 class Renderer
 {
 public:
@@ -35,6 +38,12 @@ public:
     inline Camera2D& GetCamera()
     {
         return m_Camera;
+    }
+    inline void OnFrameBegin()
+    {
+        #ifdef AETHER_RUNTIME_CHECK
+        m_IsBusy=false;
+        #endif
     }
 
 private:
@@ -98,7 +107,9 @@ private:
     bool UpdateQuadWithTextureDescriptor(QuadWithTexture& quad);
     bool CreateQuadWithTextureBuffer();
     //============
-
+#ifdef AETHER_RUNTIME_CHECK
+    bool m_IsBusy=false;
+#endif
 private:
     QuadArrayMesh m_BasicQuadArray; // quad with color
 private:

@@ -93,6 +93,22 @@ public:
     {
         return Get<VkMesh>();
     } 
+    void Update(const Mesh& mesh)
+    {
+        switch (Render::Config::RenderApi)
+        {
+            case Render::Api::Vulkan:
+            {
+                Get<VkMesh>().Update(mesh);
+            }
+            break;
+            default:
+            {
+                assert(false && "Not implemented");
+            }
+        
+        }
+    }
 private:
     std::variant<std::monostate, VkMesh> m_Mesh;
 };

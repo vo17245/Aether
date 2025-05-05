@@ -58,6 +58,10 @@ bool Renderer::CreateBasicPipeline(DeviceRenderPassView _renderPass)
 }
 void Renderer::Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, Vec2f screenSize)
 {
+    #ifdef AETHER_RUNTIME_CHECK
+    assert(m_IsBusy==false &&" renderer is busy");
+    m_IsBusy=true;
+    #endif
     m_FrameBuffer = frameBuffer;
     m_RenderPass = renderPass;
     m_Camera.screenSize = screenSize;

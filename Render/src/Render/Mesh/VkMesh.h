@@ -343,11 +343,12 @@ private:
         m_VertexCount = Mesh.CalculateVertexCount();
         return true;
     }
-    // 把Mesh的buffer数据更新到GPU，如果buffer大小不够，会重新创建buffer
-    // 只能使用创建时候使用的Mesh来更新(或者布局相同的Mesh)
+    
 
 public:
-    void Update(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh);
+    // 把Mesh的buffer数据更新到GPU，如果buffer大小不够，会重新创建buffer
+    // 只能使用创建时候使用的Mesh来更新(或者布局相同的Mesh)
+    void Update(const Mesh& Mesh);
     const std::vector<VertexBufferLayout>& GetVertexBufferLayouts()const
     {
         return m_Primitive.vertexResource.layouts;

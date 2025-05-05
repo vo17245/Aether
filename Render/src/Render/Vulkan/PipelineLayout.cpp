@@ -1,11 +1,20 @@
 #include "PipelineLayout.h"
+#include "DescriptorSetLayout.h"
 #include "GlobalRenderContext.h"
-
+#include <span>
 namespace Aether {
 namespace vk {
 PipelineLayout::Builder& PipelineLayout::Builder::AddDescriptorSetLayout(const DescriptorSetLayout& layout)
 {
     m_Layouts.emplace_back(layout.GetHandle());
+    return *this;
+}
+PipelineLayout::Builder& PipelineLayout::Builder::AddDescriptorSetLayouts(std::span<DescriptorSetLayout> layouts)
+{
+    for (const auto& layout : layouts)
+    {
+        m_Layouts.emplace_back(layout.GetHandle());
+    }
     return *this;
 }
 PipelineLayout::Builder& PipelineLayout::Builder::AddPushConstantRange(uint32_t size, vk::ShaderStage stages, uint32_t offset)

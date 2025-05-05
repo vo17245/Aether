@@ -543,20 +543,7 @@ Input& Window::GetInput()
     return m_Input;
 }
 
-void Window::OnLoopEnd()
-{
-    for (auto* layer : m_Layers)
-    {
-        layer->OnLoopEnd();
-    }
-}
-void Window::OnLoopBegin()
-{
-    for (auto* layer : m_Layers)
-    {
-        layer->OnLoopBegin();
-    }
-}
+
 void Window::CreateRenderPass(VkFormat format)
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)

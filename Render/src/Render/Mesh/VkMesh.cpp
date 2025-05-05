@@ -1,8 +1,10 @@
 #include "VkMesh.h"
 #include "Render/Vulkan/Buffer.h"
+#include "Render/Vulkan/GlobalRenderContext.h"
 namespace Aether {
-void VkMesh::Update(vk::GraphicsCommandPool& commandPool, const Mesh& mesh)
+void VkMesh::Update( const Mesh& mesh)
 {
+    auto& commandPool=vk::GRC::GetGraphicsCommandPool();
     // 更新buffer
     for (size_t i = 0; i < mesh.bufferViews.size(); i++)
     {
@@ -38,10 +40,10 @@ void VkMesh::Update(vk::GraphicsCommandPool& commandPool, const Mesh& mesh)
         auto& bufferView = mesh.bufferViews[accessor.bufferView];
         indexResource.count = accessor.count;
         indexResource.offset = bufferView.offset;
-#ifdef ENABLE_VALIDATION
+#ifdef AETHER_RUNTIME_CHECK
         if (indexResource.type != mesh.accessors[mesh.primitive.index.value()].componentType)
         {
-            ASSERT(false && "index type mismatch");
+            assert(false && "index type mismatch");
         }
 #endif
     }
