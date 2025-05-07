@@ -174,6 +174,10 @@ struct Mesh
             {
                 return BufferElementFormat::Float32;
             }
+            else if(componentType==ComponentType::UINT32)
+            {
+                return BufferElementFormat::UInt32;
+            }
             else {
                 assert(false&&"not implemented");
                 return BufferElementFormat::Float32;

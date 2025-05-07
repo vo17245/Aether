@@ -8,7 +8,7 @@ class TextDemo : public Application
 public:
     virtual void OnInit(Window& window) override
     {
-        ApplicationResource::Init();
+        ApplicationResource::Init(window.GetSize().cast<float>());
         auto* textLayer=new TextLayer();
         m_Layers.push_back(textLayer);
         window.PushLayer(textLayer);

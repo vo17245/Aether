@@ -84,6 +84,19 @@ public:
     {
         return std::get<vk::FrameBuffer>(m_Data);
     }
+    Vec2u GetSize()const
+    {
+        if (std::holds_alternative<vk::FrameBuffer>(m_Data))
+        {
+            auto& frameBuffer = std::get<vk::FrameBuffer>(m_Data);
+            return Vec2u(frameBuffer.GetSize().width, frameBuffer.GetSize().height);
+        }
+        else
+        {
+            assert(false && "not implemented");
+            return {0,0};
+        }
+    }
 
 private:
     std::variant<std::monostate, vk::FrameBuffer> m_Data;
@@ -140,7 +153,19 @@ public:
     {
         return *std::get<vk::FrameBuffer*>(m_Data);
     }
-
+    Vec2u GetSize()const
+    {
+        if (std::holds_alternative<vk::FrameBuffer*>(m_Data))
+        {
+            auto& frameBuffer = *std::get<vk::FrameBuffer*>(m_Data);
+            return Vec2u(frameBuffer.GetSize().width, frameBuffer.GetSize().height);
+        }
+        else
+        {
+            assert(false && "not implemented");
+            return {0,0};
+        }
+    }
 private:
     std::variant<std::monostate, vk::FrameBuffer*> m_Data;
 };

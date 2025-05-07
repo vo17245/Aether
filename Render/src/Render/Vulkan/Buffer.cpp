@@ -204,5 +204,9 @@ std::optional<Buffer> Buffer::CreateForUBO(size_t size)
                   Buffer::PackUsages(Buffer::Usage::Uniform, Buffer::Usage::TransferDst),
                   Buffer::PackProperties(Buffer::Property::DeviceLocal, Buffer::Property::HostVisible));
 }
+bool Buffer::SyncCopy(Buffer& src, Buffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
+{
+    return SyncCopy(GRC::GetGraphicsCommandPool(), src, dst, size, srcOffset, dstOffset);
+}
 }
 } // namespace Aether::vk

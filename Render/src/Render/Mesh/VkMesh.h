@@ -259,6 +259,13 @@ private:
                          accessor.byteOffset,
                          BufferElementFormat::Vec2f}));
                 }
+                else if(accessor.type==Mesh::Type::SCALAR&&accessor.componentType==Mesh::ComponentType::UINT32)
+                {
+                    layout.PushAttribute(VertexBufferLayout::Attribute(
+                        {attributeLocation[attribute],
+                         accessor.byteOffset,
+                         BufferElementFormat::UInt32}));
+                }
                 else
                 {
                     assert(false&&"unsupport component type");

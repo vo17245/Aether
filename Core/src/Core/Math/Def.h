@@ -27,13 +27,21 @@ using Mat2d = Eigen::Matrix2d;
 using Mat3d = Eigen::Matrix3d;
 using Mat4d = Eigen::Matrix4d;
 
-// int32 (in 64-bit systems)
-using Vec2i = Eigen::Vector2i;
-using Vec3i = Eigen::Vector3i;
-using Vec4i = Eigen::Vector4i;
-using Mat2i = Eigen::Matrix2i;
-using Mat3i = Eigen::Matrix3i;
-using Mat4i = Eigen::Matrix4i;
+// int32 
+using Vec2i = Eigen::Vector2<int32_t>;
+using Vec3i = Eigen::Vector3<int32_t>;
+using Vec4i = Eigen::Vector4<int32_t>;
+using Mat2i = Eigen::Matrix2<int32_t>;
+using Mat3i = Eigen::Matrix3<int32_t>;
+using Mat4i = Eigen::Matrix4<int32_t>;
+
+// uint32 
+using Vec2u = Eigen::Vector2<uint32_t>;
+using Vec3u = Eigen::Vector3<uint32_t>;
+using Vec4u = Eigen::Vector4<uint32_t>;
+using Mat2u = Eigen::Matrix2<uint32_t>;
+using Mat3u = Eigen::Matrix3<uint32_t>;
+using Mat4u = Eigen::Matrix4<uint32_t>;
 
 // Quaterniond
 using Quatd = Eigen::Quaterniond;

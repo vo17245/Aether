@@ -11,6 +11,7 @@ enum class BufferElementFormat : int32_t
     Vec2f = VK_FORMAT_R32G32_SFLOAT,
     Vec3f = VK_FORMAT_R32G32B32_SFLOAT,
     Vec4f = VK_FORMAT_R32G32B32A32_SFLOAT,
+    UInt32=VK_FORMAT_R32_UINT
 
 };
 
@@ -26,6 +27,8 @@ inline uint32_t BufferElementFormatSize(BufferElementFormat format)
         return 12;
     case BufferElementFormat::Vec4f:
         return 16;
+    case BufferElementFormat::UInt32:
+        return 4;
     default:
         assert(false&&"Unknown format");
         return 0;

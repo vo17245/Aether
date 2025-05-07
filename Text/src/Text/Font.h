@@ -3,12 +3,99 @@
 #include <cstdint>
 #include <unordered_map>
 #include <string>
-#include <Core/LocalRef.h>
+#include <Core/Base.h>
 #include <optional>
 #include <Eigen/Core>
 #include <nlohmann/json.hpp>
 namespace Aether::Text
 {
+class Context
+{
+public:
+	FT_Library handle=nullptr;
+	Context(const Context&)=delete;
+	Context& operator=(const Context&)=delete;
+	
+	Context(Context&& other)
+	{
+		handle=other.handle;
+		other.handle=nullptr;
+	}
+	Context& operator=(Context&& other)
+	{
+		if(handle)
+		{
+			FT_Done_FreeType(handle);
+		}
+		handle=other.handle;
+		other.handle=nullptr;
+		return *this;
+	}
+	~Context()
+	{
+		if(handle)
+		{
+			FT_Done_FreeType(handle);
+		}
+	}
+	static std::optional<Context> Create()
+	{
+		FT_Library library;
+		FT_Error error = FT_Init_FreeType(&library);
+		if (error)
+		{
+			return std::nullopt;
+		}
+		Context context;
+		context.handle = library;
+		return context;
+	}
+private:
+	Context()=default;
+};
+class Face
+{
+public:
+	Face(const Face&)=delete;
+	Face(Face&& other)
+	{
+		handle=other.handle;
+		other.handle=nullptr;
+	}
+	Face& operator=(const Face&)=delete;
+	Face& operator=(Face&& other)
+	{
+		if(handle)
+		{
+			FT_Done_Face(handle);
+		}
+		handle=other.handle;
+		other.handle=nullptr;
+		return *this;
+	}
+	FT_Face handle=nullptr;
+	~Face()
+	{
+		if(handle)
+		{
+			FT_Done_Face(handle);
+		}
+	}
+	static std::optional<Face> Create(Context& context,const char* path)
+	{
+		
+		Face face;
+		FT_Error error = FT_New_Face(context.handle, path, 0, &face.handle);
+		if (error)
+		{
+			return std::nullopt;
+		}
+		return face;
+	}
+private:
+	Face()=default;
+
+};
 struct Font
 {
 public:
@@ -42,7 +129,7 @@ public:
     };
 
 public:
-    static std::optional<Font> Create(LocalRef<FT_Face> face, float worldSize = 32.0f, bool hinting = false)
+    static std::optional<Font> Create(Face* face, float worldSize = 32.0f, bool hinting = false)
     {
         Font font;
         font.face=face;
@@ -53,7 +140,7 @@ public:
 			font.kerningMode = FT_KERNING_DEFAULT;
 
 			font.emSize = worldSize * 64;
-			FT_Error error = FT_Set_Pixel_Sizes(*face, 0, static_cast<FT_UInt>(std::ceil(worldSize)));
+			FT_Error error = FT_Set_Pixel_Sizes(face->handle, 0, static_cast<FT_UInt>(std::ceil(worldSize)));
 			if (error) {
 				//std::cerr << "[font] error while setting pixel size: " << error << std::endl;
                 return std::nullopt;
@@ -62,12 +149,12 @@ public:
 		} else {
 			font.loadFlags = FT_LOAD_NO_SCALE | FT_LOAD_NO_HINTING | FT_LOAD_NO_BITMAP;
 			font.kerningMode = FT_KERNING_UNSCALED;
-			font.emSize = (*face)->units_per_EM;
+			font.emSize = face->handle->units_per_EM;
 		}
         {
 			uint32_t charcode = 0;
 			FT_UInt glyphIndex = 0;
-			FT_Error error = FT_Load_Glyph(*face, glyphIndex, font.loadFlags);
+			FT_Error error = FT_Load_Glyph(face->handle, glyphIndex, font.loadFlags);
 			if (error) {
 				//std::cerr << "[font] error while loading undefined glyph: " << error << std::endl;
                 return std::nullopt;
@@ -82,10 +169,11 @@ public:
 		bufferGlyph.start = static_cast<int32_t>(bufferCurves.size());
 
 		short start = 0;
-		for (int i = 0; i < (*face)->glyph->outline.n_contours; i++) {
+		for (int i = 0; i < face->handle->glyph->outline.n_contours; i++) {
 			// Note: The end indices in face->glyph->outline.contours are inclusive.
-			convertContour(bufferCurves, &(*face)->glyph->outline, start, (*face)->glyph->outline.contours[i], emSize);
-			start = (*face)->glyph->outline.contours[i]+1;
+			convertContour(bufferCurves, &face->handle->glyph->outline, 
+			start, face->handle->glyph->outline.contours[i], emSize);
+			start = face->handle->glyph->outline.contours[i]+1;
 		}
 
 		bufferGlyph.count = static_cast<int32_t>(bufferCurves.size()) - bufferGlyph.start;
@@ -97,11 +185,11 @@ public:
 		glyph.index = glyphIndex;
 		glyph.bufferIndex = bufferIndex;
 		glyph.curveCount = bufferGlyph.count;
-		glyph.width = (*face)->glyph->metrics.width;
-		glyph.height = (*face)->glyph->metrics.height;
-		glyph.bearingX = (*face)->glyph->metrics.horiBearingX;
-		glyph.bearingY = (*face)->glyph->metrics.horiBearingY;
-		glyph.advance = (*face)->glyph->metrics.horiAdvance;
+		glyph.width = face->handle->glyph->metrics.width;
+		glyph.height = face->handle->glyph->metrics.height;
+		glyph.bearingX = (*face).handle->glyph->metrics.horiBearingX;
+		glyph.bearingY = (*face).handle->glyph->metrics.horiBearingY;
+		glyph.advance = (*face).handle->glyph->metrics.horiAdvance;
 		glyphs[charcode] = glyph;
     }
     uint32_t decodeCharcode(const char** text)
@@ -165,10 +253,10 @@ public:
             if (charcode == '\r' || charcode == '\n') continue;
             if (glyphs.count(charcode) != 0) continue;
 
-            FT_UInt glyphIndex = FT_Get_Char_Index(*face, charcode);
+            FT_UInt glyphIndex = FT_Get_Char_Index(face->handle, charcode);
             if (!glyphIndex) continue;
 
-            FT_Error error = FT_Load_Glyph(*face, glyphIndex, loadFlags);
+            FT_Error error = FT_Load_Glyph(face->handle, glyphIndex, loadFlags);
             if (error)
             {
                 //std::cerr << "[font] error while loading glyph for character " << charcode << ": " << error << std::endl;
@@ -391,8 +479,8 @@ public:
 
 
 public:
-    LocalRef<FT_Face> face;
-    std::unordered_map<uint32_t, Glyph> glyphs;
+    Face* face;//not own
+    std::unordered_map<uint32_t, Glyph> glyphs;//unicode -> glyph
     bool hinting;
     FT_Int32 loadFlags;
     FT_Kerning_Mode kerningMode;

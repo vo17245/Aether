@@ -1,5 +1,6 @@
 #pragma once
 #include "Render/Vulkan/DescriptorSet.h"
+#include "Render/Vulkan/GraphicsCommandBuffer.h"
 #include "Render/Vulkan/GraphicsCommandPool.h"
 #include "Render/Vulkan/Pipeline.h"
 #include "Render/Vulkan/PipelineLayout.h"

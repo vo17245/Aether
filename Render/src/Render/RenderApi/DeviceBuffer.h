@@ -2,6 +2,7 @@
 #include "../Config.h"
 #include "../Vulkan/Buffer.h"
 #include "Render/Config.h"
+#include "Render/Vulkan/GlobalRenderContext.h"
 #include <variant>
 namespace Aether
 {
@@ -106,7 +107,30 @@ public:
         }
         else {
             assert(false&&"not implement");
+            return 0;
         }
+    }
+    template<typename T>
+    bool IsType()const
+    {
+        return std::holds_alternative<T>(m_Buffer);
+    }
+    /**
+     * @brief copy to this buffer
+    */
+    static bool SyncCopy(DeviceBuffer& _dst,DeviceBuffer& _src,size_t size,size_t dstOffset,size_t srcOffset)
+    {
+        if(_dst.IsType<vk::Buffer>() && _src.IsType<vk::Buffer>())
+        {
+            auto& dst=_dst.GetVk();
+            auto& src=_src.GetVk();
+            return vk::Buffer::SyncCopy(src,dst,size,srcOffset,dstOffset);
+        }
+        else {
+            assert(false&&"not implement");
+            return false;
+        }
+        
     }
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;

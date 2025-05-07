@@ -1,16 +1,21 @@
 #pragma once
 #include "Render/PixelFormat.h"
+#include "Render/RenderApi/DeviceDescriptorPool.h"
 #include "Render/RenderApi/DeviceFrameBuffer.h"
+#include "Render/RenderApi/DeviceRenderPass.h"
 #include "Render/RenderApi/DeviceTexture.h"
+#include "Render/Vulkan/RenderPass.h"
+#include "Text/Font.h"
+#include "Text/Raster/Raster.h"
 using namespace Aether;
 class ApplicationResource
 {
 public:
-    static std::optional<std::string> Init()
+    static std::optional<std::string> Init(const Vec2f& screenSize)
     {
         s_Instance = new ApplicationResource();
 
-        return s_Instance->InitImpl();
+        return s_Instance->InitImpl(screenSize);
 
     }
     static void Destroy()
@@ -22,16 +27,35 @@ public:
     {
        
     }
-    ApplicationResource& GetSingleton()
+    static ApplicationResource& GetSingleton()
     {
         return *s_Instance;
     }
-
+    Scope<Text::Raster> textRaster;
+    DeviceRenderPass defaultRenderPass;
+    DeviceDescriptorPool descriptorPool;
+    Scope<Text::Font> font;
+    Scope<Text::Context> textContext;
+    Scope<Text::Face> textFace;
+    Scope<Text::Raster::RenderPassResource> rasterResource;
 private:
-    std::optional<std::string> InitImpl()
+
+    std::optional<std::string> InitImpl(const Vec2f& screenSize)
     {
+        defaultRenderPass=vk::RenderPass::CreateDefault().value();
+        descriptorPool=DeviceDescriptorPool::Create().value();
+        auto textRasterOpt=Text::Raster::Create(defaultRenderPass, true, descriptorPool,screenSize);
+        textRaster=CreateScope<Text::Raster>(std::move(textRasterOpt.value()));
+        auto textContextOpt=Text::Context::Create();
+        textContext=CreateScope<Text::Context>(std::move(textContextOpt.value()));
+        auto textFaceOpt=Text::Face::Create(*textContext, "Assets/unifont-16.0.03.otf");
+        textFace=CreateScope<Text::Face>(std::move(textFaceOpt.value()));
+        auto fontOpt=Text::Font::Create(textFace.get());
+        font=CreateScope<Text::Font>(std::move(fontOpt.value()));
+        auto resource=textRaster->CreateRenderPassResource();
+        rasterResource=CreateScope<Text::Raster::RenderPassResource>(std::move(resource));
         return std::nullopt;
     }
     static ApplicationResource* s_Instance;
-   
+    
 };

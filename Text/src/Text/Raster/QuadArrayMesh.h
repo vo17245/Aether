@@ -13,14 +13,19 @@ public:
         // position buffer
         m_PositionBufferIndex=m_Mesh.buffers.size();
         m_Mesh.buffers.push_back({});        
-        
+        // glyph index buffer
+        m_GlyphIndexBufferIndex=m_Mesh.buffers.size();
+        m_Mesh.buffers.push_back({});
         // index buffer
         m_IndexBufferIndex=m_Mesh.buffers.size();
         m_Mesh.buffers.push_back({});
         // position buffer view
         m_PositionBufferViewIndex=m_Mesh.bufferViews.size();
         m_Mesh.bufferViews.push_back({0,0,m_PositionBufferIndex,Mesh::Target::Vertex});
-       
+        // glyph index buffer view
+        m_GlyphIndexBufferViewIndex=m_Mesh.bufferViews.size();
+        m_Mesh.bufferViews.push_back({0,0,m_GlyphIndexBufferIndex,
+        Mesh::Target::Vertex});
         // index buffer view
         m_IndexBufferViewIndex=m_Mesh.bufferViews.size();
         m_Mesh.bufferViews.push_back({0,0,m_IndexBufferIndex,Mesh::Target::Index});
@@ -32,6 +37,14 @@ public:
         0,
         Mesh::Type::VEC3,
         0});
+        // glyph index accessor
+        m_GlyphIndexAccessorIndex=m_Mesh.accessors.size();
+        m_Mesh.accessors.push_back({m_GlyphIndexBufferViewIndex,
+        0,
+        Mesh::ComponentType::UINT32,
+        0,
+        Mesh::Type::SCALAR,
+        0});
         // index accessor
         m_IndexAccessorIndex=m_Mesh.accessors.size();
         m_Mesh.accessors.push_back({m_IndexBufferViewIndex,
@@ -42,11 +55,12 @@ public:
         0});
         // primitive
         m_Mesh.primitive.attributes[Mesh::Primitive::Attribute::POSITION]=m_PositionAccessorIndex;
+        m_Mesh.primitive.attributes[Mesh::Primitive::Attribute::NORMAL]=m_GlyphIndexAccessorIndex;
         m_Mesh.primitive.index=m_IndexAccessorIndex;
     }
     void PushQuad(const Quad& quad)
     {
-        const auto& position=quad.position;
+        Vec3f  position(quad.position.x(),quad.position.y(),0);
         const auto& size=quad.size;
         const auto& glyphIndex=quad.glyphIndex;
 
@@ -67,15 +81,22 @@ public:
         };
         // append position buffer
         auto& positionBuffer=m_Mesh.buffers[m_PositionBufferIndex];
-        positionBuffer.insert(positionBuffer.end(),(uint8_t*)positions.data(),(uint8_t*)positions.data()+sizeof(positions));
-        
+        positionBuffer.insert(positionBuffer.end(),(uint8_t*)positions.data(),
+        (uint8_t*)positions.data()+sizeof(positions));
+        // append glyph index buffer
+        auto& glyphIndexBuffer=m_Mesh.buffers[m_GlyphIndexBufferIndex];
+        glyphIndexBuffer.insert(glyphIndexBuffer.end(),
+        (uint8_t*)&glyphIndex,(uint8_t*)&glyphIndex+sizeof(glyphIndex));
         // append index buffer
         auto& indexBuffer=m_Mesh.buffers[m_IndexBufferIndex];
         indexBuffer.insert(indexBuffer.end(),(uint8_t*)indices.data(),(uint8_t*)indices.data()+sizeof(indices));
         // update position buffer view
         auto& positionBufferView=m_Mesh.bufferViews[m_PositionBufferViewIndex];
         positionBufferView.size=positionBuffer.size();
-       
+        // update glyph index buffer view
+        auto& glyphIndexBufferView=m_Mesh.bufferViews[m_GlyphIndexBufferViewIndex];
+        glyphIndexBufferView.size=glyphIndexBuffer.size();
+
       
         // update index buffer view
         auto& indexBufferView=m_Mesh.bufferViews[m_IndexBufferViewIndex];
@@ -83,7 +104,9 @@ public:
         // update position accessor
         auto& positionAccessor=m_Mesh.accessors[m_PositionAccessorIndex];
         positionAccessor.count+=positions.size();
-        
+        //update glyph index accessor
+        auto& glyphIndexAccessor=m_Mesh.accessors[m_GlyphIndexAccessorIndex];
+        glyphIndexAccessor.count+=1;
         // update index accessor
         auto& indexAccessor=m_Mesh.accessors[m_IndexAccessorIndex];
         indexAccessor.count+=indices.size();
@@ -105,5 +128,8 @@ private:
     uint32_t m_IndexBufferViewIndex=0;
     uint32_t m_PositionAccessorIndex=0;
     uint32_t m_IndexAccessorIndex=0;
+    uint32_t m_GlyphIndexBufferIndex=0;
+    uint32_t m_GlyphIndexBufferViewIndex=0;
+    uint32_t m_GlyphIndexAccessorIndex=0;
 };
 }

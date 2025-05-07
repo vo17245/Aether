@@ -8,10 +8,12 @@ namespace Aether::Text
     {
         float x=0;
         float y=0;
+        // 纹理大小
         float width=1024;
         float height=1024;
+        // 当前行的最大高度
         float maxHeight=0;
-        bool PushRect(float _width,float _height,/*in*/
+        bool PushQuad(float _width,float _height,/*in*/
         float& _x,float& _y/*out*/)
         {
             if(x+_width>width)
