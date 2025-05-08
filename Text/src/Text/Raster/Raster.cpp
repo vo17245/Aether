@@ -72,9 +72,11 @@ bool Raster::CreateShader()
 #version 450
 layout(location=0)flat in uint v_Color;
 layout(location=0)out vec4 FragColor;
+
 void main()
 {
-    FragColor=vec4(1.0,1.0,1.0,1.0);
+    
+    FragColor=vec4(0.0,1.0,0.0,1.0);
 }
 )";
     static const char* vert = R"(
@@ -86,12 +88,22 @@ layout(std140,binding=0)uniform UniformBufferObject
     mat4 u_MVP;
     vec4 packed;
 }ubo;
+vec2 positions[6] = vec2[](
+    vec2(-1.0f, 1.0),
+    vec2(1.0f, -1.0),
+    vec2(1.0f, 1.0),
+    vec2(-1.0f, 1.0),
+    vec2(-1.0f, -1.0f),
+    vec2(1.0f, -1.0f)
+);
 layout(location=0)flat out uint v_GlyphIndex;
 void main()
 {
     vec4 pos=vec4(a_Position,1.0);
     v_GlyphIndex=a_GlyphIndex;
     gl_Position=ubo.u_MVP*pos;
+    //vec2 debug_pos=positions[gl_VertexIndex%6];
+    //gl_Position=vec4(debug_pos.x,debug_pos.y,0.0,1.0);
 }
 )";
     auto shaderEx = DeviceShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert),
@@ -202,6 +214,7 @@ bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& res
 {
     // host
     m_Camera.CalculateMatrix();
+    //========
     for (size_t i = 0; i < 16; i++)
     {
         m_HostUniformBuffer.mvp[i] = m_Camera.matrix.data()[i];

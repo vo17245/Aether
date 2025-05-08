@@ -35,9 +35,9 @@ namespace Aether
         if(Render::Config::RenderApi==Render::Api::Vulkan)
         {
             /**
-            * @note z range is [0,1]
+            * @note vulkan z range is [0,1]
             */
-            return Basis3D{Vec3f(0,0,0),Vec3f(1,0,0),Vec3f(0,-1,0),Vec3f(0,0,1)};
+            return Basis3D{Vec3f(0,0,-0.5),Vec3f(1,0,0),Vec3f(0,-1,0),Vec3f(0,0,-2)};
         }
         else {
             assert(false&&"Not implemented");
@@ -69,7 +69,7 @@ namespace Aether
     */
     inline Basis3D GetNormalizedScreenBasis()
     {
-        return Basis3D{Vec3f(-1,1,0),Vec3f(2,0,0),Vec3f(0,-2,0),Vec3f(0,0,2)};
+        return Basis3D{Vec3f(-1,1,-0.5),Vec3f(2,0,0),Vec3f(0,-2,0),Vec3f(0,0,-2)};
     }
     /**
      * @note 如果basis不是正交的，可能会抛异常
