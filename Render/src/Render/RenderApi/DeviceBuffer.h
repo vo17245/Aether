@@ -132,6 +132,10 @@ public:
         }
         
     }
+    operator bool() const
+    {
+        return !Empty();
+    }
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
 };

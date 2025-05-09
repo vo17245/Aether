@@ -21,7 +21,7 @@ std::optional<std::vector<char>> ReadFile(const Filesystem::Path& path)
     }
     return buffer;
 }
-bool WriteFile(const Filesystem::Path& path, const std::span<uint8_t> data)
+bool WriteFile(const Filesystem::Path& path, const std::span<const uint8_t> data)
 {
     File file(path, Action::Create);
     if (!file.IsOpened())
@@ -35,7 +35,7 @@ bool WriteFile(const Filesystem::Path& path, const std::span<uint8_t> data)
     }
     return true;
 }
-bool WriteFile(const Filesystem::Path& path, const std::span<char> data)
+bool WriteFile(const Filesystem::Path& path, const std::span<const char> data)
 {
     return WriteFile(path, std::span<uint8_t>((uint8_t*)data.data(), data.size()));
 }

@@ -75,3 +75,10 @@ Date:   Mon Dec 30 10:00:20 2024 -0500
 https://www.glfw.org/
 
 version 3.4
+
+## spdlog
+
+https://github.com/gabime/spdlog
+
+commit 6fa3601
+version 1.15.3

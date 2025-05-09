@@ -7,6 +7,7 @@
 #include <optional>
 #include <Eigen/Core>
 #include <nlohmann/json.hpp>
+#include <Render/RenderApi.h>
 namespace Aether::Text
 {
 class Context
@@ -112,21 +113,20 @@ public:
         FT_Pos bearingY;
         FT_Pos advance;
     };
+#pragma pack(push, 1) // 设置为 1 字节对齐，使其在内存中紧凑排列
     struct BufferGlyph
     {
-        int32_t start, count; // range of bezier curves belonging to this glyph
+        uint32_t start, count; // range of bezier curves belonging to this glyph
+		uint32_t align[2];
     };
 
     struct BufferCurve
     {
         float x0, y0, x1, y1, x2, y2;
+		float align[2];
     };
+#pragma pack(pop) // 恢复默认对齐
 
-    struct BufferVertex
-    {
-        float x, y, u, v;
-        int32_t bufferIndex;
-    };
 
 public:
     static std::optional<Font> Create(Face* face, float worldSize = 32.0f, bool hinting = false)
@@ -161,6 +161,11 @@ public:
 			}
 			font.buildGlyph(charcode, glyphIndex);
 		}
+		if(!font.CreateDeviceData())
+		{
+			return std::nullopt;
+		}
+		
         return font;
     }
     void buildGlyph(uint32_t charcode, FT_UInt glyphIndex)
@@ -266,6 +271,7 @@ public:
             buildGlyph(charcode, glyphIndex);
             changed = true;
         }
+		UpdateDeviceData();
     }
     // This function takes a single contour (defined by firstIndex and
 	// lastIndex, both inclusive) from outline and converts it into individual
@@ -474,9 +480,9 @@ public:
 		}
 		json["glyphs"] = glyphs;
 		return json.dump(4);
-		
 	}
-
+	bool UpdateDeviceData();
+	bool CreateDeviceData();// texture buffer sampler
 
 public:
     Face* face;//not own
@@ -488,5 +494,8 @@ public:
 	std::vector<BufferCurve> bufferCurves;
     float emSize;
     float worldSize; // world -> screen(or framebuffer) , worldSize-> pixelSize
+	DeviceBuffer stagingBuffer;
+	DeviceTexture glyphTexture;
+	DeviceTexture curveTexture;
 };
 } // namespace AeExporter::ContourRenderer

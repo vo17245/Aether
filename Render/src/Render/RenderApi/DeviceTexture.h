@@ -241,6 +241,10 @@ public:
     {
         std::visit(SyncTransitionLayoutImpl{oldLayout, newLayout}, m_Texture);
     }
+    operator bool() const
+    {
+        return !Empty();
+    }
     
 private:
     struct GetWidthImpl

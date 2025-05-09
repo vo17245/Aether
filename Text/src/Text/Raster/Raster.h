@@ -75,7 +75,7 @@ private:
     bool CreateCamera(const Vec2f& screenSize);// on init 
     bool UpdateMesh(RenderPassParam& param,RenderPassResource& resource);//per draw
     bool UpdateUniformBuffer(RenderPassParam& param,RenderPassResource& resource);//per draw
-    bool UpdateDescriptorSet(RenderPassResource& resource);//per draw
+    bool UpdateDescriptorSet(RenderPassResource& resource,RenderPassParam& param);//per draw
     bool RecordCommand(RenderPassParam& param,RenderPassResource& resource);//per draw
 private:
     struct HostUniformBuffer
@@ -91,5 +91,6 @@ private:
     DeviceBuffer m_StaggingBuffer;
     DeviceDescriptorSet m_DescriptorSet;
     HostUniformBuffer m_HostUniformBuffer;
+    DeviceSampler m_Sampler;
 };
 } // namespace Aether::Text

@@ -39,3 +39,22 @@ TEST_CASE("Filesystem create file chinese path")
     CHECK(res == true);
     Filesystem::CloseFile(handle);
 }
+TEST_CASE("Filesystem write read")
+{
+    {
+        const char* str = "hello world";
+        Filesystem::WriteFile("tmp/test.txt",std::span<const char>(str,strlen(str)));
+        auto res=Filesystem::ReadFile("tmp/test.txt");
+        std::string s(res->data(),res->size());
+        CHECK(s == "hello world");
+        Filesystem::RemoveFile("tmp/test.txt");
+    }
+    {
+        const char* str = "你好";
+        Filesystem::WriteFile("tmp/你好.txt",std::span<const char>(str,strlen(str)));
+        auto res=Filesystem::ReadFile("tmp/你好.txt");
+        std::string s(res->data(),res->size());
+        CHECK(s == "你好");
+        Filesystem::RemoveFile("tmp/你好.txt");
+    }
+}

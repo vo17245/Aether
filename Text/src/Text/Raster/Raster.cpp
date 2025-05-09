@@ -10,6 +10,7 @@
 #include "Quad.h"
 #include "PackGlyph.h"
 #include "Render/Utils.h"
+#include <Debug/Log.h>
 namespace Aether::Text
 {
 bool Raster::Render(RenderPassParam& param, RenderPassResource& resource)
@@ -31,7 +32,7 @@ bool Raster::Render(RenderPassParam& param, RenderPassResource& resource)
     {
         return false;
     }
-    res = UpdateDescriptorSet(resource);
+    res = UpdateDescriptorSet(resource,param);
     if (!res)
     {
         return false;
@@ -64,19 +65,72 @@ const Vec2f& screenSize)
     }
     CreateCamera(screenSize);
     m_StaggingBuffer=DeviceBuffer::CreateForStaging(sizeof(HostUniformBuffer));
+    m_Sampler=DeviceSampler::CreateDefault();
     return true;
 }
 bool Raster::CreateShader()
 {
     static const char* frag = R"(
 #version 450
-layout(location=0)flat in uint v_Color;
+layout(location=0)flat in uint v_GlyphIndex;
 layout(location=0)out vec4 FragColor;
+layout(set=1,binding=0)uniform usampler2D u_GlyphTexture;
+layout(set=1,binding=1)uniform sampler2D u_CurveTexture;
 
+struct Glyph {
+	uint start, count;
+};
+
+struct Curve {
+	vec2 p0, p1, p2;
+};
+uint g_GlyphInLine;
+uint g_CurveInLine;
+
+Glyph FetchGlyph(uint index)
+{
+    uint line=index/g_GlyphInLine;
+    uint offset=(index%g_GlyphInLine);
+    uvec4 glyphData=texelFetch(u_GlyphTexture,ivec2(offset,line),0);
+    Glyph glyph;
+    glyph.start=glyphData.x;
+    glyph.count=glyphData.y;
+    return glyph;
+}
+Curve FetchCurve(uint index)
+{
+    uint line=index/g_CurveInLine;
+    uint offset=(index%g_CurveInLine)*2;
+    vec4 curveData1=texelFetch(u_CurveTexture,ivec2(offset,line),0);
+    vec4 curveData2=texelFetch(u_CurveTexture,ivec2(offset+1,line),0);
+    Curve curve;
+    curve.p0.x=curveData1.x;
+    curve.p0.y=curveData1.y;
+    curve.p1.x=curveData1.z;
+    curve.p1.y=curveData1.w;
+    curve.p2.x=curveData2.x;
+    curve.p2.y=curveData2.y;
+    return curve;
+}
+
+/**
+ * @brief set global variable g_GlyphInLine and g_CurveInLine
+*/
+void Init()
+{
+    ivec2 glyphTextureSize=textureSize(u_GlyphTexture,0);
+    g_GlyphInLine=glyphTextureSize.x*2;
+    ivec2 curveTextureSize=textureSize(u_CurveTexture,0);
+    g_CurveInLine=uint(float(curveTextureSize.x)/1.5);
+}
+float CalculateCoverage(in Curve curve)
+{
+return 0.0;
+}
 void main()
 {
-    
-    FragColor=vec4(0.0,1.0,0.0,1.0);
+    Init();
+    FragColor=vec4(sin(float(v_GlyphIndex)),1.0,0.0,1.0);
 }
 )";
     static const char* vert = R"(
@@ -88,14 +142,14 @@ layout(std140,binding=0)uniform UniformBufferObject
     mat4 u_MVP;
     vec4 packed;
 }ubo;
-vec2 positions[6] = vec2[](
-    vec2(-1.0f, 1.0),
-    vec2(1.0f, -1.0),
-    vec2(1.0f, 1.0),
-    vec2(-1.0f, 1.0),
-    vec2(-1.0f, -1.0f),
-    vec2(1.0f, -1.0f)
-);
+//vec2 positions[6] = vec2[](
+//    vec2(-1.0f, 1.0),
+//    vec2(1.0f, -1.0),
+//    vec2(1.0f, 1.0),
+//    vec2(-1.0f, 1.0),
+//    vec2(-1.0f, -1.0f),
+//    vec2(1.0f, -1.0f)
+//);
 layout(location=0)flat out uint v_GlyphIndex;
 void main()
 {
@@ -110,6 +164,7 @@ void main()
                                          ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, frag));
     if (!shaderEx)
     {
+        Debug::Log::Error("create shader failed:\n{}",shaderEx.error());
         assert(false && "create shader failed");
         return false;
     }
@@ -164,7 +219,7 @@ bool Raster::CreateCamera(const Vec2f& screenSize)
 
 bool Raster::CreateDescriptorSet(DeviceDescriptorPool& descriptorPool)
 {
-    auto set = descriptorPool.CreateSet(1, 0, 0);
+    auto set = descriptorPool.CreateSet(1, 0, 2);
     m_DescriptorSet = std::move(set);
     return true;
 }
@@ -197,7 +252,7 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
             assert(false && "pack glyph failed");
             return false;
         }
-        mesh.PushQuad(CreateQuad(param.font.glyphs[unicode], Vec2f(x, y), unicode));
+        mesh.PushQuad(CreateQuad(param.font.glyphs[unicode], Vec2f(x, y), glyph.bufferIndex));
     }
     // create device mesh data
     if (resource.mesh)
@@ -229,13 +284,15 @@ bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& res
                                   sizeof(m_HostUniformBuffer), 0, 0);
 }
 
-bool Raster::UpdateDescriptorSet(RenderPassResource& resource)
+bool Raster::UpdateDescriptorSet(RenderPassResource& resource,RenderPassParam& param)
 {
     auto& descriptorSet = m_DescriptorSet.GetVk();
     auto& uboAccessor = descriptorSet.ubos[0];
     auto& set = descriptorSet.sets[uboAccessor.set];
     vk::DescriptorSetOperator op(set);
     op.BindUBO(uboAccessor.binding, resource.uniformBuffer.GetVk());
+    op.BindSampler(0, m_Sampler.GetVk(), param.font.glyphTexture.GetDefaultImageView().GetVk());
+    op.BindSampler(1, m_Sampler.GetVk(), param.font.curveTexture.GetDefaultImageView().GetVk());
     op.Apply();
     return true;
 }

@@ -14,6 +14,7 @@ namespace Aether::UI
 /**
  * TODO 
  * allow multiple draw in one frame
+ * use only one sampler, instead of create sampler for each draw
 */
 class Renderer
 {
