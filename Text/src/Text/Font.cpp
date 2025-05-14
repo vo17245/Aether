@@ -6,11 +6,17 @@ namespace Aether::Text
         // glyph texture
         stagingBuffer.SetData(std::span<uint8_t>((uint8_t*)bufferGlyphs.data(),
                                                  sizeof(BufferGlyph) * bufferGlyphs.size()));
+		glyphTexture.SyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::TransferDst);
         glyphTexture.CopyBuffer(stagingBuffer);
+		glyphTexture.SyncTransitionLayout(DeviceImageLayout::TransferDst, DeviceImageLayout::Texture);
+		
         // curve texture
+
         stagingBuffer.SetData(std::span<uint8_t>((uint8_t*)bufferCurves.data(),
                                                  sizeof(BufferCurve) * bufferCurves.size()));
+		curveTexture.SyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::TransferDst);
         curveTexture.CopyBuffer(stagingBuffer);
+		curveTexture.SyncTransitionLayout(DeviceImageLayout::TransferDst, DeviceImageLayout::Texture);
         return true;
     }
     bool Font::CreateDeviceData()
@@ -23,8 +29,8 @@ namespace Aether::Text
         // per line curve count: 256
 		//
 		// glyph texture rgba8888 128x128 
-		// max glyph count: 16384
-        // per line glyph count: 128
+		// max glyph count: 8192
+        // per line glyph count: 64
 		//
 		stagingBuffer=DeviceBuffer::CreateForStaging(512*512*4*4);
 		if(!stagingBuffer)
@@ -38,13 +44,18 @@ namespace Aether::Text
 			assert(false && "create curve texture failed");
 			return false;
 		}
+		curveTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
 		curveTexture.GetOrCreateDefaultImageView();
-		glyphTexture=DeviceTexture::CreateForTexture(128, 128, PixelFormat::RGBA8888).value();
+		glyphTexture=DeviceTexture::CreateForTexture(128, 128, PixelFormat::RGBA8888_UInt).value();
+		//debug
+		glyphTexture=DeviceTexture::CreateForDownloadableTexture(128, 128, PixelFormat::RGBA8888_UInt).value();
+		//debug end
 		if(!glyphTexture)
 		{
 			assert(false && "create glyph texture failed");
 			return false;
 		}
+		glyphTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
 		glyphTexture.GetOrCreateDefaultImageView();
         return true;
     }

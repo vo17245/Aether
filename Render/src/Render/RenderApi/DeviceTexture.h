@@ -65,6 +65,7 @@ enum class DeviceImageLayout
     Texture,
     Undefined,
     TransferDst,
+    TransferSrc,
     DepthStencilAttachment,
 };
 inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
@@ -83,6 +84,8 @@ inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
         return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     case DeviceImageLayout::DepthStencilAttachment:
         return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    case DeviceImageLayout::TransferSrc:
+        return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     default:
         assert(false && "Invalid layout");
         return VK_IMAGE_LAYOUT_UNDEFINED;
@@ -124,7 +127,7 @@ public:
         switch (Render::Config::RenderApi)
         {
         case Render::Api::Vulkan: {
-            auto texture = vk::Texture2D::CreateForTexture(width, height, PixelFormat::RGBA8888);
+            auto texture = vk::Texture2D::CreateForTexture(width, height, format);
             if (!texture)
             {
                 return std::unexpected<std::string>("Failed to create texture");
@@ -136,6 +139,24 @@ public:
             return std::unexpected<std::string>("Not implemented");
         }
     }
+    static std::optional<DeviceTexture> CreateForDownloadableTexture(int width,int height,PixelFormat format)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto texture = vk::Texture2D::CreateForDownloadableTexture(width, height, format);
+            if (!texture)
+            {
+                return std::nullopt;
+            }
+            return DeviceTexture(std::move(texture.value()));
+        }
+        break;
+        default:
+            return std::nullopt;
+        }
+    }
+
     static std::expected<DeviceTexture,std::string> CreateForColorAttachment(int width,int height,PixelFormat format)
     {
         switch (Render::Config::RenderApi)
@@ -244,6 +265,20 @@ public:
     operator bool() const
     {
         return !Empty();
+    }
+    void CopyToBuffer(const DeviceBuffer& buffer)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto& vkBuffer = buffer.Get<vk::Buffer>();
+            auto& texture = Get<vk::Texture2D>();
+            texture.SyncCopyToBuffer(vkBuffer);
+        }
+        break;
+        default:
+            assert(false && "Not implemented");
+        }
     }
     
 private:

@@ -91,6 +91,7 @@ private:
     DeviceBuffer m_StaggingBuffer;
     DeviceDescriptorSet m_DescriptorSet;
     HostUniformBuffer m_HostUniformBuffer;
-    DeviceSampler m_Sampler;
+    DeviceSampler m_GlyphTextureSampler;
+    DeviceSampler m_CurveTextureSampler;
 };
 } // namespace Aether::Text

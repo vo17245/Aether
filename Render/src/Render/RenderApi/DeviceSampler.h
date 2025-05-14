@@ -34,13 +34,12 @@ public:
      * linear filter in mag and min and mipmap
      * always repeat
      * always use 0 mipmap level
-     * */ 
+     * */
     static DeviceSampler CreateDefault()
     {
         switch (Render::Config::RenderApi)
         {
-        case Render::Api::Vulkan:
-        {
+        case Render::Api::Vulkan: {
             vk::Sampler::Builder builder;
             builder.SetDefaultCreateInfo();
             auto sampler = builder.Build();
@@ -55,6 +54,29 @@ public:
             return DeviceSampler();
         }
     }
+    static DeviceSampler CreateNearest()
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            vk::Sampler::Builder builder;
+            builder.SetDefaultCreateInfo();
+            builder.SetMagFilter(vk::Sampler::Filter::Nearest)
+            .SetMinFilter(vk::Sampler::Filter::Nearest)
+                .SetMipmapMode(VK_SAMPLER_MIPMAP_MODE_NEAREST);
+            auto sampler = builder.Build();
+            if (!sampler)
+            {
+                return DeviceSampler();
+            }
+            return DeviceSampler(std::move(sampler.value()));
+        }
+        default:
+            assert(false && "Not implemented");
+            return DeviceSampler();
+        }
+    }
+
 private:
     std::variant<std::monostate, vk::Sampler> m_Sampler;
 };

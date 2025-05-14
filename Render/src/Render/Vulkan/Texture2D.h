@@ -12,9 +12,18 @@ class Texture2D
 public:
     static std::optional<Texture2D> Create(uint32_t width, uint32_t height,
                                            PixelFormat format, VkImageUsageFlags usage, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED);
-
+    // sample 
+    // & transfer dst
     static std::optional<Texture2D> CreateForTexture(uint32_t width, uint32_t height, PixelFormat format);
+    // sample 
+    // & transfer src 
+    // & transfer dst
+    static std::optional<Texture2D> CreateForDownloadableTexture(uint32_t width, uint32_t height, PixelFormat format);
+    // color attachment 
+    // & sample
     static std::optional<Texture2D> CreateForColorAttachment(uint32_t width, uint32_t height, PixelFormat format);
+    // depth attachment 
+    // & sample
     static std::optional<Texture2D> CreateForDepthAttachment(uint32_t width, uint32_t height, PixelFormat format);
     ~Texture2D();
 
@@ -39,6 +48,10 @@ public:
     uint32_t GetWidth() const;
     uint32_t GetHeight() const;
     VkFormat GetVkFormat() const;
+    /**
+     * @brief 将texture中的数据拷贝到buffer中
+    */
+    bool SyncCopyToBuffer(const Buffer& buffer);
 
 private:
     Texture2D(VkImage image, VmaAllocation allocation, VmaAllocationInfo allocInfo, PixelFormat format, uint32_t width, uint32_t height);

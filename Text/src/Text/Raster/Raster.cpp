@@ -65,7 +65,8 @@ const Vec2f& screenSize)
     }
     CreateCamera(screenSize);
     m_StaggingBuffer=DeviceBuffer::CreateForStaging(sizeof(HostUniformBuffer));
-    m_Sampler=DeviceSampler::CreateDefault();
+    m_CurveTextureSampler=DeviceSampler::CreateDefault();
+    m_GlyphTextureSampler=DeviceSampler::CreateNearest();
     return true;
 }
 bool Raster::CreateShader()
@@ -73,6 +74,7 @@ bool Raster::CreateShader()
     static const char* frag = R"(
 #version 450
 layout(location=0)flat in uint v_GlyphIndex;
+layout(location=1)in vec2 v_UV;
 layout(location=0)out vec4 FragColor;
 layout(set=1,binding=0)uniform usampler2D u_GlyphTexture;
 layout(set=1,binding=1)uniform sampler2D u_CurveTexture;
@@ -86,15 +88,18 @@ struct Curve {
 };
 uint g_GlyphInLine;
 uint g_CurveInLine;
+float g_AntiAliasingWindowSize = 1.0;
+
 
 Glyph FetchGlyph(uint index)
 {
     uint line=index/g_GlyphInLine;
-    uint offset=(index%g_GlyphInLine);
-    uvec4 glyphData=texelFetch(u_GlyphTexture,ivec2(offset,line),0);
+    uint offset=(index%g_GlyphInLine)*2;
+    uvec4 glyphData1=texelFetch(u_GlyphTexture,ivec2(offset,line),0);
+    uvec4 glyphData2=texelFetch(u_GlyphTexture,ivec2(offset+1,line),0);
     Glyph glyph;
-    glyph.start=glyphData.x;
-    glyph.count=glyphData.y;
+    glyph.start=glyphData1.x+(glyphData1.y<<8)+(glyphData1.z<<16)+(glyphData1.w<<24);
+    glyph.count=glyphData2.x+(glyphData2.y<<8)+(glyphData2.z<<16)+(glyphData2.w<<24);
     return glyph;
 }
 Curve FetchCurve(uint index)
@@ -119,45 +124,100 @@ Curve FetchCurve(uint index)
 void Init()
 {
     ivec2 glyphTextureSize=textureSize(u_GlyphTexture,0);
-    g_GlyphInLine=glyphTextureSize.x*2;
+    g_GlyphInLine=glyphTextureSize.x/2;
     ivec2 curveTextureSize=textureSize(u_CurveTexture,0);
     g_CurveInLine=uint(float(curveTextureSize.x)/1.5);
 }
-float CalculateCoverage(in Curve curve)
-{
-return 0.0;
+float CalculateCoverage(float inverseDiameter, vec2 p0, vec2 p1, vec2 p2) {
+	if (p0.y > 0 && p1.y > 0 && p2.y > 0) return 0.0;
+	if (p0.y < 0 && p1.y < 0 && p2.y < 0) return 0.0;
+
+	// Note: Simplified from abc formula by extracting a factor of (-2) from b.
+	vec2 a = p0 - 2*p1 + p2;
+	vec2 b = p0 - p1;
+	vec2 c = p0;
+
+	float t0, t1;
+	if (abs(a.y) >= 1e-5) {
+		// Quadratic segment, solve abc formula to find roots.
+		float radicand = b.y*b.y - a.y*c.y;
+		if (radicand <= 0) return 0.0;
+	
+		float s = sqrt(radicand);
+		t0 = (b.y - s) / a.y;
+		t1 = (b.y + s) / a.y;
+	} else {
+		// Linear segment, avoid division by a.y, which is near zero.
+		// There is only one root, so we have to decide which variable to
+		// assign it to based on the direction of the segment, to ensure that
+		// the ray always exits the shape at t0 and enters at t1. For a
+		// quadratic segment this works 'automatically', see readme.
+		float t = p0.y / (p0.y - p2.y);
+		if (p0.y < p2.y) {
+			t0 = -1.0;
+			t1 = t;
+		} else {
+			t0 = t;
+			t1 = -1.0;
+		}
+	}
+
+	float alpha = 0;
+	
+	if (t0 >= 0 && t0 < 1) {
+		float x = (a.x*t0 - 2.0*b.x)*t0 + c.x;
+		alpha += clamp(x * inverseDiameter + 0.5, 0, 1);
+	}
+
+	if (t1 >= 0 && t1 < 1) {
+		float x = (a.x*t1 - 2.0*b.x)*t1 + c.x;
+		alpha -= clamp(x * inverseDiameter + 0.5, 0, 1);
+	}
+
+	return alpha;
 }
 void main()
 {
     Init();
-    FragColor=vec4(sin(float(v_GlyphIndex)),1.0,0.0,1.0);
+    vec2 uv = v_UV;
+    vec2 inverseDiameter = 1.0 / (g_AntiAliasingWindowSize * fwidth(uv));
+    float alpha = 0.0;
+    Glyph glyph = FetchGlyph(v_GlyphIndex);
+    for (int i = 0; i < glyph.count; i++) {
+		Curve curve = FetchCurve(glyph.start);
+
+		vec2 p0 = curve.p0 - uv;
+		vec2 p1 = curve.p1 - uv;
+		vec2 p2 = curve.p2 - uv;
+
+		alpha += CalculateCoverage(inverseDiameter.x, p0, p1, p2);
+
+	}
+
+
+    FragColor=alpha*vec4(1.0,1.0,1.0,1.0);
 }
 )";
     static const char* vert = R"(
 #version 450
 layout(location=0)in vec3 a_Position;
 layout(location=1)in uint a_GlyphIndex;
+layout(location=2)in vec2 a_UV;
 layout(std140,binding=0)uniform UniformBufferObject
 {
     mat4 u_MVP;
     vec4 packed;
 }ubo;
-//vec2 positions[6] = vec2[](
-//    vec2(-1.0f, 1.0),
-//    vec2(1.0f, -1.0),
-//    vec2(1.0f, 1.0),
-//    vec2(-1.0f, 1.0),
-//    vec2(-1.0f, -1.0f),
-//    vec2(1.0f, -1.0f)
-//);
+
 layout(location=0)flat out uint v_GlyphIndex;
+layout(location=1)out vec2 v_UV;
 void main()
 {
     vec4 pos=vec4(a_Position,1.0);
     v_GlyphIndex=a_GlyphIndex;
     gl_Position=ubo.u_MVP*pos;
-    //vec2 debug_pos=positions[gl_VertexIndex%6];
-    //gl_Position=vec4(debug_pos.x,debug_pos.y,0.0,1.0);
+    v_UV=a_UV;
+
 }
 )";
     auto shaderEx = DeviceShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert),
@@ -287,13 +347,23 @@ bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& res
 bool Raster::UpdateDescriptorSet(RenderPassResource& resource,RenderPassParam& param)
 {
     auto& descriptorSet = m_DescriptorSet.GetVk();
-    auto& uboAccessor = descriptorSet.ubos[0];
-    auto& set = descriptorSet.sets[uboAccessor.set];
-    vk::DescriptorSetOperator op(set);
-    op.BindUBO(uboAccessor.binding, resource.uniformBuffer.GetVk());
-    op.BindSampler(0, m_Sampler.GetVk(), param.font.glyphTexture.GetDefaultImageView().GetVk());
-    op.BindSampler(1, m_Sampler.GetVk(), param.font.curveTexture.GetDefaultImageView().GetVk());
-    op.Apply();
+    
+    // ubo
+    {
+        auto& uboAccessor = descriptorSet.ubos[0];
+        auto& set = descriptorSet.sets[uboAccessor.set];
+        vk::DescriptorSetOperator op(set);
+        op.BindUBO(uboAccessor.binding, resource.uniformBuffer.GetVk());
+        op.Apply();
+    }
+    //texture
+    {
+        auto& set = descriptorSet.sets[1];
+        vk::DescriptorSetOperator op(set);
+        op.BindSampler(0, m_GlyphTextureSampler.GetVk(), param.font.glyphTexture.GetDefaultImageView().GetVk());
+        op.BindSampler(1, m_CurveTextureSampler.GetVk(), param.font.curveTexture.GetDefaultImageView().GetVk());
+        op.Apply();
+    }
     return true;
 }
 bool Raster::RecordCommand(RenderPassParam& param, RenderPassResource& resource)

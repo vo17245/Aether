@@ -117,7 +117,6 @@ public:
     struct BufferGlyph
     {
         uint32_t start, count; // range of bezier curves belonging to this glyph
-		uint32_t align[2];
     };
 
     struct BufferCurve
@@ -271,7 +270,10 @@ public:
             buildGlyph(charcode, glyphIndex);
             changed = true;
         }
-		UpdateDeviceData();
+		if(changed)
+		{
+			UpdateDeviceData();
+		}
     }
     // This function takes a single contour (defined by firstIndex and
 	// lastIndex, both inclusive) from outline and converts it into individual

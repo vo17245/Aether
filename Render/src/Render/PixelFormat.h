@@ -29,6 +29,8 @@ enum class PixelFormat : int32_t
     RGB_FLOAT32_UNKNOWN = Bit(15),
     // 给深度缓冲使用
     R_FLOAT32_DEPTH = Bit(16),
+    // shader采样时，获取的类型是uint(一般是32位)
+    RGBA8888_UInt = Bit(17),
 };
 inline constexpr const bool PixelFormatIsFloat(PixelFormat format)
 {
@@ -117,6 +119,7 @@ inline constexpr VkFormat PixelFormatToVkFormat(PixelFormat format)
     case PixelFormat::RGB888_UNKNOWN: return VK_FORMAT_R8G8B8_UNORM;
     case PixelFormat::RGBA_FLOAT32_UNKNOWN: return VK_FORMAT_R32G32B32A32_SFLOAT;
     case PixelFormat::R_FLOAT32_DEPTH: return VK_FORMAT_D32_SFLOAT;
+    case PixelFormat::RGBA8888_UInt: return VK_FORMAT_R8G8B8A8_UINT;
     default:
         assert(false&&"Unknown PixelFormat: {}");
         return VK_FORMAT_UNDEFINED;
