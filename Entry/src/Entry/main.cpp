@@ -2,6 +2,7 @@
 #include <Window/WindowContext.h>
 #include <Render/RenderApi.h>
 #include "Application.h"
+#include <chrono>
 using namespace Aether;
 namespace Aether
 {
@@ -18,6 +19,7 @@ int main()
         vk::GRC::Init(window.get(), true);
         WindowContext::Register(window->GetHandle(), window.get());
         app->OnInit(*window);
+        std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
         while (!window->ShouldClose())
         {
             window->WaitLastFrameComplete();
@@ -27,6 +29,11 @@ int main()
             window->DispatchEvent();
 
             window->OnRender();
+            std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+            float sec=
+                std::chrono::duration<float>(currentTime - lastTime).count();
+            lastTime = currentTime;
+            window->OnUpdate(sec);
         }
         vkDeviceWaitIdle(vk::GRC::GetDevice());
         app->OnShutdown();

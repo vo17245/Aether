@@ -126,12 +126,12 @@ void Init()
     ivec2 glyphTextureSize=textureSize(u_GlyphTexture,0);
     g_GlyphInLine=glyphTextureSize.x/2;
     ivec2 curveTextureSize=textureSize(u_CurveTexture,0);
-    g_CurveInLine=uint(float(curveTextureSize.x)/1.5);
+    g_CurveInLine=uint(float(curveTextureSize.x)/2);
 }
 float CalculateCoverage(float inverseDiameter, vec2 p0, vec2 p1, vec2 p2) {
+
 	if (p0.y > 0 && p1.y > 0 && p2.y > 0) return 0.0;
 	if (p0.y < 0 && p1.y < 0 && p2.y < 0) return 0.0;
-
 	// Note: Simplified from abc formula by extracting a factor of (-2) from b.
 	vec2 a = p0 - 2*p1 + p2;
 	vec2 b = p0 - p1;
@@ -152,6 +152,10 @@ float CalculateCoverage(float inverseDiameter, vec2 p0, vec2 p1, vec2 p2) {
 		// assign it to based on the direction of the segment, to ensure that
 		// the ray always exits the shape at t0 and enters at t1. For a
 		// quadratic segment this works 'automatically', see readme.
+        if(abs(p0.y - p2.y)<1e-5)
+        {
+            return 0.0;
+        }
 		float t = p0.y / (p0.y - p2.y);
 		if (p0.y < p2.y) {
 			t0 = -1.0;
@@ -163,7 +167,6 @@ float CalculateCoverage(float inverseDiameter, vec2 p0, vec2 p1, vec2 p2) {
 	}
 
 	float alpha = 0;
-	
 	if (t0 >= 0 && t0 < 1) {
 		float x = (a.x*t0 - 2.0*b.x)*t0 + c.x;
 		alpha += clamp(x * inverseDiameter + 0.5, 0, 1);
@@ -173,19 +176,38 @@ float CalculateCoverage(float inverseDiameter, vec2 p0, vec2 p1, vec2 p2) {
 		float x = (a.x*t1 - 2.0*b.x)*t1 + c.x;
 		alpha -= clamp(x * inverseDiameter + 0.5, 0, 1);
 	}
-
+    
 	return alpha;
 }
+vec2 Hinting(vec2 p,float scale)
+{
+    p=p*scale;
+    p.x=floor(p.x);
+    p.y=floor(p.y);
+    p=p/scale;
+    return p;
+}
+vec2 HintingCenter(vec2 p,float scale)
+{
+    p=p*scale;
+    p.x=floor(p.x)+0.5;
+    p.y=floor(p.y)+0.5;
+    p=p/scale;
+    return p;
+}   
 void main()
 {
     Init();
     vec2 uv = v_UV;
-    vec2 inverseDiameter = 1.0 / (g_AntiAliasingWindowSize * fwidth(uv));
+    vec2 inverseDiameter = 1.0 / (g_AntiAliasingWindowSize * fwidth(v_UV));// uv到屏幕空间的缩放
+    uv=HintingCenter(uv,inverseDiameter.x*16);
     float alpha = 0.0;
     Glyph glyph = FetchGlyph(v_GlyphIndex);
     for (int i = 0; i < glyph.count; i++) {
-		Curve curve = FetchCurve(glyph.start);
-
+		Curve curve = FetchCurve(glyph.start+i);
+        curve.p0=Hinting(curve.p0,inverseDiameter.x*16);
+        curve.p1=Hinting(curve.p1,inverseDiameter.x*16);
+        curve.p2=Hinting(curve.p2,inverseDiameter.x*16);
 		vec2 p0 = curve.p0 - uv;
 		vec2 p1 = curve.p1 - uv;
 		vec2 p2 = curve.p2 - uv;
@@ -194,8 +216,34 @@ void main()
 
 	}
 
-
+   
     FragColor=alpha*vec4(1.0,1.0,1.0,1.0);
+
+
+
+
+
+
+    //if(true)
+    //{
+    //vec2 fw = fwidth(uv);
+	//	float r = 4.0 * 0.5 * (fw.x + fw.y);
+	//	for (int i = 0; i < glyph.count; i++) {
+	//		Curve curve = FetchCurve(glyph.start + i);
+	//		vec2 p0 = curve.p0 - uv;
+	//		vec2 p1 = curve.p1 - uv;
+	//		vec2 p2 = curve.p2 - uv;
+	//		if (dot(p0, p0) < r*r || dot(p2, p2) < r*r) {
+	//			FragColor = vec4(0, 1, 0, 1);
+	//			return;
+	//		}
+	//		if (dot(p1, p1) < r*r) {
+	//			FragColor = vec4(1, 0, 1, 1);
+	//			return;
+	//		}
+	//	}
+    //}
+
 }
 )";
     static const char* vert = R"(
@@ -303,16 +351,39 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
     float x;
     float y;
     bool res;
+    float emSize = param.font.emSize;
+    float worldSize = param.worldSize;
+    float scale=worldSize/param.font.emSize;
     for (auto unicode : param.unicodes)
     {
         auto& glyph = param.font.glyphs[unicode];
-        res = packGlyph.PushQuad(glyph.width, glyph.height, x, y);
+        // 计算这个glyph的位置
+        res = packGlyph.PushQuad(glyph.width*scale, glyph.height*scale, x, y);
+        x+=10;
+        y+=10;
         if (!res)
         {
             assert(false && "pack glyph failed");
             return false;
         }
-        mesh.PushQuad(CreateQuad(param.font.glyphs[unicode], Vec2f(x, y), glyph.bufferIndex));
+        FT_Pos d = (FT_Pos) (emSize * m_Dilation);
+
+		float u0 = (float)(glyph.bearingX-d) / emSize;
+		float v0 = (float)(glyph.bearingY-glyph.height-d) / emSize;
+		float u1 = (float)(glyph.bearingX+glyph.width+d) / emSize;
+		float v1 = (float)(glyph.bearingY+d) / emSize;
+		float x0 = x + u0 * worldSize;
+		float y0 = y + v0 * worldSize;
+		float x1 = x + u1 * worldSize;
+		float y1 = y + v1 * worldSize;
+        // 创建quad
+        Quad quad;
+        quad.position = Vec2f(x0, y0);
+        quad.size = Vec2f(x1 - x0, y1 - y0);
+        quad.uv0 = Vec2f(u0, v0);
+        quad.uv1 = Vec2f(u1, v1);
+        quad.glyphIndex = glyph.bufferIndex;
+        mesh.PushQuad(quad);
     }
     // create device mesh data
     if (resource.mesh)

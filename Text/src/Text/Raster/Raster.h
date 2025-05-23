@@ -28,6 +28,7 @@ public:
         float scale=1.0;
         // storage
         uint32_t channel=0;// store mask in rgba(0 1 2 3)
+        float worldSize=32.0f;
     };
     struct RenderPassResource
     {
@@ -93,5 +94,11 @@ private:
     HostUniformBuffer m_HostUniformBuffer;
     DeviceSampler m_GlyphTextureSampler;
     DeviceSampler m_CurveTextureSampler;
+
+private:
+	// The glyph quads are expanded by this amount to enable proper
+	// anti-aliasing. Value is relative to emSize.
+    float m_Dilation = 0;
+    float m_WorldSize=0;
 };
 } // namespace Aether::Text

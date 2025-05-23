@@ -86,12 +86,12 @@ public:
             position+Vec3f(size.x(),size.y(),0),//right-bottom
             position+Vec3f(0,size.y(),0)//left-bottom
         };
-        static std::array<Vec2f,4> uvs=
+        std::array<Vec2f,4> uvs=
         {
-            Vec2f(0,0),
-            Vec2f(1,0),
-            Vec2f(1,1),
-            Vec2f(0,1)
+            Vec2f(quad.uv0.x(),quad.uv1.y()),
+            Vec2f(quad.uv1.x(),quad.uv1.y()),
+            Vec2f(quad.uv1.x(),quad.uv0.y()),
+            Vec2f(quad.uv0.x(),quad.uv0.y())
         };
         
         
@@ -107,8 +107,12 @@ public:
         (uint8_t*)positions.data()+sizeof(positions));
         // append glyph index buffer
         auto& glyphIndexBuffer=m_Mesh.buffers[m_GlyphIndexBufferIndex];
-        glyphIndexBuffer.insert(glyphIndexBuffer.end(),
+        for(size_t i=0;i<4;i++)
+        {
+glyphIndexBuffer.insert(glyphIndexBuffer.end(),
         (uint8_t*)&glyphIndex,(uint8_t*)&glyphIndex+sizeof(glyphIndex));
+        }
+        
         // append index buffer
         auto& indexBuffer=m_Mesh.buffers[m_IndexBufferIndex];
         indexBuffer.insert(indexBuffer.end(),(uint8_t*)indices.data(),(uint8_t*)indices.data()+sizeof(indices));
@@ -135,7 +139,7 @@ public:
         positionAccessor.count+=positions.size();
         //update glyph index accessor
         auto& glyphIndexAccessor=m_Mesh.accessors[m_GlyphIndexAccessorIndex];
-        glyphIndexAccessor.count+=1;
+        glyphIndexAccessor.count+=4;
         // update index accessor
         auto& indexAccessor=m_Mesh.accessors[m_IndexAccessorIndex];
         indexAccessor.count+=indices.size();

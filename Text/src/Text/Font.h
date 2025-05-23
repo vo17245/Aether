@@ -169,6 +169,7 @@ public:
     }
     void buildGlyph(uint32_t charcode, FT_UInt glyphIndex)
     {
+		
         BufferGlyph bufferGlyph;
 		bufferGlyph.start = static_cast<int32_t>(bufferCurves.size());
 
@@ -195,6 +196,7 @@ public:
 		glyph.bearingY = (*face).handle->glyph->metrics.horiBearingY;
 		glyph.advance = (*face).handle->glyph->metrics.horiAdvance;
 		glyphs[charcode] = glyph;
+		
     }
     uint32_t decodeCharcode(const char** text)
     {
