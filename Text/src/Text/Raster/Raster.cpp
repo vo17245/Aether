@@ -88,7 +88,7 @@ struct Curve {
 };
 uint g_GlyphInLine;
 uint g_CurveInLine;
-float g_AntiAliasingWindowSize = 1.0;
+float g_AntiAliasingWindowSize = 2.0;
 
 
 Glyph FetchGlyph(uint index)
@@ -212,10 +212,17 @@ void main()
 		vec2 p1 = curve.p1 - uv;
 		vec2 p2 = curve.p2 - uv;
 
+
 		alpha += CalculateCoverage(inverseDiameter.x, p0, p1, p2);
 
-	}
+        // 旋转90度
+        p0 = vec2(-p0.y, p0.x);
+        p1 = vec2(-p1.y, p1.x);
+        p2 = vec2(-p2.y, p2.x);
+        alpha += CalculateCoverage(inverseDiameter.x, p0, p1, p2);
 
+	}
+    alpha/=2;
    
     FragColor=alpha*vec4(1.0,1.0,1.0,1.0);
 
@@ -348,34 +355,39 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
     Vec2u frameBufferSize = param.frameBuffer.GetSize();
     packGlyph.height = frameBufferSize.y();
     packGlyph.width = frameBufferSize.x();
-    float x;
-    float y;
+    //float x=0;
+    //float y=0;
     bool res;
     float emSize = param.font.emSize;
     float worldSize = param.worldSize;
     float scale=worldSize/param.font.emSize;
-    for (auto unicode : param.unicodes)
+    float width=700;
+    float baseline=emSize*0.66666f;
+    assert(param.unicodes.size()==param.glyphPosition.size());
+    for(size_t i=0;i<param.unicodes.size();++i)
     {
+        auto unicode=param.unicodes[i];
+        auto& pos=param.glyphPosition[i];
+       
         auto& glyph = param.font.glyphs[unicode];
-        // 计算这个glyph的位置
-        res = packGlyph.PushQuad(glyph.width*scale, glyph.height*scale, x, y);
-        x+=10;
-        y+=10;
-        if (!res)
+        auto& bufferGlyph=param.font.bufferGlyphs[glyph.bufferIndex];
+        if(bufferGlyph.count==0)
         {
-            assert(false && "pack glyph failed");
-            return false;
+            //skip empty glyph(like space)
+            continue;
         }
+       
         FT_Pos d = (FT_Pos) (emSize * m_Dilation);
 
 		float u0 = (float)(glyph.bearingX-d) / emSize;
 		float v0 = (float)(glyph.bearingY-glyph.height-d) / emSize;
 		float u1 = (float)(glyph.bearingX+glyph.width+d) / emSize;
 		float v1 = (float)(glyph.bearingY+d) / emSize;
-		float x0 = x + u0 * worldSize;
-		float y0 = y + v0 * worldSize;
-		float x1 = x + u1 * worldSize;
-		float y1 = y + v1 * worldSize;
+		
+        float x0=pos.x();
+        float y0 = pos.y(); 
+		float x1 = x0 + glyph.width*scale;
+        float y1 = y0 + glyph.height*scale;
         // 创建quad
         Quad quad;
         quad.position = Vec2f(x0, y0);
@@ -384,6 +396,7 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
         quad.uv1 = Vec2f(u1, v1);
         quad.glyphIndex = glyph.bufferIndex;
         mesh.PushQuad(quad);
+       
     }
     // create device mesh data
     if (resource.mesh)

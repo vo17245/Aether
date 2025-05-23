@@ -32,6 +32,7 @@ namespace Aether::Text
 		// max glyph count: 8192
         // per line glyph count: 64
 		//
+		// @note 如果要修改纹理大小，要保证一行上的数据个数是整数个，不能出现一个数据跨越两行
 		stagingBuffer=DeviceBuffer::CreateForStaging(512*512*4*4);
 		if(!stagingBuffer)
 		{

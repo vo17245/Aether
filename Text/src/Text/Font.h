@@ -112,6 +112,7 @@ public:
         FT_Pos bearingX;
         FT_Pos bearingY;
         FT_Pos advance;
+		FT_Pos kerningX;
     };
 #pragma pack(push, 1) // 设置为 1 字节对齐，使其在内存中紧凑排列
     struct BufferGlyph
@@ -185,8 +186,17 @@ public:
 
 		int32_t bufferIndex = static_cast<int32_t>(bufferGlyphs.size());
 		bufferGlyphs.push_back(bufferGlyph);
-
 		Glyph glyph;
+		FT_Vector kerning;
+		if (FT_Get_Kerning(face->handle, glyphIndex, glyphIndex, kerningMode, &kerning) == 0)
+		{
+			glyph.kerningX = kerning.x;
+		}
+		else
+		{
+			glyph.kerningX = 0;
+		}
+		
 		glyph.index = glyphIndex;
 		glyph.bufferIndex = bufferIndex;
 		glyph.curveCount = bufferGlyph.count;

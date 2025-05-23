@@ -21,13 +21,48 @@ public:
         commandBuffer.SetScissor(0, 0, m_Window->GetSize().x(), m_Window->GetSize().y());
         commandBuffer.SetViewport(0, 0, m_Window->GetSize().x(), m_Window->GetSize().y());
         float framePerSec = m_Frame/m_Sec;
-        std::string s=std::to_string(framePerSec)+"   1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        std::string s=std::string("")+"fps: "+std::to_string(framePerSec)+"\n"
+        +"我能吞下玻璃而不伤身体\n"
+        +"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
+        
+        ;
+        // get glyph curve
         ApplicationResource::GetSingleton().font->prepareGlyphsForText(s);
+        
         U32String u32s(s);
         std::vector<uint32_t> unicodes;
         for(size_t i=0;i<u32s.Size();i++)
         {
             unicodes.push_back(u32s[i]);
+        }
+        // calculate glyph layout
+        std::vector<Vec2f> glyphPos;
+        glyphPos.reserve(unicodes.size());
+        float worldSize=32.0f;
+        {
+            float scale=worldSize/ApplicationResource::GetSingleton().font->emSize;
+            float x=0;
+            float y=0;
+            float width=700;
+            float emSize=ApplicationResource::GetSingleton().font->emSize;
+            for(auto& unicode:unicodes)
+            {
+                auto& glyph=ApplicationResource::GetSingleton().font->glyphs[unicode];
+                if(unicode=='\n')
+                {
+                    x=0;
+                    y+=worldSize;
+                    glyphPos.push_back(Vec2f(0,0));
+                    continue;
+                }
+                glyphPos.push_back(Vec2f(x,y+(emSize-glyph.bearingY)*scale));
+                x+=(glyph.advance+glyph.kerningX)*scale;
+                if(x>width)
+                {
+                    x=0;
+                    y+=worldSize;
+                }
+            }
         }
         Text::Raster::RenderPassParam param{
             .commandBuffer=commandBuffer,
@@ -36,9 +71,9 @@ public:
             .descriptorPool=ApplicationResource::GetSingleton().descriptorPool,
             .font=*ApplicationResource::GetSingleton().font,
             .unicodes=unicodes,
-            .glyphPosition={},
-            .scale=1.0,
-            .channel=0
+            .glyphPosition=std::move(glyphPos),
+            .worldSize=worldSize,
+            
         };
         ApplicationResource::GetSingleton().textRaster->Render(param,
         *ApplicationResource::GetSingleton().rasterResource);

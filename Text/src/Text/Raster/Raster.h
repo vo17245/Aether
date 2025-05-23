@@ -25,9 +25,6 @@ public:
         Font& font;
         std::vector<uint32_t> unicodes;
         std::vector<Vec2f> glyphPosition;
-        float scale=1.0;
-        // storage
-        uint32_t channel=0;// store mask in rgba(0 1 2 3)
         float worldSize=32.0f;
     };
     struct RenderPassResource

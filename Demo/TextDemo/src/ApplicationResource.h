@@ -48,7 +48,7 @@ private:
         textRaster=CreateScope<Text::Raster>(std::move(textRasterOpt.value()));
         auto textContextOpt=Text::Context::Create();
         textContext=CreateScope<Text::Context>(std::move(textContextOpt.value()));
-        auto textFaceOpt=Text::Face::Create(*textContext, "Assets/unifont-16.0.03.otf");
+        auto textFaceOpt=Text::Face::Create(*textContext, "Assets/SourceHanSerifCN-Regular-1.otf");
         textFace=CreateScope<Text::Face>(std::move(textFaceOpt.value()));
         auto fontOpt=Text::Font::Create(textFace.get());
         font=CreateScope<Text::Font>(std::move(fontOpt.value()));
