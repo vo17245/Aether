@@ -11,6 +11,7 @@ void WindowContext::WindowResizeCallback(GLFWwindow* window, int width, int heig
     auto iter = windows.find(window);
     if (iter != windows.end())
     {
+        iter->second->OnWindowResize(Vec2u((uint32_t)width,(uint32_t)height));
         iter->second->PushEvent(WindowResizeEvent(width, height));
     }
     else

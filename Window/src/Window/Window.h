@@ -123,7 +123,8 @@ private:
     void CreateImageViews();
     void CreateRenderPass(VkFormat format);
     void CreateCommandBuffer();
-    
+    bool ResizeFinalImage(const Vec2u& size);
+    void OnWindowResize(const Vec2u& size);
 private:
     Input m_Input;
 };

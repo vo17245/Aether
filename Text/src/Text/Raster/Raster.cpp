@@ -351,24 +351,15 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
 {
     // create host mesh data
     QuadArrayMesh mesh;
-    PackGlyph packGlyph;
-    Vec2u frameBufferSize = param.frameBuffer.GetSize();
-    packGlyph.height = frameBufferSize.y();
-    packGlyph.width = frameBufferSize.x();
-    //float x=0;
-    //float y=0;
     bool res;
     float emSize = param.font.emSize;
     float worldSize = param.worldSize;
     float scale=worldSize/param.font.emSize;
-    float width=700;
-    float baseline=emSize*0.66666f;
     assert(param.unicodes.size()==param.glyphPosition.size());
     for(size_t i=0;i<param.unicodes.size();++i)
     {
         auto unicode=param.unicodes[i];
         auto& pos=param.glyphPosition[i];
-       
         auto& glyph = param.font.glyphs[unicode];
         auto& bufferGlyph=param.font.bufferGlyphs[glyph.bufferIndex];
         if(bufferGlyph.count==0)

@@ -3,13 +3,25 @@
 #include <Window/Window.h>
 #include "ApplicationResource.h"
 #include "Text/Raster/Raster.h"
+#include "Window/WindowEvent.h"
 #include <Core/String.h>
+#include <variant>
 using namespace Aether;
 class TextLayer : public Layer
 {
 public:
     virtual void OnEvent(Event& event) override
     {
+        if(std::holds_alternative<WindowResizeEvent>(event))
+        {
+            auto& resizeEvent=std::get<WindowResizeEvent>(event);
+
+            auto& camera=ApplicationResource::GetSingleton().textRaster->GetCamera();
+            camera.screenSize.x()=resizeEvent.GetWidth();
+            camera.screenSize.y()=resizeEvent.GetHeight();
+            camera.target.x()=resizeEvent.GetWidth()/2.0;
+            camera.target.y()=resizeEvent.GetHeight()/2.0;
+        }
     }
     virtual void OnRender(
         vk::RenderPass& renderPass,

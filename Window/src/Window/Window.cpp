@@ -10,6 +10,7 @@
 #include "Render/Vulkan/RenderPass.h"
 #include "Render/Vulkan/Semaphore.h"
 #include "Render/Vulkan/Texture2D.h"
+#include "WindowEvent.h"
 #include "vulkan/vulkan_core.h"
 #include <cstdlib>
 #include <memory>
@@ -472,6 +473,8 @@ void Window::OnRender()
     curCommandBuffer.BeginRenderPass(*m_RenderPass[m_CurrentFrame],
      m_SwapChainFramebuffers[imageIndex],
     Vec4(0.0,0.0,0.0,1.0));
+    curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
+    curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
     m_GammaFilter->Render(m_FinalTexture, m_SwapChainFramebuffers[imageIndex], curCommandBuffer, m_DescriptorPool);
     curCommandBuffer.EndRenderPass();
     // curCommandBuffer.EndRenderPass();
@@ -559,5 +562,31 @@ bool Window::ReleaseVulkanObjects()
 DeviceTexture& Window::GetFinalTexture()
 {
     return m_FinalTexture;
+}
+bool Window::ResizeFinalImage(const Vec2u& size)
+{
+    auto textureOpt = DeviceTexture::CreateForColorAttachment(size.x(), size.y(), PixelFormat::RGBA8888);
+    if (!textureOpt)
+    {
+        assert(false && "DeviceTexture::CreateForTexture failed");
+        return false;
+    }
+    auto& texture = *textureOpt;
+    VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
+    auto framebufferOpt = vk::FrameBuffer::Create(*m_FinalRenderPass, extent, texture.GetOrCreateDefaultImageView().GetVk());
+    if (!framebufferOpt)
+    {
+        assert(false && "FrameBuffer::Create failed");
+        return false;
+    }
+    auto& framebuffer = *framebufferOpt;
+    texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
+    m_FinalTexture = std::move(texture);
+    m_FinalFrameBuffer = CreateScope<vk::FrameBuffer>(std::move(framebuffer));
+    return true;
+}
+void Window::OnWindowResize(const Vec2u& size)
+{
+    assert(ResizeFinalImage(size)&&"failed to resize window final image");
 }
 } // namespace Aether
