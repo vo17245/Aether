@@ -70,6 +70,11 @@ private:
         const tinyxml2::XMLNode* child = node.FirstChild();
         while (child)
         {
+            if(child->ToText())
+            {
+                child = child->NextSibling();
+                continue;
+            }
             auto childNodeEx = LoadNode(hierarchy, *child, curPath);
             if (!childNodeEx)
             {

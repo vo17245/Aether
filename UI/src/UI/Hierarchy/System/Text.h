@@ -47,17 +47,22 @@ public:
             // ensure font
             if (!text.font)
             {
-                auto iter = m_Fonts.find(text.fontpath);
+                auto& fontPath=text.fontpath.empty()?m_DefaultFont:text.fontpath;
+                auto iter = m_Fonts.find(fontPath);
                 if (iter == m_Fonts.end())
                 {
-                    bool res = LoadFont(text.fontpath);
+                    bool res = LoadFont(fontPath);
                     if (!res)
                     {
                         Debug::Log::Error("failed to load font {},{}:{}", text.fontpath, __FILE__ ":", __LINE__);
                         continue;
                     }
-                    auto& font = m_Fonts[text.fontpath];
+                    auto& font = m_Fonts[fontPath];
                     text.font = font.font.get();
+                }
+                else
+                {
+                    text.font=iter->second.font.get();
                 }
             }
             text.font->prepareGlyphsForText(text.content);
@@ -79,13 +84,20 @@ public:
             float scale = worldSize / text.font->emSize;
             for (auto unicode : u32s.GetData())
             {
+                if(unicode=='\n')
+                {
+                    x = base.position.x();
+                    y += worldSize;
+                    glyphPos.emplace_back(Vec2f(0, 0));
+                    continue;
+                }
                 auto& glyph = text.font->glyphs[unicode];
                 float curY = y + (text.font->emSize - glyph.bearingY) * scale;
                 glyphPos.emplace_back(Vec2f(x, curY));
                 x+=(glyph.advance+glyph.kerningX)*scale;
-                if (x > width)
+                if (x > width+base.position.x())
                 {
-                    x = 0;
+                    x = base.position.x();
                     y += worldSize;
                 }
             }
@@ -186,5 +198,6 @@ private:
     DeviceDescriptorPool* m_DescriptorPool = nullptr; // not own
     Camera2D* m_Camera;                               // not own
     std::optional<Text::Context> m_Context;
+    std::string m_DefaultFont="SourceHanSerifCN-Regular-1.otf";
 };
 } // namespace Aether::UI

@@ -5,6 +5,7 @@
 #include "Component/Node.h"
 #include "Component/Quad.h"
 #include "Node.h"
+#include "UI/Hierarchy/Component/Text.h"
 #include "tinyxml2.h"
 #include <cstdlib>
 #include <IO/WriterReader.h>
@@ -95,6 +96,55 @@ struct QuadNodeCreator
             desc.color = c;
         }
         hierarchy.GetScene().AddComponent<QuadComponent>(newNode->id, desc);
+        auto& base = hierarchy.GetScene().GetComponent<BaseComponent>(newNode->id);
+        const char* width = node.ToElement()->Attribute("width");
+        if (width)
+        {
+            float w = 0;
+            try
+            {
+                w = std::atof(width);
+            }
+            catch (...)
+            {
+                hierarchy.DestroyNode(newNode);
+                return std::unexpected<std::string>(std::format("Error: {}, {}", width, "Invalid width format"));
+            }
+            base.size.x() = w;
+        }
+        const char* height = node.ToElement()->Attribute("height");
+        if (height)
+        {
+            float h = 0;
+            try
+            {
+                h = std::atof(height);
+            }
+            catch (...)
+            {
+                hierarchy.DestroyNode(newNode);
+                return std::unexpected<std::string>(std::format("Error: {}, {}", height, "Invalid height format"));
+            }
+            base.size.y() = h;
+        }
+        return newNode;
+    }
+};
+struct TextNodeCreator
+{
+std::expected<Node*, std::string> operator()(Hierarchy& hierarchy, const tinyxml2::XMLNode& node)
+    {
+        auto* newNode = hierarchy.CreateNode();
+        auto& scene=hierarchy.GetScene();
+        TextComponent tc;
+
+        tc.content=node.ToElement()->GetText();
+        const char* worldSize = node.ToElement()->Attribute("world_size");
+        if (worldSize)
+        {
+            tc.worldSize=std::atof(worldSize);
+        }
+        hierarchy.GetScene().AddComponent<TextComponent>(newNode->id, std::move(tc));
         auto& base = hierarchy.GetScene().GetComponent<BaseComponent>(newNode->id);
         const char* width = node.ToElement()->Attribute("width");
         if (width)

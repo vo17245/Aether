@@ -88,17 +88,29 @@ public:
             const std::string hierarchyXml = std::format(R"(
         <quad width="{}" height="{}" color="0,0,0,1">
             <quad width="110" height="110" color="1,0,1,0">
-                <quad width="100" height="100" color="1,0,1,1"/>
+                <quad width="100" height="100" color="1,0,1,1">
+                    <text width="100" height="100" world_size="36">quad1</text>
+                </quad>
             </quad>
             <quad width="110" height="110" color="1,0,1,0">
-                <quad width="100" height="100" color="1,0,1,1"/>
+                <quad width="100" height="100" color="1,0,1,1">
+                    <text width="100" height="100" world_size="36">quad2</text>
+                </quad>
             </quad>
+            <text width="400" height="400" world_size="28">
+<![CDATA[我能吞下玻璃而不伤身体
+I can swallow glass without any harm to myself
+ガラスを飲み込んでも何ら害はない
+Ich kann Glas schlucken, ohne mir selbst zu schaden
+]]>
+            </text>
         </quad>
 
         )",
                                                          m_ScreenSize.x(), m_ScreenSize.y());
             UI::HierarchyLoader loader;
             loader.PushNodeCreator<UI::QuadNodeCreator>("quad");
+            loader.PushNodeCreator<UI::TextNodeCreator>("text");
             auto err = loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
             if (err)
             {
@@ -107,18 +119,7 @@ public:
             }
         }
 
-        // creat text (debug)
-        {
-            UI::TextComponent component;
-            component.fontpath="SourceHanSerifCN-Regular-1.otf";
-            component.worldSize=32;
-            component.content="我能吞下玻璃而不伤身体";
-            auto* node=m_Hierarchy.CreateNode();
-            auto& scene=m_Hierarchy.GetScene();
-            scene.AddComponent<UI::TextComponent>(node->id, std::move(component));
-            auto& base=scene.GetComponent<UI::BaseComponent>(node->id);
-            base.size=Vec2f(400,400);
-        }
+        
         m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
     }
     void InitHierarchy()
