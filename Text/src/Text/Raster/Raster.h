@@ -23,9 +23,10 @@ public:
         DeviceDescriptorPool& descriptorPool;
         // text
         Font& font;
-        std::vector<uint32_t> unicodes;
-        std::vector<Vec2f> glyphPosition;
-        float worldSize=32.0f;
+        std::vector<uint32_t>& unicodes;
+        std::vector<Vec2f>& glyphPosition;
+        float worldSize = 32.0f;
+        Camera2D& camera;//@note 传入的camera需要提前调用过CalculateMatrix, raster中不会调用
     };
     struct RenderPassResource
     {
@@ -36,45 +37,41 @@ public:
 public:
     /**
      * @brief commandBuffer must in begin render pass state
-     * */ 
-    bool Render(RenderPassParam& param,RenderPassResource& resource);
-    
-    Camera2D& GetCamera()
-    {
-        return m_Camera;
-    }
+     * */
+    bool Render(RenderPassParam& param, RenderPassResource& resource);
+
     RenderPassResource CreateRenderPassResource()
     {
         RenderPassResource resource;
-        resource.uniformBuffer=DeviceBuffer::CreateForUniform(sizeof(HostUniformBuffer));
+        resource.uniformBuffer = DeviceBuffer::CreateForUniform(sizeof(HostUniformBuffer));
         return resource;
     }
     static std::optional<Raster> Create(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,
-    const Vec2f& screenSize)
+                                        const Vec2f& screenSize)
     {
         Raster raster;
-        bool res=raster.Init(renderPass, enableBlend, descriptorPool,screenSize);
-        if(!res)
+        bool res = raster.Init(renderPass, enableBlend, descriptorPool);
+        if (!res)
         {
             return std::nullopt;
         }
         return raster;
     }
-    Raster(Raster&&)=default;
-private:
-    bool Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,
-    const Vec2f& screenSize);
-    Raster()=default;
-private:
+    Raster(Raster&&) = default;
 
-    bool CreateShader();// on init
-    bool CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend);// on init
-    bool CreateDescriptorSet(DeviceDescriptorPool& descriptorPool); // per draw
-    bool CreateCamera(const Vec2f& screenSize);// on init 
-    bool UpdateMesh(RenderPassParam& param,RenderPassResource& resource);//per draw
-    bool UpdateUniformBuffer(RenderPassParam& param,RenderPassResource& resource);//per draw
-    bool UpdateDescriptorSet(RenderPassResource& resource,RenderPassParam& param);//per draw
-    bool RecordCommand(RenderPassParam& param,RenderPassResource& resource);//per draw
+private:
+    bool Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool);
+    Raster() = default;
+
+private:
+    bool CreateShader();                                                            // on init
+    bool CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend);         // on init
+    bool CreateDescriptorSet(DeviceDescriptorPool& descriptorPool);                 // per draw
+    bool CreateCamera(const Vec2f& screenSize);                                     // on init
+    bool UpdateMesh(RenderPassParam& param, RenderPassResource& resource);          // per draw
+    bool UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& resource); // per draw
+    bool UpdateDescriptorSet(RenderPassResource& resource, RenderPassParam& param); // per draw
+    bool RecordCommand(RenderPassParam& param, RenderPassResource& resource);       // per draw
 private:
     struct HostUniformBuffer
     {
@@ -85,7 +82,6 @@ private:
     DevicePipeline m_Pipeline;
     DevicePipelineLayout m_PipelineLayout;
     DeviceShader m_Shader;
-    Camera2D m_Camera;
     DeviceBuffer m_StaggingBuffer;
     DeviceDescriptorSet m_DescriptorSet;
     HostUniformBuffer m_HostUniformBuffer;
@@ -93,9 +89,9 @@ private:
     DeviceSampler m_CurveTextureSampler;
 
 private:
-	// The glyph quads are expanded by this amount to enable proper
-	// anti-aliasing. Value is relative to emSize.
+    // The glyph quads are expanded by this amount to enable proper
+    // anti-aliasing. Value is relative to emSize.
     float m_Dilation = 0;
-    float m_WorldSize=0;
+    float m_WorldSize = 0;
 };
 } // namespace Aether::Text

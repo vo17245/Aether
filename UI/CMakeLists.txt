@@ -19,6 +19,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC Window)
 target_link_libraries(${MODULE_NAME} PUBLIC Resource)
 target_link_libraries(${MODULE_NAME} PUBLIC Scene)
 target_link_libraries(${MODULE_NAME} PUBLIC tinyxml2)
+target_link_libraries(${MODULE_NAME} PUBLIC Text)
 
 
 if(AETHER_RUNTIME_CHECK)

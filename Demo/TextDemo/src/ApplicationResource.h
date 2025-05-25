@@ -4,6 +4,7 @@
 #include "Render/RenderApi/DeviceFrameBuffer.h"
 #include "Render/RenderApi/DeviceRenderPass.h"
 #include "Render/RenderApi/DeviceTexture.h"
+#include "Render/Scene/Camera2D.h"
 #include "Render/Vulkan/RenderPass.h"
 #include "Text/Font.h"
 #include "Text/Raster/Raster.h"
@@ -38,8 +39,18 @@ public:
     Scope<Text::Context> textContext;
     Scope<Text::Face> textFace;
     Scope<Text::Raster::RenderPassResource> rasterResource;
+    Camera2D camera;
 private:
-
+    void InitCamera(const Vec2f& screenSize)
+    {
+        camera.screenSize = screenSize;
+        camera.target = Vec2f(screenSize.x() / 2, screenSize.y() / 2);
+        camera.offset = Vec2f(0, 0);
+        camera.near = 0.0f;
+        camera.far = 10000.0f;
+        camera.zoom = 1.0f;
+        camera.rotation = 0.0f;
+    }
     std::optional<std::string> InitImpl(const Vec2f& screenSize)
     {
         defaultRenderPass=vk::RenderPass::CreateDefault().value();
@@ -54,6 +65,7 @@ private:
         font=CreateScope<Text::Font>(std::move(fontOpt.value()));
         auto resource=textRaster->CreateRenderPassResource();
         rasterResource=CreateScope<Text::Raster::RenderPassResource>(std::move(resource));
+        InitCamera(screenSize);
         return std::nullopt;
     }
     static ApplicationResource* s_Instance;

@@ -37,6 +37,11 @@ public:
     {
         return Path(m_Path + U8String("/") + other.m_Path);
     }
+    Path& operator/=(const  Path& other)
+    {
+        m_Path += U8String("/") + other.m_Path;
+        return *this;
+    }
     Path operator=(const Path& other)
     {
         m_Path = other.m_Path;

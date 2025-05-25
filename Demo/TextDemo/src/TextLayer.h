@@ -16,7 +16,7 @@ public:
         {
             auto& resizeEvent=std::get<WindowResizeEvent>(event);
 
-            auto& camera=ApplicationResource::GetSingleton().textRaster->GetCamera();
+            auto& camera=ApplicationResource::GetSingleton().camera;
             camera.screenSize.x()=resizeEvent.GetWidth();
             camera.screenSize.y()=resizeEvent.GetHeight();
             camera.target.x()=resizeEvent.GetWidth()/2.0;
@@ -76,6 +76,8 @@ public:
                 }
             }
         }
+        auto& camera=ApplicationResource::GetSingleton().camera;
+        camera.CalculateMatrix();
         Text::Raster::RenderPassParam param{
             .commandBuffer=commandBuffer,
             .renderPass=renderPass,
@@ -83,9 +85,9 @@ public:
             .descriptorPool=ApplicationResource::GetSingleton().descriptorPool,
             .font=*ApplicationResource::GetSingleton().font,
             .unicodes=unicodes,
-            .glyphPosition=std::move(glyphPos),
+            .glyphPosition=glyphPos,
             .worldSize=worldSize,
-            
+            .camera=camera
         };
         ApplicationResource::GetSingleton().textRaster->Render(param,
         *ApplicationResource::GetSingleton().rasterResource);

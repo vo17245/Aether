@@ -10,7 +10,6 @@
 #ifdef far
 #undef far
 #endif
-#define AETHER_ENABLE_DEBUG_LOG
 namespace Aether::Debug
 {
 

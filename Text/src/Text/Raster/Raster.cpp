@@ -45,8 +45,7 @@ bool Raster::Render(RenderPassParam& param, RenderPassResource& resource)
 
     return true;
 }
-bool Raster::Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,
-const Vec2f& screenSize)
+bool Raster::Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool)
 {
     if (!CreateDescriptorSet(descriptorPool))
     {
@@ -63,7 +62,6 @@ const Vec2f& screenSize)
         assert(false && "create pipeline failed");
         return false;
     }
-    CreateCamera(screenSize);
     m_StaggingBuffer=DeviceBuffer::CreateForStaging(sizeof(HostUniformBuffer));
     m_CurveTextureSampler=DeviceSampler::CreateDefault();
     m_GlyphTextureSampler=DeviceSampler::CreateNearest();
@@ -319,18 +317,7 @@ bool Raster::CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend)
     m_PipelineLayout = std::move(layout);
     return true;
 }
-bool Raster::CreateCamera(const Vec2f& screenSize)
-{
-    m_Camera.screenSize = screenSize;
-    m_Camera.target = Vec2f(screenSize.x() / 2, screenSize.y() / 2);
-    m_Camera.offset = Vec2f(0, 0);
-    m_Camera.near = 0.0f;
-    m_Camera.far = 10000.0f;
-    m_Camera.zoom = 1.0f;
-    m_Camera.rotation = 0.0f;
-    m_Camera.CalculateMatrix();
-    return true;
-}
+
 
 bool Raster::CreateDescriptorSet(DeviceDescriptorPool& descriptorPool)
 {
@@ -403,14 +390,14 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
 bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& resource)
 {
     // host
-    m_Camera.CalculateMatrix();
+    auto& camera=param.camera;
     //========
     for (size_t i = 0; i < 16; i++)
     {
-        m_HostUniformBuffer.mvp[i] = m_Camera.matrix.data()[i];
+        m_HostUniformBuffer.mvp[i] = camera.matrix.data()[i];
     }
-    m_HostUniformBuffer.screenSize[0] = m_Camera.screenSize.x();
-    m_HostUniformBuffer.screenSize[1] = m_Camera.screenSize.y();
+    m_HostUniformBuffer.screenSize[0] = camera.screenSize.x();
+    m_HostUniformBuffer.screenSize[1] = camera.screenSize.y();
     // stagging
     m_StaggingBuffer.SetData(std::span<uint8_t>((uint8_t*)&m_HostUniformBuffer,
                                                 sizeof(m_HostUniformBuffer)));
