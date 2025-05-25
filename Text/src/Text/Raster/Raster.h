@@ -27,6 +27,7 @@ public:
         std::vector<Vec2f>& glyphPosition;
         float worldSize = 32.0f;
         Camera2D& camera;//@note 传入的camera需要提前调用过CalculateMatrix, raster中不会调用
+        float z=0.0f;// z value in screen space
     };
     struct RenderPassResource
     {

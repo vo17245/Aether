@@ -10,6 +10,7 @@ struct Quad
     Vec2f uv0=Vec2f(0.0,0.0);
     Vec2f uv1=Vec2f(1.0,1.0);
     uint32_t glyphIndex=0;// glyph index in device buffer
+    float z=0.0f;// z value in screen space
 };
 
 } // namespace Aether

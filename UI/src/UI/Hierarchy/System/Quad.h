@@ -2,6 +2,7 @@
 #include "../Component/Base.h"
 #include "../Component/Quad.h"
 #include "../../Render/Renderer.h"
+#include "Render/Scene/Camera2D.h"
 #include "System.h"
 #include "../Component/Node.h"
 
@@ -21,13 +22,14 @@ public:
                   Vec2f screenSize,
                   Scene& scene)
     {
+        assert(m_Camera&&"camera is nullptr");
         auto view = scene.Select<NodeComponent, BaseComponent, QuadComponent>();
         if (view.begin() == view.end())
         {
             return;
         }
         auto& renderer = *this->renderer;
-        renderer.Begin(renderPass, frameBuffer, screenSize);
+        renderer.Begin(renderPass, frameBuffer, *m_Camera);
         for (const auto& [entity, node, base, quad] : view.each())
         {
             quad.quad.SetPosition(Vec3f(base.position.x(),base.position.y(),base.z));
@@ -36,5 +38,11 @@ public:
         }
         renderer.End(commandBuffer);
     }
+    void SetCamera(Camera2D* camera)
+    {
+        m_Camera=camera;
+    }
+private:
+    Camera2D* m_Camera=nullptr;//not own
 };
 } // namespace Aether::UI

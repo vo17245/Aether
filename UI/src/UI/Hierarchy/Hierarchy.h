@@ -1,10 +1,12 @@
 #pragma once
 #include <Scene/Scene.h>
+#include <memory>
 #include <vector>
 #include "Component/Base.h"
 #include "LayoutBuilder.h"
 #include "Node.h"
 #include "Component/Node.h"
+#include "Render/Scene/Camera2D.h"
 #include "System/System.h"
 #include <vector>
 #include <queue>
@@ -39,9 +41,16 @@ public:
     {
         return m_Scene;
     }
+    /**
+     * @note system will be destroyed, when hierarchy destroy
+    */
     void AddSystem(SystemI* system)
     {
         m_Systems.push_back(system);
+    }
+    Hierarchy()
+    {
+        InitCamera(Vec2f(1920,1080));
     }
     ~Hierarchy()
     {
@@ -97,6 +106,10 @@ public:
                   DeviceFrameBufferView frameBuffer,
                   Vec2f screenSize)
     {
+        m_Camera->screenSize=screenSize;
+        m_Camera->target.x()=screenSize.x()/2;
+        m_Camera->target.y()=screenSize.y()/2;
+        m_Camera->CalculateMatrix();
         for (auto* system : m_Systems)
         {
             system->OnRender(commandBuffer, renderPass, frameBuffer, screenSize, m_Scene);
@@ -109,11 +122,29 @@ public:
     {
         m_Root = root;
     }
-
+    Camera2D& GetCamera()
+    {
+        return *m_Camera;
+    }
+    
+private:
+    void InitCamera(const Vec2f& screenSize)
+    {
+        m_Camera=std::make_unique<Camera2D>();
+        m_Camera->screenSize = screenSize;
+        m_Camera->target = Vec2f(screenSize.x() / 2, screenSize.y() / 2);
+        m_Camera->offset = Vec2f(0, 0);
+        m_Camera->near = 0.0f;
+        m_Camera->far = 10000.0f;
+        m_Camera->zoom = 1.0f;
+        m_Camera->rotation = 0.0f;
+        m_Camera->CalculateMatrix();
+    }
 private:
     Scene m_Scene;
     Node* m_Root = nullptr;
     std::vector<SystemI*> m_Systems;
     LayoutBuilder m_LayoutBuilder;
+    std::unique_ptr<Camera2D> m_Camera;
 };
 } // namespace Aether::UI

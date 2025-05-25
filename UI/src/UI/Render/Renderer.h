@@ -21,7 +21,7 @@ class Renderer
 public:
     Renderer(const Renderer&) = delete;
     Renderer(Renderer&&) = default;
-    void Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, Vec2f screenSize);
+    void Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, const Camera2D& camera);
     void DrawQuad(const Quad& quad);
     void End(DeviceCommandBufferView _commandBuffer);
     /**
@@ -32,14 +32,7 @@ public:
     static std::expected<Renderer, std::string> Create(DeviceRenderPassView renderPass, const RenderResource& resource);
     // for unit test
     static Renderer CreateEmpty();
-    inline const Camera2D& GetCamera() const
-    {
-        return m_Camera;
-    }
-    inline Camera2D& GetCamera()
-    {
-        return m_Camera;
-    }
+   
     inline void OnFrameBegin()
     {
         #ifdef AETHER_RUNTIME_CHECK
@@ -121,8 +114,6 @@ private:
     DeviceCommandBuffer m_TransformCommandBuffer; // for vertex data transform
 private:
     Temporary<DeviceMesh> m_Temporary;
-    
-private:
     Camera2D m_Camera;
 };
 } // namespace Aether::UI

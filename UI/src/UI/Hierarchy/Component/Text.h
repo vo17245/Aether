@@ -1,4 +1,5 @@
 #pragma once
+#include "Text/Raster/Raster.h"
 #include <string>
 #include <Core/Math.h>
 #include <Render/RenderApi.h>
@@ -10,8 +11,9 @@ namespace Aether::UI
         std::string content;//text to show
         std::string fontpath;//font file path
         Vec4f color=Vec4f(1,1,1,1);//[0-1]
-        float size=32;//pixel size
+        float worldSize=32;//pixel size
         DeviceBuffer vertexBuffer;
         Text::Font* font=nullptr;
+        std::unique_ptr<Text::Raster::RenderPassResource> renderResource;
     };
 }

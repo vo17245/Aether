@@ -6,7 +6,7 @@
 #include <string_view>
 namespace Aether::Filesystem
 {
-std::optional<std::vector<char>> ReadFile(const Filesystem::Path& path);
+std::optional<std::vector<uint8_t>> ReadFile(const Filesystem::Path& path);
 /**
  * @brief 读取整个文件到buffer中,如果bufferSize小于文件大小,则返回false
  */

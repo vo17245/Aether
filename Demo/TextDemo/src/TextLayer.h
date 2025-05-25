@@ -87,7 +87,8 @@ public:
             .unicodes=unicodes,
             .glyphPosition=glyphPos,
             .worldSize=worldSize,
-            .camera=camera
+            .camera=camera,
+            .z=0.0f
         };
         ApplicationResource::GetSingleton().textRaster->Render(param,
         *ApplicationResource::GetSingleton().rasterResource);

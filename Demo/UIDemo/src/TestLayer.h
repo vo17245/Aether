@@ -36,13 +36,15 @@ public:
         vk::FrameBuffer& framebuffer,
         vk::GraphicsCommandBuffer& commandBuffer) override
     {
+        auto& camera=ApplicationResource::s_Instance->camera;
         auto& defaultRenderPass= ApplicationResource::s_Instance->renderPass;
         auto& renderResource=ApplicationResource::s_Instance->renderResource;
         auto& renderer=*ApplicationResource::s_Instance->renderer;
         m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::ColorAttachment, commandBuffer);
         commandBuffer.BeginRenderPass(defaultRenderPass.GetVk(), m_FinalFrameBuffer.GetVk(), {0, 0, 0, 1.0});
         // render quads to final image
-        renderer.Begin(renderPass, m_FinalFrameBuffer, m_WindowSize);
+        camera.CalculateMatrix();
+        renderer.Begin(renderPass, m_FinalFrameBuffer, camera);
         for (auto& quad : m_Quads)
         {
             renderer.DrawQuad(quad);

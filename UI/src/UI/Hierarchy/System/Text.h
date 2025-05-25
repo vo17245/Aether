@@ -1,4 +1,6 @@
 #pragma once
+#include "Render/RenderApi/DeviceDescriptorPool.h"
+#include "Render/Scene/Camera2D.h"
 #include "System.h"
 #include "Text/Font.h"
 #include "Text/Raster/Raster.h"
@@ -19,6 +21,14 @@ public:
         std::unique_ptr<Text::Face> face;
         std::unique_ptr<Text::Font> font;
     };
+
+public:
+    ~TextSystem()
+
+    {
+        m_Fonts.clear();
+    }
+
 public:
     virtual void OnUpdate(float sec, Scene& scene)
     {
@@ -29,51 +39,90 @@ public:
                           Vec2f screenSize,
                           Scene& scene)
     {
-        
-        auto view=scene.Select<BaseComponent,TextComponent>();
-        
-        for(const auto&[entity,base,text]:view.each())
+        assert(m_DescriptorPool && "descriptor pool is null");
+        auto view = scene.Select<BaseComponent, TextComponent>();
+
+        for (const auto& [entity, base, text] : view.each())
         {
             // ensure font
-            if(!text.font)
+            if (!text.font)
             {
-                auto iter=m_Fonts.find(text.fontpath);
-                if(iter==m_Fonts.end())
+                auto iter = m_Fonts.find(text.fontpath);
+                if (iter == m_Fonts.end())
                 {
-                    bool res=LoadFont(text.fontpath);
-                    if(!res)
+                    bool res = LoadFont(text.fontpath);
+                    if (!res)
                     {
-                        Debug::Log::Error("failed to load font {},{}:{}",text.fontpath,__FILE__":",__LINE__);
+                        Debug::Log::Error("failed to load font {},{}:{}", text.fontpath, __FILE__ ":", __LINE__);
                         continue;
                     }
-                    auto& font=m_Fonts[text.fontpath];
-                    text.font=font.font.get();
+                    auto& font = m_Fonts[text.fontpath];
+                    text.font = font.font.get();
                 }
             }
+            text.font->prepareGlyphsForText(text.content);
+            // ensure render resource
+            if (!text.renderResource)
+            {
+                auto resource = m_Raster->CreateRenderPassResource();
+                text.renderResource = std::make_unique<decltype(resource)>(std::move(resource));
+            }
             // calculate glyph position
-            float width=base.size.x();
-            float height=base.size.y();
-            float x=base.position.x();
-            float y=base.position.y();
+            U32String u32s(text.content);
+            float width = base.size.x();
+            float height = base.size.y();
+            float x = base.position.x();
+            float y = base.position.y();
+            std::vector<Vec2f> glyphPos;
+            glyphPos.reserve(u32s.Size());
+            float worldSize = text.worldSize;
+            float scale = worldSize / text.font->emSize;
+            for (auto unicode : u32s.GetData())
+            {
+                auto& glyph = text.font->glyphs[unicode];
+                float curY = y + (text.font->emSize - glyph.bearingY) * scale;
+                glyphPos.emplace_back(Vec2f(x, curY));
+                x+=(glyph.advance+glyph.kerningX)*scale;
+                if (x > width)
+                {
+                    x = 0;
+                    y += worldSize;
+                }
+            }
             // render glyph
+            Text::Raster::RenderPassParam param{
+                .commandBuffer = commandBuffer,
+                .renderPass = renderPass,
+                .frameBuffer = frameBuffer,
+                .descriptorPool = *m_DescriptorPool,
+                .font = *text.font,
+                .unicodes = u32s.GetData(),
+                .glyphPosition = glyphPos,
+                .worldSize = worldSize,
+                .camera = *m_Camera,
+                .z = base.z,
+            };
+
+            m_Raster->Render(param,
+                             *text.renderResource);
         }
     }
-    static TextSystem* Create(DeviceRenderPassView renderPass,DeviceDescriptorPool &descriptorPool, const Vec2f &screenSize)
+    static TextSystem* Create(DeviceRenderPassView renderPass, DeviceDescriptorPool& descriptorPool, const Vec2f& screenSize)
     {
-        TextSystem* system=new TextSystem();
-        auto raster=Text::Raster::Create(renderPass, true, descriptorPool, screenSize);
-        if(!raster)
+        TextSystem* system = new TextSystem();
+        auto raster = Text::Raster::Create(renderPass, true, descriptorPool, screenSize);
+        if (!raster)
         {
             return nullptr;
         }
-        system->m_Raster=std::make_unique<Text::Raster>(std::move(raster.value()));
-        auto contextOpt=Text::Context::Create();
-        if(!contextOpt)
+        system->m_Raster = std::make_unique<Text::Raster>(std::move(raster.value()));
+        auto contextOpt = Text::Context::Create();
+        if (!contextOpt)
         {
-            assert(false&&"failed to create text context(freetype library)");
+            assert(false && "failed to create text context(freetype library)");
             return nullptr;
         }
-        system->m_Context=std::move(Text::Context::Create().value());
+        system->m_Context = std::move(Text::Context::Create().value());
         return system;
     }
 
@@ -81,54 +130,61 @@ public:
     {
         m_AssetDirs.emplace_back(path);
     }
+    void SetDescriptorPool(DeviceDescriptorPool* pool)
+    {
+        m_DescriptorPool = pool;
+    }
+    void SetCamera(Camera2D* camera)
+    {
+        m_Camera = camera;
+    }
 
 private:
-    TextSystem()=default;
+    TextSystem() = default;
     bool LoadFont(const std::string& path)
     {
         std::optional<std::string> filepath;
-        for(auto& assetDir:m_AssetDirs)
+        for (auto& assetDir : m_AssetDirs)
         {
-            Filesystem::Path path(assetDir);
-            path/=path;
-            if(Filesystem::Exists(path))
+            Filesystem::Path path1(assetDir);
+            path1 /= path;
+            if (Filesystem::Exists(path1))
             {
-                filepath=path;
+                filepath = path1;
                 break;
             }
         }
-        if(!filepath)
+        if (!filepath)
         {
             return false;
         }
-        auto faceOpt=Text::Face::Create(*m_Context, filepath->c_str());
+        auto faceOpt = Text::Face::Create(*m_Context, filepath->c_str());
 
-        if(!faceOpt)
+        if (!faceOpt)
         {
             return false;
         }
-        auto face=std::make_unique<Text::Face>(std::move(faceOpt.value()));
-        auto fontOpt=Text::Font::Create(face.get());
-        if(!fontOpt)
+        auto face = std::make_unique<Text::Face>(std::move(faceOpt.value()));
+        auto fontOpt = Text::Font::Create(face.get());
+        if (!fontOpt)
         {
             return false;
         }
         Font font{
-            .face=std::move(face),
-            .font=std::make_unique<Text::Font>(std::move(fontOpt.value()))
-            
+            .face = std::move(face),
+            .font = std::make_unique<Text::Font>(std::move(fontOpt.value()))
+
         };
-        m_Fonts[path]=std::move(font);
+        m_Fonts[path] = std::move(font);
         return true;
     }
+
 private:
-    
-    std::unordered_map<std::string,Font> m_Fonts;
+    std::unordered_map<std::string, Font> m_Fonts;
     std::unique_ptr<Text::Raster> m_Raster;
     std::vector<std::string> m_AssetDirs;
-    
+    DeviceDescriptorPool* m_DescriptorPool = nullptr; // not own
+    Camera2D* m_Camera;                               // not own
     std::optional<Text::Context> m_Context;
-    
-    
 };
 } // namespace Aether::UI

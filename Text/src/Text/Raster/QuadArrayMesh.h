@@ -82,9 +82,9 @@ public:
         std::array<Vec3f,4> positions=
         {
             position,//left-top
-            position+Vec3f(size.x(),0,0),//right-top
-            position+Vec3f(size.x(),size.y(),0),//right-bottom
-            position+Vec3f(0,size.y(),0)//left-bottom
+            position+Vec3f(size.x(),0,quad.z),//right-top
+            position+Vec3f(size.x(),size.y(),quad.z),//right-bottom
+            position+Vec3f(0,size.y(),quad.z)//left-bottom
         };
         std::array<Vec2f,4> uvs=
         {

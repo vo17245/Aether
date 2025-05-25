@@ -5,7 +5,7 @@
 #include <span>
 #include <print>
 namespace Aether::Filesystem {
-std::optional<std::vector<char>> ReadFile(const Filesystem::Path& path)
+std::optional<std::vector<uint8_t>> ReadFile(const Filesystem::Path& path)
 {
     File file(path, Filesystem::Action::Read);
     if (!file.IsOpened())
@@ -13,7 +13,7 @@ std::optional<std::vector<char>> ReadFile(const Filesystem::Path& path)
         return std::nullopt;
     }
     size_t fileSize = file.GetSize();
-    std::vector<char> buffer(fileSize);
+    std::vector<uint8_t> buffer(fileSize);
     size_t readBytes = file.Read({reinterpret_cast<uint8_t*>(buffer.data()), buffer.size()});
     if (readBytes != fileSize)
     {

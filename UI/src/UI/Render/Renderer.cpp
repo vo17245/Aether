@@ -4,6 +4,7 @@
 #include "Render/RenderApi/DeviceBuffer.h"
 #include "Render/RenderApi/DeviceDescriptorPool.h"
 #include "Render/RenderApi/DeviceMesh.h"
+#include "Render/Scene/Camera2D.h"
 #include "Render/Shader/ShaderSource.h"
 #include "Render/Utils.h"
 #include "Render/Vulkan/Buffer.h"
@@ -56,15 +57,15 @@ bool Renderer::CreateBasicPipeline(DeviceRenderPassView _renderPass)
     m_BasicPipelineLayout = std::move(layout.value());
     return true;
 }
-void Renderer::Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, Vec2f screenSize)
+void Renderer::Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, const Camera2D& camera)
 {
+    m_Camera=camera;
     #ifdef AETHER_RUNTIME_CHECK
     assert(m_IsBusy==false &&" renderer is busy");
     m_IsBusy=true;
     #endif
     m_FrameBuffer = frameBuffer;
     m_RenderPass = renderPass;
-    m_Camera.screenSize = screenSize;
     // clear quad mesh
     m_BasicQuadArray = QuadArrayMesh(); // clear basic quads
     m_QuadsWithTexture.clear();         // clear quads with texture
@@ -107,7 +108,6 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
         CreateBasicDescriptorSet();
         // update uniform
         {
-            m_Camera.CalculateMatrix();
             auto& modelMatrix = m_Camera.matrix;
             m_BasicUboLocalBuffer.model = modelMatrix;
             m_BasicUboLocalBuffer.view = Mat4::Identity();
@@ -422,7 +422,6 @@ bool Renderer::UpdateQuadWithTextureDescriptor(QuadWithTexture& quad)
 bool Renderer::UpdateQuadWithTextureDeviceUniformBuffer()
 {
     // update local uniform buffer
-    m_Camera.CalculateMatrix();
     m_QuadWithTextureUboLocalBuffer.model = m_Camera.matrix;
     m_QuadWithTextureUboLocalBuffer.view = Mat4::Identity();
     m_QuadWithTextureUboLocalBuffer.texCoord = Mat4::Identity();
