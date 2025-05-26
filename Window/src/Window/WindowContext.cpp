@@ -102,4 +102,46 @@ void WindowContext::MousePositionCallback(GLFWwindow* window, double xpos, doubl
         assert(false&&"MousePositionCallback: window not found");
     }
 }
+static MouseButtonCode GlfwButtonToMouseButtonCode(int button)
+{
+    switch (button)
+    {
+    case GLFW_MOUSE_BUTTON_LEFT:
+        return MouseButtonCode::Left;
+    case GLFW_MOUSE_BUTTON_RIGHT:
+        return MouseButtonCode::Right;
+    case GLFW_MOUSE_BUTTON_MIDDLE:
+        return MouseButtonCode::Middle;
+    default:
+        assert(false && "GlfwButtonToMouseButtonCode: unknown button");
+        return MouseButtonCode::Left; // default to left button
+    }
+}
+void WindowContext::MouseButtonEventCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    auto& windows = Get().m_Windows;
+    auto iter = windows.find(window);
+    if (iter != windows.end())
+    {
+        auto& window= *iter->second;
+        if(action==GLFW_PRESS)
+        {
+            Event event= MouseButtonPressedEvent(GlfwButtonToMouseButtonCode(button));
+            window.PushEvent(event);
+        }
+        else if(action==GLFW_RELEASE)
+        {
+            Event event= MouseButtonReleasedEvent(GlfwButtonToMouseButtonCode(button));
+            window.PushEvent(event);
+        }
+        else 
+        {
+            assert(false&&"MouseButtonEventCallback: unknown action");
+        }
+    }
+    else
+    {
+        assert(false&&"MousePositionCallback: window not found");
+    }
+}
 } // namespace Aether

@@ -19,7 +19,7 @@ public:
         {
             auto& mousePosEvent = std::get<MousePositionEvent>(event);
             auto& pos = mousePosEvent.GetPosition();
-
+            m_MousePosition = pos;
             for (const auto& [entity, base, mouse] : view.each())
             {
                 if (pos.x() >= base.position.x() && pos.x() <= base.position.x() + base.size.x() && pos.y() >= base.position.y() && pos.y() <= base.position.y() + base.size.y())
@@ -34,7 +34,51 @@ public:
                 }
             }
         }
+        else if(std::holds_alternative<MouseButtonPressedEvent>(event))
+        {
+            auto& mouseButtonEvent = std::get<MouseButtonPressedEvent>(event);
+            auto buttonCode = mouseButtonEvent.GetKeyCode();
+            auto& pos= m_MousePosition;
+            for (const auto& [entity, base, mouse] : view.each())
+            {
+                if (pos.x() >= base.position.x() && pos.x() <= base.position.x() + base.size.x() && pos.y() >= base.position.y() && pos.y() <= base.position.y() + base.size.y())
+                {
+                    if(mouse.onPress)
+                        mouse.onPress();
+                    mouse.isPress = true;
+                }
+                else
+                {
+                    mouse.isPress = false;
+                }
+            }
+        }
+        else if(std::holds_alternative<MouseButtonReleasedEvent>(event))
+        {
+            auto& mouseButtonEvent = std::get<MouseButtonReleasedEvent>(event);
+            auto buttonCode = mouseButtonEvent.GetKeyCode();
+            auto& pos= m_MousePosition;
+            for (const auto& [entity, base, mouse] : view.each())
+            {
+                if (pos.x() >= base.position.x() && pos.x() <= base.position.x() + base.size.x() && pos.y() >= base.position.y() && pos.y() <= base.position.y() + base.size.y())
+                {
+                    if(mouse.isPress)
+                    {
+                        if (mouse.onClick)
+                            mouse.onClick();
+                    }
+                    if (mouse.onRelease)
+                        mouse.onRelease();
+                    mouse.isPress = false;
+                    
+                }
+            }
+        }
+      
+
     }
+private:
+    Vec2f m_MousePosition = Vec2f(0, 0);
 
 };
 } // namespace Aether::UI

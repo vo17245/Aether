@@ -9,5 +9,6 @@ namespace Aether::UI
         std::function<void()> onHover=[](){};
         std::function<void()> onPress=[](){};
         std::function<void()> onRelease=[](){};
+        std::function<void()> onClick=[](){};
     };
 }

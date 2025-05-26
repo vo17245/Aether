@@ -125,30 +125,33 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
         }
         // add mouse entity (debug)
         {
-            auto* node=m_Hierarchy.CreateNode();
+            auto* node = m_Hierarchy.CreateNode();
             // set position and size
-            auto& bc=m_Hierarchy.GetComponent<UI::BaseComponent>(node);
+            auto& bc = m_Hierarchy.GetComponent<UI::BaseComponent>(node);
             bc.position = Vec2f(0, 400);
-            bc.size=Vec2f(100,100);
+            bc.size = Vec2f(100, 100);
             // add quad component
             UI::QuadDesc desc;
-            desc.color= Vec4f(1, 0, 0, 1); // red color
-            auto& quadComponent=m_Hierarchy.AddComponent<UI::QuadComponent>(node, desc);
+            desc.color = Vec4f(1, 0, 0, 1); // red color
+            auto& quadComponent = m_Hierarchy.AddComponent<UI::QuadComponent>(node, desc);
             // add mouse component
             UI::MouseComponent mouseComponent;
-            mouseComponent.onHover=[&quadComponent](){
-                Debug::Log::Debug("Mouse hover");
-                quadComponent.quad.SetColor(Vec4f(0, 1, 0, 1)); // change to green on hover
+            mouseComponent.onClick = [&quadComponent]() {
+                Debug::Log::Debug("Clicked on mouse node");
+            };
+            mouseComponent.onPress = [&quadComponent]() {
+                quadComponent.quad.SetColor(Vec4f(0.5, 0, 0, 1));
+            };
+            mouseComponent.onRelease = [&quadComponent]() {
+                quadComponent.quad.SetColor(Vec4f(1, 0, 0, 1));
             };
             m_Hierarchy.AddComponent<UI::MouseComponent>(node, std::move(mouseComponent));
             // add text component
             auto& textComponent = m_Hierarchy.AddComponent<UI::TextComponent>(node, "Mouse Node");
         }
 
-        
         m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
     }
-    
 
     virtual void OnEvent(Event& event) override
     {

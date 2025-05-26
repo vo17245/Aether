@@ -52,7 +52,7 @@ private: // event callback
     static void WindowResizeCallback(GLFWwindow* window, int width, int height);
     // static void WindowFileDropCallback(GLFWwindow* window, int count, const char** paths);
     static void KeyboardEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    // static void MouseButtonEventCallback(GLFWwindow* window, int button, int action, int mods);
+    static void MouseButtonEventCallback(GLFWwindow* window, int button, int action, int mods);
     // static void MouseScrollEventCallback(GLFWwindow* window, double xoffset, double yoffset);
     static void MousePositionCallback(GLFWwindow* window, double xpos, double ypos);
     static void CharacterCallback(GLFWwindow* window, unsigned int codepoint);
@@ -61,7 +61,7 @@ private: // event callback
         // glfwSetDropCallback(window, WindowFileDropCallback);
         glfwSetWindowSizeCallback(window, WindowResizeCallback);
         glfwSetKeyCallback(window, KeyboardEventCallback);
-        // glfwSetMouseButtonCallback(window, MouseButtonEventCallback);
+        glfwSetMouseButtonCallback(window, MouseButtonEventCallback);
         // glfwSetScrollCallback(window, MouseScrollEventCallback);
         // glfwSetCursorPosCallback(window, MousePositionEventCallback);
         glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
