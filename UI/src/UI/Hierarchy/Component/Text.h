@@ -15,6 +15,7 @@ struct TextComponent
     DeviceBuffer vertexBuffer;
     Text::Font* font = nullptr;
     std::unique_ptr<Text::Raster::RenderPassResource> renderResource;
+    bool hinting=true;// enable hinting, default true
     TextComponent() = default;
     TextComponent(const std::string& content) :
         content(content)

@@ -21,7 +21,28 @@ public:
         std::unique_ptr<Text::Face> face;
         std::unique_ptr<Text::Font> font;
     };
+    struct FontSignature
+    {
+        std::string path;
+        //如果不需要hinting,worldSize都设置为0，如果需要hinting,worldSize需要是有效的值
+        float worldSize=0;
+        bool operator==(const FontSignature& other) const
+        {
+            return path == other.path && worldSize == other.worldSize;
+        }
+        bool operator!=(const FontSignature& other) const
+        {
+            return !(*this == other);
+        }
 
+    };
+    struct FontSignatureHash
+    {
+        std::size_t operator()(const FontSignature& sig) const
+        {
+            return std::hash<std::string>()(sig.path) ^ std::hash<float>()(sig.worldSize);
+        }
+    };
 public:
     ~TextSystem()
 
@@ -47,17 +68,20 @@ public:
             // ensure font
             if (!text.font)
             {
-                auto& fontPath=text.fontpath.empty()?m_DefaultFont:text.fontpath;
-                auto iter = m_Fonts.find(fontPath);
+                FontSignature sig{
+                    .path = text.fontpath.empty() ? m_DefaultFont : text.fontpath,
+                    .worldSize = text.hinting? text.worldSize : 0
+                };
+                auto iter = m_Fonts.find(sig);
                 if (iter == m_Fonts.end())
                 {
-                    bool res = LoadFont(fontPath);
+                    bool res = LoadFont(sig);
                     if (!res)
                     {
                         Debug::Log::Error("failed to load font {},{}:{}", text.fontpath, __FILE__ ":", __LINE__);
                         continue;
                     }
-                    auto& font = m_Fonts[fontPath];
+                    auto& font = m_Fonts[sig];
                     text.font = font.font.get();
                 }
                 else
@@ -153,13 +177,13 @@ public:
 
 private:
     TextSystem() = default;
-    bool LoadFont(const std::string& path)
+    bool LoadFont(const FontSignature& signature)
     {
         std::optional<std::string> filepath;
         for (auto& assetDir : m_AssetDirs)
         {
             Filesystem::Path path1(assetDir);
-            path1 /= path;
+            path1 /= signature.path;
             if (Filesystem::Exists(path1))
             {
                 filepath = path1;
@@ -177,7 +201,16 @@ private:
             return false;
         }
         auto face = std::make_unique<Text::Face>(std::move(faceOpt.value()));
-        auto fontOpt = Text::Font::Create(face.get());
+        std::optional<Text::Font> fontOpt;
+        if(signature.worldSize)
+        {
+            fontOpt = Text::Font::Create(face.get(),signature.worldSize,true);
+        }
+        else 
+        {
+            fontOpt = Text::Font::Create(face.get()); // no hinting
+        }
+       
         if (!fontOpt)
         {
             return false;
@@ -187,12 +220,12 @@ private:
             .font = std::make_unique<Text::Font>(std::move(fontOpt.value()))
 
         };
-        m_Fonts[path] = std::move(font);
+        m_Fonts[signature] = std::move(font);
         return true;
     }
 
 private:
-    std::unordered_map<std::string, Font> m_Fonts;
+    std::unordered_map<FontSignature, Font,FontSignatureHash> m_Fonts;
     std::unique_ptr<Text::Raster> m_Raster;
     std::vector<std::string> m_AssetDirs;
     DeviceDescriptorPool* m_DescriptorPool = nullptr; // not own
