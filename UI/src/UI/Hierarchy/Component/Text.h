@@ -6,14 +6,19 @@
 #include <Text/Font.h>
 namespace Aether::UI
 {
-    struct TextComponent
+struct TextComponent
+{
+    std::string content;             // text to show
+    std::string fontpath;            // font file path
+    Vec4f color = Vec4f(1, 1, 1, 1); //[0-1]
+    float worldSize = 32;            // pixel size
+    DeviceBuffer vertexBuffer;
+    Text::Font* font = nullptr;
+    std::unique_ptr<Text::Raster::RenderPassResource> renderResource;
+    TextComponent() = default;
+    TextComponent(const std::string& content) :
+        content(content)
     {
-        std::string content;//text to show
-        std::string fontpath;//font file path
-        Vec4f color=Vec4f(1,1,1,1);//[0-1]
-        float worldSize=32;//pixel size
-        DeviceBuffer vertexBuffer;
-        Text::Font* font=nullptr;
-        std::unique_ptr<Text::Raster::RenderPassResource> renderResource;
-    };
-}
+    }
+};
+} // namespace Aether::UI

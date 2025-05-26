@@ -10,6 +10,7 @@
 #include "System/System.h"
 #include <vector>
 #include <queue>
+#include <Window/Event.h>
 namespace Aether::UI
 {
 class Hierarchy
@@ -32,6 +33,17 @@ public:
             DestroyNode(child);
         }
         delete node;
+    }
+    template<typename T,typename... Args>
+    T& AddComponent(Node* node, Args&&... args)
+    {
+        auto& component = m_Scene.AddComponent<T>(node->id, std::forward<Args>(args)...);
+        return component;
+    }   
+    template<typename T>
+    T& GetComponent(Node* node)
+    {
+        return m_Scene.GetComponent<T>(node->id);
     }
     Node* GetRoot()
     {
@@ -93,6 +105,13 @@ public:
             }
         }
         m_LayoutBuilder.End();
+    }
+    void OnEvent(Event& event)
+    {
+        for(auto* system:m_Systems)
+        {
+            system->OnEvent(event, m_Scene);
+        }
     }
     void OnUpdate(float sec, Scene& scene)
     {

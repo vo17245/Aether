@@ -64,6 +64,10 @@ public:
     {
         return m_Shader;
     }
+    inline void SetColor(const Vec4f& color)
+    {
+        m_Color=color;
+    }
 private:
     Ref<DeviceShader> m_Shader;
     Ref<DeviceTexture> m_Texture;

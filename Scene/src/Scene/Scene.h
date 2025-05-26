@@ -16,9 +16,9 @@ namespace Aether
             m_Registry.destroy(entity);
         }
         template<typename T,typename... Args>
-        void AddComponent(EntityId entity,Args&&... args)
+        T& AddComponent(EntityId entity,Args&&... args)
         {
-            m_Registry.emplace<T>(entity,std::forward<Args>(args)...);
+            return m_Registry.emplace<T>(entity,std::forward<Args>(args)...);
         }
         template<typename T>
         void RemoveComponent(EntityId entity)

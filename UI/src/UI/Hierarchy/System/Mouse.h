@@ -8,26 +8,19 @@
 #include <variant>
 namespace Aether::UI
 {
-class MouseSystem:public SystemI
+class MouseSystem : public SystemI
 {
 public:
-    void OnUpdate(float sec, Scene& scene)
+    virtual void OnEvent(Event& event, Scene& scene)override
     {
-        auto view = scene.Select< BaseComponent, MouseComponent>();
-        for (const auto& [entity,  base, mouse] : view.each())
-        {
-        }
-    }
-    void OnEvent(Event& event, Scene& scene)
-    {
-        auto view = scene.Select< BaseComponent, MouseComponent>();
+        auto view = scene.Select<BaseComponent, MouseComponent>();
         // hover
         if (std::holds_alternative<MousePositionEvent>(event))
         {
             auto& mousePosEvent = std::get<MousePositionEvent>(event);
             auto& pos = mousePosEvent.GetPosition();
 
-            for (const auto& [entity,  base, mouse] : view.each())
+            for (const auto& [entity, base, mouse] : view.each())
             {
                 if (pos.x() >= base.position.x() && pos.x() <= base.position.x() + base.size.x() && pos.y() >= base.position.y() && pos.y() <= base.position.y() + base.size.y())
                 {
@@ -42,5 +35,6 @@ public:
             }
         }
     }
+
 };
 } // namespace Aether::UI

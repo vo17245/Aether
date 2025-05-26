@@ -35,6 +35,7 @@
 #include <UI/Hierarchy/NodeCreator.h>
 #include <UI/Hierarchy/BuiltinNodeCreator.h>
 #include <UI/Hierarchy/System/Text.h>
+#include <UI/Hierarchy/System/Mouse.h>
 using namespace Aether;
 class HierarchyLayer : public Layer
 {
@@ -62,6 +63,7 @@ public:
     }
     virtual void OnAttach(Window* window) override
     {
+        Debug::Log::Debug("HierarchyLayer Attach");
         m_ScreenSize.x() = window->GetSize().x();
         m_ScreenSize.y() = window->GetSize().y();
         // quad
@@ -77,7 +79,10 @@ public:
         textSystem->SetCamera(&m_Hierarchy.GetCamera());
         textSystem->AddAssetDir("Assets");
         m_Hierarchy.AddSystem(textSystem);
-        // InitHierarchy();
+        // mouse
+        UI::MouseSystem* mouseSystem = new UI::MouseSystem();
+        m_Hierarchy.AddSystem(mouseSystem);
+        // load xml
         InitHierarchyFromXml();
     }
     void InitHierarchyFromXml()
@@ -118,62 +123,36 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
                 return;
             }
         }
+        // add mouse entity (debug)
+        {
+            auto* node=m_Hierarchy.CreateNode();
+            // set position and size
+            auto& bc=m_Hierarchy.GetComponent<UI::BaseComponent>(node);
+            bc.position = Vec2f(0, 400);
+            bc.size=Vec2f(100,100);
+            // add quad component
+            UI::QuadDesc desc;
+            desc.color= Vec4f(1, 0, 0, 1); // red color
+            auto& quadComponent=m_Hierarchy.AddComponent<UI::QuadComponent>(node, desc);
+            // add mouse component
+            UI::MouseComponent mouseComponent;
+            mouseComponent.onHover=[&quadComponent](){
+                Debug::Log::Debug("Mouse hover");
+                quadComponent.quad.SetColor(Vec4f(0, 1, 0, 1)); // change to green on hover
+            };
+            m_Hierarchy.AddComponent<UI::MouseComponent>(node, std::move(mouseComponent));
+            // add text component
+            auto& textComponent = m_Hierarchy.AddComponent<UI::TextComponent>(node, "Mouse Node");
+        }
 
         
         m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
     }
-    void InitHierarchy()
-    {
-        auto& camera = ApplicationResource::s_Instance->camera;
-        {
-            m_Root = m_Hierarchy.CreateNode();
-            auto& base = m_Hierarchy.GetScene().GetComponent<UI::BaseComponent>(m_Root->id);
-            base.position = Vec2f(0, 0);
-            base.size = m_ScreenSize;
-            m_Hierarchy.SetRoot(m_Root);
-        }
-        auto createQuad = [&](const Vec2f& size, const Vec4f& color) -> UI::Node* {
-            auto* node = m_Hierarchy.CreateNode();
-            auto& base = m_Hierarchy.GetScene().GetComponent<UI::BaseComponent>(node->id);
-            UI::QuadDesc desc;
-            desc.color = color;
-            m_Hierarchy.GetScene().AddComponent<UI::QuadComponent>(node->id, desc);
-            base.size = size;
-            return node;
-        };
-        auto createGrid = [&](const Vec2f& size) -> UI::Node* {
-            auto* node = m_Hierarchy.CreateNode();
-            auto& base = m_Hierarchy.GetScene().GetComponent<UI::BaseComponent>(node->id);
-            base.size = size;
-            return node;
-        };
-        {
-            auto* grid = createGrid({m_ScreenSize.x(), m_ScreenSize.y() * 0.1});
-            auto* node = createQuad({m_ScreenSize.x(), m_ScreenSize.y() * 0.1 - 10}, Vec4f(1, 0, 0, 1));
-            grid->children.push_back(node);
-            m_Root->children.push_back(grid);
-        }
-        {
-            auto* grid = createGrid({m_ScreenSize.x(), m_ScreenSize.y() * 0.8});
-            auto* node = createQuad({100, 100}, Vec4f(1, 0, 0, 1));
-            grid->children.push_back(node);
-            m_Root->children.push_back(grid);
-        }
-        {
-            auto* grid = createGrid({m_ScreenSize.x(), m_ScreenSize.y() * 0.1});
-            auto* grid1 = createGrid({m_ScreenSize.x(), 10});
-            grid->children.push_back(grid1);
-            auto* node = createQuad({m_ScreenSize.x(), m_ScreenSize.y() * 0.1 - 10},
-                                    Vec4f(0, 1, 0, 1));
-            grid->children.push_back(node);
-            m_Root->children.push_back(grid);
-        }
-        auto& renderer = *ApplicationResource::s_Instance->renderer;
-        m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
-    }
+    
 
     virtual void OnEvent(Event& event) override
     {
+        m_Hierarchy.OnEvent(event);
     }
 
 private:
