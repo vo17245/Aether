@@ -65,6 +65,10 @@ public:
 
         for (const auto& [entity, base, text] : view.each())
         {
+            if(text.content.empty())
+            {
+                continue; // skip empty text
+            }
             // ensure font
             if (!text.font)
             {

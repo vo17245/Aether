@@ -67,6 +67,7 @@ private: // event callback
         glfwSetFramebufferSizeCallback(window, FramebufferResizeCallback);
         glfwSetCharCallback(window, CharacterCallback);
         glfwSetCursorPosCallback(window, MousePositionCallback);
+        
     }
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 };

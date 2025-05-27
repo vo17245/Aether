@@ -38,10 +38,10 @@
 #include <UI/Hierarchy/System/Mouse.h>
 #include <UI/Hierarchy/System/InputText.h>
 using namespace Aether;
-class HierarchyLayer : public Layer
+class MainPage : public Layer
 {
 public:
-    ~HierarchyLayer()
+    ~MainPage()
     {
     }
     virtual void OnRender(
@@ -64,7 +64,7 @@ public:
     }
     virtual void OnAttach(Window* window) override
     {
-        Debug::Log::Debug("HierarchyLayer Attach");
+        Debug::Log::Debug("MainPage Attach");
         m_ScreenSize.x() = window->GetSize().x();
         m_ScreenSize.y() = window->GetSize().y();
         // quad

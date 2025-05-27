@@ -1,0 +1,12 @@
+<quad width="{}" height="{}" color="0,0,0,1">
+    <quad width="110" height="110" color="1,0,1,0">
+        <quad width="100" height="100" color="1,0,1,1">
+            <text width="100" height="100" world_size="36">quad1</text>
+        </quad>
+    </quad>
+    <quad width="110" height="110" color="1,0,1,0">
+        <quad width="100" height="100" color="1,0,1,1">
+            <text width="100" height="100" world_size="36">quad2</text>
+        </quad>
+    </quad>
+</quad>

@@ -1,8 +1,7 @@
-#include "TestLayer.h"
 #include "Entry/Application.h"
 #include "ApplicationResource.h"
-#include "UpdateLayer.h"
-#include "HierarchyLayer.h"
+#include "Layers/MainPage.h"
+#include "Layers/UpdateLayer.h"
 using namespace Aether;
 
 class Editor : public Application
@@ -13,8 +12,7 @@ public:
         ApplicationResource::Init(window.GetSize(),window.GetFinalTexture());
         m_MainWindow = &window;
         PushLayer<UpdateLayer>();
-        //PushLayer<TestLayer>();
-        PushLayer<HierarchyLayer>();
+        PushLayer<MainPage>();
     }
     template<typename T>
     void PushLayer()
@@ -39,7 +37,7 @@ public:
     }
     virtual const char* GetName() const override
     {
-        return "UIDemo";
+        return "Editor";
     }
 private:
     std::vector<Layer*> m_Layers;
