@@ -428,6 +428,10 @@ void Window::WaitLastFrameComplete()
 }
 void Window::OnRender()
 {
+    for(auto* layer:m_Layers)
+    {
+        layer->OnFrameBegin();
+    }
     m_DescriptorPool.Clear();
     if (m_Layers.empty()) return;
     if (GetSize().x() == 0 || GetSize().y() == 0) return;

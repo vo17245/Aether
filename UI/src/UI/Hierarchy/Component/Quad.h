@@ -10,6 +10,6 @@ namespace Aether::UI
         {
         }
         ::Aether::UI::Quad quad;
-        bool visible = false;
+        bool visible = true;
     };
 }

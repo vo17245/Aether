@@ -154,7 +154,7 @@ public:
     static TextSystem* Create(DeviceRenderPassView renderPass, DeviceDescriptorPool& descriptorPool, const Vec2f& screenSize)
     {
         TextSystem* system = new TextSystem();
-        auto raster = Text::Raster::Create(renderPass, true, descriptorPool, screenSize);
+        auto raster = Text::Raster::Create(renderPass, true, descriptorPool, screenSize,true);
         if (!raster)
         {
             return nullptr;

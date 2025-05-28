@@ -48,10 +48,10 @@ public:
         return resource;
     }
     static std::optional<Raster> Create(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,
-                                        const Vec2f& screenSize)
+                                        const Vec2f& screenSize,bool enableDepthTest)
     {
         Raster raster;
-        bool res = raster.Init(renderPass, enableBlend, descriptorPool);
+        bool res = raster.Init(renderPass, enableBlend, descriptorPool,enableDepthTest);
         if (!res)
         {
             return std::nullopt;
@@ -61,12 +61,12 @@ public:
     Raster(Raster&&) = default;
 
 private:
-    bool Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool);
+    bool Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,bool enableDepthTest);
     Raster() = default;
 
 private:
     bool CreateShader();                                                            // on init
-    bool CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend);         // on init
+    bool CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend,bool enableDepthTest);         // on init
     bool CreateDescriptorSet(DeviceDescriptorPool& descriptorPool);                 // per draw
     bool CreateCamera(const Vec2f& screenSize);                                     // on init
     bool UpdateMesh(RenderPassParam& param, RenderPassResource& resource);          // per draw
@@ -77,8 +77,6 @@ private:
     struct HostUniformBuffer
     {
         float mvp[16];
-        float screenSize[2];
-        float align[2];
     };
     DevicePipeline m_Pipeline;
     DevicePipelineLayout m_PipelineLayout;

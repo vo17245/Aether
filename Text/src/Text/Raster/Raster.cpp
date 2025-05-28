@@ -45,7 +45,7 @@ bool Raster::Render(RenderPassParam& param, RenderPassResource& resource)
 
     return true;
 }
-bool Raster::Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool)
+bool Raster::Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,bool enableDepthTest)
 {
     if (!CreateDescriptorSet(descriptorPool))
     {
@@ -57,7 +57,7 @@ bool Raster::Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescr
         assert(false && "create shader failed");
         return false;
     }
-    if (!CreatePipeline(renderPass, enableBlend))
+    if (!CreatePipeline(renderPass, enableBlend,enableDepthTest))
     {
         assert(false && "create pipeline failed");
         return false;
@@ -259,7 +259,6 @@ layout(location=2)in vec2 a_UV;
 layout(std140,binding=0)uniform UniformBufferObject
 {
     mat4 u_MVP;
-    vec4 packed;
 }ubo;
 
 layout(location=0)flat out uint v_GlyphIndex;
@@ -284,7 +283,7 @@ void main()
     m_Shader = std::move(shaderEx.value());
     return true;
 }
-bool Raster::CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend)
+bool Raster::CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend,bool enableDepthTest)
 {
     vk::PipelineLayout::Builder layoutBuilder;
     layoutBuilder.AddDescriptorSetLayouts(m_DescriptorSet.GetVk().layouts);
@@ -296,6 +295,10 @@ bool Raster::CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend)
     }
     auto& layout = layoutOpt.value();
     vk::GraphicsPipeline::Builder builder(renderPass.GetVk(), layout);
+    if(enableDepthTest)
+    {
+        builder.EnableDepthTest();
+    }
     QuadArrayMesh dummyMesh;
     auto vertexBufferLayouts = dummyMesh.GetMesh().CreateVertexBufferLayouts();
     builder.PushVertexBufferLayouts(vertexBufferLayouts)
@@ -373,6 +376,7 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
         quad.uv0 = Vec2f(u0, v0);
         quad.uv1 = Vec2f(u1, v1);
         quad.glyphIndex = glyph.bufferIndex;
+        quad.z=param.z;
         mesh.PushQuad(quad);
        
     }
@@ -396,8 +400,8 @@ bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& res
     {
         m_HostUniformBuffer.mvp[i] = camera.matrix.data()[i];
     }
-    m_HostUniformBuffer.screenSize[0] = camera.screenSize.x();
-    m_HostUniformBuffer.screenSize[1] = camera.screenSize.y();
+    //m_HostUniformBuffer.screenSize[0] = camera.screenSize.x();
+    //m_HostUniformBuffer.screenSize[1] = camera.screenSize.y();
     // stagging
     m_StaggingBuffer.SetData(std::span<uint8_t>((uint8_t*)&m_HostUniformBuffer,
                                                 sizeof(m_HostUniformBuffer)));

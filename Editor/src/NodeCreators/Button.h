@@ -97,18 +97,7 @@ struct ButtonNodeCreator
         scene.AddComponent<UI::QuadComponent>(newNode->id, desc);
         // mouse component
         hierarchy.AddComponent<UI::MouseComponent>(newNode);
-        // text component world size and content
-        UI::TextComponent tc;
-        tc.content = node.ToElement()->GetText();
-        const char* worldSize = node.ToElement()->Attribute("fontSize");
-        float worldSizeValue = 16.0f;// default font size
-        if (worldSize)
-        {
-            worldSizeValue= std::atof(worldSize);
-            
-        }
-        tc.worldSize = worldSizeValue;
-        hierarchy.GetScene().AddComponent<UI::TextComponent>(newNode->id, std::move(tc));
+        
         // base component width height
         auto& base = hierarchy.GetScene().GetComponent<UI::BaseComponent>(newNode->id);
         const char* width = node.ToElement()->Attribute("width");

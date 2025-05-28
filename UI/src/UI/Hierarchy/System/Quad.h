@@ -30,7 +30,6 @@ public:
         }
         auto& renderer = *this->renderer;
         renderer.Begin(renderPass, frameBuffer, *m_Camera);
-        bool anyQuad = false;
         for (const auto& [entity, node, base, quad] : view.each())
         {
             if (!quad.visible)
@@ -40,16 +39,8 @@ public:
             quad.quad.SetPosition(Vec3f(base.position.x(), base.position.y(), base.z));
             quad.quad.SetSize(base.size);
             renderer.DrawQuad(quad.quad);
-            anyQuad = true;
         }
-        if (!anyQuad)
-        {
-            renderer.Reset();
-        }
-        else
-        {
-            renderer.End(commandBuffer);
-        }
+        renderer.End(commandBuffer);
     }
     void SetCamera(Camera2D* camera)
     {

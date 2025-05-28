@@ -155,8 +155,7 @@ public:
                 mc.onClick = [&]() {
                     Debug::Log::Debug("popup base enable layout: {}", popupBase.layoutEnabled);
                     // set pos
-                    popupBase.position=Vec2f(500,500);
-                    popupBase.z= base.z - 1;
+                    popupBase.position=base.position+Vec2f(0,base.size.y());
                     // visibility request
                     
                     vrc.visible = !vrc.visible;
@@ -213,6 +212,11 @@ public:
         {
             m_Hierarchy.RebuildLayout(m_ScreenSize, ApplicationResource::s_Instance->camera.far);
             m_NeedRebuildLayout = false;
+        }
+        {
+            auto* node=query("/quad/quad[2]");
+            auto& base=m_Hierarchy.GetComponent<UI::BaseComponent>(node);
+            base.z=7000;
         }
     }
 private:
