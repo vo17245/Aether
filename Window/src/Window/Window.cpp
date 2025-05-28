@@ -587,6 +587,10 @@ bool Window::ResizeFinalImage(const Vec2u& size)
 }
 void Window::OnWindowResize(const Vec2u& size)
 {
+    if(size.x() == 0 || size.y() == 0)
+    {
+        return; // no need to resize
+    }
     assert(ResizeFinalImage(size)&&"failed to resize window final image");
 }
 } // namespace Aether

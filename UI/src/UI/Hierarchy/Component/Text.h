@@ -16,6 +16,7 @@ struct TextComponent
     Text::Font* font = nullptr;
     std::unique_ptr<Text::Raster::RenderPassResource> renderResource;
     bool hinting=true;// enable hinting, default true
+    bool visible = true; // whether to show this text component
     TextComponent() = default;
     TextComponent(const std::string& content) :
         content(content)

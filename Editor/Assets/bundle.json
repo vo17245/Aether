@@ -1,8 +1,0 @@
-{
-    "assets": {
-        "Images/tiles.png":{
-            "type":"Text",
-            "address":"Page/MainPage.xml"
-        }
-    }
-}

@@ -37,6 +37,10 @@
 #include <UI/Hierarchy/System/Text.h>
 #include <UI/Hierarchy/System/Mouse.h>
 #include <UI/Hierarchy/System/InputText.h>
+#include <NodeCreators/Button.h>
+#include "Query.h"
+#include <UI/Hierarchy/Component/VisibilityRequest.h>
+#include <UI/Hierarchy/System/VisibilityRequest.h>
 using namespace Aether;
 class MainPage : public Layer
 {
@@ -86,76 +90,112 @@ public:
         // input text
         UI::InputTextSystem* inputTextSystem = new UI::InputTextSystem();
         m_Hierarchy.AddSystem(inputTextSystem);
+        // visibility request
+        UI::VisibilityRequestSystem* visibilityRequestSystem = new UI::VisibilityRequestSystem();
+        m_Hierarchy.AddSystem(visibilityRequestSystem);
         // load xml
         InitHierarchyFromXml();
     }
     void InitHierarchyFromXml()
     {
         auto& camera = ApplicationResource::s_Instance->camera;
-        // load quad
+        // load xml
+        std::string path = std::string(Constants::AssetPath) + "/Pages/MainPage.xml";
+        Filesystem::File file(path, Filesystem::Action::Read);
+        assert(file.IsOpened() && "MainPage.xml not found");
+        size_t fileSize = file.GetSize();
+        std::string buffer(fileSize, 0);
+        auto handle = file.GetHandle();
+        Filesystem::Read(handle, std::span<uint8_t>((uint8_t*)buffer.data(), fileSize));
         {
-            const std::string hierarchyXml = std::format(R"(
-        <quad width="{}" height="{}" color="0,0,0,1">
-            <quad width="110" height="110" color="1,0,1,0">
-                <quad width="100" height="100" color="1,0,1,1">
-                    <text width="100" height="100" world_size="36">quad1</text>
-                </quad>
-            </quad>
-            <quad width="110" height="110" color="1,0,1,0">
-                <quad width="100" height="100" color="1,0,1,1">
-                    <text width="100" height="100" world_size="36">quad2</text>
-                </quad>
-            </quad>
-            <text width="400" height="400" world_size="33">
-<![CDATA[我能吞下玻璃而不伤身体
-I can swallow glass without any harm to myself
-ガラスを飲み込んでも何ら害はない
-Ich kann Glas schlucken, ohne mir selbst zu schaden
-]]>
-            </text>
-        </quad>
-
-        )",
-                                                         m_ScreenSize.x(), m_ScreenSize.y());
             UI::HierarchyLoader loader;
             loader.PushNodeCreator<UI::QuadNodeCreator>("quad");
             loader.PushNodeCreator<UI::TextNodeCreator>("text");
-            auto err = loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
+            loader.PushNodeCreator<ButtonNodeCreator>("button");
+            auto err = loader.LoadHierarchy(m_Hierarchy, buffer);
             if (err)
             {
                 std::println("Error loading hierarchy: {}", err.value());
                 return;
             }
         }
-        // add mouse entity (debug)
+        // set callback
         {
-            auto* node = m_Hierarchy.CreateNode();
-            // set position and size
-            auto& bc = m_Hierarchy.GetComponent<UI::BaseComponent>(node);
-            bc.position = Vec2f(0, 400);
-            bc.size = Vec2f(100, 100);
-            // add quad component
-            UI::QuadDesc desc;
-            desc.color = Vec4f(1, 0, 0, 1); // red color
-            auto& quadComponent = m_Hierarchy.AddComponent<UI::QuadComponent>(node, desc);
-            // add mouse component
-            UI::MouseComponent mouseComponent;
-            mouseComponent.onClick = [&quadComponent]() {
-                Debug::Log::Debug("Clicked on mouse node");
-            };
-            mouseComponent.onPress = [&quadComponent]() {
-                quadComponent.quad.SetColor(Vec4f(0.5, 0, 0, 1));
-            };
-            mouseComponent.onRelease = [&quadComponent]() {
-                quadComponent.quad.SetColor(Vec4f(1, 0, 0, 1));
-            };
-            m_Hierarchy.AddComponent<UI::MouseComponent>(node, std::move(mouseComponent));
-            // add text component
-            auto& textComponent = m_Hierarchy.AddComponent<UI::TextComponent>(node, "Mouse Node");
-            // add input text component
-            m_Hierarchy.AddComponent<UI::InputTextComponent>(node);
-        }
+            
+            m_Doc.Parse(buffer.c_str());
 
+            // file popup
+            {
+                auto* filePopup = query("/quad/quad[2]");
+                // visibility request
+                auto& vrc = m_Hierarchy.AddComponent<UI::VisibilityRequest>(filePopup);
+                vrc.visible = false;
+                vrc.processed = false;
+                auto& bc = m_Hierarchy.GetComponent<UI::BaseComponent>(filePopup);
+                bc.layoutEnabled=false;
+            }
+            // File button
+            {
+                auto* fileButton = query("/quad/quad/button[0]");
+                auto& mc = m_Hierarchy.GetComponent<UI::MouseComponent>(fileButton);
+                auto& quad = m_Hierarchy.GetComponent<UI::QuadComponent>(fileButton);
+                // onPress
+
+                mc.onPress = [&]() {
+                    quad.quad.SetColor(Vec4f(0.1, 0.1, 0.1, 1));
+                };
+                // on release
+                mc.onRelease = [&]() {
+                    quad.quad.SetColor(Vec4f(0.5, 0.5, 0.5, 1));
+                };
+                auto* filePopup = query("/quad/quad[2]");
+                auto& vrc = m_Hierarchy.GetComponent<UI::VisibilityRequest>(filePopup);
+                auto& popupBase = m_Hierarchy.GetComponent<UI::BaseComponent>(filePopup);
+                auto& base= m_Hierarchy.GetComponent<UI::BaseComponent>(fileButton);
+                mc.onClick = [&]() {
+                    Debug::Log::Debug("popup base enable layout: {}", popupBase.layoutEnabled);
+                    // set pos
+                    popupBase.position=Vec2f(500,500);
+                    popupBase.z= base.z - 1;
+                    // visibility request
+                    
+                    vrc.visible = !vrc.visible;
+                    vrc.processed = false;
+                    m_NeedRebuildLayout = true;
+                };
+            }
+            // Edit button
+            {
+                auto* fileButton = query("/quad/quad/button[2]");
+                auto& mc = m_Hierarchy.GetComponent<UI::MouseComponent>(fileButton);
+                auto& quad = m_Hierarchy.GetComponent<UI::QuadComponent>(fileButton);
+                // onPress
+
+                mc.onPress = [&]() {
+                    quad.quad.SetColor(Vec4f(0.1, 0.1, 0.1, 1));
+                };
+                // on release
+                mc.onRelease = [&]() {
+                    quad.quad.SetColor(Vec4f(0.5, 0.5, 0.5, 1));
+                };
+            }
+            // View button
+            {
+                auto* fileButton = query("/quad/quad/button[1]");
+                auto& mc = m_Hierarchy.GetComponent<UI::MouseComponent>(fileButton);
+                auto& quad = m_Hierarchy.GetComponent<UI::QuadComponent>(fileButton);
+                // onPress
+
+                mc.onPress = [&]() {
+                    quad.quad.SetColor(Vec4f(0.1, 0.1, 0.1, 1));
+                };
+                // on release
+                mc.onRelease = [&]() {
+                    quad.quad.SetColor(Vec4f(0.5, 0.5, 0.5, 1));
+                };
+            }
+            
+        }
         m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
     }
 
@@ -163,9 +203,24 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
     {
         m_Hierarchy.OnEvent(event);
     }
-
+    virtual void OnUpdate(float sec) override
+    {
+        m_Hierarchy.OnUpdate(sec);
+    }
+    virtual void OnFrameBegin() override
+    {
+        if (m_NeedRebuildLayout)
+        {
+            m_Hierarchy.RebuildLayout(m_ScreenSize, ApplicationResource::s_Instance->camera.far);
+            m_NeedRebuildLayout = false;
+        }
+    }
 private:
     UI::Hierarchy m_Hierarchy;
     Vec2f m_ScreenSize;
     UI::Node* m_Root = nullptr;
+    tinyxml2::XMLDocument m_Doc;
+    std::function<UI::Node*(std::string_view)> query = [&](std::string_view path) {
+        return QueryNode(m_Hierarchy, m_Doc, path);};
+    bool m_NeedRebuildLayout = false; // 是否需要重新布局
 };

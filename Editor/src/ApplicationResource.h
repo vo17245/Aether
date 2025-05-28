@@ -4,6 +4,8 @@
 #include "Render/RenderApi/DeviceTexture.h"
 #include "Render/Scene/Camera2D.h"
 #include <UI/Render/Renderer.h>
+#include "Constants.h"
+#include "Resource/Finder.h"
 using namespace Aether;
 class ApplicationResource
 {
@@ -66,7 +68,9 @@ public:
     }
     static ApplicationResource* s_Instance;
 
+
 private:
+
     bool CreateRenderResource()
     {
         // descriptor pool

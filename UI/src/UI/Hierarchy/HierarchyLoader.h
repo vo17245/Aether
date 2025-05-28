@@ -70,7 +70,7 @@ private:
         const tinyxml2::XMLNode* child = node.FirstChild();
         while (child)
         {
-            if(child->ToText())
+            if(!child->ToElement())
             {
                 child = child->NextSibling();
                 continue;

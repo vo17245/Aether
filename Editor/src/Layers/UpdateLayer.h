@@ -10,15 +10,22 @@ public:
     {
         if (std::holds_alternative<WindowResizeEvent>(event))
         {
-            // update camera
-            auto& camera=ApplicationResource::s_Instance->camera;
-            auto& e = std::get<WindowResizeEvent>(event);
-            auto& renderer= *ApplicationResource::s_Instance->renderer;
-            camera.screenSize.x() = e.GetWidth();
-            camera.screenSize.y() = e.GetHeight();
-            // update hierarchy framebuffer
-            ApplicationResource::s_Instance->ResizeHierarchyFrameBuffer(Vec2i(e.GetWidth(),e.GetHeight()),
-             m_Window->GetFinalTexture());
+            do{
+                // update camera
+                auto& camera=ApplicationResource::s_Instance->camera;
+                auto& e = std::get<WindowResizeEvent>(event);
+                if(e.GetHeight()==0|| e.GetWidth()==0)
+                {
+                    break; // ignore zero size
+                }
+                auto& renderer= *ApplicationResource::s_Instance->renderer;
+                camera.screenSize.x() = e.GetWidth();
+                camera.screenSize.y() = e.GetHeight();
+                // update hierarchy framebuffer
+                ApplicationResource::s_Instance->ResizeHierarchyFrameBuffer(Vec2i(e.GetWidth(),e.GetHeight()),
+                 m_Window->GetFinalTexture());
+            }while(false);
+            
         }
     }
     virtual void OnAttach(Window* window)override

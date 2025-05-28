@@ -221,8 +221,8 @@ void main()
 
 	}
     alpha/=2;
-   
-    FragColor=alpha*vec4(1.0,1.0,1.0,1.0);
+
+    FragColor=vec4(1.0,1.0,1.0,alpha);
 
 
 

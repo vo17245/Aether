@@ -65,6 +65,10 @@ public:
 
         for (const auto& [entity, base, text] : view.each())
         {
+            if(!text.visible)
+            {
+                continue; // skip invisible text
+            }
             if(text.content.empty())
             {
                 continue; // skip empty text

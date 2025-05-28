@@ -65,6 +65,11 @@ struct LayoutBuilder
         return pos;
 
     }
+    //@brief 创建一个脱离流的盒子，这个盒子自己不会参与布局，他的子节点会在这个盒子中布局
+    void PlaceBox(const Vec2f& size,const Vec2f& position)
+    {
+        boxes.emplace_back(Quad{size, position}, std::list<Quad>{Quad{size, position}});
+    }
     void End()
     { /*do nothing now*/
     }

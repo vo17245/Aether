@@ -59,13 +59,23 @@ bool Renderer::CreateBasicPipeline(DeviceRenderPassView _renderPass)
 }
 void Renderer::Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, const Camera2D& camera)
 {
-    m_Camera=camera;
     #ifdef AETHER_RUNTIME_CHECK
     assert(m_IsBusy==false &&" renderer is busy");
-    m_IsBusy=true;
     #endif
+    Clear();
+    m_IsBusy=true;
+    m_Camera=camera;
     m_FrameBuffer = frameBuffer;
     m_RenderPass = renderPass;
+    
+}
+void Renderer::Reset()
+{
+    m_IsBusy = false;
+    Clear();
+}
+void Renderer::Clear()
+{
     // clear quad mesh
     m_BasicQuadArray = QuadArrayMesh(); // clear basic quads
     m_QuadsWithTexture.clear();         // clear quads with texture

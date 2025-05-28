@@ -3,6 +3,7 @@
 #include <UI/Hierarchy/Component/Base.h>
 #include <UI/Hierarchy/Component/Text.h>
 #include <UI/Hierarchy/Component/Mouse.h>
+#include <UI/Hierarchy/Component/Quad.h>
 #include <UI/Hierarchy/Node.h>
 #include <tinyxml2.h>
 namespace Aether
@@ -10,20 +11,103 @@ namespace Aether
 
 struct ButtonNodeCreator
 {
+    std::optional<std::string> ParseColor(const char* color, Vec4f& res)
+    {
+        size_t begin = 0;
+        size_t end = 0;
+        const char* p = color;
+        size_t fc = 0;
+        while (p[end])
+        {
+            if (p[end] == ',')
+            {
+                std::string s(color + begin, end - begin);
+                float v;
+                try
+                {
+                    v = std::atof(s.c_str());
+                }
+                catch (std::exception& e)
+                {
+                    return std::format("Error: {}, {}", color, e.what());
+                }
+                if (fc == 0)
+                    res.x() = v;
+                else if (fc == 1)
+                    res.y() = v;
+                else if (fc == 2)
+                    res.z() = v;
+                else if (fc == 3)
+                    res.w() = v;
+                fc++;
+                end++;
+                begin = end;
+            }
+            else
+            {
+                end++;
+            }
+        }
+        if (begin != end)
+        {
+            std::string s(color + begin, end - begin);
+            float v;
+            try
+            {
+                v = std::atof(s.c_str());
+            }
+            catch (std::exception& e)
+            {
+                return std::format("Error: {}, {}", color, e.what());
+            }
+            if (fc == 0)
+                res.x() = v;
+            else if (fc == 1)
+                res.y() = v;
+            else if (fc == 2)
+                res.z() = v;
+            else if (fc == 3)
+                res.w() = v;
+            fc++;
+        }
+        if (fc != 4)
+        {
+            return "Invalid color format";
+        }
+        return std::nullopt;
+    }
     std::expected<UI::Node*, std::string> operator()(UI::Hierarchy& hierarchy, const tinyxml2::XMLNode& node)
     {
         auto* newNode = hierarchy.CreateNode();
         auto& scene = hierarchy.GetScene();
+        // quad component
+        Vec4f color(1, 1, 1, 1); // default white color
+        const char* colorAttr = node.ToElement()->Attribute("color");
+        if (colorAttr)
+        {
+            auto colorOpt = ParseColor(colorAttr, color);
+            if (colorOpt)
+            {
+                hierarchy.DestroyNode(newNode);
+                return std::unexpected<std::string>(colorOpt.value());
+            }
+        }
+        UI::QuadDesc desc;
+        desc.color = color;
+        scene.AddComponent<UI::QuadComponent>(newNode->id, desc);
         // mouse component
         hierarchy.AddComponent<UI::MouseComponent>(newNode);
         // text component world size and content
         UI::TextComponent tc;
         tc.content = node.ToElement()->GetText();
         const char* worldSize = node.ToElement()->Attribute("fontSize");
+        float worldSizeValue = 16.0f;// default font size
         if (worldSize)
         {
-            tc.worldSize = std::atof(worldSize);
+            worldSizeValue= std::atof(worldSize);
+            
         }
+        tc.worldSize = worldSizeValue;
         hierarchy.GetScene().AddComponent<UI::TextComponent>(newNode->id, std::move(tc));
         // base component width height
         auto& base = hierarchy.GetScene().GetComponent<UI::BaseComponent>(newNode->id);

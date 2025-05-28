@@ -24,6 +24,8 @@ public:
     void Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, const Camera2D& camera);
     void DrawQuad(const Quad& quad);
     void End(DeviceCommandBufferView _commandBuffer);
+    void Reset();
+    void Clear();
     /**
      * @brief use renderPass to init pipeline in vulkan backend
      *       in vulkan The pipeline must only be used with a render pass instance compatible with the one provided.

@@ -34,13 +34,13 @@ public:
         }
         delete node;
     }
-    template<typename T,typename... Args>
+    template <typename T, typename... Args>
     T& AddComponent(Node* node, Args&&... args)
     {
         auto& component = m_Scene.AddComponent<T>(node->id, std::forward<Args>(args)...);
         return component;
-    }   
-    template<typename T>
+    }
+    template <typename T>
     T& GetComponent(Node* node)
     {
         return m_Scene.GetComponent<T>(node->id);
@@ -55,14 +55,14 @@ public:
     }
     /**
      * @note system will be destroyed, when hierarchy destroy
-    */
+     */
     void AddSystem(SystemI* system)
     {
         m_Systems.push_back(system);
     }
     Hierarchy()
     {
-        InitCamera(Vec2f(1920,1080));
+        InitCamera(Vec2f(1920, 1080));
     }
     ~Hierarchy()
     {
@@ -76,7 +76,7 @@ public:
         }
     }
 
-    void RebuildLayout(const Vec2f& screenSize,float far)
+    void RebuildLayout(const Vec2f& screenSize, float far)
     {
         m_LayoutBuilder.Begin(screenSize);
         struct NodeInfo
@@ -86,7 +86,7 @@ public:
             float containerZ;
         };
         std::queue<NodeInfo> nodes;
-        nodes.push({m_Root, 0,far});
+        nodes.push({m_Root, 0, far});
         size_t boxId = 0;
         while (!nodes.empty())
         {
@@ -95,9 +95,15 @@ public:
             auto* node = nodeInfo.node;
             auto containerId = nodeInfo.containerId;
             auto& base = m_Scene.GetComponent<BaseComponent>(node->id);
-
-            base.position = m_LayoutBuilder.PushBox(base.size, containerId);
-            base.z = nodeInfo.containerZ-1;
+            if (base.layoutEnabled)
+            {
+                base.position = m_LayoutBuilder.PushBox(base.size, containerId);
+            }
+            else
+            {
+                m_LayoutBuilder.PlaceBox(base.size, base.position);
+            }
+            base.z = nodeInfo.containerZ - 1;
             boxId++;
             for (auto& child : node->children)
             {
@@ -108,16 +114,16 @@ public:
     }
     void OnEvent(Event& event)
     {
-        for(auto* system:m_Systems)
+        for (auto* system : m_Systems)
         {
             system->OnEvent(event, m_Scene);
         }
     }
-    void OnUpdate(float sec, Scene& scene)
+    void OnUpdate(float sec)
     {
         for (auto* system : m_Systems)
         {
-            system->OnUpdate(sec, scene);
+            system->OnUpdate(sec, m_Scene);
         }
     }
     void OnRender(DeviceCommandBufferView commandBuffer,
@@ -125,9 +131,9 @@ public:
                   DeviceFrameBufferView frameBuffer,
                   Vec2f screenSize)
     {
-        m_Camera->screenSize=screenSize;
-        m_Camera->target.x()=screenSize.x()/2;
-        m_Camera->target.y()=screenSize.y()/2;
+        m_Camera->screenSize = screenSize;
+        m_Camera->target.x() = screenSize.x() / 2;
+        m_Camera->target.y() = screenSize.y() / 2;
         m_Camera->CalculateMatrix();
         for (auto* system : m_Systems)
         {
@@ -145,11 +151,11 @@ public:
     {
         return *m_Camera;
     }
-    
+
 private:
     void InitCamera(const Vec2f& screenSize)
     {
-        m_Camera=std::make_unique<Camera2D>();
+        m_Camera = std::make_unique<Camera2D>();
         m_Camera->screenSize = screenSize;
         m_Camera->target = Vec2f(screenSize.x() / 2, screenSize.y() / 2);
         m_Camera->offset = Vec2f(0, 0);
@@ -159,6 +165,7 @@ private:
         m_Camera->rotation = 0.0f;
         m_Camera->CalculateMatrix();
     }
+
 private:
     Scene m_Scene;
     Node* m_Root = nullptr;

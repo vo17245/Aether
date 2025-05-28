@@ -1,3 +1,21 @@
-<quad width="{}" height="{}" color="0,0,0,1">
-    <button width="100" height="100" fontSize="16">button</button>
+<quad width="800" height="600" color="0,0,0,1">
+    <!-- Header Bar -->
+    <quad width="800" height="30" color="0.3,0.3,0.3,1">
+        <button width="100" height="30" fontSize="16" color="0.5,0.5,0.5,1.0">File</button>
+        <button width="100" height="30" fontSize="16" color="0.5,0.5,0.5,1.0">Edit</button>
+        <button width="100" height="30" fontSize="16" color="0.5,0.5,0.5,1.0">View</button>
+    </quad>
+    <!-- scene hierarchy panel-->
+    <quad width="200" height="570" color="0.2,0.2,0.2,1">
+        <text world_size="16" width="200">Scene Hierarchy</text>
+    </quad>
+    <!-- scene view-->
+
+    <!--弹窗 begin-->
+    <quad width="100" height="90" color="0.3,0.3,0.3,1">
+        <button width="100" height="30" fontSize="16" color="0.5,0.5,0.5,1.0">New</button>
+        <button width="100" height="30" fontSize="16" color="0.5,0.5,0.5,1.0">Open</button>
+        <button width="100" height="30" fontSize="16" color="0.5,0.5,0.5,1.0">Save</button>
+    </quad>
+    <!--end-->
 </quad>
