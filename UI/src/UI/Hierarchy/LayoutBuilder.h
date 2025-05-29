@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/Math/Def.h"
 #include <list>
-#include <new>
 namespace Aether::UI
 {
 struct LayoutBuilder

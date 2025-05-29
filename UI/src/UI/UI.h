@@ -9,3 +9,4 @@
 #include "Hierarchy/HierarchyLoader.h"
 #include "Hierarchy/NodeCreator.h"
 #include "Hierarchy/BuiltinNodeCreator.h"
+#include "Hierarchy/BuildLayout.h"

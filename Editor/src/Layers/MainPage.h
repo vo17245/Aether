@@ -29,6 +29,7 @@
 #include <UI/UI.h>
 #include <NodeCreators/Button.h>
 #include "Query.h"
+#include <CustomUI/System/Drag.h>
 using namespace Aether;
 class MainPage : public Layer
 {
@@ -81,6 +82,10 @@ public:
         // visibility request
         UI::VisibilityRequestSystem* visibilityRequestSystem = new UI::VisibilityRequestSystem();
         m_Hierarchy.AddSystem(visibilityRequestSystem);
+        // drag
+        auto* drag=new DragSystem();
+        drag->SetHierarchy(&m_Hierarchy);
+        m_Hierarchy.AddSystem(drag);
         // load xml
         InitHierarchyFromXml();
     }
@@ -121,6 +126,7 @@ public:
                         auto fileEx = UI::SyncSelectFile();
                     }
                 };
+            
             }
             // file popup
             {
@@ -131,6 +137,7 @@ public:
                 vrc.processed = false;
                 auto& bc = m_Hierarchy.GetComponent<UI::BaseComponent>(filePopup);
                 bc.layoutEnabled = false;
+                auto& drag=m_Hierarchy.AddComponent<DragComponent>(filePopup);
             }
             // File button
             {
@@ -157,7 +164,7 @@ public:
                     // visibility request
                     vrc.visible = !vrc.visible;
                     vrc.processed = false;
-                    m_NeedRebuildLayout = true;
+                    m_Hierarchy.RequireRebuildLayout();
                 };
             }
             // Edit button
@@ -204,16 +211,8 @@ public:
     }
     virtual void OnFrameBegin() override
     {
-        if (m_NeedRebuildLayout)
-        {
-            m_Hierarchy.RebuildLayout(m_ScreenSize, ApplicationResource::s_Instance->camera.far);
-            m_NeedRebuildLayout = false;
-        }
-        {
-            auto* node = query("/quad/quad[2]");
-            auto& base = m_Hierarchy.GetComponent<UI::BaseComponent>(node);
-            base.z = 7000;
-        }
+        m_Hierarchy.OnFrameBegin();
+        
     }
 
 private:
@@ -222,5 +221,4 @@ private:
     UI::Node* m_Root = nullptr;
     tinyxml2::XMLDocument m_Doc;
     std::function<UI::Node*(std::string_view)> query = [&](std::string_view path) { return QueryNode(m_Hierarchy, m_Doc, path); };
-    bool m_NeedRebuildLayout = false; // 是否需要重新布局
 };

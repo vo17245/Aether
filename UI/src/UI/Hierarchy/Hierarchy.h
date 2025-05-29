@@ -11,6 +11,7 @@
 #include <vector>
 #include <queue>
 #include <Window/Event.h>
+#include "BuildLayout.h"
 namespace Aether::UI
 {
 class Hierarchy
@@ -78,40 +79,7 @@ public:
 
     void RebuildLayout(const Vec2f& screenSize, float far)
     {
-        m_LayoutBuilder.Begin(screenSize);
-        struct NodeInfo
-        {
-            Node* node;
-            size_t containerId;
-            float containerZ;
-        };
-        std::queue<NodeInfo> nodes;
-        nodes.push({m_Root, 0, far});
-        size_t boxId = 0;
-        while (!nodes.empty())
-        {
-            auto nodeInfo = nodes.front();
-            nodes.pop();
-            auto* node = nodeInfo.node;
-            auto containerId = nodeInfo.containerId;
-            auto& base = m_Scene.GetComponent<BaseComponent>(node->id);
-            if (base.layoutEnabled)
-            {
-                base.position = m_LayoutBuilder.PushBox(base.size, containerId);
-                base.z = nodeInfo.containerZ - 1;
-            }
-            else
-            {
-                m_LayoutBuilder.PlaceBox(base.size, base.position);
-            }
-            
-            boxId++;
-            for (auto& child : node->children)
-            {
-                nodes.push({child, boxId, base.z});
-            }
-        }
-        m_LayoutBuilder.End();
+        BuildLayout(m_Root,m_Scene, screenSize, far, m_LayoutBuilder);
     }
     void OnEvent(Event& event)
     {
@@ -152,7 +120,18 @@ public:
     {
         return *m_Camera;
     }
-
+    void OnFrameBegin()
+    {
+        if (m_NeedRebuildLayout)
+        {
+            RebuildLayout(m_Camera->screenSize, m_Camera->far);
+            m_NeedRebuildLayout = false;
+        }
+    }
+    void RequireRebuildLayout()
+    {
+        m_NeedRebuildLayout=true;
+    }
 private:
     void InitCamera(const Vec2f& screenSize)
     {
@@ -173,5 +152,6 @@ private:
     std::vector<SystemI*> m_Systems;
     LayoutBuilder m_LayoutBuilder;
     std::unique_ptr<Camera2D> m_Camera;
+    bool m_NeedRebuildLayout = false; // 是否需要重新布局
 };
 } // namespace Aether::UI

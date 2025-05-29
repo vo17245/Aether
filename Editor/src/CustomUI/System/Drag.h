@@ -1,6 +1,7 @@
 #include <UI/UI.h>
 #include "../Component/Drag.h"
-#include <type_traits>
+#include "Render/Scene/Camera2D.h"
+#include "UI/Hierarchy/Hierarchy.h"
 using namespace Aether;
 class DragSystem:public UI::SystemI
 {
@@ -9,13 +10,18 @@ public:
     virtual void OnEvent(Event& event, Scene& scene) override
     {
         View view=scene.Select<UI::BaseComponent,DragComponent>();
-        std::visit(Dispatcher{view,m_MousePosition},event);
+        std::visit(Dispatcher{view,m_MousePosition,*m_Hierarchy},event);
+    }
+    void SetHierarchy(UI::Hierarchy* hierarchy)
+    {
+        m_Hierarchy = hierarchy;
     }
 private:
     struct Dispatcher 
     {
         View& view;
         Vec2f& mousePosition;
+        UI::Hierarchy& hierarchy;
         template<typename T>
         void operator()(T& event)
         {
@@ -32,6 +38,7 @@ private:
                 && mousePosition.y() <= base.position.y() + base.size.y())
                 {
                     drag.isDragging = true;
+                    drag.offset=mousePosition-base.position;
                 }
             }
         }
@@ -54,13 +61,15 @@ private:
             {
                 if (drag.isDragging)
                 {
-                    base.position.x() = mousePosition.x() - base.size.x() / 2;
-                    base.position.y() = mousePosition.y() - base.size.y() / 2;
+                    base.position=mousePosition-drag.offset;
+                    hierarchy.RequireRebuildLayout();
                 }
             }
         }   
     };
+    
+
 private:
     Vec2f m_MousePosition{0,0};
-
+    UI::Hierarchy* m_Hierarchy;
 };
