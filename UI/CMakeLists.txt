@@ -20,7 +20,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC Resource)
 target_link_libraries(${MODULE_NAME} PUBLIC Scene)
 target_link_libraries(${MODULE_NAME} PUBLIC tinyxml2)
 target_link_libraries(${MODULE_NAME} PUBLIC Text)
-
+target_link_libraries(${MODULE_NAME} PUBLIC nativefiledialog)
 
 if(AETHER_RUNTIME_CHECK)
 target_compile_definitions(${MODULE_NAME} PUBLIC AETHER_RUNTIME_CHECK=1)

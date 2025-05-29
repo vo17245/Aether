@@ -22,25 +22,13 @@
 #include "Render/Shader/Compiler.h"
 #include "Render/Utils.h"
 #include <print>
-#include <variant>
-#include "UI/Render/Renderer.h"
-#include "UI/Render/Filter/Gamma.h"
-#include "UI/Render/LoadTextureToLinear.h"
+
 #include "Resource/Finder.h"
 #include "Window/WindowEvent.h"
 #include "ApplicationResource.h"
-#include <UI/Hierarchy/Hierarchy.h>
-#include <UI/Hierarchy/System/Quad.h>
-#include <UI/Hierarchy/HierarchyLoader.h>
-#include <UI/Hierarchy/NodeCreator.h>
-#include <UI/Hierarchy/BuiltinNodeCreator.h>
-#include <UI/Hierarchy/System/Text.h>
-#include <UI/Hierarchy/System/Mouse.h>
-#include <UI/Hierarchy/System/InputText.h>
+#include <UI/UI.h>
 #include <NodeCreators/Button.h>
 #include "Query.h"
-#include <UI/Hierarchy/Component/VisibilityRequest.h>
-#include <UI/Hierarchy/System/VisibilityRequest.h>
 using namespace Aether;
 class MainPage : public Layer
 {
@@ -121,9 +109,19 @@ public:
         }
         // set callback
         {
-            
             m_Doc.Parse(buffer.c_str());
-
+            // file popup new
+            {
+                auto* btn = query("/quad/quad[2]/button[0]");
+                auto& mc = m_Hierarchy.GetComponent<UI::MouseComponent>(btn);
+                auto& quad = m_Hierarchy.GetComponent<UI::QuadComponent>(btn);
+                mc.onClick = [&]() {
+                    if (quad.visible)
+                    {
+                        auto fileEx = UI::SyncSelectFile();
+                    }
+                };
+            }
             // file popup
             {
                 auto* filePopup = query("/quad/quad[2]");
@@ -132,7 +130,7 @@ public:
                 vrc.visible = false;
                 vrc.processed = false;
                 auto& bc = m_Hierarchy.GetComponent<UI::BaseComponent>(filePopup);
-                bc.layoutEnabled=false;
+                bc.layoutEnabled = false;
             }
             // File button
             {
@@ -151,13 +149,12 @@ public:
                 auto* filePopup = query("/quad/quad[2]");
                 auto& vrc = m_Hierarchy.GetComponent<UI::VisibilityRequest>(filePopup);
                 auto& popupBase = m_Hierarchy.GetComponent<UI::BaseComponent>(filePopup);
-                auto& base= m_Hierarchy.GetComponent<UI::BaseComponent>(fileButton);
+                auto& base = m_Hierarchy.GetComponent<UI::BaseComponent>(fileButton);
                 mc.onClick = [&]() {
-                    Debug::Log::Debug("popup base enable layout: {}", popupBase.layoutEnabled);
                     // set pos
-                    popupBase.position=base.position+Vec2f(0,base.size.y());
+                    popupBase.position = base.position + Vec2f(0, base.size.y());
+                    popupBase.z = 10;
                     // visibility request
-                    
                     vrc.visible = !vrc.visible;
                     vrc.processed = false;
                     m_NeedRebuildLayout = true;
@@ -193,7 +190,6 @@ public:
                     quad.quad.SetColor(Vec4f(0.5, 0.5, 0.5, 1));
                 };
             }
-            
         }
         m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
     }
@@ -214,17 +210,17 @@ public:
             m_NeedRebuildLayout = false;
         }
         {
-            auto* node=query("/quad/quad[2]");
-            auto& base=m_Hierarchy.GetComponent<UI::BaseComponent>(node);
-            base.z=7000;
+            auto* node = query("/quad/quad[2]");
+            auto& base = m_Hierarchy.GetComponent<UI::BaseComponent>(node);
+            base.z = 7000;
         }
     }
+
 private:
     UI::Hierarchy m_Hierarchy;
     Vec2f m_ScreenSize;
     UI::Node* m_Root = nullptr;
     tinyxml2::XMLDocument m_Doc;
-    std::function<UI::Node*(std::string_view)> query = [&](std::string_view path) {
-        return QueryNode(m_Hierarchy, m_Doc, path);};
+    std::function<UI::Node*(std::string_view)> query = [&](std::string_view path) { return QueryNode(m_Hierarchy, m_Doc, path); };
     bool m_NeedRebuildLayout = false; // 是否需要重新布局
 };

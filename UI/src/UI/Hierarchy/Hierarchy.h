@@ -98,12 +98,13 @@ public:
             if (base.layoutEnabled)
             {
                 base.position = m_LayoutBuilder.PushBox(base.size, containerId);
+                base.z = nodeInfo.containerZ - 1;
             }
             else
             {
                 m_LayoutBuilder.PlaceBox(base.size, base.position);
             }
-            base.z = nodeInfo.containerZ - 1;
+            
             boxId++;
             for (auto& child : node->children)
             {

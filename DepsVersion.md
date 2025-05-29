@@ -82,3 +82,9 @@ https://github.com/gabime/spdlog
 
 commit 6fa3601
 version 1.15.3
+
+## nativefiledialog 
+
+https://github.com/mlabbe/nativefiledialog#file-filter-syntax
+
+commit 67345b80ebb429ecc2aeda94c478b3bcc5f7888e
