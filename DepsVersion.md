@@ -88,3 +88,9 @@ version 1.15.3
 https://github.com/mlabbe/nativefiledialog#file-filter-syntax
 
 commit 67345b80ebb429ecc2aeda94c478b3bcc5f7888e
+
+## quickjspp 
+
+https://github.com/vo17245/quickjspp.git
+
+commit 5a5bd78344539a26ff20688cf6b5b5f2f942c516
