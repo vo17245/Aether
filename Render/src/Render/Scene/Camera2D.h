@@ -7,7 +7,7 @@
 #ifdef far
 #undef far
 #endif
-namespace Aether::Render::Scene
+namespace Aether
 {
 struct Camera2D
 {
