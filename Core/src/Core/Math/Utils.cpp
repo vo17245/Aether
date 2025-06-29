@@ -10,7 +10,8 @@ Eigen::Matrix4f Perspective(const float fovy, const float aspectRatio, const flo
     Eigen::Matrix4f perspectiveMatrix;
     perspectiveMatrix.setZero();
     perspectiveMatrix(0, 0) = 1.0f / (aspectRatio * tanHalfFovy);
-    perspectiveMatrix(1, 1) = -1.0f / tanHalfFovy;
+    //perspectiveMatrix(1, 1) = -1.0f / tanHalfFovy;
+    perspectiveMatrix(1, 1) = 1.0f / tanHalfFovy;
     perspectiveMatrix(2, 2) = -(zFar + zNear) / (zFar - zNear);
     perspectiveMatrix(2, 3) = -2.0f * zFar * zNear / (zFar - zNear);
     perspectiveMatrix(3, 2) = -1.0f;
@@ -216,6 +217,24 @@ Mat4 MergeTranslation(const Mat3& m,const Vec3& v)
     result.block<3, 3>(0, 0) = m;
     result.block<3, 1>(0, 3) = v;
     return result;
+}
+Mat4f LookAt(const Vec3f& eye, const Vec3f& target, const Vec3f& up)
+{
+    // 计算相机坐标系的三个轴
+    Vec3f forward = (target - eye).normalized();  // 前方向（Z轴负方向）
+    Vec3f right = forward.cross(up).normalized(); // 右方向（X轴正方向）
+    Vec3f upNew = right.cross(forward);           // 重新计算上方向（Y轴正方向）
+    
+    // 构建视图矩阵
+    // 注意：这里forward取负号，因为在右手坐标系中相机看向Z轴负方向
+    Mat4f viewMatrix;
+    viewMatrix << 
+        right.x(),    upNew.x(),   -forward.x(),  0,
+        right.y(),    upNew.y(),   -forward.y(),  0,
+        right.z(),    upNew.z(),   -forward.z(),  0,
+        -right.dot(eye), -upNew.dot(eye), forward.dot(eye), 1;
+    
+    return viewMatrix;
 }
 }
 

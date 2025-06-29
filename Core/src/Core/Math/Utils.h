@@ -34,5 +34,6 @@ Mat4d Castf2d(const Mat4& m);
 std::tuple<Vec3, Quat, Vec3> DecomposeTransform(const Mat4& matrix);
 Mat3 MergeTranslation(const Mat2& m,const Vec2& v);
 Mat4 MergeTranslation(const Mat3& m,const Vec3& v);
+Mat4f LookAt(const Vec3f& eye, const Vec3f& target, const Vec3f& up);
 }
 } // namespace Aether::Math
