@@ -67,6 +67,16 @@ private:
         {
             return std::unexpected<std::string>(std::format("Error: {}, {}\n", curPath, newNodeEx.error()));
         }
+        // id?
+        {
+            auto e=node.ToElement();
+            auto id=e->Attribute("id");
+            if(id)
+            {
+                hierarchy.GetNodeIdMap()[id] = newNodeEx.value();
+            }
+        }
+        //====
         const tinyxml2::XMLNode* child = node.FirstChild();
         while (child)
         {

@@ -74,6 +74,7 @@ public:
     void ReleaseFinalImage();
     bool CreateFinalImage();
     DeviceTexture& GetFinalTexture();
+    void SetSize(uint32_t width, uint32_t height);
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;

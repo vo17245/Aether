@@ -97,7 +97,7 @@ public:
             const std::string hierarchyXml = std::format(R"(
         <quad width="{}" height="{}" color="0,0,0,1">
             <quad width="110" height="110" color="1,0,1,0">
-                <quad width="100" height="100" color="1,0,1,1">
+                <quad width="100" height="100" color="1,0,1,1" id="btn1">
                     <text width="100" height="100" world_size="36">quad1</text>
                 </quad>
             </quad>
@@ -127,6 +127,20 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
                 return;
             }
         }
+        // add btn1 mouse callback
+        do{
+            auto* node=m_Hierarchy.GetNodeById("btn1");
+            if (!node)
+            {
+                Debug::Log::Error("Node btn1 not found");
+                break;
+            }
+            auto& mouseComponent=m_Hierarchy.AddComponent<UI::MouseComponent>(node);
+            mouseComponent.onClick = [node]() {
+                Debug::Log::Debug("Clicked on btn1 node");
+            };
+
+        }while(false);
         // add mouse entity (debug)
         {
             auto* node = m_Hierarchy.CreateNode();

@@ -9,6 +9,7 @@ class Editor : public Application
 public:
     virtual void OnInit(Window& window) override
     {
+        window.SetSize(1920, 1080);
         ApplicationResource::Init(window.GetSize(),window.GetFinalTexture());
         m_MainWindow = &window;
         PushLayer<UpdateLayer>();

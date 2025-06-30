@@ -132,6 +132,23 @@ public:
     {
         m_NeedRebuildLayout=true;
     }
+    std::unordered_map<std::string, Node*>& GetNodeIdMap()
+    {
+        return m_NodeId;
+    }
+    const std::unordered_map<std::string, Node*>& GetNodeIdMap()const
+    {
+        return m_NodeId;
+    }
+    Node* GetNodeById(const std::string& id) const
+    {
+        auto iter = m_NodeId.find(id);
+        if (iter != m_NodeId.end())
+        {
+            return iter->second;
+        }
+        return nullptr;
+    }
 private:
     void InitCamera(const Vec2f& screenSize)
     {
@@ -153,5 +170,6 @@ private:
     LayoutBuilder m_LayoutBuilder;
     std::unique_ptr<Camera2D> m_Camera;
     bool m_NeedRebuildLayout = false; // 是否需要重新布局
+    std::unordered_map<std::string,Node*> m_NodeId;
 };
 } // namespace Aether::UI

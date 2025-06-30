@@ -321,6 +321,16 @@ GLFWwindow* Window::CreateGlfwHandle(int width, int height, const char* title)
 
     return glfwCreateWindow(width, height, title, nullptr, nullptr);
 }
+void Window::SetSize(uint32_t width, uint32_t height)
+{
+    if (m_Handle == nullptr)
+    {
+        assert(false && "Window handle is null");
+        return;
+    }
+    glfwSetWindowSize(m_Handle, width, height);
+    OnWindowResize(Vec2u(width, height));
+}
 /**
  *@brief Create swapchain ;swapchain images ; setup SwapChainImageFormat ;setup SwapChainExtent
  */
