@@ -69,6 +69,10 @@ private:
         if (node["id"].valid())
         {
             std::string id = node["id"];
+            if(hierarchy.GetNodeIdMap().find(id)!=hierarchy.GetNodeIdMap().end())
+            {
+                return std::unexpected<std::string>(std::format("Node id {} already exists", id));
+            }
             hierarchy.GetNodeIdMap()[id] = newNode;
         }
         // Process children

@@ -38,6 +38,7 @@
 #include <UI/Hierarchy/System/Mouse.h>
 #include <UI/Hierarchy/System/InputText.h>
 #include <UI/Hierarchy/Loader/BuiltinLuaNodeCreator.h>
+#include <UI/Hierarchy/System/AutoResize.h>
 using namespace Aether;
 class HierarchyLayer : public Layer
 {
@@ -87,10 +88,20 @@ public:
         // input text
         UI::InputTextSystem* inputTextSystem = new UI::InputTextSystem();
         m_Hierarchy.AddSystem(inputTextSystem);
-        // load xml
-        InitHierarchyFromXml();
+        // auto resize
+        UI::AutoResizeSystem* autoResizeSystem=new UI::AutoResizeSystem();
+        m_Hierarchy.AddSystem(autoResizeSystem);
+        // load hierarchy
+        InitHierarchyFromLua();
+        autoResizeSystem->SetRoot(m_Hierarchy.GetRoot());
+        {
+            Event e=WindowResizeEvent(800,600);
+            autoResizeSystem->OnEvent(e, m_Hierarchy.GetScene());
+        }
+        auto& camera = ApplicationResource::s_Instance->camera;
+        m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
     }
-    void InitHierarchyFromXml()
+    void InitHierarchyFromLua()
     {
         auto& camera = ApplicationResource::s_Instance->camera;
         // load quad
@@ -106,8 +117,8 @@ public:
                     content={
                         {
                             type="text",
-                            width=width-20,
-                            height=height-20,
+                            width="100%",
+                            height="100%",
                             size=24,
                             text=tag,
                         }
@@ -116,14 +127,14 @@ public:
             end
             return {
                 type="grid",
-                width=800,
-                height=600,
+                width="100%",
+                height="100%",
                 content={
-                    button(100,100,"btn1",{0.4,0.5,0.6,1.0},"btn1"),
+                    button("10%","10%","btn1",{0.4,0.5,0.6,1.0},"btn1"),
                     {
                         type="text",
-                        width=700,
-                        height=600,
+                        width="50%",
+                        height="100%",
                         size=36,
                         text=[[I can swallow glass without any harm to myself
 我能吞下玻璃而不伤身体
@@ -158,9 +169,6 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden]]
             };
 
         }while(false);
-        
-
-        m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
     }
 
     virtual void OnEvent(Event& event) override
@@ -171,5 +179,4 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden]]
 private:
     UI::Hierarchy m_Hierarchy;
     Vec2f m_ScreenSize;
-    UI::Node* m_Root = nullptr;
 };
