@@ -31,12 +31,13 @@
 #include "ApplicationResource.h"
 #include <UI/Hierarchy/Hierarchy.h>
 #include <UI/Hierarchy/System/Quad.h>
-#include <UI/Hierarchy/Loader/HierarchyXmlLoader.h>
+#include <UI/Hierarchy/Loader/HierarchyLuaLoader.h>
 #include <UI/Hierarchy/Loader/NodeCreator.h>
 #include <UI/Hierarchy/Loader/BuiltinXmlNodeCreator.h>
 #include <UI/Hierarchy/System/Text.h>
 #include <UI/Hierarchy/System/Mouse.h>
 #include <UI/Hierarchy/System/InputText.h>
+#include <UI/Hierarchy/Loader/BuiltinLuaNodeCreator.h>
 using namespace Aether;
 class HierarchyLayer : public Layer
 {
@@ -94,33 +95,48 @@ public:
         auto& camera = ApplicationResource::s_Instance->camera;
         // load quad
         {
-            const std::string hierarchyXml = std::format(R"(
-        <grid width="{}" height="{}" color="0,0,0,1">
-            <grid width="110" height="110" color="1,0,1,0">
-                <quad width="100" height="100" color="1,0,1,1" id="btn1">
-                    <text width="100" height="100" world_size="36">quad1</text>
-                </quad>
-            </grid>
-            <grid width="110" height="110" color="1,0,1,0">
-                <quad width="100" height="100" color="1,0,1,1">
-                    <text width="100" height="100" world_size="36">quad2</text>
-                </quad>
-            </grid>
-            <text width="400" height="400" world_size="33">
-<![CDATA[我能吞下玻璃而不伤身体
-I can swallow glass without any harm to myself
+            const std::string hierarchyXml =R"(
+            function button(width,height,tag,color,id)
+                return {
+                    id=id,
+                    type="quad",
+                    width=width,
+                    height=height,
+                    color=color,
+                    content={
+                        {
+                            type="text",
+                            width=width-20,
+                            height=height-20,
+                            size=24,
+                            text=tag,
+                        }
+                    }
+                }
+            end
+            return {
+                type="grid",
+                width=800,
+                height=600,
+                content={
+                    button(100,100,"btn1",{0.4,0.5,0.6,1.0},"btn1"),
+                    {
+                        type="text",
+                        width=700,
+                        height=600,
+                        size=36,
+                        text=[[I can swallow glass without any harm to myself
+我能吞下玻璃而不伤身体
 ガラスを飲み込んでも何ら害はない
-Ich kann Glas schlucken, ohne mir selbst zu schaden
-]]>
-            </text>
-        </grid>
-
-        )",
-                                                         m_ScreenSize.x(), m_ScreenSize.y());
-            UI::HierarchyXmlLoader loader;
-            loader.PushNodeCreator<UI::QuadNodeCreator>("quad");
-            loader.PushNodeCreator<UI::TextNodeCreator>("text");
-            loader.PushNodeCreator<UI::GridNodeCreator>("grid");
+Ich kann Glas schlucken, ohne mir selbst zu schaden]]
+                    },
+                },
+            }
+            )";
+            UI::Lua::HierarchyLoader loader;
+            loader.PushNodeCreator<UI::Lua::QuadNodeCreator>("quad");
+            loader.PushNodeCreator<UI::Lua::GridNodeCreator>("grid");
+            loader.PushNodeCreator<UI::Lua::TextNodeCreator>("text");
             auto err = loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
             if (err)
             {
@@ -142,34 +158,7 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
             };
 
         }while(false);
-        // add mouse entity (debug)
-        {
-            auto* node = m_Hierarchy.CreateNode();
-            // set position and size
-            auto& bc = m_Hierarchy.GetComponent<UI::BaseComponent>(node);
-            bc.position = Vec2f(0, 400);
-            bc.size = Vec2f(100, 100);
-            // add quad component
-            UI::QuadDesc desc;
-            desc.color = Vec4f(1, 0, 0, 1); // red color
-            auto& quadComponent = m_Hierarchy.AddComponent<UI::QuadComponent>(node, desc);
-            // add mouse component
-            UI::MouseComponent mouseComponent;
-            mouseComponent.onClick = [&quadComponent]() {
-                Debug::Log::Debug("Clicked on mouse node");
-            };
-            mouseComponent.onPress = [&quadComponent]() {
-                quadComponent.quad.SetColor(Vec4f(0.5, 0, 0, 1));
-            };
-            mouseComponent.onRelease = [&quadComponent]() {
-                quadComponent.quad.SetColor(Vec4f(1, 0, 0, 1));
-            };
-            m_Hierarchy.AddComponent<UI::MouseComponent>(node, std::move(mouseComponent));
-            // add text component
-            auto& textComponent = m_Hierarchy.AddComponent<UI::TextComponent>(node, "Mouse Node");
-            // add input text component
-            m_Hierarchy.AddComponent<UI::InputTextComponent>(node);
-        }
+        
 
         m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
     }

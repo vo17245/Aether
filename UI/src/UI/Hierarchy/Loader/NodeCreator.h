@@ -14,10 +14,10 @@ concept HierarchyXmlLoaderNodeCreator = requires(T t,Hierarchy& hierarchy, const
 using HierarchyXmlLoaderNodeCreatorI = std::function<std::expected<Node*, std::string>(Hierarchy&,
                                                                          const tinyxml2::XMLNode&)>;
 template<typename T>
-concept HierarchyLuaLoaderNodeCreator = requires(T t, Hierarchy& hierarchy, sol::table node) {
+concept HierarchyLuaLoaderNodeCreator = requires(T t, Hierarchy& hierarchy, sol::table& node) {
     {t(hierarchy, node)} -> std::same_as<std::expected<Node*, std::string>>;
 };
 using HierarchyLuaLoaderNodeCreatorI = std::function<std::expected<Node*, std::string>(Hierarchy&,
-                                                                         sol::table)>;
+                                                                         sol::table&)>;
 
 } // namespace Aether::UI

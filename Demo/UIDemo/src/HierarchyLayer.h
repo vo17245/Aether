@@ -117,9 +117,9 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
 
         )",
                                                          m_ScreenSize.x(), m_ScreenSize.y());
-            UI::HierarchyXmlLoader loader;
-            loader.PushNodeCreator<UI::QuadNodeCreator>("quad");
-            loader.PushNodeCreator<UI::TextNodeCreator>("text");
+            UI::Xml::HierarchyLoader loader;
+            loader.PushNodeCreator<UI::Xml::QuadNodeCreator>("quad");
+            loader.PushNodeCreator<UI::Xml::TextNodeCreator>("text");
             auto err = loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
             if (err)
             {

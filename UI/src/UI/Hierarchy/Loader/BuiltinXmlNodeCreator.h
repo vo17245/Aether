@@ -9,7 +9,7 @@
 #include "tinyxml2.h"
 #include <cstdlib>
 #include <IO/WriterReader.h>
-namespace Aether::UI
+namespace Aether::UI::Xml
 {
 struct QuadNodeCreator
 {

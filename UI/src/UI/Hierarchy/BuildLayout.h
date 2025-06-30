@@ -11,6 +11,7 @@ namespace Aether::UI
 {
 inline void BuildLayout(Node* root, Scene& scene, const Vec2f& screenSize, float far, LayoutBuilder& builder)
 {
+    assert(root!=nullptr&&"root is nullptr");
     builder.Begin(screenSize);
     struct NodeInfo
     {

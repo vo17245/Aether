@@ -10,10 +10,10 @@
 #include <IO/WriterReader.h>
 #include <expected>
 #include "NodeCreator.h"
-namespace Aether::UI
+namespace Aether::UI::Xml
 {
 
-class HierarchyXmlLoader
+class HierarchyLoader
 {
 public:
     

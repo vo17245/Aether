@@ -1,7 +1,6 @@
 #include "Entry/Application.h"
 #include "ApplicationResource.h"
 #include "HierarchyLayer.h"
-#include <sol/sol.hpp>
 #include <print>
 using namespace Aether;
 

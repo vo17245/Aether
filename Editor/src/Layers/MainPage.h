@@ -101,9 +101,9 @@ public:
         auto handle = file.GetHandle();
         Filesystem::Read(handle, std::span<uint8_t>((uint8_t*)buffer.data(), fileSize));
         {
-            UI::HierarchyLoader loader;
-            loader.PushNodeCreator<UI::QuadNodeCreator>("quad");
-            loader.PushNodeCreator<UI::TextNodeCreator>("text");
+            UI::Xml::HierarchyLoader loader;
+            loader.PushNodeCreator<UI::Xml::QuadNodeCreator>("quad");
+            loader.PushNodeCreator<UI::Xml::TextNodeCreator>("text");
             loader.PushNodeCreator<ButtonNodeCreator>("button");
             auto err = loader.LoadHierarchy(m_Hierarchy, buffer);
             if (err)
