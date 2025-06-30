@@ -4,7 +4,7 @@
 #include <tinyxml2.h>
 #include <functional>
 #include <unordered_map>
-#include "Hierarchy.h"
+#include "../Hierarchy.h"
 #include <vector>
 #include <format>
 #include <IO/WriterReader.h>
@@ -13,7 +13,7 @@
 namespace Aether::UI
 {
 
-class HierarchyLoader
+class HierarchyXmlLoader
 {
 public:
     
@@ -39,11 +39,11 @@ public:
         return std::nullopt;
     }
 
-    void PushNodeCreatorI(const std::string& tag, HierarchyLoaderNodeCreatorI&& creator)
+    void PushNodeCreatorI(const std::string& tag, HierarchyXmlLoaderNodeCreatorI&& creator)
     {
         m_NodeCreators[tag] = std::move(creator);
     }
-    template<HierarchyLoaderNodeCreator Creator>
+    template<HierarchyXmlLoaderNodeCreator Creator>
     void PushNodeCreator(const std::string& tag)
     {
         m_NodeCreators[tag]= [](Hierarchy& hierarchy, const tinyxml2::XMLNode& node) {
@@ -52,7 +52,7 @@ public:
     }
 
 private:
-    std::unordered_map<std::string, HierarchyLoaderNodeCreatorI> m_NodeCreators;
+    std::unordered_map<std::string, HierarchyXmlLoaderNodeCreatorI> m_NodeCreators;
     std::expected<Node*, std::string> LoadNode(Hierarchy& hierarchy, const tinyxml2::XMLNode& node, const std::string& path)
     {
         std::string tag = node.Value();

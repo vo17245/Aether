@@ -94,3 +94,9 @@ commit 67345b80ebb429ecc2aeda94c478b3bcc5f7888e
 https://github.com/vo17245/quickjspp.git
 
 commit 5a5bd78344539a26ff20688cf6b5b5f2f942c516
+
+## sol
+
+https://github.com/ThePhD/sol2.git
+
+commit c1f95a773c6f8f4fde8ca3efe872e7286afe4444 

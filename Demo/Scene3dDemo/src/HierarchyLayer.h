@@ -31,9 +31,9 @@
 #include "ApplicationResource.h"
 #include <UI/Hierarchy/Hierarchy.h>
 #include <UI/Hierarchy/System/Quad.h>
-#include <UI/Hierarchy/HierarchyLoader.h>
-#include <UI/Hierarchy/NodeCreator.h>
-#include <UI/Hierarchy/BuiltinNodeCreator.h>
+#include <UI/Hierarchy/Loader/HierarchyXmlLoader.h>
+#include <UI/Hierarchy/Loader/NodeCreator.h>
+#include <UI/Hierarchy/Loader/BuiltinXmlNodeCreator.h>
 #include <UI/Hierarchy/System/Text.h>
 #include <UI/Hierarchy/System/Mouse.h>
 #include <UI/Hierarchy/System/InputText.h>
@@ -95,17 +95,17 @@ public:
         // load quad
         {
             const std::string hierarchyXml = std::format(R"(
-        <quad width="{}" height="{}" color="0,0,0,1">
-            <quad width="110" height="110" color="1,0,1,0">
+        <grid width="{}" height="{}" color="0,0,0,1">
+            <grid width="110" height="110" color="1,0,1,0">
                 <quad width="100" height="100" color="1,0,1,1" id="btn1">
                     <text width="100" height="100" world_size="36">quad1</text>
                 </quad>
-            </quad>
-            <quad width="110" height="110" color="1,0,1,0">
+            </grid>
+            <grid width="110" height="110" color="1,0,1,0">
                 <quad width="100" height="100" color="1,0,1,1">
                     <text width="100" height="100" world_size="36">quad2</text>
                 </quad>
-            </quad>
+            </grid>
             <text width="400" height="400" world_size="33">
 <![CDATA[我能吞下玻璃而不伤身体
 I can swallow glass without any harm to myself
@@ -113,13 +113,14 @@ I can swallow glass without any harm to myself
 Ich kann Glas schlucken, ohne mir selbst zu schaden
 ]]>
             </text>
-        </quad>
+        </grid>
 
         )",
                                                          m_ScreenSize.x(), m_ScreenSize.y());
-            UI::HierarchyLoader loader;
+            UI::HierarchyXmlLoader loader;
             loader.PushNodeCreator<UI::QuadNodeCreator>("quad");
             loader.PushNodeCreator<UI::TextNodeCreator>("text");
+            loader.PushNodeCreator<UI::GridNodeCreator>("grid");
             auto err = loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
             if (err)
             {

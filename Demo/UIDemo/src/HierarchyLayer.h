@@ -31,9 +31,9 @@
 #include "ApplicationResource.h"
 #include <UI/Hierarchy/Hierarchy.h>
 #include <UI/Hierarchy/System/Quad.h>
-#include <UI/Hierarchy/HierarchyLoader.h>
-#include <UI/Hierarchy/NodeCreator.h>
-#include <UI/Hierarchy/BuiltinNodeCreator.h>
+#include <UI/Hierarchy/Loader/HierarchyXmlLoader.h>
+#include <UI/Hierarchy/Loader/NodeCreator.h>
+#include <UI/Hierarchy/Loader/BuiltinXmlNodeCreator.h>
 #include <UI/Hierarchy/System/Text.h>
 #include <UI/Hierarchy/System/Mouse.h>
 #include <UI/Hierarchy/System/InputText.h>
@@ -117,7 +117,7 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
 
         )",
                                                          m_ScreenSize.x(), m_ScreenSize.y());
-            UI::HierarchyLoader loader;
+            UI::HierarchyXmlLoader loader;
             loader.PushNodeCreator<UI::QuadNodeCreator>("quad");
             loader.PushNodeCreator<UI::TextNodeCreator>("text");
             auto err = loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
