@@ -87,6 +87,11 @@ public:
         {
             system->OnEvent(event, m_Scene);
         }
+        if(std::holds_alternative<WindowResizeEvent>(event))
+        {
+            auto& resizeEvent = std::get<WindowResizeEvent>(event);
+            RebuildLayout(Vec2f(resizeEvent.GetWidth(),resizeEvent.GetHeight()), m_Camera->far);
+        }
     }
     void OnUpdate(float sec)
     {

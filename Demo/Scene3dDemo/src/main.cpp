@@ -2,6 +2,7 @@
 #include "ApplicationResource.h"
 #include "HierarchyLayer.h"
 #include <print>
+#include "UpdateLayer.h"
 using namespace Aether;
 
 class Scene3dDemo : public Application
@@ -11,6 +12,7 @@ public:
     {
         ApplicationResource::Init(window.GetSize(),window.GetFinalTexture());
         m_MainWindow = &window;
+        PushLayer<UpdateLayer>();
         PushLayer<HierarchyLayer>();
     }
     template<typename T>
