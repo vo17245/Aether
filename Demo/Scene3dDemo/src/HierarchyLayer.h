@@ -39,6 +39,7 @@
 #include <UI/Hierarchy/System/InputText.h>
 #include <UI/Hierarchy/Loader/BuiltinLuaNodeCreator.h>
 #include <UI/Hierarchy/System/AutoResize.h>
+#include <miniaudio/miniaudio.h>
 using namespace Aether;
 class HierarchyLayer : public Layer
 {
@@ -66,6 +67,7 @@ public:
     }
     virtual void OnAttach(Window* window) override
     {
+        InitAudio();
         Debug::Log::Debug("HierarchyLayer Attach");
         m_ScreenSize.x() = window->GetSize().x();
         m_ScreenSize.y() = window->GetSize().y();
@@ -164,8 +166,12 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden]]
                 break;
             }
             auto& mouseComponent=m_Hierarchy.AddComponent<UI::MouseComponent>(node);
-            mouseComponent.onClick = [node]() {
+            mouseComponent.onClick = [node,this]() {
                 Debug::Log::Debug("Clicked on btn1 node");
+                auto res=ma_engine_play_sound(&m_AudioEngine, "Assets/handleCoins.wav", NULL);
+                if (res != MA_SUCCESS) {
+                    Debug::Log::Error("Failed to play sound: {}", (int)(res));
+                }
             };
 
         }while(false);
@@ -175,8 +181,21 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden]]
     {
         m_Hierarchy.OnEvent(event);
     }
-
+    virtual void OnDetach() override
+    {
+        ma_engine_uninit(&m_AudioEngine);
+    }
 private:
+    bool InitAudio()
+    {
+        auto result = ma_engine_init(NULL, &m_AudioEngine);
+        if (result != MA_SUCCESS) {
+            Debug::Log::Error("Failed to initialize audio engine: {}", (int)(result));
+            return false;
+        }
+        return true;
+    }
     UI::Hierarchy m_Hierarchy;
     Vec2f m_ScreenSize;
+    ma_engine m_AudioEngine = {0};
 };

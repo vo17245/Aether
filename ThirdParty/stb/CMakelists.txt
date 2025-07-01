@@ -1,0 +1,4 @@
+add_library(stb_vorbis STATIC
+    src/stb_vorbis.c
+)
+

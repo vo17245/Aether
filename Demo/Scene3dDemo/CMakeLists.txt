@@ -19,4 +19,5 @@ target_link_libraries(${MODULE_NAME} UI)
 target_link_libraries(${MODULE_NAME} Render)
 target_link_libraries(${MODULE_NAME} IO)
 target_link_libraries(${MODULE_NAME} Entry)
+target_link_libraries(${MODULE_NAME} miniaudio)
 

@@ -5,3 +5,6 @@ include("CMake/glfw.cmake")
 add_subdirectory("tinyxml2")
 add_subdirectory("nativefiledialog")
 add_subdirectory("lua-5.4.8")
+add_subdirectory("miniaudio")
+add_subdirectory("stb")
+
