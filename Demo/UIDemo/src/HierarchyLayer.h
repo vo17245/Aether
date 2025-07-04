@@ -44,6 +44,10 @@ public:
     ~HierarchyLayer()
     {
     }
+    virtual void OnDetach()override
+    {
+        m_Hierarchy.reset();
+    }
     virtual void OnRender(
         vk::RenderPass& renderPass,
         vk::FrameBuffer& framebuffer,
@@ -69,6 +73,8 @@ public:
         Debug::Log::Debug("HierarchyLayer Attach");
         m_ScreenSize.x() = window->GetSize().x();
         m_ScreenSize.y() = window->GetSize().y();
+        m_Scene=CreateScope<Scene>();
+        m_Hierarchy=CreateScope<UI::Hierarchy>(m_Scene.get());
         // quad
         UI::QuadSystem* quadSystem = new UI::QuadSystem(*m_TextureCache);
         quadSystem->SetCamera(&m_Hierarchy->GetCamera());
