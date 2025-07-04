@@ -11,5 +11,7 @@ namespace Aether::UI
         }
         ::Aether::UI::Quad quad;
         bool visible = true;
+        std::string imagePath;
+        bool isImageDirty = false; // if true,should update image in Update callback
     };
 }

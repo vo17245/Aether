@@ -10,7 +10,7 @@ struct TextComponent
 {
     std::string content;             // text to show
     std::string fontpath;            // font file path
-    Vec4f color = Vec4f(1, 1, 1, 1); //[0-1]
+    Vec3f color = Vec3f(1, 1, 1); //[0-1]
     float worldSize = 32;            // pixel size
     DeviceBuffer vertexBuffer;
     Text::Font* font = nullptr;

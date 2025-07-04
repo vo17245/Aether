@@ -4,4 +4,5 @@ namespace Aether
 {
 template<class T>
 using Borrow = NotNull<T>;   
+
 }

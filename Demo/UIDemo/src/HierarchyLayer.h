@@ -58,34 +58,35 @@ public:
         commandBuffer.BeginRenderPass(ApplicationResource::s_Instance->renderPass.GetVk(),
                                       ApplicationResource::s_Instance->frameBuffer.GetVk(),
                                       clearValues);
-        m_Hierarchy.OnRender(commandBuffer, renderPass, framebuffer,
+        m_Hierarchy->OnRender(commandBuffer, renderPass, framebuffer,
                              m_ScreenSize);
         commandBuffer.EndRenderPass();
     }
     virtual void OnAttach(Window* window) override
     {
+        m_TextureCache=CreateScope<UI::TextureCache>(
+            ApplicationResource::s_Instance->renderResource.m_StagingBuffer.get());
         Debug::Log::Debug("HierarchyLayer Attach");
         m_ScreenSize.x() = window->GetSize().x();
         m_ScreenSize.y() = window->GetSize().y();
         // quad
-        UI::QuadSystem* quadSystem = new UI::QuadSystem();
-        quadSystem->SetCamera(&m_Hierarchy.GetCamera());
+        UI::QuadSystem* quadSystem = new UI::QuadSystem(*m_TextureCache);
+        quadSystem->SetCamera(&m_Hierarchy->GetCamera());
         quadSystem->renderer = ApplicationResource::s_Instance->renderer.get();
-        m_Hierarchy.AddSystem(quadSystem);
+        m_Hierarchy->AddSystem(quadSystem);
         // text
         UI::TextSystem* textSystem = UI::TextSystem::Create(ApplicationResource::s_Instance->renderPass,
-                                                            *ApplicationResource::s_Instance->renderResource.m_DescriptorPool,
-                                                            window->GetSize().cast<float>());
+                                                            *ApplicationResource::s_Instance->renderResource.m_DescriptorPool);
         textSystem->SetDescriptorPool(ApplicationResource::s_Instance->renderResource.m_DescriptorPool.get());
-        textSystem->SetCamera(&m_Hierarchy.GetCamera());
+        textSystem->SetCamera(&m_Hierarchy->GetCamera());
         textSystem->AddAssetDir("Assets");
-        m_Hierarchy.AddSystem(textSystem);
+        m_Hierarchy->AddSystem(textSystem);
         // mouse
         UI::MouseSystem* mouseSystem = new UI::MouseSystem();
-        m_Hierarchy.AddSystem(mouseSystem);
+        m_Hierarchy->AddSystem(mouseSystem);
         // input text
         UI::InputTextSystem* inputTextSystem = new UI::InputTextSystem();
-        m_Hierarchy.AddSystem(inputTextSystem);
+        m_Hierarchy->AddSystem(inputTextSystem);
         // load xml
         InitHierarchyFromXml();
     }
@@ -120,7 +121,7 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
             UI::Xml::HierarchyLoader loader;
             loader.PushNodeCreator<UI::Xml::QuadNodeCreator>("quad");
             loader.PushNodeCreator<UI::Xml::TextNodeCreator>("text");
-            auto err = loader.LoadHierarchy(m_Hierarchy, hierarchyXml);
+            auto err = loader.LoadHierarchy(*m_Hierarchy, hierarchyXml);
             if (err)
             {
                 std::println("Error loading hierarchy: {}", err.value());
@@ -129,15 +130,15 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
         }
         // add mouse entity (debug)
         {
-            auto* node = m_Hierarchy.CreateNode();
+            auto* node = m_Hierarchy->CreateNode();
             // set position and size
-            auto& bc = m_Hierarchy.GetComponent<UI::BaseComponent>(node);
+            auto& bc = m_Hierarchy->GetComponent<UI::BaseComponent>(node);
             bc.position = Vec2f(0, 400);
             bc.size = Vec2f(100, 100);
             // add quad component
             UI::QuadDesc desc;
             desc.color = Vec4f(1, 0, 0, 1); // red color
-            auto& quadComponent = m_Hierarchy.AddComponent<UI::QuadComponent>(node, desc);
+            auto& quadComponent = m_Hierarchy->AddComponent<UI::QuadComponent>(node, desc);
             // add mouse component
             UI::MouseComponent mouseComponent;
             mouseComponent.onClick = [&quadComponent]() {
@@ -149,23 +150,25 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
             mouseComponent.onRelease = [&quadComponent]() {
                 quadComponent.quad.SetColor(Vec4f(1, 0, 0, 1));
             };
-            m_Hierarchy.AddComponent<UI::MouseComponent>(node, std::move(mouseComponent));
+            m_Hierarchy->AddComponent<UI::MouseComponent>(node, std::move(mouseComponent));
             // add text component
-            auto& textComponent = m_Hierarchy.AddComponent<UI::TextComponent>(node, "Mouse Node");
+            auto& textComponent = m_Hierarchy->AddComponent<UI::TextComponent>(node, "Mouse Node");
             // add input text component
-            m_Hierarchy.AddComponent<UI::InputTextComponent>(node);
+            m_Hierarchy->AddComponent<UI::InputTextComponent>(node);
         }
 
-        m_Hierarchy.RebuildLayout(m_ScreenSize, camera.far);
+        m_Hierarchy->RebuildLayout(m_ScreenSize, camera.far);
     }
 
     virtual void OnEvent(Event& event) override
     {
-        m_Hierarchy.OnEvent(event);
+        m_Hierarchy->OnEvent(event);
     }
 
 private:
-    UI::Hierarchy m_Hierarchy;
+    std::unique_ptr<UI::Hierarchy> m_Hierarchy;
+    std::unique_ptr<Scene> m_Scene;
     Vec2f m_ScreenSize;
     UI::Node* m_Root = nullptr;
+    std::unique_ptr<UI::TextureCache> m_TextureCache;
 };

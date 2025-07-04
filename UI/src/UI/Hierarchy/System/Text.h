@@ -114,6 +114,22 @@ public:
             glyphPos.reserve(u32s.Size());
             float worldSize = text.worldSize;
             float scale = worldSize / text.font->emSize;
+            uint32_t prevUnicode = 0;
+            auto getKerning=[&text](uint32_t prev,uint32_t cur)->long
+            {
+                auto& face=*text.font->face;
+                if(!(face.handle->face_flags & FT_FACE_FLAG_KERNING))
+                {
+                    return 0; // no kerning
+                }
+                FT_Vector res;
+                FT_Get_Kerning(face.handle,
+               FT_Get_Char_Index(face.handle, prev),
+               FT_Get_Char_Index(face.handle, cur),
+               FT_KERNING_UNSCALED,
+               &res);
+               return res.x;
+            };
             for (auto unicode : u32s.GetData())
             {
                 if(unicode=='\n')
@@ -126,12 +142,15 @@ public:
                 auto& glyph = text.font->glyphs[unicode];
                 float curY = y + (text.font->emSize - glyph.bearingY) * scale;
                 glyphPos.emplace_back(Vec2f(x, curY));
-                x+=(glyph.advance+glyph.kerningX)*scale;
+                //float kerningX=glyph.kerningX;
+                float kerningX= getKerning(prevUnicode, unicode) ;
+                x+=(glyph.advance+kerningX)*scale;
                 if (x > width+base.position.x())
                 {
                     x = base.position.x();
                     y += worldSize;
                 }
+                prevUnicode = unicode;
             }
             // render glyph
             Text::Raster::RenderPassParam param{
@@ -145,16 +164,17 @@ public:
                 .worldSize = worldSize,
                 .camera = *m_Camera,
                 .z = base.z,
+                .color=text.color
             };
 
             m_Raster->Render(param,
                              *text.renderResource);
         }
     }
-    static TextSystem* Create(DeviceRenderPassView renderPass, DeviceDescriptorPool& descriptorPool, const Vec2f& screenSize)
+    static TextSystem* Create(DeviceRenderPassView renderPass, DeviceDescriptorPool& descriptorPool)
     {
         TextSystem* system = new TextSystem();
-        auto raster = Text::Raster::Create(renderPass, true, descriptorPool, screenSize,true);
+        auto raster = Text::Raster::Create(renderPass, true, descriptorPool, true);
         if (!raster)
         {
             return nullptr;

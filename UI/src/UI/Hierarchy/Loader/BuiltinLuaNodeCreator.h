@@ -33,6 +33,38 @@ constexpr inline NodeSize ParseNodeSize(const std::string& s)
     }
     return nodeSize;
 }
+inline std::optional<NodeSize> ParseNodeSize(sol::object& luaNode)
+{
+    if(!luaNode.valid())
+    {
+        return std::nullopt; // Invalid object
+    }
+    NodeSize nodeSize;
+    if (luaNode.get_type() == sol::type::number)
+    {
+        nodeSize.type = NodeSizeType::Pixel;
+        nodeSize.size = luaNode.as<float>();
+    }
+    else if (luaNode.get_type() == sol::type::string)
+    {
+        std::string sizeStr = luaNode.as<std::string>();
+        if (sizeStr.ends_with("%"))
+        {
+            nodeSize.type = NodeSizeType::Relative;
+            nodeSize.size = std::stof(sizeStr.substr(0, sizeStr.size() - 1));
+        }
+        else
+        {
+            nodeSize.type = NodeSizeType::Pixel;
+            nodeSize.size = std::stof(sizeStr);
+        }
+    }
+    else
+    {
+        return std::nullopt; // Invalid type
+    }
+    return nodeSize;
+}
 struct GridNodeCreator
 {
     std::expected<Node*, std::string> operator()(Hierarchy& hierarchy, const sol::table& luaNode)
@@ -271,6 +303,25 @@ struct TextNodeCreator
             }
         }
 
+
+        Vec3f font_color(1, 1, 1);
+        auto lua_font_color = luaNode["font_color"];
+        if (lua_font_color.get_type() == sol::type::table)
+        {
+            auto lua_colorTable = lua_font_color.get<sol::table>();
+            size_t lua_colorTableSize = lua_colorTable.size();
+            if (lua_colorTableSize >= 3)
+            {
+                font_color.x() = lua_colorTable[1];
+                font_color.y() = lua_colorTable[2];
+                font_color.z() = lua_colorTable[3];
+            }
+            else
+            {
+                return std::unexpected<std::string>("invalid color: less than 3 element");
+            }
+        }
+        textComponent.color = font_color;
         return node;
     }
 };

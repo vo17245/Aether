@@ -21,6 +21,23 @@ std::optional<std::vector<uint8_t>> ReadFile(const Filesystem::Path& path)
     }
     return buffer;
 }
+std::optional<std::string> ReadFileToString(const Filesystem::Path& path)
+{
+   File file(path, Filesystem::Action::Read);
+    if (!file.IsOpened())
+    {
+        return std::nullopt;
+    }
+    size_t fileSize = file.GetSize();
+    std::string buffer;
+    buffer.resize(fileSize);
+    size_t readBytes = file.Read({reinterpret_cast<uint8_t*>(buffer.data()), buffer.size()});
+    if (readBytes != fileSize)
+    {
+        return std::nullopt;
+    }
+    return buffer; 
+}
 bool WriteFile(const Filesystem::Path& path, const std::span<const uint8_t> data)
 {
     File file(path, Action::Create);

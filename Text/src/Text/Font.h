@@ -151,8 +151,8 @@ public:
         font.hinting = hinting;
         if (hinting) {
 			font.loadFlags = FT_LOAD_NO_BITMAP;
-			font.kerningMode = FT_KERNING_DEFAULT;
-
+			//font.kerningMode = FT_KERNING_DEFAULT;
+			font.kerningMode=FT_KERNING_UNSCALED;
 			font.emSize = worldSize * 64;
 			FT_Error error = FT_Set_Pixel_Sizes(face->handle, 0, static_cast<FT_UInt>(std::ceil(worldSize)));
 			if (error) {

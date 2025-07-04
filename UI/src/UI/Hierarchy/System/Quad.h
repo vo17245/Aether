@@ -5,7 +5,8 @@
 #include "Render/Scene/Camera2D.h"
 #include "System.h"
 #include "../Component/Node.h"
-
+#include <UI/Render/TextureCache.h>
+#include <Core/Borrow.h>
 namespace Aether::UI
 {
 class QuadSystem : public SystemI
@@ -46,8 +47,13 @@ public:
     {
         m_Camera = camera;
     }
+    QuadSystem(Borrow<TextureCache> textureCache)
+        : m_TextureCache(textureCache)
+    {
+    }
 
 private:
     Camera2D* m_Camera = nullptr; // not own
+    Borrow<TextureCache> m_TextureCache;
 };
 } // namespace Aether::UI

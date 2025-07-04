@@ -76,7 +76,11 @@ layout(location=1)in vec2 v_UV;
 layout(location=0)out vec4 FragColor;
 layout(set=1,binding=0)uniform usampler2D u_GlyphTexture;
 layout(set=1,binding=1)uniform sampler2D u_CurveTexture;
-
+layout(std140,binding=0)uniform UniformBufferObject
+{
+    mat4 u_MVP;
+    vec4 u_Color; // RGB ,A is not used,just for alignment
+}ubo;
 struct Glyph {
 	uint start, count;
 };
@@ -193,6 +197,57 @@ vec2 HintingCenter(vec2 p,float scale)
     p=p/scale;
     return p;
 }   
+// 简单哈希函数
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+// 2D噪声函数
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    
+    return mix(mix(hash(i + vec2(0.0, 0.0)), 
+                   hash(i + vec2(1.0, 0.0)), u.x),
+               mix(hash(i + vec2(0.0, 1.0)), 
+                   hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+// 分形噪声
+float fbm(vec2 p) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    for (int i = 0; i < 4; i++) {
+        value += amplitude * noise(p);
+        p *= 2.0;
+        amplitude *= 0.5;
+    }
+    return value;
+}
+vec3 rainbowNoise(vec2 uv) {
+    // 使用fwidth来计算自适应缩放
+    vec2 uvDerivative = fwidth(uv);
+    float adaptiveScale = 1.0 / max(uvDerivative.x, uvDerivative.y);
+    
+    // 调整基础缩放以获得理想的噪声密度
+    float baseScale = 0.1; // 可调整的基础密度
+    float finalScale = adaptiveScale * baseScale;
+    
+    float t = fbm(uv * finalScale);
+    
+    // 创建彩虹色谱
+    vec3 color1 = vec3(1.0, 0.0, 0.0); // 红
+    vec3 color2 = vec3(1.0, 0.5, 0.0); // 橙
+    vec3 color3 = vec3(1.0, 1.0, 0.0); // 黄
+    vec3 color4 = vec3(0.0, 1.0, 0.0); // 绿
+    vec3 color5 = vec3(0.0, 0.0, 1.0); // 蓝
+    vec3 color6 = vec3(0.5, 0.0, 1.0); // 紫
+    
+    if (t < 0.2) return mix(color1, color2, t * 5.0);
+    else if (t < 0.4) return mix(color2, color3, (t - 0.2) * 5.0);
+    else if (t < 0.6) return mix(color3, color4, (t - 0.4) * 5.0);
+    else if (t < 0.8) return mix(color4, color5, (t - 0.6) * 5.0);
+    else return mix(color5, color6, (t - 0.8) * 5.0);
+}
 void main()
 {
     Init();
@@ -221,33 +276,18 @@ void main()
 
 	}
     alpha/=2;
+    vec3 fontColor= ubo.u_Color.rgb;
+    vec3 edgeColor=rainbowNoise(uv);
+    vec3 color = mix(edgeColor, fontColor, clamp(alpha * 1.5, 0.0, 1.0));
+    color=fontColor;
+    FragColor=vec4(color,alpha);
 
-    FragColor=vec4(1.0,1.0,1.0,alpha);
 
 
 
 
 
 
-    //if(true)
-    //{
-    //vec2 fw = fwidth(uv);
-	//	float r = 4.0 * 0.5 * (fw.x + fw.y);
-	//	for (int i = 0; i < glyph.count; i++) {
-	//		Curve curve = FetchCurve(glyph.start + i);
-	//		vec2 p0 = curve.p0 - uv;
-	//		vec2 p1 = curve.p1 - uv;
-	//		vec2 p2 = curve.p2 - uv;
-	//		if (dot(p0, p0) < r*r || dot(p2, p2) < r*r) {
-	//			FragColor = vec4(0, 1, 0, 1);
-	//			return;
-	//		}
-	//		if (dot(p1, p1) < r*r) {
-	//			FragColor = vec4(1, 0, 1, 1);
-	//			return;
-	//		}
-	//	}
-    //}
 
 }
 )";
@@ -400,6 +440,9 @@ bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& res
     {
         m_HostUniformBuffer.mvp[i] = camera.matrix.data()[i];
     }
+    m_HostUniformBuffer.color[0] = param.color.x();
+    m_HostUniformBuffer.color[1] = param.color.y();
+    m_HostUniformBuffer.color[2] = param.color.z();
     //m_HostUniformBuffer.screenSize[0] = camera.screenSize.x();
     //m_HostUniformBuffer.screenSize[1] = camera.screenSize.y();
     // stagging

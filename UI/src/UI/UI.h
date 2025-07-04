@@ -10,3 +10,7 @@
 #include "Hierarchy/Loader/NodeCreator.h"
 #include "Hierarchy/Loader/BuiltinXmlNodeCreator.h"
 #include "Hierarchy/BuildLayout.h"
+#include "Hierarchy/Loader/HierarchyLuaLoader.h"
+#include "Hierarchy/Loader/BuiltinLuaNodeCreator.h"
+#include "Hierarchy/System/AutoResize.h"
+#include <UI/Render/TextureCache.h>

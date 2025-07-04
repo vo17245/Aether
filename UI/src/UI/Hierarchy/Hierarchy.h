@@ -12,6 +12,7 @@
 #include <queue>
 #include <Window/Event.h>
 #include "BuildLayout.h"
+#include <Core/Borrow.h>
 namespace Aether::UI
 {
 class Hierarchy
@@ -20,15 +21,15 @@ public:
     Node* CreateNode()
     {
         Node* node = new Node();
-        node->id = m_Scene.CreateEntity();
-        m_Scene.AddComponent<NodeComponent>(node->id, node);
-        m_Scene.AddComponent<BaseComponent>(node->id, BaseComponent{Vec2f(0, 0),
+        node->id = m_Scene->CreateEntity();
+        m_Scene->AddComponent<NodeComponent>(node->id, node);
+        m_Scene->AddComponent<BaseComponent>(node->id, BaseComponent{Vec2f(0, 0),
                                                                     Vec2f(0, 0)});
         return node;
     }
     void DestroyNode(Node* node)
     {
-        m_Scene.DestroyEntity(node->id);
+        m_Scene->DestroyEntity(node->id);
         for (auto child : node->children)
         {
             DestroyNode(child);
@@ -38,13 +39,13 @@ public:
     template <typename T, typename... Args>
     T& AddComponent(Node* node, Args&&... args)
     {
-        auto& component = m_Scene.AddComponent<T>(node->id, std::forward<Args>(args)...);
+        auto& component = m_Scene->AddComponent<T>(node->id, std::forward<Args>(args)...);
         return component;
     }
     template <typename T>
     T& GetComponent(Node* node)
     {
-        return m_Scene.GetComponent<T>(node->id);
+        return m_Scene->GetComponent<T>(node->id);
     }
     Node* GetRoot()
     {
@@ -61,7 +62,8 @@ public:
     {
         m_Systems.push_back(system);
     }
-    Hierarchy()
+    Hierarchy(Borrow<Scene> scene) :
+        m_Scene(scene)
     {
         InitCamera(Vec2f(1920, 1080));
     }
@@ -154,6 +156,10 @@ public:
         }
         return nullptr;
     }
+    void SetScene(Borrow<Scene> scene)
+    {
+        m_Scene = scene;
+    }
 private:
     void InitCamera(const Vec2f& screenSize)
     {
@@ -169,7 +175,7 @@ private:
     }
 
 private:
-    Scene m_Scene;
+    Borrow<Scene> m_Scene;
     Node* m_Root = nullptr;
     std::vector<SystemI*> m_Systems;
     LayoutBuilder m_LayoutBuilder;

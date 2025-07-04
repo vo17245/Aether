@@ -28,6 +28,7 @@ public:
         float worldSize = 32.0f;
         Camera2D& camera;//@note 传入的camera需要提前调用过CalculateMatrix, raster中不会调用
         float z=0.0f;// z value in screen space
+        Vec3f color = Vec3f(1.0f, 1.0f, 1.0f); 
     };
     struct RenderPassResource
     {
@@ -48,7 +49,7 @@ public:
         return resource;
     }
     static std::optional<Raster> Create(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,
-                                        const Vec2f& screenSize,bool enableDepthTest)
+                                        bool enableDepthTest)
     {
         Raster raster;
         bool res = raster.Init(renderPass, enableBlend, descriptorPool,enableDepthTest);
@@ -68,7 +69,6 @@ private:
     bool CreateShader();                                                            // on init
     bool CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend,bool enableDepthTest);         // on init
     bool CreateDescriptorSet(DeviceDescriptorPool& descriptorPool);                 // per draw
-    bool CreateCamera(const Vec2f& screenSize);                                     // on init
     bool UpdateMesh(RenderPassParam& param, RenderPassResource& resource);          // per draw
     bool UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& resource); // per draw
     bool UpdateDescriptorSet(RenderPassResource& resource, RenderPassParam& param); // per draw
@@ -77,6 +77,7 @@ private:
     struct HostUniformBuffer
     {
         float mvp[16];
+        float color[4]={1.0,1.0,1.0,1.0}; // RGB ,A is not used,just for alignment
     };
     DevicePipeline m_Pipeline;
     DevicePipelineLayout m_PipelineLayout;

@@ -19,6 +19,10 @@ public:
     NotNull& operator=(NotNull&&) noexcept = default;
     NotNull(std::nullptr_t) = delete;
     NotNull& operator=(std::nullptr_t) = delete;
+    NotNull(T& v) :
+        m_Ptr(&v)
+    {
+    }
     T* Get() const
     {
         return m_Ptr;
