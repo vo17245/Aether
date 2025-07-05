@@ -19,10 +19,10 @@ inline std::expected<DeviceTexture, std::string> LoadTextureToLinear(const std::
     PixelFormat imagePixelFormat;
     switch (info.colorSpace)
     {
-    case Resource::ImageInfo::ColorSpace::SRGB:
+    case Resource::ColorSpace::SRGB:
         imagePixelFormat = PixelFormat::RGB888_SRGB;
         break;
-    case Resource::ImageInfo::ColorSpace::LINEAR:
+    case Resource::ColorSpace::LINEAR:
         imagePixelFormat = PixelFormat::RGB888;
         break;
     }

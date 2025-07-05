@@ -55,7 +55,7 @@ namespace Aether::UI
                 return nullptr;
             }
             auto& imageInfo=*(Resource::ImageInfo*)assetInfo.info.get();
-            if(imageInfo.colorSpace==Resource::ImageInfo::ColorSpace::SRGB)
+            if(imageInfo.colorSpace==Resource::ColorSpace::SRGB)
             {
                 auto texture=LoadTextureToLinear(path, imageInfo, *m_StagingBuffer);
                 if(!texture)

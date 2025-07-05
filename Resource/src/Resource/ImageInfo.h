@@ -1,14 +1,15 @@
 #pragma once
 #include "AssetInfo.h"
+#include <Core/Serialization.h>
 namespace Aether::Resource
 {
+enum class ColorSpace
+{
+    SRGB,
+    LINEAR,
+};
 struct ImageInfo : public AssetInfo
 {
-    enum class ColorSpace
-    {
-        SRGB,
-        LINEAR,
-    };
     ImageInfo(const std::string_view _address) :
         AssetInfo(AssetType::Image, _address)
     {
@@ -18,21 +19,21 @@ struct ImageInfo : public AssetInfo
     ImageInfo& operator=(const ImageInfo&) = default;
     ImageInfo& operator=(ImageInfo&&) = default;
     ColorSpace colorSpace = ColorSpace::SRGB;
-    virtual AssetInfo* Clone()const override
+    virtual AssetInfo* Clone() const override
     {
         return new ImageInfo(*this);
     }
 };
 template <>
-struct ToJsonImpl<ImageInfo::ColorSpace>
+struct ToJsonImpl<ColorSpace>
 {
-    Json operator()(const ImageInfo::ColorSpace& t)
+    Json operator()(const ColorSpace& t)
     {
         switch (t)
         {
-        case ImageInfo::ColorSpace::SRGB:
+        case ColorSpace::SRGB:
             return "SRGB";
-        case ImageInfo::ColorSpace::LINEAR:
+        case ColorSpace::LINEAR:
             return "LINEAR";
         default:
             return "Unknown";
@@ -40,18 +41,18 @@ struct ToJsonImpl<ImageInfo::ColorSpace>
     }
 };
 template <>
-struct FromJsonImpl<ImageInfo::ColorSpace>
+struct FromJsonImpl<ColorSpace>
 {
-    std::expected<ImageInfo::ColorSpace, std::string> operator()(const Json& json)
+    std::expected<ColorSpace, std::string> operator()(const Json& json)
     {
         std::string s = json.get<std::string>();
         if (s == "SRGB")
         {
-            return ImageInfo::ColorSpace::SRGB;
+            return ColorSpace::SRGB;
         }
         else if (s == "LINEAR")
         {
-            return ImageInfo::ColorSpace::LINEAR;
+            return ColorSpace::LINEAR;
         }
         else
         {
@@ -109,7 +110,7 @@ struct FromJsonImpl<ImageInfo>
         {
             return std::unexpected<std::string>("ImageInfo should have colorSpace field");
         }
-        auto colorSpace = FromJson<ImageInfo::ColorSpace>(json["colorSpace"]);
+        auto colorSpace = FromJson<ColorSpace>(json["colorSpace"]);
         if (!colorSpace)
         {
             return std::unexpected<std::string>(std::format("failed to get colorSpace: {}", colorSpace.error()));
@@ -119,3 +120,43 @@ struct FromJsonImpl<ImageInfo>
     }
 };
 } // namespace Aether::Resource
+
+namespace Aether
+{
+template <>
+struct ToJson<Resource::ColorSpace>
+{
+    Json operator()(const Resource::ColorSpace& t)
+    {
+        switch (t)
+        {
+        case Resource::ColorSpace::SRGB:
+            return "SRGB";
+        case Resource::ColorSpace::LINEAR:
+            return "LINEAR";
+        default:
+            return "Unknown";
+        }
+    }
+};
+template <>
+struct FromJson<Resource::ColorSpace>
+{
+    std::expected<Resource::ColorSpace, std::string> operator()(const Json& json)
+    {
+        std::string s = json.get<std::string>();
+        if (s == "SRGB")
+        {
+            return Resource::ColorSpace::SRGB;
+        }
+        else if (s == "LINEAR")
+        {
+            return Resource::ColorSpace::LINEAR;
+        }
+        else
+        {
+            return std::unexpected<std::string>(std::string("Unknown ColorSpace:") + s);
+        }
+    }
+};
+} // namespace Aether
