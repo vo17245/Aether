@@ -130,6 +130,28 @@ struct GridNodeCreator
                 autoResize.EnableWidth();
             }
         }
+        // layoutEnable
+        auto lua_layoutEnable=luaNode["enable_layout"];
+
+        if(lua_layoutEnable.valid()&&lua_layoutEnable.get_type()==sol::type::boolean)
+        {
+            base.layoutEnabled=lua_layoutEnable.get<bool>();
+        }
+        // visible
+        auto lua_visible = luaNode["visible"];
+        if(lua_visible.valid()&&lua_visible.get_type()==sol::type::boolean)
+        {
+            bool visible=lua_visible;
+            auto& visibility=hierarchy.AddComponent<VisibilityRequestComponent>(node);
+            if(visible)
+            {
+            }
+            else
+            {
+                visibility.visible=false;
+                visibility.processed=false;
+            }
+        }
         return node;
     }
 };
@@ -216,6 +238,28 @@ struct QuadNodeCreator
             {
                 autoResize.width = *autoResizeWidth;
                 autoResize.EnableWidth();
+            }
+        }
+        // layoutEnable
+        auto lua_layoutEnable=luaNode["enable_layout"];
+
+        if(lua_layoutEnable.valid()&&lua_layoutEnable.get_type()==sol::type::boolean)
+        {
+            base.layoutEnabled=lua_layoutEnable.get<bool>();
+        }
+        // visible
+        auto lua_visible = luaNode["visible"];
+        if(lua_visible.valid()&&lua_visible.get_type()==sol::type::boolean)
+        {
+            bool visible=lua_visible;
+            auto& visibility=hierarchy.AddComponent<VisibilityRequestComponent>(node);
+            if(visible)
+            {
+            }
+            else
+            {
+                visibility.visible=false;
+                visibility.processed=false;
             }
         }
         return node;
@@ -322,6 +366,28 @@ struct TextNodeCreator
             }
         }
         textComponent.color = font_color;
+        // layoutEnable
+        auto lua_layoutEnable=luaNode["enable_layout"];
+
+        if(lua_layoutEnable.valid()&&lua_layoutEnable.get_type()==sol::type::boolean)
+        {
+            base.layoutEnabled=lua_layoutEnable.get<bool>();
+        }
+        // visible
+        auto lua_visible = luaNode["visible"];
+        if(lua_visible.valid()&&lua_visible.get_type()==sol::type::boolean)
+        {
+            bool visible=lua_visible;
+            auto& visibility=hierarchy.AddComponent<VisibilityRequestComponent>(node);
+            if(visible)
+            {
+            }
+            else
+            {
+                visibility.visible=false;
+                visibility.processed=false;
+            }
+        }
         return node;
     }
 };

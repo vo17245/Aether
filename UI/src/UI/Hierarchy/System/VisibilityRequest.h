@@ -12,7 +12,7 @@ class VisibilityRequestSystem : public SystemI
 public:
     virtual void OnUpdate(float sec, Scene& scene)
     {
-        auto view=scene.Select<VisibilityRequest>();
+        auto view=scene.Select<VisibilityRequestComponent>();
         for(const auto& [entity,vrc]:view.each())
         {
             if(vrc.processed==false)

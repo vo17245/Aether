@@ -1,4 +1,13 @@
 add_library(stb_vorbis STATIC
-    src/stb_vorbis.c
+    src/stb/stb_vorbis.c
 )
+target_include_directories(stb_vorbis PUBLIC "src")
+add_library(stb_image_write STATIC
+    src/stb/stb_image_write.c
+)
+target_include_directories(stb_image_write PUBLIC "src")
 
+add_library(stb_image STATIC
+    src/stb/stb_image.c
+)
+target_include_directories(stb_image PUBLIC "src")

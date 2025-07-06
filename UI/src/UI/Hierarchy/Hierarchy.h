@@ -20,7 +20,7 @@ class Hierarchy
 public:
     Node* CreateNode()
     {
-        Node* node = new Node();
+        Node* node = new Node(this);
         node->id = m_Scene->CreateEntity();
         m_Scene->AddComponent<NodeComponent>(node->id, node);
         m_Scene->AddComponent<BaseComponent>(node->id, BaseComponent{Vec2f(0, 0),
@@ -79,9 +79,9 @@ public:
         }
     }
 
-    void RebuildLayout(const Vec2f& screenSize, float far)
+    void RebuildLayout()
     {
-        BuildLayout(m_Root,m_Scene, screenSize, far, m_LayoutBuilder);
+        BuildLayout(m_Root,m_Scene, m_Camera->screenSize, m_Camera->far, m_LayoutBuilder);
     }
     void OnEvent(Event& event)
     {
@@ -92,7 +92,9 @@ public:
         if(std::holds_alternative<WindowResizeEvent>(event))
         {
             auto& resizeEvent = std::get<WindowResizeEvent>(event);
-            RebuildLayout(Vec2f(resizeEvent.GetWidth(),resizeEvent.GetHeight()), m_Camera->far);
+            m_Camera->screenSize.x()= resizeEvent.GetWidth();
+            m_Camera->screenSize.y()= resizeEvent.GetHeight();
+            RebuildLayout();
         }
     }
     void OnUpdate(float sec)
@@ -131,7 +133,7 @@ public:
     {
         if (m_NeedRebuildLayout)
         {
-            RebuildLayout(m_Camera->screenSize, m_Camera->far);
+            RebuildLayout();
             m_NeedRebuildLayout = false;
         }
     }
@@ -183,4 +185,19 @@ private:
     bool m_NeedRebuildLayout = false; // 是否需要重新布局
     std::unordered_map<std::string,Node*> m_NodeId;
 };
+template<typename T>
+inline T& Node::GetComponent()
+{
+    return hierarchy->GetComponent<T>(this);
+}
+template<typename T>
+inline bool Node::HasComponent()
+{
+    return hierarchy->GetScene().HasComponent<T>(id);
+}
+template<typename T,typename... Args>
+inline T& Node::AddComponent(Args&&... args)
+{
+    return hierarchy->AddComponent<T>(this, std::forward<Args>(args)...);
+}
 } // namespace Aether::UI

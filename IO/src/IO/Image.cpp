@@ -1,8 +1,7 @@
 #include "Image.h"
 #include "Filesystem/Utils.h"
-#define STB_IMAGE_STATIC
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <stb/stb_image.h>
+#include <stb/stb_image_write.h>
 #include <Filesystem/Filesystem.h>
 
 namespace Aether
@@ -38,5 +37,41 @@ namespace Aether
             return std::unexpected(std::format("Failed to read file: {}",path));
         }
         return LoadFromMemory((uint8_t*)file->data(), file->size());
+    }
+    Image Image::CreateRgba8(uint32_t width,uint32_t height)
+    {
+        Image image;
+        BasicImageData imageData(width,height,4, ImageChannelDataType::U8);
+        image.m_Data = std::move(imageData);
+        return image;
+    }
+    bool Image::SaveToPngFile(const char* path)
+    {
+        if(m_Data.index() == 0)
+        {
+            return false; // No data to save
+        }
+        if(std::holds_alternative<BasicImageData>(m_Data))
+        {
+            auto& data=std::get<BasicImageData>(m_Data);
+            if(data.channelDataType != ImageChannelDataType::U8 || data.channels != 4)
+            {
+                assert(false&&"Only support saving RGBA8 images now");
+                return false; // Only support saving RGBA8 images
+            }
+            return stbi_write_png(path, data.width, data.height, data.channels, data.data, data.rowBytes) != 0;
+
+        }
+        else if(std::holds_alternative<StbImageData>(m_Data))
+        {
+            auto& data = std::get<StbImageData>(m_Data);
+            if (data.channelDataType != ImageChannelDataType::U8 || data.channels != 4)
+            {
+                assert(false && "Only support saving RGBA8 images now");
+                return false; // Only support saving RGBA8 images
+            }
+            return stbi_write_png(path, data.width, data.height, data.channels, data.data, 0) != 0;
+        }
+
     }
 }

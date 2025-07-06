@@ -7,7 +7,7 @@ namespace Aether::UI
     // 用于发起一次设置可见性请求
     // 注意: 这个操作在ecs中性能开销比较大，只适合用于响应用户操作
     //       目前被用于弹出式ui的实现
-    struct VisibilityRequest
+    struct VisibilityRequestComponent
     {
         bool visible=true;
         bool processed = true;

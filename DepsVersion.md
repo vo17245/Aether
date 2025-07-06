@@ -100,3 +100,8 @@ commit 5a5bd78344539a26ff20688cf6b5b5f2f942c516
 https://github.com/ThePhD/sol2.git
 
 commit c1f95a773c6f8f4fde8ca3efe872e7286afe4444 
+
+## RectangleBinPack
+
+https://github.com/juj/RectangleBinPack
+commit: 83e7e1132d93777e3732dfaae26b0f3703be2036
