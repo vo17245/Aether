@@ -103,6 +103,34 @@ private:
     };
     struct BasicImageData
     {
+        BasicImageData()=default;
+        BasicImageData(const BasicImageData&)=delete;
+        BasicImageData& operator=(const BasicImageData&)=delete;
+        BasicImageData(BasicImageData&& other) noexcept
+        {
+            width = other.width;
+            height = other.height;
+            channels = other.channels;
+            channelDataType = other.channelDataType;
+            rowBytes = other.rowBytes;
+            data = other.data;
+            other.data = nullptr;
+        }
+        BasicImageData& operator=(BasicImageData&& other) noexcept
+        {
+            if (this != &other)
+            {
+                width = other.width;
+                height = other.height;
+                channels = other.channels;
+                channelDataType = other.channelDataType;
+                rowBytes = other.rowBytes;
+                delete[] data; // Free existing data
+                data = other.data;
+                other.data = nullptr;
+            }
+            return *this;
+        }
         ImageChannelDataType channelDataType = ImageChannelDataType::U8;
         uint32_t width;
         uint32_t height;
