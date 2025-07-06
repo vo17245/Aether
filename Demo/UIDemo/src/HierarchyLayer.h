@@ -163,7 +163,7 @@ Ich kann Glas schlucken, ohne mir selbst zu schaden
             m_Hierarchy->AddComponent<UI::InputTextComponent>(node);
         }
 
-        m_Hierarchy->RebuildLayout(m_ScreenSize, camera.far);
+        m_Hierarchy->RebuildLayout();
     }
 
     virtual void OnEvent(Event& event) override
