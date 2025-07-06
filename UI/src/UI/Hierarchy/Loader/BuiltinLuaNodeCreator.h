@@ -388,6 +388,12 @@ struct TextNodeCreator
                 visibility.processed=false;
             }
         }
+        // font path
+        auto lua_fontPath=luaNode["font_path"];
+        if(lua_fontPath.valid()&&lua_fontPath.get_type()==sol::type::string)
+        {
+            textComponent.fontpath = lua_fontPath;
+        }
         return node;
     }
 };
