@@ -59,31 +59,70 @@ public:
         }
         }
     }
-    template<typename T>
+    static DeviceBuffer CreateForSSBO(size_t size)
+    {
+        DeviceBuffer res;
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto buffer = vk::Buffer::CreateForSSBO(size);
+            if (!buffer)
+            {
+                return res;
+            }
+            res.m_Buffer = std::move(buffer.value());
+            return res;
+        }
+        break;
+        default: {
+            assert(false && "Not implemented");
+            return res;
+        }
+        }
+    }
+    static DeviceBuffer CreateForVBO(size_t size)
+    {
+        DeviceBuffer res;
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto buffer = vk::Buffer::CreateForVertex(size);
+            if (!buffer)
+            {
+                return res;
+            }
+            res.m_Buffer = std::move(buffer.value());
+            return res;
+        }
+        break;
+        default: {
+            assert(false && "Not implemented");
+            return res;
+        }
+        }
+    }
+    template <typename T>
     T& Get()
     {
         return std::get<T>(m_Buffer);
     }
-    template<typename T>
+    template <typename T>
     const T& Get() const
     {
         return std::get<T>(m_Buffer);
     }
-    void SetData(const uint8_t* data,size_t size)
+    void SetData(const uint8_t* data, size_t size)
     {
         switch (Render::Config::RenderApi)
         {
-        case Render::Api::Vulkan:
-        {
+        case Render::Api::Vulkan: {
             auto& buffer = Get<vk::Buffer>();
             buffer.SetData(data, size);
         }
         break;
-        default:
-        {
+        default: {
             assert(false && "Not implemented");
         }
-        
         }
     }
     void SetData(std::span<const uint8_t> data)
@@ -98,44 +137,46 @@ public:
     {
         return Get<vk::Buffer>();
     }
-    const size_t GetSize()const
+    const size_t GetSize() const
     {
-        if(std::holds_alternative<vk::Buffer>(m_Buffer))
+        if (std::holds_alternative<vk::Buffer>(m_Buffer))
         {
-            auto& vkBuffer=GetVk();
+            auto& vkBuffer = GetVk();
             return vkBuffer.GetSize();
         }
-        else {
-            assert(false&&"not implement");
+        else
+        {
+            assert(false && "not implement");
             return 0;
         }
     }
-    template<typename T>
-    bool IsType()const
+    template <typename T>
+    bool IsType() const
     {
         return std::holds_alternative<T>(m_Buffer);
     }
     /**
      * @brief copy to this buffer
-    */
-    static bool SyncCopy(DeviceBuffer& _dst,DeviceBuffer& _src,size_t size,size_t dstOffset,size_t srcOffset)
+     */
+    static bool SyncCopy(DeviceBuffer& _dst, DeviceBuffer& _src, size_t size, size_t dstOffset, size_t srcOffset)
     {
-        if(_dst.IsType<vk::Buffer>() && _src.IsType<vk::Buffer>())
+        if (_dst.IsType<vk::Buffer>() && _src.IsType<vk::Buffer>())
         {
-            auto& dst=_dst.GetVk();
-            auto& src=_src.GetVk();
-            return vk::Buffer::SyncCopy(src,dst,size,srcOffset,dstOffset);
+            auto& dst = _dst.GetVk();
+            auto& src = _src.GetVk();
+            return vk::Buffer::SyncCopy(src, dst, size, srcOffset, dstOffset);
         }
-        else {
-            assert(false&&"not implement");
+        else
+        {
+            assert(false && "not implement");
             return false;
         }
-        
     }
     operator bool() const
     {
         return !Empty();
     }
+
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
 };

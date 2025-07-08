@@ -47,6 +47,8 @@ using Mat4u = Eigen::Matrix4<uint32_t>;
 using Quatd = Eigen::Quaterniond;
 using Quat = Eigen::Quaternionf;
 
+
+
 namespace Math {
 inline constexpr float PI = 3.14159265358979323846f;
 }
