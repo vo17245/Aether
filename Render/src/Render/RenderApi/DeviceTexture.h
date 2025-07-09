@@ -42,7 +42,6 @@ public:
     }
     DeviceImageView()
     {
-
     }
     DeviceImageView(DeviceImageView&&) = default;
     DeviceImageView& operator=(DeviceImageView&&) = default;
@@ -50,7 +49,7 @@ public:
     {
         return std::get<vk::ImageView>(m_ImageView);
     }
-    const vk::ImageView& GetVk()const 
+    const vk::ImageView& GetVk() const
     {
         return std::get<vk::ImageView>(m_ImageView);
     }
@@ -68,6 +67,40 @@ enum class DeviceImageLayout
     TransferSrc,
     DepthStencilAttachment,
 };
+enum class DeviceImageUsage : uint32_t
+{
+    Sample = Bit(0),
+    Download = Bit(1),
+    Upload = Bit(2),
+    ColorAttachment = Bit(3),
+    DepthAttachment = Bit(4),
+};
+using DeviceImageUsageFlags = uint32_t;
+inline VkImageUsageFlags DeviceImageUsageFlagsToVk(DeviceImageUsageFlags flags)
+{
+    VkImageUsageFlags res;
+    if (flags & (uint32_t)DeviceImageUsage::Sample)
+    {
+        res |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+    if (flags & (uint32_t)DeviceImageUsage::Download)
+    {
+        res |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+    if (flags & (uint32_t)DeviceImageUsage::Upload)
+    {
+        res |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
+    if (flags & (uint32_t)DeviceImageUsage::ColorAttachment)
+    {
+        res |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    }
+    if (flags & (uint32_t)DeviceImageUsage::DepthAttachment)
+    {
+        res |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+    return res;
+}
 inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
 {
     switch (layout)
@@ -91,6 +124,7 @@ inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
         return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 }
+
 class DeviceTexture
 {
 public:
@@ -120,7 +154,9 @@ public:
     {
     }
     /**
+     * @deprecated This function is deprecated.Use Create Instead.
      * @note data should be in rgba_int8 format
+     * usage: upload & sample
      */
     static std::expected<DeviceTexture, std::string> CreateForTexture(int width, int height, PixelFormat format)
     {
@@ -139,7 +175,11 @@ public:
             return std::unexpected<std::string>("Not implemented");
         }
     }
-    static std::optional<DeviceTexture> CreateForDownloadableTexture(int width,int height,PixelFormat format)
+    /**
+     * @deprecated This function is deprecated.Use Create Instead.
+    */
+    // usage:  download & upload & sample
+    static std::optional<DeviceTexture> CreateForDownloadableTexture(int width, int height, PixelFormat format)
     {
         switch (Render::Config::RenderApi)
         {
@@ -156,8 +196,11 @@ public:
             return std::nullopt;
         }
     }
-
-    static std::expected<DeviceTexture,std::string> CreateForColorAttachment(int width,int height,PixelFormat format)
+    /**
+     * @deprecated This function is deprecated.Use Create Instead.
+    */
+    // usage: color attachment & sample
+    static std::expected<DeviceTexture, std::string> CreateForColorAttachment(int width, int height, PixelFormat format)
     {
         switch (Render::Config::RenderApi)
         {
@@ -174,7 +217,11 @@ public:
             return std::unexpected<std::string>("Not implemented");
         }
     }
-    static std::expected<DeviceTexture,std::string> CreateForDepthAttachment(int width,int height,PixelFormat format)
+    /**
+     * @deprecated This function is deprecated.Use Create Instead.
+    */
+    // usage: depth attachment & sample
+    static std::expected<DeviceTexture, std::string> CreateForDepthAttachment(int width, int height, PixelFormat format)
     {
         switch (Render::Config::RenderApi)
         {
@@ -191,12 +238,32 @@ public:
             return std::unexpected<std::string>("Not implemented");
         }
     }
+    static DeviceTexture Create(int width, int height, PixelFormat format, DeviceImageUsageFlags usages, DeviceImageLayout initLayout)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto vkUsages = DeviceImageUsageFlagsToVk(usages);
+            auto vkInitLayout = DeviceImageLayoutToVk(initLayout);
+            auto texture = vk::Texture2D::Create(width, height, format, vkUsages, vkInitLayout);
+            if (!texture)
+            {
+                return std::monostate{};
+            }
+            return std::move(texture.value());
+        }
+        break;
+        default:
+            assert(false && "Not implemented");
+            return std::monostate{};
+        }
+    }
     std::optional<std::string> CopyBuffer(const DeviceBuffer& buffer)
     {
         switch (Render::Config::RenderApi)
         {
         case Render::Api::Vulkan: {
-            auto& vkBuffer=buffer.Get<vk::Buffer>();
+            auto& vkBuffer = buffer.Get<vk::Buffer>();
             auto& texture = Get<vk::Texture2D>();
             texture.SyncCopyBuffer(vkBuffer);
             return std::nullopt;
@@ -238,11 +305,11 @@ public:
     {
         return m_DefaultImageView;
     }
-    size_t GetWidth()const
+    size_t GetWidth() const
     {
         return std::visit(GetWidthImpl{}, m_Texture);
     }
-    size_t GetHeight()const
+    size_t GetHeight() const
     {
         return std::visit(GetHeightImpl{}, m_Texture);
     }
@@ -280,7 +347,7 @@ public:
             assert(false && "Not implemented");
         }
     }
-    
+
 private:
     struct GetWidthImpl
     {
@@ -311,12 +378,12 @@ private:
         DeviceCommandBufferView commandBuffer;
         void operator()(vk::Texture2D& texture)
         {
-            auto& cb=commandBuffer.GetVk();
+            auto& cb = commandBuffer.GetVk();
             texture.AsyncTransitionLayout(cb, DeviceImageLayoutToVk(oldLayout), DeviceImageLayoutToVk(newLayout));
         }
         void operator()(std::monostate&)
         {
-            assert(false&&"texture is empty");
+            assert(false && "texture is empty");
         }
     };
     struct SyncTransitionLayoutImpl
@@ -332,7 +399,7 @@ private:
             assert(false && "texture is empty");
         }
     };
-    
+
     std::variant<std::monostate, vk::Texture2D> m_Texture;
     DeviceImageView m_DefaultImageView;
 };
