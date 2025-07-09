@@ -20,6 +20,10 @@ public:
     static std::expected<Image,std::string> LoadFromFile(const std::string_view path);
     static Image CreateRgba8(uint32_t width,uint32_t height);
     bool SaveToPngFile(const char* path);
+    bool SaveToPngFile(const std::string& path)
+    {
+        return SaveToPngFile(path.c_str());
+    }
     bool Empty() const
     {
         return m_Data.index() == 0;

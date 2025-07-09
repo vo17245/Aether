@@ -1,0 +1,4 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(stb_vorbis REQUIRED)
+include("${CMAKE_CURRENT_LIST_DIR}/miniaudioTargets.cmake")

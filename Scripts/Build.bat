@@ -1,4 +1,4 @@
 cd ..
 cmake --build Build --config Debug
-cd Script
+cd Scripts
 pause

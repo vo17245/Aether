@@ -5,3 +5,5 @@
 /tmp/
 /CMake/Local.cmake
 .vscode/
+/Install
+/Packages
