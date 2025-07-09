@@ -4,10 +4,12 @@
 下载vulkan sdk: https://www.lunarg.com/vulkan-sdk/
 
 在CMake/Local.cmake中指定vulkan sdk的位置
+依赖被放到另一个参考，在在CMake/Local.cmake指定另一个仓库的位置
 
 ```sh
-set(VULKAN_INCLUDE_DIR "D:\\vulkan_sdk\\Include")
-set(VULKAN_LIB_DIR "D:\\vulkan_sdk\\Lib")
+set(VULKAN_INCLUDE_DIR "D:\\opt\\vulkan_sdk\\1.3.296.0\\Include")
+set(VULKAN_LIB_DIR "D:\\opt\\vulkan_sdk\\1.3.296.0\\Lib")
+set(AETHER_DEPENDENCIES_PACKAGES_DIR "D:\\dev\\AetherDependencies\\Packages")
 ```
 
 ## 编译

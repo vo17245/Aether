@@ -11,7 +11,7 @@ file(GLOB_RECURSE FILES
 
 add_library(${MODULE_NAME} STATIC ${FILES})
 
-#target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+find_package(miniaudio REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC miniaudio)
 target_include_directories(${MODULE_NAME} PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
@@ -49,5 +49,6 @@ install(FILES
 # 4. 安装导出 Targets
 install(EXPORT ${MODULE_NAME}Targets
     FILE ${MODULE_NAME}Targets.cmake
+    NAMESPACE Aether::
     DESTINATION ${MODULE_NAME}
 )
