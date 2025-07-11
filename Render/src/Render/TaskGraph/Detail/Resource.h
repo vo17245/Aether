@@ -4,18 +4,22 @@
 #include "Debug.h"
 namespace Aether::TaskGraph
 {
-class TaskBase;
+class DeviceTaskBase;
 class ResourceBase
 {
 public:
-    ResourceBase(const std::string& tag,TaskBase* creator);
+    ResourceBase(const std::string& tag,DeviceTaskBase* creator);
     virtual ~ResourceBase() = default;
     virtual void Realize() = 0;
     virtual void Derealize() = 0;
-    TaskBase* creator = nullptr;
-    std::vector<TaskBase*> readers;
-    std::vector<TaskBase*> writers;
-    size_t refCnt = 0; // for task graph compilation
+    bool Transient()const
+    {
+        return creator!=nullptr;
+    }
+    DeviceTaskBase* creator = nullptr;
+    std::vector<DeviceTaskBase*> readers;
+    std::vector<DeviceTaskBase*> writers;
+    size_t refCount = 0; // for task graph compilation
 #if AETHER_RENDER_TASKGRAPH_DEBUG_ENABLE_DEBUG_TAG
     std::string m_Tag;
 #endif
@@ -24,7 +28,7 @@ template <typename Actual, typename Desc>
 class Resource : public ResourceBase
 {
 #if AETHER_RENDER_TASKGRAPH_DEBUG_ENABLE_DEBUG_TAG
-    Resource(const std::string& tag,TaskBase* creator ,const Desc& desc) :
+    Resource(const std::string& tag,DeviceTaskBase* creator ,const Desc& desc) :
         ResourceBase(tag,creator),m_Desc(desc)
     {
     }

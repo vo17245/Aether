@@ -4,11 +4,11 @@
 namespace Aether::TaskGraph 
 {
     class TaskGraph;
-    class TaskBase;
+    class DeviceTaskBase;
     class TaskBuilder
     {
     public:
-        TaskBuilder(TaskGraph* graph,TaskBase* task)
+        TaskBuilder(TaskGraph* graph,DeviceTaskBase* task)
         :m_TaskGraph(graph),m_Task(task){}
         template<typename ResourceType,typename Desc>
         requires std::derived_from<ResourceType, ResourceBase>
@@ -22,6 +22,6 @@ namespace Aether::TaskGraph
         ResourceType* Read(ResourceType* resource);
     private:
         TaskGraph* m_TaskGraph;
-        TaskBase* m_Task;
+        DeviceTaskBase* m_Task;
     };
 }
