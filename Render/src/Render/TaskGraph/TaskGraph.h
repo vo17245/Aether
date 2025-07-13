@@ -25,6 +25,10 @@ public:
         return task->GetData();
     }
     void Compile();
+    void AddRetainedResource(Scope<ResourceBase>&&  resource)
+    {
+        m_Resources.emplace_back(std::move(resource));
+    }
     bool CheckGraph()
     {
         // TODO: check if cycle exists
@@ -51,11 +55,8 @@ template <typename ResourceType, typename Desc>
     requires std::derived_from<ResourceType, ResourceBase>
 ResourceType* TaskBuilder::Create(const std::string& tag, const Desc& desc)
 {
-#if AETHER_RENDER_TASKGRAPH_DEBUG_ENABLE_DEBUG_TAG
     m_TaskGraph->m_Resources.emplace_back(CreateScope<ResourceType>(tag, m_Task, desc));
-#else
-    m_TaskGraph->m_Resources.emplace_back(CreateScope<ResourceType>(m_Task, desc));
-#endif
+
     auto* resource = m_TaskGraph->m_Resources.back().get();
     m_Task->creates.push_back(resource);
     return static_cast<ResourceType*>(resource);

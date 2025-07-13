@@ -156,7 +156,7 @@ std::optional<RenderPass> RenderPass::CreateForDepthTest()
     VkRenderPass renderPass;
     VkAttachmentDescription attachments[2]{};
     // config color attachment
-    VkAttachmentDescription& colorAttachment=attachments[0];
+    VkAttachmentDescription& colorAttachment = attachments[0];
     colorAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -170,7 +170,7 @@ std::optional<RenderPass> RenderPass::CreateForDepthTest()
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     // config depth attachment
-    VkAttachmentDescription& depthAttachment=attachments[1];
+    VkAttachmentDescription& depthAttachment = attachments[1];
     depthAttachment.format = VK_FORMAT_D32_SFLOAT;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -207,6 +207,16 @@ std::optional<RenderPass> RenderPass::CreateForDepthTest()
     renderPassInfo.pDependencies = &dependency;
 
     if (vkCreateRenderPass(GlobalRenderContext::GetDevice(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
+    {
+        return std::nullopt;
+    }
+
+    return renderPass;
+}
+std::optional<RenderPass> RenderPass::Create(const VkRenderPassCreateInfo& info)
+{
+    VkRenderPass renderPass;
+    if (vkCreateRenderPass(GlobalRenderContext::GetDevice(), &info, nullptr, &renderPass) != VK_SUCCESS)
     {
         return std::nullopt;
     }

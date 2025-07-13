@@ -305,11 +305,11 @@ public:
     {
         return m_DefaultImageView;
     }
-    size_t GetWidth() const
+    uint32_t GetWidth() const
     {
         return std::visit(GetWidthImpl{}, m_Texture);
     }
-    size_t GetHeight() const
+    uint32_t GetHeight() const
     {
         return std::visit(GetHeightImpl{}, m_Texture);
     }

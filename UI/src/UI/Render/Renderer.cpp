@@ -114,7 +114,9 @@ void Renderer::DrawQuad(const Quad& quad)
 void Renderer::End(DeviceCommandBufferView _commandBuffer)
 {
     // basic
+    if(m_BasicQuadArray.GetMesh().CalculateVertexCount())
     {
+
         CreateBasicDescriptorSet();
         // update uniform
         {

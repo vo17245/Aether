@@ -3,8 +3,73 @@
 #include "Render/Vulkan/RenderPass.h"
 #include <variant>
 #include <cassert>
+#include "../Config.h"
 namespace Aether
 {
+enum class DeviceAttachmentLoadOp
+{
+    Clear,
+    Load,
+    DontCare,
+};
+inline constexpr VkAttachmentLoadOp DeviceAttachmentLoadOpToVkLoadOp(DeviceAttachmentLoadOp op)
+{
+    switch (op)
+    {
+    case DeviceAttachmentLoadOp::Clear:
+        return VK_ATTACHMENT_LOAD_OP_CLEAR;
+    case DeviceAttachmentLoadOp::Load:
+        return VK_ATTACHMENT_LOAD_OP_LOAD;
+    case DeviceAttachmentLoadOp::DontCare:
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    default:
+        assert(false && "unknown DeviceAttachmentLoadOp");
+        return VK_ATTACHMENT_LOAD_OP_DONT_CARE; // default case
+    }
+}
+enum class DeviceAttachmentStoreOp
+{
+    DontCare,
+    Store,
+};
+inline constexpr VkAttachmentStoreOp DeviceAttachmentStoreOpToVkStoreOp(DeviceAttachmentStoreOp op)
+{
+    switch (op)
+    {
+    case DeviceAttachmentStoreOp::DontCare:
+        return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    case DeviceAttachmentStoreOp::Store:
+        return VK_ATTACHMENT_STORE_OP_STORE;
+    default:
+        assert(false && "unknown DeviceAttachmentStoreOp");
+        return VK_ATTACHMENT_STORE_OP_DONT_CARE; // default case
+    }
+}
+struct DeviceAttachmentDesc
+{
+    DeviceAttachmentLoadOp load;
+    DeviceAttachmentStoreOp store;
+    PixelFormat format;
+};
+
+struct DeviceRenderPassDesc
+{
+    static const inline constexpr size_t MaxColorAttachments = 8;
+    DeviceAttachmentDesc colorAttachments[MaxColorAttachments];
+    uint32_t colorAttachmentCount = 0;
+    std::optional<DeviceAttachmentDesc> depthAttachment;
+};
+struct VkRenderPassCreateInfoStorage
+{
+    // DeviceRenderPassDesc::MaxColorAttachments -> depth
+    // 0-DeviceRenderPassDesc::MaxColorAttachments-1-> colors
+    VkAttachmentDescription attachs[DeviceRenderPassDesc::MaxColorAttachments + 1] = {};
+    VkAttachmentReference attachRefs[DeviceRenderPassDesc::MaxColorAttachments + 1] = {};
+    VkSubpassDescription subpass = {};
+    VkSubpassDependency dependency = {};
+    VkRenderPassCreateInfo renderPassInfo = {};
+};
+VkRenderPassCreateInfo DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCreateInfoStorage& storage);
 class DeviceRenderPass
 {
 public:
@@ -43,6 +108,27 @@ public:
     {
         return std::get<vk::RenderPass>(m_Data);
     }
+    static DeviceRenderPass Create(const DeviceRenderPassDesc& desc)
+    {
+        assert(DeviceRenderPassDesc::MaxColorAttachments >= desc.colorAttachmentCount && "too many color attachments");
+        switch (Render::Api::Vulkan)
+        {
+        case Render::Api::Vulkan: {
+            VkRenderPassCreateInfoStorage info;
+            DeviceRenderPassDescToVk(desc, info);
+            auto renderPass = vk::RenderPass::Create(info.renderPassInfo);
+            if (!renderPass.has_value())
+            {
+                return DeviceRenderPass(std::monostate());
+            }
+            return DeviceRenderPass(std::move(renderPass.value()));
+        }
+        break;
+        default:
+            assert(false && "unsupported render api");
+            return DeviceRenderPass(std::monostate());
+        }
+    }
 
 private:
     std::variant<std::monostate, vk::RenderPass> m_Data;
@@ -56,13 +142,12 @@ public:
     {
         return *std::get<T*>(m_Data);
     }
-    template<typename T>
-    const T& Get()const
+    template <typename T>
+    const T& Get() const
     {
         return *std::get<T*>(m_Data);
     }
 
- 
     DeviceRenderPassView(vk::RenderPass& t) :
         m_Data(&t)
     {
@@ -115,8 +200,5 @@ public:
 private:
     std::variant<std::monostate, vk::RenderPass*> m_Data; // do not own the object
 };
-
-
-
 
 } // namespace Aether

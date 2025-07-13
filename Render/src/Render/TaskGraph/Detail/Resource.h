@@ -8,7 +8,13 @@ class DeviceTaskBase;
 class ResourceBase
 {
 public:
-    ResourceBase(const std::string& tag,DeviceTaskBase* creator);
+    ResourceBase(const std::string& tag,DeviceTaskBase* creator)
+    {
+#if AETHER_RENDER_TASKGRAPH_DEBUG_ENABLE_DEBUG_TAG
+        m_Tag = tag;
+#endif
+        this->creator = creator;
+    }
     virtual ~ResourceBase() = default;
     virtual void Realize() = 0;
     virtual void Derealize() = 0;
@@ -27,16 +33,13 @@ public:
 template <typename Actual, typename Desc>
 class Resource : public ResourceBase
 {
-#if AETHER_RENDER_TASKGRAPH_DEBUG_ENABLE_DEBUG_TAG
+public:
     Resource(const std::string& tag,DeviceTaskBase* creator ,const Desc& desc) :
         ResourceBase(tag,creator),m_Desc(desc)
     {
+
     }
-#endif
-    Resource(const Desc& desc) :
-        m_Desc(desc)
-    {
-    }
+
     void Realize() override
     {
         m_Actual = ::Aether::TaskGraph::Realize<Actual, Desc>(m_Desc);

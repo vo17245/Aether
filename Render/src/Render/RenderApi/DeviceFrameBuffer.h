@@ -76,6 +76,25 @@ public:
             return {};
         }
     }
+    static DeviceFrameBuffer CreateFromColorAttachment(const DeviceRenderPass& renderPass,DeviceTexture& colorAttachment)
+    {
+        if (Render::Config::RenderApi == Render::Api::Vulkan)
+        {
+            auto& vkColor=colorAttachment.Get<vk::Texture2D>();
+            auto& vkRenderPass=renderPass.GetVk();
+            VkExtent2D size={vkColor.GetWidth(),vkColor.GetHeight()};
+            auto& colorImageView=colorAttachment.GetOrCreateDefaultImageView().Get<vk::ImageView>();
+
+            auto frameBuffer=vk::FrameBuffer::Create(vkRenderPass,
+             size,colorImageView);
+            return DeviceFrameBuffer(std::move(frameBuffer.value()));
+        }
+        else
+        {
+            assert(false && "not implemented");
+            return {};
+        }
+    }
     vk::FrameBuffer& GetVk()
     {
         return std::get<vk::FrameBuffer>(m_Data);
