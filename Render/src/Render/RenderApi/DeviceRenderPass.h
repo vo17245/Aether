@@ -69,7 +69,7 @@ struct VkRenderPassCreateInfoStorage
     VkSubpassDependency dependency = {};
     VkRenderPassCreateInfo renderPassInfo = {};
 };
-VkRenderPassCreateInfo DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCreateInfoStorage& storage);
+void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCreateInfoStorage& storage);
 class DeviceRenderPass
 {
 public:

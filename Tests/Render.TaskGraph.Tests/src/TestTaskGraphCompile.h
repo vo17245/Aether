@@ -2,6 +2,7 @@
 #include <Window/Layer.h>
 #include <Render/TaskGraph.h>
 #include <Window/Window.h>
+#include "GlobalApplicationResource.h"
 using namespace Aether;
 
 class TestTaskGraphCompile : public Layer
@@ -20,6 +21,9 @@ private:
     }
     void InitRenderResource(Window* window)
     {
+        auto commandBuffer=GlobalApplicationResource::GetInstance().GetCommandBufferPool().AllocateCommandBuffer();
+        assert(!commandBuffer.Empty() && "failed to allocate command buffer");
+        m_TaskGraph = CreateScope<TaskGraph::TaskGraph>(std::move(commandBuffer));
         auto& finalImage = window->GetFinalTexture();
         // wrap final texture to taskgraph resource
         {
@@ -31,7 +35,7 @@ private:
 
             };
             auto texture = CreateScope<TaskGraph::Texture>("final image", nullptr, desc);
-            m_TaskGraph.AddRetainedResource(std::move(texture));
+            m_TaskGraph->AddRetainedResource(std::move(texture));
         }
         // create final image render pass
         {
@@ -46,14 +50,14 @@ private:
         }
         // create final image framebuffer
         {
-            auto frameBuffer = DeviceFrameBuffer::CreateFromColorAttachment(m_FinalImageRenderPass, finalImage);
+            auto frameBuffer = DeviceFrameBuffer::CreateFromColorAttachment(*m_FinalImageRenderPass, finalImage);
             assert(!frameBuffer.Empty());
             m_FinalImageFrameBuffer = CreateScope<DeviceFrameBuffer>(std::move(frameBuffer));
         }
     }
 
 private:
-    TaskGraph::TaskGraph m_TaskGraph;
+    Scope<TaskGraph::TaskGraph> m_TaskGraph;
     Scope<DeviceFrameBuffer> m_FinalImageFrameBuffer;
     Scope<DeviceRenderPass> m_FinalImageRenderPass;
 };
