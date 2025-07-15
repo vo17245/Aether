@@ -38,12 +38,41 @@ public:
         : m_CommandBuffer(std::move(commandBuffer))
     {
     }
+    void Execute()
+    {
+        for(auto& timeline:m_Timelines)
+        {
+            for(auto& resource:timeline.realizedResources)
+            {
+                resource->Realize();
+            }
+            ExecuteTask executeTask{m_CommandBuffer};
+            std::visit(executeTask, timeline.task);
+            for(auto& resource:timeline.derealizedResources)
+            {
+                resource->Derealize();
+            }
+        }
+    }
 private:
+    using Task=std::variant<std::monostate,Borrow<DeviceTaskBase>>;
     struct Timeline
     {
-        std::variant<std::monostate,Borrow<DeviceTaskBase>> task;
+        Task task;
         std::vector<Borrow<ResourceBase>> realizedResources;   // should realize before task
         std::vector<Borrow<ResourceBase>> derealizedResources; // should derealize after task
+    };
+    struct ExecuteTask
+    {
+        DeviceCommandBuffer& commandBuffer;
+        void operator()(const std::monostate&)
+        {
+            return;
+        }
+        void operator()(const Borrow<DeviceTaskBase>& task)
+        {
+            task->Execute(commandBuffer);
+        }
     };
     std::vector<Scope<ResourceBase>> m_Resources;
     std::vector<Scope<DeviceTaskBase>> m_DeviceTasks;

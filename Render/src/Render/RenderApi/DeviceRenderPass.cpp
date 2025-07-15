@@ -3,6 +3,7 @@ namespace Aether
 {
 void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCreateInfoStorage& storage)
 {
+    size_t attachments = 0;
     // config depth attachment
     if (desc.depthAttachment)
     {
@@ -18,6 +19,7 @@ void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCrea
         VkAttachmentReference depthAttachmentRef{};
         depthAttachmentRef.attachment = DeviceRenderPassDesc::MaxColorAttachments;
         depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        ++attachments;
     }
 
     // config color attachment
@@ -36,13 +38,20 @@ void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCrea
         auto& attachmentRef = storage.attachRefs[i];
         attachmentRef.attachment = i;
         attachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        ++attachments;
     }
 
     VkSubpassDescription& subpass = storage.subpass;
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = desc.colorAttachmentCount;
-    subpass.pColorAttachments = storage.attachRefs;
-    subpass.pDepthStencilAttachment = storage.attachRefs + DeviceRenderPassDesc::MaxColorAttachments;
+    if (desc.colorAttachmentCount)
+    {
+        subpass.pColorAttachments = storage.attachRefs;
+    }
+    if (desc.depthAttachment)
+    {
+        subpass.pDepthStencilAttachment = storage.attachRefs + DeviceRenderPassDesc::MaxColorAttachments;
+    }
 
     VkSubpassDependency& dependency = storage.dependency;
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -54,7 +63,8 @@ void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCrea
 
     VkRenderPassCreateInfo& renderPassInfo = storage.renderPassInfo;
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 2;
+    renderPassInfo.attachmentCount = attachments;
+    ;
     renderPassInfo.pAttachments = storage.attachs;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;

@@ -31,6 +31,11 @@ public:
         m_Layers.clear();
         m_FirstLayer.reset();
     }
+    void OnRender()
+    {
+        
+    }
+
 
 private:
     Scope<Layer> m_FirstLayer;

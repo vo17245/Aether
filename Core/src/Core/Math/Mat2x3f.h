@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <Eigen/Core>
 namespace Aether
 {
 struct alignas(16) Mat2x3f
@@ -25,5 +26,43 @@ struct alignas(16) Mat2x3f
         m10 = sinAngle;
         m11 = cosAngle;
     }
+    Eigen::Matrix<float, 2, 3> ToEigen()const
+    {
+        Eigen::Matrix<float, 2, 3> mat;
+        mat(0, 0) = m00;
+        mat(0, 1) = m01;
+        mat(0, 2) = m02;
+        mat(1, 0) = m10;
+        mat(1, 1) = m11;
+        mat(1, 2) = m12;
+        return mat;
+    }
+    static Mat2x3f FromEigen(const Eigen::Matrix<float, 2, 3>& mat)
+    {
+        Mat2x3f result;
+        result.m00 = mat(0, 0);
+        result.m01 = mat(0, 1);
+        result.m02 = mat(0, 2);
+        result.m10 = mat(1, 0);
+        result.m11 = mat(1, 1);
+        result.m12 = mat(1, 2);
+        result._pad0 = 0.0f; // 填充
+        result._pad1 = 0.0f; // 填充
+        return result;
+    }
+    static Mat2x3f Identity()
+    {
+        Mat2x3f result;
+        result.m00 = 1.0f;
+        result.m01 = 0.0f;
+        result.m02 = 0.0f;
+        result.m10 = 0.0f;
+        result.m11 = 1.0f;
+        result.m12 = 0.0f;
+        result._pad0 = 0.0f; // 填充
+        result._pad1 = 0.0f; // 填充
+        return result;
+    }
+
 }; // 总共 32 字节
 } // namespace Aether
