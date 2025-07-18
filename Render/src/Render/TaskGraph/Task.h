@@ -21,25 +21,25 @@ public:
     */ 
     bool cullImmune = false; 
 };
-class DeviceTaskBase : public TaskBase
+class RenderTaskBase : public TaskBase
 {
 public:
-    virtual ~DeviceTaskBase() = default;
+    virtual ~RenderTaskBase() = default;
     virtual void Setup(TaskBuilder& builder) = 0;
     virtual void Execute(DeviceCommandBuffer& commandBuffer) = 0;
 };
 
 template <typename TaskData>
-class DeviceTask : public DeviceTaskBase
+class RenderTask : public RenderTaskBase
 {
 public:
-    DeviceTask(std::function<void(TaskData&, TaskBuilder&)> setup, std::function<void(TaskData&, DeviceCommandBuffer& commandBuffer)> execute) :
+    RenderTask(std::function<void(TaskData&, TaskBuilder&)> setup, std::function<void(TaskData&, DeviceCommandBuffer& commandBuffer)> execute) :
         m_Execute(execute), m_Setup(setup)
     {
     }
     void Execute(DeviceCommandBuffer& commandBuffer) override
     {
-        m_Execute(m_Data);
+        m_Execute(m_Data,commandBuffer);
     }
     void Setup(TaskBuilder& builder) override
     {
@@ -52,7 +52,7 @@ public:
 
 private:
     TaskData m_Data;
-    std::function<void(TaskData&)> m_Execute;
+    std::function<void(TaskData&,DeviceCommandBuffer& commandBuffer)> m_Execute;
     std::function<void(TaskBuilder&, TaskData&)> m_Setup;
 };
 } // namespace Aether::TaskGraph

@@ -12,6 +12,7 @@ class TestTaskGraphCompile : public Test
 public:
     virtual void OnAttach(Window* window) override
     {
+        m_Window = window;
         InitRenderResource(window);
         CreateQuads(window->GetSize().cast<uint32_t>());
         CreateTaskGraph();
@@ -67,7 +68,23 @@ void main()
     }
     void CreateTaskGraph()
     {
+        struct TaskData
+        {
+            TaskGraph::FrameBuffer* frameBuffer;
+        };
+        TaskGraph::Texture* finalTexture=m_TaskGraph->AddRetainedResourceBorrow<DeviceTexture>("final image",
+            &(m_Window->GetFinalTexture()),
+            TaskGraph::TextureDesc{});
+        auto data=m_TaskGraph->AddRenderTask<TaskData>(
+            [&](TaskGraph::TaskBuilder& builder,TaskData& data){
+                data.frameBuffer=builder.Create<TaskGraph::FrameBuffer>("final texture framebuffer", TaskGraph::FrameBufferDesc{
+                    .colorAttachments={finalTexture}
+                });
+                builder.Write(finalTexture);
+            }, 
+            [=](TaskData& data,DeviceCommandBuffer& commandBuffer){
 
+            });
     }
     void InitRenderResource(Window* window)
     {
@@ -75,18 +92,7 @@ void main()
         assert(!commandBuffer.Empty() && "failed to allocate command buffer");
         m_TaskGraph = CreateScope<TaskGraph::TaskGraph>(std::move(commandBuffer));
         auto& finalImage = window->GetFinalTexture();
-        // wrap final texture to taskgraph resource
-        {
-            TaskGraph::TextureDesc desc{
-                .usages = (uint32_t)DeviceImageUsage::ColorAttachment,
-                .pixelFormat = PixelFormat::RGBA8888,
-                .width = finalImage.GetWidth(),
-                .height = finalImage.GetHeight(),
 
-            };
-            auto texture = CreateScope<TaskGraph::Texture>("final image", nullptr, desc);
-            m_TaskGraph->AddRetainedResource(std::move(texture));
-        }
         // create final image render pass
         {
             DeviceRenderPassDesc desc;
@@ -110,5 +116,7 @@ private:
     Scope<TaskGraph::TaskGraph> m_TaskGraph;
     Scope<DeviceFrameBuffer> m_FinalImageFrameBuffer;
     Scope<DeviceRenderPass> m_FinalImageRenderPass;
+    Scope<DeviceTexture> m_FinalImageTexture;
     std::vector<Scope<DrawQuad>> m_Quads;
+    Window* m_Window = nullptr;
 };

@@ -13,22 +13,34 @@ namespace Aether::TaskGraph
 
 class TaskGraph
 {
-    friend class TaskBuilder;
+    friend class RenderTaskBuilder;
 
 public:
     template <typename TaskData>
-    TaskData AddDeviceTask(std::function<void(TaskBuilder&, TaskData&)> setup, std::function<void(TaskData&)> execute)
+    TaskData AddRenderTask(std::function<void(TaskBuilder&, TaskData&)> setup, std::function<void(TaskData&,DeviceCommandBuffer& commandBuffer)> execute)
     {
-        m_DeviceTasks.emplace_back(CreateScope<DeviceTask<TaskData>>(setup, execute));
-        auto* task = (DeviceTask<TaskData>*)m_DeviceTasks.back().get();
-        TaskBuilder builder(this, task);
+        m_RenderTasks.emplace_back(CreateScope<RenderTask<TaskData>>(setup, execute));
+        auto* task = (RenderTask<TaskData>*)m_RenderTasks.back().get();
+        RenderTaskBuilder builder(this, task);
         task->Setup(builder);
         return task->GetData();
     }
     void Compile();
-    void AddRetainedResource(Scope<ResourceBase>&&  resource)
+    template<typename ActualType,typename DescType>
+    Resource<ActualType, DescType>* AddRetainedResource(const std::string& tag,Scope<ActualType> actual,const DescType& desc)
     {
-        m_Resources.emplace_back(std::move(resource));
+        auto r= CreateScope<Resource<ActualType, DescType>>(tag, nullptr, desc);
+        r->SetActual(std::move(actual));
+        m_Resources.emplace_back(std::move(r));
+        return static_cast<Resource<ActualType, DescType>*>(m_Resources.back().get());
+    }
+    template<typename ActualType,typename DescType>
+    Resource<ActualType, DescType>* AddRetainedResourceBorrow(const std::string& tag,Borrow<ActualType> actual,const DescType& desc)
+    {
+        auto r= CreateScope<Resource<ActualType, DescType>>(tag, nullptr, desc);
+        r->SetActualBorrow(actual);
+        m_Resources.emplace_back(std::move(r));
+        return static_cast<Resource<ActualType, DescType>*>(m_Resources.back().get());
     }
     bool CheckGraph()
     {
@@ -92,7 +104,7 @@ private:
             resource.Derealize();
         }
     }
-    using Task=std::variant<std::monostate,Borrow<DeviceTaskBase>>;
+    using Task=std::variant<std::monostate,Borrow<RenderTaskBase>>;
     struct Timeline
     {
         Task task;
@@ -106,13 +118,13 @@ private:
         {
             return;
         }
-        void operator()(const Borrow<DeviceTaskBase>& task)
+        void operator()(const Borrow<RenderTaskBase>& task)
         {
             task->Execute(commandBuffer);
         }
     };
     std::vector<Scope<ResourceBase>> m_Resources;
-    std::vector<Scope<DeviceTaskBase>> m_DeviceTasks;
+    std::vector<Scope<RenderTaskBase>> m_RenderTasks;
     std::vector<Timeline> m_Timelines; // create on compile, execute every frame
 private:// render resource
     DeviceCommandBuffer m_CommandBuffer;
@@ -120,7 +132,7 @@ private:// render resource
 };
 template <typename ResourceType, typename Desc>
     requires std::derived_from<ResourceType, ResourceBase>
-ResourceType* TaskBuilder::Create(const std::string& tag, const Desc& desc)
+ResourceType* RenderTaskBuilder::Create(const std::string& tag, const Desc& desc)
 {
     m_TaskGraph->m_Resources.emplace_back(CreateScope<ResourceType>(tag, m_Task, desc));
 
@@ -130,7 +142,7 @@ ResourceType* TaskBuilder::Create(const std::string& tag, const Desc& desc)
 }
 template <typename ResourceType>
     requires std::derived_from<ResourceType, ResourceBase>
-inline ResourceType* TaskBuilder::Read(ResourceType* _resource)
+inline ResourceType* RenderTaskBuilder::Read(ResourceType* _resource)
 {
     ResourceBase* resource = (ResourceBase*)_resource;
     resource->readers.push_back(m_Task);
@@ -139,7 +151,7 @@ inline ResourceType* TaskBuilder::Read(ResourceType* _resource)
 }
 template <typename ResourceType>
     requires std::derived_from<ResourceType, ResourceBase>
-inline ResourceType* TaskBuilder::Write(ResourceType* _resource)
+inline ResourceType* RenderTaskBuilder::Write(ResourceType* _resource)
 {
     ResourceBase* resource = (ResourceBase*)_resource;
     resource->writers.push_back(m_Task);
