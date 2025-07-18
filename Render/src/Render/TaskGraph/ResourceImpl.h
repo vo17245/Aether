@@ -1,5 +1,5 @@
 #pragma once
-#include "Detail/Resource.h"
+#include "Resource.h"
 #include <Render/RenderApi.h>
 namespace Aether::TaskGraph 
 {
@@ -51,4 +51,48 @@ struct Hash<TextureDesc>
 };
 using Texture=Resource<DeviceTexture, TextureDesc>;
 using Buffer=Resource<DeviceBuffer,BufferDesc>;
+
+struct FrameBufferDesc
+{
+    std::vector<Texture*> colorAttachments;
+    Texture* depthAttachment = nullptr;
+    bool operator==(const FrameBufferDesc& other) const
+    {
+        return colorAttachments == other.colorAttachments && depthAttachment == other.depthAttachment;
+    }
+
+};
+template <>
+struct Hash<FrameBufferDesc>
+{
+    size_t operator()(const FrameBufferDesc& desc) const
+    {
+        size_t hash = 0;
+        for (const auto& colorAttachment : desc.colorAttachments)
+        {
+            hash ^= std::hash<void*>()(colorAttachment);
+        }
+        if (desc.depthAttachment)
+        {
+            hash ^= std::hash<void*>()(desc.depthAttachment);
+        }
+        return hash;
+    }
+};
+using FrameBuffer = Resource<DeviceFrameBuffer, FrameBufferDesc>;
+template<>
+struct GetResourceType<BufferDesc>
+{
+    static constexpr ResourceType type = ResourceType::Buffer;
+};
+template<>
+struct GetResourceType<TextureDesc>
+{
+    static constexpr ResourceType type = ResourceType::Texture;
+};
+template<>
+struct GetResourceType<FrameBufferDesc>
+{
+    static constexpr ResourceType type = ResourceType::FrameBuffer;
+};
 }

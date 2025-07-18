@@ -78,7 +78,6 @@ public:
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
-    std::vector<Scope<vk::Semaphore>> m_LayerRenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
     VkSwapchainKHR m_SwapChain = VK_NULL_HANDLE;
     std::vector<VkImage> m_SwapChainImages;
     std::vector<vk::ImageView> m_SwapChainImageViews;

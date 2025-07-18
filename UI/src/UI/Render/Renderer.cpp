@@ -57,7 +57,7 @@ bool Renderer::CreateBasicPipeline(DeviceRenderPassView _renderPass)
     m_BasicPipelineLayout = std::move(layout.value());
     return true;
 }
-void Renderer::Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, const Camera2D& camera)
+void Renderer::Begin(DeviceFrameBufferView frameBuffer, const Camera2D& camera)
 {
     #ifdef AETHER_RUNTIME_CHECK
     assert(m_IsBusy==false &&" renderer is busy");
@@ -66,7 +66,6 @@ void Renderer::Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView fram
     m_IsBusy=true;
     m_Camera=camera;
     m_FrameBuffer = frameBuffer;
-    m_RenderPass = renderPass;
     
 }
 void Renderer::Reset()
@@ -129,7 +128,6 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
 
         // record command in input command buffer
         auto& commandBuffer = _commandBuffer.Get<vk::GraphicsCommandBuffer>();
-        auto& renderPass = m_RenderPass.Get<vk::RenderPass>();
         auto& frameBuffer = m_FrameBuffer.Get<vk::FrameBuffer>();
         auto& pipeline = m_BasicPipeline.GetVk();
         auto& pipelineLayout = m_BasicPipelineLayout.GetVk();
@@ -157,7 +155,6 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
             UpdateQuadWithTextureDescriptor(qwt);
             auto& descriptorResource = qwt.descriptorSet.GetVk();
             auto& commandBuffer = _commandBuffer.Get<vk::GraphicsCommandBuffer>();
-            auto& renderPass = m_RenderPass.Get<vk::RenderPass>();
             auto& frameBuffer = m_FrameBuffer.Get<vk::FrameBuffer>();
             auto& pipeline = m_QuadWithTexturePipeline.GetVk();
             auto& pipelineLayout = m_QuadWithTexturePipelineLayout.GetVk();

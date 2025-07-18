@@ -1,6 +1,7 @@
 #pragma once
-#include "Test.h"
 #include <Window/Layer.h>
+#include "Tests/TestTaskGraphCompile.h"
+#include "Tests/Test.h"
 class TestLayer:public Layer
 {
 public:
@@ -12,6 +13,7 @@ public:
     virtual void OnAttach(Window* window)
     {
         m_Window = window;
+        SetTest(CreateScope<TestTaskGraphCompile>());
     }
     virtual void OnDetach()
     {

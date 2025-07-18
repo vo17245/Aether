@@ -2,16 +2,17 @@
 #include <Render/RenderApi.h>
 #include "Realize.h"
 #include "Debug.h"
+#include "ResourceType.h"
 namespace Aether::TaskGraph
 {
 class DeviceTaskBase;
 class ResourceBase
 {
 public:
-    ResourceBase(const std::string& tag,DeviceTaskBase* creator)
+    ResourceBase(const std::string& _tag,DeviceTaskBase* creator)
     {
 #if AETHER_RENDER_TASKGRAPH_DEBUG_ENABLE_DEBUG_TAG
-        m_Tag = tag;
+        tag = _tag;
 #endif
         this->creator = creator;
     }
@@ -27,9 +28,13 @@ public:
     std::vector<DeviceTaskBase*> writers;
     size_t refCount = 0; // for task graph compilation
 #if AETHER_RENDER_TASKGRAPH_DEBUG_ENABLE_DEBUG_TAG
-    std::string m_Tag;
+    std::string tag;
 #endif
+    ResourceType type = ResourceType::Unknown;
+
 };
+template<typename Desc>
+struct GetResourceType;
 template <typename Actual, typename Desc>
 class Resource : public ResourceBase
 {
@@ -37,7 +42,7 @@ public:
     Resource(const std::string& tag,DeviceTaskBase* creator ,const Desc& desc) :
         ResourceBase(tag,creator),m_Desc(desc)
     {
-
+        type = GetResourceType<Desc>::type;
     }
 
     void Realize() override
@@ -49,6 +54,19 @@ public:
     {
         m_Actual.reset();
     }
+    void SetActual(Scope<Actual>&& actual)
+    {
+        m_Actual = std::move(actual);
+    }
+    const Desc& GetDesc()const
+    {
+        return m_Desc;
+    }
+    Scope<Actual>& GetActual()
+    {
+        return m_Actual;
+    }
+
 
 private:
     Scope<Actual> m_Actual;

@@ -26,7 +26,7 @@ virtual void OnRender(
 
         commandBuffer.BeginRenderPass(renderPass,
                                       framebuffer,
-                                      Vec4(1.0,0.0,0.0,1.0));
+                                      Vec4(0.0,0.0,0.0,1.0));
         for(auto& quad:m_Quads)
         {
             quad->Render(cbv);
@@ -56,7 +56,7 @@ layout(location=0)out vec4 FragColor;
 void main()
 {
 
-    FragColor=vec4(0.4,0.5,0.6,1.0);
+    FragColor=vec4(0.4,0.5,0.6,0.5);
 
 }
         )";

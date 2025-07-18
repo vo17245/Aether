@@ -24,7 +24,7 @@ public:
         node->id = m_Scene->CreateEntity();
         m_Scene->AddComponent<NodeComponent>(node->id, node);
         m_Scene->AddComponent<BaseComponent>(node->id, BaseComponent{Vec2f(0, 0),
-                                                                    Vec2f(0, 0)});
+                                                                     Vec2f(0, 0)});
         return node;
     }
     void DestroyNode(Node* node)
@@ -81,7 +81,7 @@ public:
 
     void RebuildLayout()
     {
-        BuildLayout(m_Root,m_Scene, m_Camera->screenSize, m_Camera->far, m_LayoutBuilder);
+        BuildLayout(m_Root, m_Scene, m_Camera->screenSize, m_Camera->far, m_LayoutBuilder);
     }
     void OnEvent(Event& event)
     {
@@ -89,12 +89,18 @@ public:
         {
             system->OnEvent(event, m_Scene);
         }
-        if(std::holds_alternative<WindowResizeEvent>(event))
+        if (std::holds_alternative<WindowResizeEvent>(event))
         {
             auto& resizeEvent = std::get<WindowResizeEvent>(event);
-            m_Camera->screenSize.x()= resizeEvent.GetWidth();
-            m_Camera->screenSize.y()= resizeEvent.GetHeight();
-            RebuildLayout();
+            if (resizeEvent.GetHeight() == 0 || resizeEvent.GetWidth() == 0)
+            {
+            }
+            else
+            {
+                m_Camera->screenSize.x() = resizeEvent.GetWidth();
+                m_Camera->screenSize.y() = resizeEvent.GetHeight();
+                RebuildLayout();
+            }
         }
     }
     void OnUpdate(float sec)
@@ -105,7 +111,6 @@ public:
         }
     }
     void OnRender(DeviceCommandBufferView commandBuffer,
-                  DeviceRenderPassView renderPass,
                   DeviceFrameBufferView frameBuffer,
                   Vec2f screenSize)
     {
@@ -115,7 +120,7 @@ public:
         m_Camera->CalculateMatrix();
         for (auto* system : m_Systems)
         {
-            system->OnRender(commandBuffer, renderPass, frameBuffer, screenSize, m_Scene);
+            system->OnRender(commandBuffer, frameBuffer, screenSize, m_Scene);
         }
     }
     /**
@@ -139,13 +144,13 @@ public:
     }
     void RequireRebuildLayout()
     {
-        m_NeedRebuildLayout=true;
+        m_NeedRebuildLayout = true;
     }
     std::unordered_map<std::string, Node*>& GetNodeIdMap()
     {
         return m_NodeId;
     }
-    const std::unordered_map<std::string, Node*>& GetNodeIdMap()const
+    const std::unordered_map<std::string, Node*>& GetNodeIdMap() const
     {
         return m_NodeId;
     }
@@ -162,6 +167,7 @@ public:
     {
         m_Scene = scene;
     }
+
 private:
     void InitCamera(const Vec2f& screenSize)
     {
@@ -183,19 +189,19 @@ private:
     LayoutBuilder m_LayoutBuilder;
     std::unique_ptr<Camera2D> m_Camera;
     bool m_NeedRebuildLayout = false; // 是否需要重新布局
-    std::unordered_map<std::string,Node*> m_NodeId;
+    std::unordered_map<std::string, Node*> m_NodeId;
 };
-template<typename T>
+template <typename T>
 inline T& Node::GetComponent()
 {
     return hierarchy->GetComponent<T>(this);
 }
-template<typename T>
+template <typename T>
 inline bool Node::HasComponent()
 {
     return hierarchy->GetScene().HasComponent<T>(id);
 }
-template<typename T,typename... Args>
+template <typename T, typename... Args>
 inline T& Node::AddComponent(Args&&... args)
 {
     return hierarchy->AddComponent<T>(this, std::forward<Args>(args)...);

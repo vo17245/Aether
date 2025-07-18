@@ -26,7 +26,7 @@ public:
         assert(m_Camera && "camera is nullptr");
         auto view = scene.Select<NodeComponent, BaseComponent, QuadComponent>();
         auto& renderer = *this->renderer;
-        renderer.Begin(renderPass, frameBuffer, *m_Camera);
+        renderer.Begin( frameBuffer, *m_Camera);
         for (const auto& [entity, node, base, quad] : view.each())
         {
             if (!quad.visible)

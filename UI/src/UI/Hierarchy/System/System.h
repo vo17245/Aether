@@ -9,7 +9,6 @@ class SystemI
 public:
     virtual void OnUpdate(float sec, Scene& scene) {}
     virtual void OnRender(DeviceCommandBufferView commandBuffer,
-                          DeviceRenderPassView renderPass,
                           DeviceFrameBufferView frameBuffer,
                           Vec2f screenSize,
                           Scene& scene) {}

@@ -61,10 +61,9 @@ struct DeviceRenderPassDesc
 };
 struct VkRenderPassCreateInfoStorage
 {
-    // DeviceRenderPassDesc::MaxColorAttachments -> depth
-    // 0-DeviceRenderPassDesc::MaxColorAttachments-1-> colors
     VkAttachmentDescription attachs[DeviceRenderPassDesc::MaxColorAttachments + 1] = {};
-    VkAttachmentReference attachRefs[DeviceRenderPassDesc::MaxColorAttachments + 1] = {};
+    VkAttachmentReference colorAttachRefs[DeviceRenderPassDesc::MaxColorAttachments ] = {};
+    VkAttachmentReference depthAttachRef;
     VkSubpassDescription subpass = {};
     VkSubpassDependency dependency = {};
     VkRenderPassCreateInfo renderPassInfo = {};

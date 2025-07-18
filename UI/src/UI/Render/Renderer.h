@@ -21,7 +21,7 @@ class Renderer
 public:
     Renderer(const Renderer&) = delete;
     Renderer(Renderer&&) = default;
-    void Begin(DeviceRenderPassView renderPass, DeviceFrameBufferView frameBuffer, const Camera2D& camera);
+    void Begin( DeviceFrameBufferView frameBuffer, const Camera2D& camera);
     void DrawQuad(const Quad& quad);
     void End(DeviceCommandBufferView _commandBuffer);
     void Reset();
@@ -110,7 +110,6 @@ private:
     QuadArrayMesh m_BasicQuadArray; // quad with color
 private:
     DeviceFrameBufferView m_FrameBuffer;
-    DeviceRenderPassView m_RenderPass;
 
 private:
     DeviceCommandBuffer m_TransformCommandBuffer; // for vertex data transform

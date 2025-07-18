@@ -45,11 +45,10 @@ public:
     }
     
     void OnRender(DeviceCommandBufferView commandBuffer,
-                  DeviceRenderPassView renderPass,
                   DeviceFrameBufferView frameBuffer,
                   Vec2f screenSize)
     {
-        m_Hierarchy->OnRender(commandBuffer, renderPass, frameBuffer, screenSize);
+        m_Hierarchy->OnRender(commandBuffer,  frameBuffer, screenSize);
     }
     void OnEvent(Event& event)
     {

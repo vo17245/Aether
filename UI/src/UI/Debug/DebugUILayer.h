@@ -29,8 +29,8 @@ namespace Aether::UI
 class DebugUILayer : public Layer
 {
 public:
-    DebugUILayer(const std::string& currentPagePath,Scope<IDebugPageBehavior>&& behavior=nullptr) :
-        m_CurrentPagePath(currentPagePath),m_CurrentPageBehavior(std::move(behavior))
+    DebugUILayer(const std::string& currentPagePath, Scope<IDebugPageBehavior>&& behavior = nullptr) :
+        m_CurrentPagePath(currentPagePath), m_CurrentPageBehavior(std::move(behavior))
     {
     }
     ~DebugUILayer()
@@ -53,7 +53,7 @@ public:
         commandBuffer.BeginRenderPass(m_Resource.renderPass.GetVk(),
                                       m_Resource.frameBuffer.GetVk(),
                                       clearValues);
-        m_CurrentPage->OnRender(commandBuffer, renderPass, framebuffer,
+        m_CurrentPage->OnRender(commandBuffer, framebuffer,
                                 m_ScreenSize);
         commandBuffer.EndRenderPass();
     }
@@ -79,7 +79,7 @@ public:
         {
             auto page = DebugPage::Load(m_CurrentPagePath, *m_Scene, *m_Resource.renderResource.m_StagingBuffer,
                                         *m_TextureCache, *m_Resource.renderer, *m_Resource.renderResource.m_DescriptorPool,
-                                        m_Resource.renderPass, m_Resource.camera,std::move(m_CurrentPageBehavior));
+                                        m_Resource.renderPass, m_Resource.camera, std::move(m_CurrentPageBehavior));
             assert(page.has_value() && "failed to load debug page");
             auto pageScope = CreateScope<DebugPage>(std::move(page.value()));
             SetCurrentPage(m_CurrentPagePath, std::move(pageScope));
@@ -90,15 +90,22 @@ public:
     {
         if (std::holds_alternative<WindowResizeEvent>(event))
         {
-            // update camera
-            auto& camera = m_Resource.camera;
             auto& e = std::get<WindowResizeEvent>(event);
-            auto& renderer = *m_Resource.renderer;
-            camera.screenSize.x() = e.GetWidth();
-            camera.screenSize.y() = e.GetHeight();
-            // update hierarchy framebuffer
-            m_Resource.ResizeHierarchyFrameBuffer(Vec2i(e.GetWidth(), e.GetHeight()),
-                                                  m_Window->GetFinalTexture());
+            if (e.GetHeight() == 0 || e.GetWidth() == 0)
+            {
+            }
+            else
+            {
+                // update camera
+                auto& camera = m_Resource.camera;
+
+                auto& renderer = *m_Resource.renderer;
+                camera.screenSize.x() = e.GetWidth();
+                camera.screenSize.y() = e.GetHeight();
+                // update hierarchy framebuffer
+                m_Resource.ResizeHierarchyFrameBuffer(Vec2i(e.GetWidth(), e.GetHeight()),
+                                                      m_Window->GetFinalTexture());
+            }
         }
         m_CurrentPage->OnEvent(event);
     }
@@ -107,7 +114,7 @@ public:
         m_CurrentPage->OnFrameBegin();
         m_Resource.renderer->OnFrameBegin();
     }
-    virtual void OnUpdate(float deltaSec)override
+    virtual void OnUpdate(float deltaSec) override
     {
         m_CurrentPage->OnUpdate(deltaSec);
     }
@@ -126,7 +133,7 @@ private:
     DebugUILayerResource m_Resource;
     Window* m_Window = nullptr;
     Scope<DebugPage> m_CurrentPage;
-    Scope<IDebugPageBehavior> m_CurrentPageBehavior;// set on construtor, move to page on attach, **will be null after OnAttach**
+    Scope<IDebugPageBehavior> m_CurrentPageBehavior; // set on construtor, move to page on attach, **will be null after OnAttach**
     std::string m_CurrentPagePath;
 };
 } // namespace Aether::UI

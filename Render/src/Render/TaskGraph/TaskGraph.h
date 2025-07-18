@@ -2,11 +2,12 @@
 #include <vector>
 #include <Render/RenderApi.h>
 #include <Core/Core.h>
-#include "Detail/TaskBuilder.h"
-#include "Detail/Resource.h"
-#include "Detail/Realize.h"
-#include "Detail/Task.h"
+#include "TaskBuilder.h"
+#include "Resource.h"
+#include "Realize.h"
+#include "Task.h"
 #include <variant>
+#include "TransientResourcePool.h"
 namespace Aether::TaskGraph
 {
 
@@ -44,17 +45,53 @@ public:
         {
             for(auto& resource:timeline.realizedResources)
             {
-                resource->Realize();
+                RealizeResource(*resource);
             }
             ExecuteTask executeTask{m_CommandBuffer};
             std::visit(executeTask, timeline.task);
             for(auto& resource:timeline.derealizedResources)
             {
-                resource->Derealize();
+                DerealizeResource(*resource);
             }
         }
     }
 private:
+    void RealizeResource(ResourceBase& resource)
+    {
+        switch (resource.type) 
+        {
+            case ResourceType::FrameBuffer:
+            {
+                FrameBuffer& fbr=static_cast<FrameBuffer&>(resource);
+                auto fb=m_TransientResourcePool.GetFrameBuffer(fbr.GetDesc());
+                if(fb)
+                {
+                    fbr.SetActual(std::move(fb));
+                }
+                else 
+                {
+                    fbr.Realize();
+                }
+            }
+            break;
+            default:
+            resource.Realize();
+        }
+    }
+    void DerealizeResource(ResourceBase& resource)
+    {
+        switch (resource.type) 
+        {
+            case ResourceType::FrameBuffer:
+            {
+                FrameBuffer& fbr=static_cast<FrameBuffer&>(resource);
+                m_TransientResourcePool.PushFrameBufferf(std::move(fbr.GetActual()), fbr.GetDesc());
+            }
+            break;
+            default:
+            resource.Derealize();
+        }
+    }
     using Task=std::variant<std::monostate,Borrow<DeviceTaskBase>>;
     struct Timeline
     {
@@ -79,6 +116,7 @@ private:
     std::vector<Timeline> m_Timelines; // create on compile, execute every frame
 private:// render resource
     DeviceCommandBuffer m_CommandBuffer;
+    TransientResourcePool m_TransientResourcePool;
 };
 template <typename ResourceType, typename Desc>
     requires std::derived_from<ResourceType, ResourceBase>

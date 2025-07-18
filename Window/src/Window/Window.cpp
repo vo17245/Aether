@@ -113,10 +113,7 @@ Window* Window::Create(int width, int height, const char* title)
 void Window::PushLayer(Layer* layer)
 {
     m_Layers.emplace_back(layer);
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        m_LayerRenderFinishedSemaphore[i].emplace_back(Semaphore::CreateScope());
-    }
+
     layer->OnAttach(this);
 }
 void Window::PopLayer(Layer* layer)
@@ -126,11 +123,7 @@ void Window::PopLayer(Layer* layer)
     {
         (*iter)->OnDetach();
         m_Layers.erase(iter);
-        vkDeviceWaitIdle(vk::GRC::GetDevice()); // 防止删除Semaphore时还在使用
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-        {
-            m_LayerRenderFinishedSemaphore[i].pop_back();
-        }
+
     }
     else
     {
@@ -542,13 +535,7 @@ bool Window::ReleaseSyncObjects()
     {
         semaphore.reset();
     }
-    for (auto& arr : m_LayerRenderFinishedSemaphore)
-    {
-        for (auto& semaphore : arr)
-        {
-            semaphore.reset();
-        }
-    }
+
     return true;
 }
 void Window::PushEvent(const Event& e)

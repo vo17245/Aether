@@ -4,40 +4,56 @@ namespace Aether
 void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCreateInfoStorage& storage)
 {
     size_t attachments = 0;
-    // config depth attachment
-    if (desc.depthAttachment)
-    {
-        VkAttachmentDescription& depthAttachment = storage.attachs[DeviceRenderPassDesc::MaxColorAttachments];
-        depthAttachment.format = VK_FORMAT_D32_SFLOAT;
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = DeviceRenderPassDesc::MaxColorAttachments;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        ++attachments;
-    }
+    
 
     // config color attachment
     for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
         auto& colorAttachmentDesc = desc.colorAttachments[i];
-        VkAttachmentDescription& colorAttachment = storage.attachs[0];
+        VkAttachmentDescription& colorAttachment = storage.attachs[i];
         colorAttachment.format = PixelFormatToVkFormat(colorAttachmentDesc.format);
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = DeviceAttachmentLoadOpToVkLoadOp(colorAttachmentDesc.load);
         colorAttachment.storeOp = DeviceAttachmentStoreOpToVkStoreOp(colorAttachmentDesc.store);
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        if(colorAttachmentDesc.load!=DeviceAttachmentLoadOp::DontCare)
+        {
+            colorAttachment.initialLayout=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        }
+        else 
+        {
+            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        }
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        auto& attachmentRef = storage.attachRefs[i];
+        auto& attachmentRef = storage.colorAttachRefs[i];
         attachmentRef.attachment = i;
         attachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        ++attachments;
+    }
+    // config depth attachment
+    if (desc.depthAttachment)
+    {
+        VkAttachmentDescription& depthAttachment = storage.attachs[attachments];
+        auto& depthAttachmentDesc = desc.depthAttachment.value();
+        depthAttachment.format = PixelFormatToVkFormat(depthAttachmentDesc.format);
+        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthAttachment.loadOp = DeviceAttachmentLoadOpToVkLoadOp(depthAttachmentDesc.load);
+        depthAttachment.storeOp = DeviceAttachmentStoreOpToVkStoreOp(depthAttachmentDesc.store);
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+        if(depthAttachmentDesc.load!=DeviceAttachmentLoadOp::DontCare)
+        {
+            depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        }
+        else 
+        {
+            depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        }
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference& depthAttachmentRef= storage.depthAttachRef;
+        depthAttachmentRef.attachment = attachments;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         ++attachments;
     }
 
@@ -46,11 +62,11 @@ void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCrea
     subpass.colorAttachmentCount = desc.colorAttachmentCount;
     if (desc.colorAttachmentCount)
     {
-        subpass.pColorAttachments = storage.attachRefs;
+        subpass.pColorAttachments = storage.colorAttachRefs;
     }
     if (desc.depthAttachment)
     {
-        subpass.pDepthStencilAttachment = storage.attachRefs + DeviceRenderPassDesc::MaxColorAttachments;
+        subpass.pDepthStencilAttachment = &storage.depthAttachRef;
     }
 
     VkSubpassDependency& dependency = storage.dependency;
@@ -64,7 +80,6 @@ void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCrea
     VkRenderPassCreateInfo& renderPassInfo = storage.renderPassInfo;
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = attachments;
-    ;
     renderPassInfo.pAttachments = storage.attachs;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;

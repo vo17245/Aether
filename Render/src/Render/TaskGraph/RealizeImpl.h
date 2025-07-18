@@ -1,7 +1,8 @@
 #pragma once
 #include <Render/RenderApi.h>
-#include "Detail/Realize.h"
+#include "Realize.h"
 #include "ResourceImpl.h"
+#include "TransientResourcePool.h"
 namespace Aether::TaskGraph
 {
 template <>

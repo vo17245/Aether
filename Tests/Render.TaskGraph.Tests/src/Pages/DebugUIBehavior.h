@@ -1,8 +1,7 @@
 #pragma once
 #include <UI/Debug/DebugPage.h>
-#include "LayerStack.h"
-#include "Test.h"
-#include "TestTaskGraphCompile.h"
+#include "Tests/Test.h"
+#include "Tests/TestTaskGraphCompile.h"
 using namespace Aether;
 class DebugUIBehavior : public UI::IDebugPageBehavior
 {
