@@ -1,9 +1,9 @@
 #pragma once
 #include "Resource.h"
 #include <Render/RenderApi.h>
-namespace Aether::TaskGraph 
+namespace Aether::TaskGraph
 {
-    enum class BufferType : uint32_t
+enum class BufferType : uint32_t
 {
     SSBO,
     UBO,
@@ -28,8 +28,6 @@ struct Hash<BufferDesc>
     }
 };
 
-
-
 struct TextureDesc
 {
     DeviceImageUsageFlags usages;
@@ -49,8 +47,8 @@ struct Hash<TextureDesc>
         return std::hash<uint32_t>()(static_cast<uint32_t>(desc.usages)) ^ std::hash<uint32_t>()(static_cast<uint32_t>(desc.pixelFormat)) ^ std::hash<uint32_t>()(desc.width) ^ std::hash<uint32_t>()(desc.height);
     }
 };
-using Texture=Resource<DeviceTexture, TextureDesc>;
-using Buffer=Resource<DeviceBuffer,BufferDesc>;
+using Texture = Resource<DeviceTexture, TextureDesc>;
+using Buffer = Resource<DeviceBuffer, BufferDesc>;
 
 struct FrameBufferDesc
 {
@@ -60,7 +58,6 @@ struct FrameBufferDesc
     {
         return colorAttachments == other.colorAttachments && depthAttachment == other.depthAttachment;
     }
-
 };
 template <>
 struct Hash<FrameBufferDesc>
@@ -80,19 +77,19 @@ struct Hash<FrameBufferDesc>
     }
 };
 using FrameBuffer = Resource<DeviceFrameBuffer, FrameBufferDesc>;
-template<>
+template <>
 struct GetResourceType<BufferDesc>
 {
     static constexpr ResourceType type = ResourceType::Buffer;
 };
-template<>
+template <>
 struct GetResourceType<TextureDesc>
 {
     static constexpr ResourceType type = ResourceType::Texture;
 };
-template<>
+template <>
 struct GetResourceType<FrameBufferDesc>
 {
     static constexpr ResourceType type = ResourceType::FrameBuffer;
 };
-}
+} // namespace Aether::TaskGraph

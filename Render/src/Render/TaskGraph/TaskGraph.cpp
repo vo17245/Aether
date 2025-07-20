@@ -2,10 +2,10 @@
 #include <stack>
 namespace Aether::TaskGraph
 {
-void TaskGraph::Compile()
+void TaskGraph::CalculateTimeline()
 {
     // Reference counting.
-    for (auto& task : m_DeviceTasks)
+    for (auto& task : m_RenderTasks)
     {
         task->refCount = task->creates.size() + task->writes.size();
     }
@@ -73,7 +73,7 @@ void TaskGraph::Compile()
 
     // Timeline computation.
     m_Timelines.clear();
-    for (auto& render_task : m_DeviceTasks)
+    for (auto& render_task : m_RenderTasks)
     {
         if (render_task->refCount == 0 && !render_task->cullImmune)
         {
@@ -106,38 +106,42 @@ void TaskGraph::Compile()
             if (!resource->readers.empty())
             {
                 auto last_reader = std::find_if(
-                    m_DeviceTasks.begin(),
-                    m_DeviceTasks.end(),
-                    [&resource](const std::unique_ptr<DeviceTaskBase>& iteratee) {
+                    m_RenderTasks.begin(),
+                    m_RenderTasks.end(),
+                    [&resource](const std::unique_ptr<RenderTaskBase>& iteratee) {
                         return iteratee.get() == resource->readers.back();
                     });
-                if (last_reader != m_DeviceTasks.end())
+                if (last_reader != m_RenderTasks.end())
                 {
                     valid = true;
-                    last_index = std::distance(m_DeviceTasks.begin(), last_reader);
+                    last_index = std::distance(m_RenderTasks.begin(), last_reader);
                 }
             }
             if (!resource->writers.empty())
             {
                 auto last_writer = std::find_if(
-                    m_DeviceTasks.begin(),
-                    m_DeviceTasks.end(),
-                    [&resource](const std::unique_ptr<DeviceTaskBase>& iteratee) {
+                    m_RenderTasks.begin(),
+                    m_RenderTasks.end(),
+                    [&resource](const std::unique_ptr<RenderTaskBase>& iteratee) {
                         return iteratee.get() == resource->writers.back();
                     });
-                if (last_writer != m_DeviceTasks.end())
+                if (last_writer != m_RenderTasks.end())
                 {
                     valid = true;
-                    last_index = std::max(last_index, std::size_t(std::distance(m_DeviceTasks.begin(), last_writer)));
+                    last_index = std::max(last_index, std::size_t(std::distance(m_RenderTasks.begin(), last_writer)));
                 }
             }
 
-            if (valid && m_DeviceTasks[last_index] == render_task)
+            if (valid && m_RenderTasks[last_index] == render_task)
                 derealized_resources.push_back(const_cast<ResourceBase*>(resource));
         }
 
         m_Timelines.push_back(Timeline{render_task.get(), realized_resources, derealized_resources});
     }
 
+}
+void TaskGraph::MergeRenderPass()
+{
+    
 }
 } // namespace Aether::TaskGraph

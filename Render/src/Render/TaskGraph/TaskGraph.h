@@ -5,9 +5,12 @@
 #include "TaskBuilder.h"
 #include "Resource.h"
 #include "Realize.h"
-#include "Task.h"
+#include "TaskBase.h"
 #include <variant>
 #include "TransientResourcePool.h"
+#include "RenderTask.h"
+#include "Task.h"
+#include "TaskArray.h"
 namespace Aether::TaskGraph
 {
 
@@ -17,27 +20,32 @@ class TaskGraph
 
 public:
     template <typename TaskData>
-    TaskData AddRenderTask(std::function<void(TaskBuilder&, TaskData&)> setup, std::function<void(TaskData&,DeviceCommandBuffer& commandBuffer)> execute)
+    TaskData AddRenderTask(const RenderPassDesc& renderPassDesc, std::function<void(TaskBuilder&, TaskData&)> setup,
+                           std::function<void(TaskData&, DeviceCommandBuffer& commandBuffer)> execute)
     {
-        m_RenderTasks.emplace_back(CreateScope<RenderTask<TaskData>>(setup, execute));
+        m_RenderTasks.emplace_back(CreateScope<RenderTask<TaskData>>(renderPassDesc, setup, execute));
         auto* task = (RenderTask<TaskData>*)m_RenderTasks.back().get();
         RenderTaskBuilder builder(this, task);
         task->Setup(builder);
         return task->GetData();
     }
-    void Compile();
-    template<typename ActualType,typename DescType>
-    Resource<ActualType, DescType>* AddRetainedResource(const std::string& tag,Scope<ActualType> actual,const DescType& desc)
+    void Compile()
     {
-        auto r= CreateScope<Resource<ActualType, DescType>>(tag, nullptr, desc);
+        CalculateTimeline();
+        MergeRenderPass();
+    }
+    template <typename ActualType, typename DescType>
+    Resource<ActualType, DescType>* AddRetainedResource(const std::string& tag, Scope<ActualType> actual, const DescType& desc)
+    {
+        auto r = CreateScope<Resource<ActualType, DescType>>(tag, nullptr, desc);
         r->SetActual(std::move(actual));
         m_Resources.emplace_back(std::move(r));
         return static_cast<Resource<ActualType, DescType>*>(m_Resources.back().get());
     }
-    template<typename ActualType,typename DescType>
-    Resource<ActualType, DescType>* AddRetainedResourceBorrow(const std::string& tag,Borrow<ActualType> actual,const DescType& desc)
+    template <typename ActualType, typename DescType>
+    Resource<ActualType, DescType>* AddRetainedResourceBorrow(const std::string& tag, Borrow<ActualType> actual, const DescType& desc)
     {
-        auto r= CreateScope<Resource<ActualType, DescType>>(tag, nullptr, desc);
+        auto r = CreateScope<Resource<ActualType, DescType>>(tag, nullptr, desc);
         r->SetActualBorrow(actual);
         m_Resources.emplace_back(std::move(r));
         return static_cast<Resource<ActualType, DescType>*>(m_Resources.back().get());
@@ -47,64 +55,69 @@ public:
         // TODO: check if cycle exists
         return true;
     }
-    TaskGraph(DeviceCommandBuffer&& commandBuffer)
-        : m_CommandBuffer(std::move(commandBuffer))
+    TaskGraph(DeviceCommandBuffer&& commandBuffer) :
+        m_CommandBuffer(std::move(commandBuffer))
     {
     }
     void Execute()
     {
-        for(auto& timeline:m_Timelines)
+        for (auto& timeline : m_Timelines)
         {
-            for(auto& resource:timeline.realizedResources)
+            for (auto& resource : timeline.realizedResources)
             {
                 RealizeResource(*resource);
             }
             ExecuteTask executeTask{m_CommandBuffer};
             std::visit(executeTask, timeline.task);
-            for(auto& resource:timeline.derealizedResources)
+            for (auto& resource : timeline.derealizedResources)
             {
                 DerealizeResource(*resource);
             }
         }
     }
 private:
+    /**
+     * @brief Merge consecutive render tasks that use the same render pass into a render task array
+    */
+    void MergeRenderPass();
+    void CalculateTimeline();
+private:
+    
     void RealizeResource(ResourceBase& resource)
     {
-        switch (resource.type) 
+        switch (resource.type)
         {
-            case ResourceType::FrameBuffer:
+        case ResourceType::FrameBuffer: {
+            FrameBuffer& fbr = static_cast<FrameBuffer&>(resource);
+            auto fb = m_TransientResourcePool.GetFrameBuffer(fbr.GetDesc());
+            if (fb)
             {
-                FrameBuffer& fbr=static_cast<FrameBuffer&>(resource);
-                auto fb=m_TransientResourcePool.GetFrameBuffer(fbr.GetDesc());
-                if(fb)
-                {
-                    fbr.SetActual(std::move(fb));
-                }
-                else 
-                {
-                    fbr.Realize();
-                }
+                fbr.SetActual(std::move(fb));
             }
-            break;
-            default:
+            else
+            {
+                fbr.Realize();
+            }
+        }
+        break;
+        default:
             resource.Realize();
         }
     }
     void DerealizeResource(ResourceBase& resource)
     {
-        switch (resource.type) 
+        switch (resource.type)
         {
-            case ResourceType::FrameBuffer:
-            {
-                FrameBuffer& fbr=static_cast<FrameBuffer&>(resource);
-                m_TransientResourcePool.PushFrameBufferf(std::move(fbr.GetActual()), fbr.GetDesc());
-            }
-            break;
-            default:
+        case ResourceType::FrameBuffer: {
+            FrameBuffer& fbr = static_cast<FrameBuffer&>(resource);
+            m_TransientResourcePool.PushFrameBufferf(std::move(fbr.GetActual()), fbr.GetDesc());
+        }
+        break;
+        default:
             resource.Derealize();
         }
     }
-    using Task=std::variant<std::monostate,Borrow<RenderTaskBase>>;
+    
     struct Timeline
     {
         Task task;
@@ -122,11 +135,18 @@ private:
         {
             task->Execute(commandBuffer);
         }
+        void operator()(const Borrow<RenderTaskArray>& task)
+        {
+            for(auto& t:task->tasks)
+            {
+                t.Execute(commandBuffer);
+            }
+        }
     };
     std::vector<Scope<ResourceBase>> m_Resources;
     std::vector<Scope<RenderTaskBase>> m_RenderTasks;
     std::vector<Timeline> m_Timelines; // create on compile, execute every frame
-private:// render resource
+private:                               // render resource
     DeviceCommandBuffer m_CommandBuffer;
     TransientResourcePool m_TransientResourcePool;
 };
