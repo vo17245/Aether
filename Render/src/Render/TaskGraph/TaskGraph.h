@@ -67,7 +67,7 @@ public:
             {
                 RealizeResource(*resource);
             }
-            ExecuteTask executeTask{m_CommandBuffer};
+            ExecuteTask executeTask{m_CommandBuffer,m_TransientResourcePool};
             std::visit(executeTask, timeline.task);
             for (auto& resource : timeline.derealizedResources)
             {
@@ -87,19 +87,6 @@ private:
     {
         switch (resource.type)
         {
-        case ResourceType::FrameBuffer: {
-            FrameBuffer& fbr = static_cast<FrameBuffer&>(resource);
-            auto fb = m_TransientResourcePool.GetFrameBuffer(fbr.GetDesc());
-            if (fb)
-            {
-                fbr.SetActual(std::move(fb));
-            }
-            else
-            {
-                fbr.Realize();
-            }
-        }
-        break;
         default:
             resource.Realize();
         }
@@ -108,11 +95,6 @@ private:
     {
         switch (resource.type)
         {
-        case ResourceType::FrameBuffer: {
-            FrameBuffer& fbr = static_cast<FrameBuffer&>(resource);
-            m_TransientResourcePool.PushFrameBufferf(std::move(fbr.GetActual()), fbr.GetDesc());
-        }
-        break;
         default:
             resource.Derealize();
         }
@@ -127,20 +109,67 @@ private:
     struct ExecuteTask
     {
         DeviceCommandBuffer& commandBuffer;
+        TransientResourcePool& m_TransientResourcePool;
         void operator()(const std::monostate&)
         {
             return;
         }
         void operator()(const Borrow<RenderTaskBase>& task)
         {
+            auto renderPass=m_TransientResourcePool.PopRenderPass(task->GetRenderPassDesc());
+            if(!renderPass)
+            {
+                renderPass=CreateRenderPass(task->GetRenderPassDesc());
+                assert(renderPass);
+            }
             task->Execute(commandBuffer);
         }
         void operator()(const Borrow<RenderTaskArray>& task)
         {
             for(auto& t:task->tasks)
             {
-                t.Execute(commandBuffer);
+                t->Execute(commandBuffer);
             }
+        }
+        Scope<FrameBuffer> CreateFrameBuffer(const FrameBufferDesc& desc)
+        {
+            DeviceFrameBufferDesc frameBufferDesc;
+            frameBufferDesc.colorAttachmentCount=desc.colorAttachmentCount;
+            for(size_t i=0;i<desc.colorAttachmentCount;++i)
+            {
+                frameBufferDesc.colorAttachments[i]=&desc.colorAttachments[i]->GetActual()->GetOrCreateDefaultImageView();
+            }
+            if(desc.depthAttachment)
+            {
+            frameBufferDesc.depthAttachment= &desc.depthAttachment->GetActual()->GetOrCreateDefaultImageView();
+            }
+            frameBufferDesc.width=desc.width;
+            frameBufferDesc.height=desc.height;
+        }
+        Scope<DeviceRenderPass> CreateRenderPass(const RenderPassDesc& desc)
+        {
+            DeviceRenderPassDesc renderPassDesc;
+            renderPassDesc.colorAttachmentCount=desc.colorAttachmentCount;
+            for(size_t i=0;i<desc.colorAttachmentCount;++i)
+            {
+                renderPassDesc.colorAttachments[i].load=desc.colorAttachment[i].loadOp;
+                renderPassDesc.colorAttachments[i].store=desc.colorAttachment[i].storeOp;
+                renderPassDesc.colorAttachments[i].format=desc.colorAttachment[i].texture->GetDesc().pixelFormat;
+            }
+            if(desc.depthAttachment)
+            {
+                DeviceAttachmentDesc depthAttachmentDesc;
+                depthAttachmentDesc.load=desc.depthAttachment->loadOp;
+                depthAttachmentDesc.store=desc.depthAttachment->storeOp;
+                depthAttachmentDesc.format=desc.depthAttachment->texture->GetDesc().pixelFormat;
+                renderPassDesc.depthAttachment=depthAttachmentDesc;
+            }
+            auto renderPass=DeviceRenderPass::Create(renderPassDesc);
+            if(renderPass.Empty())
+            {
+                return nullptr;
+            }
+            return CreateScope<DeviceRenderPass>(std::move(renderPass));
         }
     };
     std::vector<Scope<ResourceBase>> m_Resources;
@@ -165,8 +194,10 @@ template <typename ResourceType>
 inline ResourceType* RenderTaskBuilder::Read(ResourceType* _resource)
 {
     ResourceBase* resource = (ResourceBase*)_resource;
+
     resource->readers.push_back(m_Task);
     m_Task->reads.push_back(resource);
+    
     return _resource;
 }
 template <typename ResourceType>
@@ -174,6 +205,7 @@ template <typename ResourceType>
 inline ResourceType* RenderTaskBuilder::Write(ResourceType* _resource)
 {
     ResourceBase* resource = (ResourceBase*)_resource;
+
     resource->writers.push_back(m_Task);
     m_Task->writes.push_back(resource);
     return _resource;

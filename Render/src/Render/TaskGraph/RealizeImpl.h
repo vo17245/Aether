@@ -63,5 +63,31 @@ inline Scope<DeviceTexture> Realize(const TextureDesc& desc)
     }
     return CreateScope<DeviceTexture>(std::move(deviceTexture));
 }
+template<>
+inline Scope<DeviceRenderPass> Realize(const RenderPassDesc& desc)
+{
+    DeviceRenderPassDesc d;
+    d.colorAttachmentCount = desc.colorAttachmentCount;
+    for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
+    {
+        auto& dca= d.colorAttachments[i];
+        dca.format=desc.colorAttachment[i].texture->GetDesc().pixelFormat;
+    }
+    if (desc.depthAttachment)
+    {
+        d.depthAttachment = DeviceAttachmentDesc{
+            .load = desc.depthAttachment->loadOp,
+            .store = desc.depthAttachment->storeOp,   
+            .format = desc.depthAttachment->texture->GetDesc().pixelFormat,
+            
+        };
+    }
+    auto deviceRenderPass = DeviceRenderPass::Create(d);
+    if (deviceRenderPass.Empty())
+    {
+        return nullptr;
+    }
+    return CreateScope<DeviceRenderPass>(std::move(deviceRenderPass));
+}
 
 } // namespace Aether::TaskGraph

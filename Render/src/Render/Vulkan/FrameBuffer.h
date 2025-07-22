@@ -59,9 +59,9 @@ public:
     {
         return m_Size;
     }
-
-private:
     static std::optional<FrameBuffer> Create(const VkFramebufferCreateInfo& info);
+private:
+    
     FrameBuffer(VkFramebuffer framebuffer, VkExtent2D size) :
         m_FrameBuffer(framebuffer), m_Size(size)
     {

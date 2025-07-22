@@ -62,6 +62,11 @@ public:
     {
         return m_Desc;
     }
+    /**
+     * @note check a resource holds a actual or borrow by Transient() function
+     * if Transient() is true, call GetActual() to get the actual resource
+     * if Transient() is false, call GetActualBorrow() to get the borrow resource
+    */
     Scope<Actual>& GetActual()
     {
         assert(m_Actual && "resource not realized");
@@ -78,6 +83,7 @@ public:
     }
 
 private:
+    
     Scope<Actual> m_Actual;// for transient resource in task graph, or owned external resource resource 
     Actual* m_ActualBorrow=nullptr;// for not owned external resource, just a borrow, task graph will *NOT* manage its lifetime
     Desc m_Desc;

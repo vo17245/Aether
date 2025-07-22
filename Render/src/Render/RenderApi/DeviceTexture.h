@@ -275,35 +275,31 @@ public:
     }
     DeviceImageView& GetOrCreateDefaultImageView()
     {
-        if (m_DefaultImageView.Empty())
+        if (!m_DefaultImageView)
         {
             switch (Render::Config::RenderApi)
             {
             case Render::Api::Vulkan: {
                 auto& texture = Get<vk::Texture2D>();
                 auto imageView = vk::ImageView::Create(texture);
-                if (!imageView)
-                {
-                    assert(false && "Failed to create image view");
-                    return m_DefaultImageView;
-                }
-                m_DefaultImageView = DeviceImageView(std::move(imageView.value()));
+                assert(imageView && "Failed to create image view");
+                m_DefaultImageView = CreateScope<DeviceImageView>(DeviceImageView(std::move(imageView.value())));
+                return *m_DefaultImageView;
             }
             break;
             default:
                 assert(false && "Not implemented");
-                return m_DefaultImageView;
+                return *m_DefaultImageView;
             }
         }
-        return m_DefaultImageView;
     }
     DeviceImageView& GetDefaultImageView()
     {
-        return m_DefaultImageView;
+        return *m_DefaultImageView;
     }
     const DeviceImageView& GetDefaultImageView() const
     {
-        return m_DefaultImageView;
+        return *m_DefaultImageView;
     }
     uint32_t GetWidth() const
     {
@@ -401,6 +397,6 @@ private:
     };
 
     std::variant<std::monostate, vk::Texture2D> m_Texture;
-    DeviceImageView m_DefaultImageView;
+    Scope<DeviceImageView> m_DefaultImageView;
 };
 } // namespace Aether

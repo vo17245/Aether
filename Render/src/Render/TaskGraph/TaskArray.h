@@ -4,7 +4,7 @@ namespace Aether::TaskGraph
 {
     struct RenderTaskArray
     {
-        std::vector<RenderTaskBase> tasks;
+        std::vector<Borrow<RenderTaskBase>> tasks;
         RenderPassDesc renderPassDesc;
     };
 }

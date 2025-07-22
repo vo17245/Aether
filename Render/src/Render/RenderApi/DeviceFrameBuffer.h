@@ -7,8 +7,22 @@
 #include "Render/Config.h"
 #include "DeviceRenderPass.h"
 #include "Render/Vulkan/ImageView.h"
+// for alloca
+#ifdef _MSC_VER
+#include <malloc.h>
+#else
+#include <alloca.h>
+#endif
 namespace Aether
 {
+struct DeviceFrameBufferDesc
+{
+    DeviceImageView* colorAttachments[DeviceRenderPassDesc::MaxColorAttachments];
+    DeviceImageView* depthAttachment=nullptr;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    size_t colorAttachmentCount = 0; // number of color attachments
+};
 class DeviceFrameBuffer
 {
 public:
@@ -36,6 +50,47 @@ public:
     }
     DeviceFrameBuffer()
     {
+    }
+    static DeviceFrameBuffer Create(const DeviceRenderPass& renderPass, const DeviceFrameBufferDesc& desc)
+    {
+        if (Render::Config::RenderApi == Render::Api::Vulkan)
+        {
+            VkFramebufferCreateInfo frameBufferInfo{};
+            frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            frameBufferInfo.renderPass = renderPass.GetVk().GetHandle();
+            frameBufferInfo.width = desc.width;
+            frameBufferInfo.height = desc.height;
+            frameBufferInfo.layers = 1;
+            size_t attachmentCount = 0;
+            attachmentCount+=desc.colorAttachmentCount;
+            if (desc.depthAttachment)
+            {
+                attachmentCount++;
+            }
+            VkImageView* attachments = (VkImageView*)alloca(sizeof(VkImageView) * attachmentCount);
+            for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
+            {
+                attachments[i] = desc.colorAttachments[i]->GetVk().GetHandle();
+            }
+            if (desc.depthAttachment)
+            {
+                attachments[desc.colorAttachmentCount] = desc.depthAttachment->GetVk().GetHandle();
+            }
+            frameBufferInfo.attachmentCount = static_cast<uint32_t>(attachmentCount);
+            frameBufferInfo.pAttachments = attachments;
+            auto frameBuffer = vk::FrameBuffer::Create(frameBufferInfo);
+            if (!frameBuffer.has_value())
+            {
+                return {};
+            }
+            return DeviceFrameBuffer(std::move(frameBuffer.value()));
+            
+        }
+        else
+        {
+            assert(false && "not implemented");
+            return {};
+        }
     }
     static DeviceFrameBuffer CreateFromTexture(const DeviceRenderPassView& renderPass,DeviceTexture& texture)
     {

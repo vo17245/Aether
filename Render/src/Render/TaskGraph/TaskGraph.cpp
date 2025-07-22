@@ -142,6 +142,79 @@ void TaskGraph::CalculateTimeline()
 }
 void TaskGraph::MergeRenderPass()
 {
-    
+    std::optional<RenderPassDesc> desc;
+    RenderTaskArray currentArray;
+    std::vector<Timeline> newTimelines;
+    std::vector<Borrow<ResourceBase>> realizedResources;   // should realize before task array
+    std::vector<Borrow<ResourceBase>> derealizedResources; // should derealize after task array
+    for(auto& timeline:m_Timelines)
+    {
+        auto& task=timeline.task;
+        if(std::holds_alternative<Borrow<RenderTaskBase>>(task))
+        {
+            auto renderTask = std::get<Borrow<RenderTaskBase>>(task);
+            if(desc)
+            {
+                if(*desc==renderTask->GetRenderPassDesc())
+                {
+                    // add to current array
+                    currentArray.tasks.push_back(renderTask);
+                    realizedResources.insert(realizedResources.end(),
+                                             timeline.realizedResources.begin(),
+                                             timeline.realizedResources.end());
+                    derealizedResources.insert(derealizedResources.end(),
+                                               timeline.derealizedResources.begin(),
+                                               timeline.derealizedResources.end());
+
+                }
+                else
+                {
+                    // finalize current array
+                    currentArray.renderPassDesc = *desc;
+                    newTimelines.push_back(Timeline{.task=currentArray,
+                                                    .realizedResources=realizedResources,
+                                                    .derealizedResources=derealizedResources,
+                                                    });
+
+                    
+                    // reset for next array
+                    currentArray.tasks.clear();
+                    realizedResources.clear();
+                    derealizedResources.clear();
+                    // add current render task to new array
+                    desc=renderTask->GetRenderPassDesc();
+                    currentArray.tasks.push_back(renderTask);
+
+
+                }
+            }
+            else 
+            {
+                // start new array
+                desc=renderTask->GetRenderPassDesc();
+                currentArray.tasks.push_back(renderTask);
+            }
+        }
+        else
+        {
+            if(desc)
+            {
+                // finalize current array
+                currentArray.renderPassDesc=*desc;
+                newTimelines.push_back(Timeline{.task=currentArray,
+                                                .realizedResources=realizedResources,
+                                                .derealizedResources=derealizedResources,
+                                                });
+                // reset for next array
+                currentArray.tasks.clear();
+                realizedResources.clear();
+                derealizedResources.clear();
+                desc.reset();
+            }
+            // add non render task to new timelines
+            newTimelines.push_back(std::move(timeline));
+        }
+
+    }
 }
 } // namespace Aether::TaskGraph

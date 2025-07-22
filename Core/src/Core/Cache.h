@@ -5,13 +5,8 @@
 #include <optional>
 namespace Aether
 {
-template <typename Key>
-struct LRUCacheHash {
-    size_t operator()(const Key& key) const {
-        return std::hash<Key>()(key);
-    }
-};
-template <typename Key, typename Value,typename =LRUCacheHash<Key>>
+
+template <typename Key, typename Value,typename Hash=std::hash<Key>>
 class LRUCache {
 public:
     LRUCache(size_t capacity) : m_Capacity(capacity) {}
@@ -39,10 +34,20 @@ public:
         m_CacheItems.splice(m_CacheItems.begin(), m_CacheItems, it);
         return it->second;
     }
+    void Erase(const Key& key) {
+        if (m_CacheMap.find(key) != m_CacheMap.end()) {
+            auto it = m_CacheMap[key];
+            m_CacheItems.erase(it);
+            m_CacheMap.erase(key);
+        }
+    }
+    bool Contains(const Key& key) const {
+        return m_CacheMap.find(key) != m_CacheMap.end();
+    }
 
 private:
     size_t m_Capacity;
     std::list<std::pair<Key, Value>> m_CacheItems;
-    std::unordered_map<Key, typename std::list<std::pair<Key, Value>>::iterator,LRUCacheHash<Key>> m_CacheMap;
+    std::unordered_map<Key, typename std::list<std::pair<Key, Value>>::iterator,Hash> m_CacheMap;
 };
 }
