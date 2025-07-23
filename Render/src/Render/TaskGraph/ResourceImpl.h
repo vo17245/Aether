@@ -34,6 +34,10 @@ struct TextureDesc
     PixelFormat pixelFormat;
     uint32_t width;
     uint32_t height;
+    // The layout, when created in the task graph, 
+    // will be changed in the task graph compilation phase (layout is dirty at that time !!!)
+    // and does not affect the equality and hash functions. (aim to get texture from pool without check layout is same with the desc)
+    DeviceImageLayout layout = DeviceImageLayout::Undefined; 
     bool operator==(const TextureDesc& other) const
     {
         return usages == other.usages && pixelFormat == other.pixelFormat && width == other.width && height == other.height;
@@ -47,7 +51,8 @@ struct Hash<TextureDesc>
         return std::hash<uint32_t>()(static_cast<uint32_t>(desc.usages)) ^ std::hash<uint32_t>()(static_cast<uint32_t>(desc.pixelFormat)) ^ std::hash<uint32_t>()(desc.width) ^ std::hash<uint32_t>()(desc.height);
     }
 };
-using Texture = Resource<DeviceTexture, TextureDesc>;
+using Texture=Resource<DeviceTexture, TextureDesc>;
+
 using Buffer = Resource<DeviceBuffer, BufferDesc>;
 
 template <>

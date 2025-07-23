@@ -13,11 +13,11 @@ void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCrea
         VkAttachmentDescription& colorAttachment = storage.attachs[i];
         colorAttachment.format = PixelFormatToVkFormat(colorAttachmentDesc.format);
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = DeviceAttachmentLoadOpToVkLoadOp(colorAttachmentDesc.load);
-        colorAttachment.storeOp = DeviceAttachmentStoreOpToVkStoreOp(colorAttachmentDesc.store);
+        colorAttachment.loadOp = DeviceAttachmentLoadOpToVkLoadOp(colorAttachmentDesc.loadOp);
+        colorAttachment.storeOp = DeviceAttachmentStoreOpToVkStoreOp(colorAttachmentDesc.storeOp);
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        if(colorAttachmentDesc.load!=DeviceAttachmentLoadOp::DontCare)
+        if(colorAttachmentDesc.loadOp!=DeviceAttachmentLoadOp::DontCare)
         {
             colorAttachment.initialLayout=VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         }
@@ -38,11 +38,11 @@ void DeviceRenderPassDescToVk(const DeviceRenderPassDesc& desc, VkRenderPassCrea
         auto& depthAttachmentDesc = desc.depthAttachment.value();
         depthAttachment.format = PixelFormatToVkFormat(depthAttachmentDesc.format);
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = DeviceAttachmentLoadOpToVkLoadOp(depthAttachmentDesc.load);
-        depthAttachment.storeOp = DeviceAttachmentStoreOpToVkStoreOp(depthAttachmentDesc.store);
+        depthAttachment.loadOp = DeviceAttachmentLoadOpToVkLoadOp(depthAttachmentDesc.loadOp);
+        depthAttachment.storeOp = DeviceAttachmentStoreOpToVkStoreOp(depthAttachmentDesc.storeOp);
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-        if(depthAttachmentDesc.load!=DeviceAttachmentLoadOp::DontCare)
+        if(depthAttachmentDesc.loadOp!=DeviceAttachmentLoadOp::DontCare)
         {
             depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         }

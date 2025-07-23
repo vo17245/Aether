@@ -138,7 +138,6 @@ void TaskGraph::CalculateTimeline()
 
         m_Timelines.push_back(Timeline{render_task.get(), realized_resources, derealized_resources});
     }
-
 }
 void TaskGraph::MergeRenderPass()
 {
@@ -147,15 +146,16 @@ void TaskGraph::MergeRenderPass()
     std::vector<Timeline> newTimelines;
     std::vector<Borrow<ResourceBase>> realizedResources;   // should realize before task array
     std::vector<Borrow<ResourceBase>> derealizedResources; // should derealize after task array
-    for(auto& timeline:m_Timelines)
+    std::vector<LayoutTransition> layoutTransitions;       // should transition layout before task array(execute after resources realize)
+    for (auto& timeline : m_Timelines)
     {
-        auto& task=timeline.task;
-        if(std::holds_alternative<Borrow<RenderTaskBase>>(task))
+        auto& task = timeline.task;
+        if (std::holds_alternative<Borrow<RenderTaskBase>>(task))
         {
             auto renderTask = std::get<Borrow<RenderTaskBase>>(task);
-            if(desc)
+            if (desc)
             {
-                if(*desc==renderTask->GetRenderPassDesc())
+                if (*desc == renderTask->GetRenderPassDesc())
                 {
                     // add to current array
                     currentArray.tasks.push_back(renderTask);
@@ -165,46 +165,65 @@ void TaskGraph::MergeRenderPass()
                     derealizedResources.insert(derealizedResources.end(),
                                                timeline.derealizedResources.begin(),
                                                timeline.derealizedResources.end());
-
+                    layoutTransitions.insert(layoutTransitions.end(),
+                                             timeline.layoutTransitions.begin(),
+                                             timeline.layoutTransitions.end());
                 }
                 else
                 {
                     // finalize current array
                     currentArray.renderPassDesc = *desc;
-                    newTimelines.push_back(Timeline{.task=currentArray,
-                                                    .realizedResources=realizedResources,
-                                                    .derealizedResources=derealizedResources,
-                                                    });
+                    newTimelines.push_back(Timeline{.task = currentArray,
+                                                    .realizedResources = realizedResources,
+                                                    .derealizedResources = derealizedResources,
+                                                    .layoutTransitions = layoutTransitions});
 
-                    
                     // reset for next array
                     currentArray.tasks.clear();
                     realizedResources.clear();
                     derealizedResources.clear();
+                    layoutTransitions.clear();
                     // add current render task to new array
-                    desc=renderTask->GetRenderPassDesc();
+                    desc = renderTask->GetRenderPassDesc();
                     currentArray.tasks.push_back(renderTask);
-
-
+                    realizedResources.insert(realizedResources.end(),
+                                             timeline.realizedResources.begin(),
+                                             timeline.realizedResources.end());
+                    derealizedResources.insert(derealizedResources.end(),
+                                               timeline.derealizedResources.begin(),
+                                               timeline.derealizedResources.end());
+                    layoutTransitions.insert(layoutTransitions.end(),
+                                             timeline.layoutTransitions.begin(),
+                                             timeline.layoutTransitions.end());
                 }
             }
-            else 
+            else
             {
                 // start new array
-                desc=renderTask->GetRenderPassDesc();
+                desc = renderTask->GetRenderPassDesc();
                 currentArray.tasks.push_back(renderTask);
+                realizedResources.insert(realizedResources.end(),
+                                         timeline.realizedResources.begin(),
+                                         timeline.realizedResources.end());
+                derealizedResources.insert(derealizedResources.end(),
+                                           timeline.derealizedResources.begin(),
+                                           timeline.derealizedResources.end());
+                layoutTransitions.insert(layoutTransitions.end(),
+                                         timeline.layoutTransitions.begin(),
+                                         timeline.layoutTransitions.end());
             }
         }
         else
         {
-            if(desc)
+            if (desc)
             {
                 // finalize current array
-                currentArray.renderPassDesc=*desc;
-                newTimelines.push_back(Timeline{.task=currentArray,
-                                                .realizedResources=realizedResources,
-                                                .derealizedResources=derealizedResources,
-                                                });
+                currentArray.renderPassDesc = *desc;
+                newTimelines.push_back(Timeline{
+                    .task = currentArray,
+                    .realizedResources = realizedResources,
+                    .derealizedResources = derealizedResources,
+                });
                 // reset for next array
                 currentArray.tasks.clear();
                 realizedResources.clear();
@@ -214,7 +233,64 @@ void TaskGraph::MergeRenderPass()
             // add non render task to new timelines
             newTimelines.push_back(std::move(timeline));
         }
+    }
+}
+void TaskGraph::CreateTextureLayoutTransitions()
+{
+    for (auto& timeline : m_Timelines)
+    {
+        auto& task = timeline.task;
+        if (std::holds_alternative<Borrow<RenderTaskBase>>(task))
+        {
+            auto renderTask = std::get<Borrow<RenderTaskBase>>(task);
+            for (auto& resource : renderTask->reads)
+            {
+                if (resource->type == ResourceType::Texture)
+                {
+                    auto texture = static_cast<Texture*>(resource);
+                    auto& desc = texture->GetDesc();
+                    if (desc.layout != DeviceImageLayout::Texture)
+                    {
+                        timeline.layoutTransitions.push_back(LayoutTransition{
 
+                            .oldLayout = desc.layout,
+                            .newLayout = DeviceImageLayout::Texture,
+
+                            .texture = texture,
+                        });
+                    }
+                    desc.layout = DeviceImageLayout::Texture; // update layout to texture
+                }
+            }
+            {
+                auto& passDesc=renderTask->GetRenderPassDesc();
+                for(size_t i=0;i<passDesc.colorAttachmentCount;++i)
+                {
+                    auto& colorAttachment = passDesc.colorAttachment[i];
+                    if (colorAttachment.texture->GetDesc().layout != DeviceImageLayout::ColorAttachment)
+                    {
+                        timeline.layoutTransitions.push_back(LayoutTransition{
+                            .oldLayout = colorAttachment.texture->GetDesc().layout,
+                            .newLayout = DeviceImageLayout::ColorAttachment,
+                            .texture = colorAttachment.texture,
+                        });
+                    }
+                    colorAttachment.texture->GetDesc().layout = DeviceImageLayout::ColorAttachment; // update layout to color attachment
+                }
+                if(passDesc.depthAttachment)
+                {
+                    if (passDesc.depthAttachment->texture->GetDesc().layout != DeviceImageLayout::DepthStencilAttachment)
+                    {
+                        timeline.layoutTransitions.push_back(LayoutTransition{
+                            .oldLayout = passDesc.depthAttachment->texture->GetDesc().layout,
+                            .newLayout = DeviceImageLayout::DepthStencilAttachment,
+                            .texture = passDesc.depthAttachment->texture,
+                        });
+                    }
+                    passDesc.depthAttachment->texture->GetDesc().layout = DeviceImageLayout::DepthStencilAttachment; // update layout to depth stencil attachment
+                }
+            }
+        }
     }
 }
 } // namespace Aether::TaskGraph

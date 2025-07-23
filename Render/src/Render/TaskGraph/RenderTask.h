@@ -20,8 +20,14 @@ public:
     {
         return m_RenderPassDesc;
     }
+    RenderPassDesc& GetRenderPassDesc()
+    {
+        return m_RenderPassDesc;
+    }
+
 private:
     RenderPassDesc m_RenderPassDesc;
+
 };
 
 template <typename TaskData>

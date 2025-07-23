@@ -8,8 +8,6 @@ namespace Aether::TaskGraph
     class TransientResourcePool
     {
     public:
-        TransientResourcePool(size_t frameBufferCacheSize = 64, size_t renderPassCacheSize = 64)
-            : m_FrameBuffers(frameBufferCacheSize), m_RenderPasses(renderPassCacheSize) {}
         void PushFrameBuffer(Scope<DeviceFrameBuffer>&& frameBuffer,const FrameBufferDesc& desc)
         {
             m_FrameBuffers.Put(desc, std::move(frameBuffer));
@@ -36,9 +34,13 @@ namespace Aether::TaskGraph
             }
             return std::move(renderPass.value());
         }
-        
+        void OnFrameBegin()
+        {
+            m_FrameBuffers.TrimToCapacity(m_Capacity);
+            m_RenderPasses.TrimToCapacity(m_Capacity);
+        }
     private:
-
+        size_t m_Capacity = 64;
         LRUCache<FrameBufferDesc, Scope<DeviceFrameBuffer>,Hash<FrameBufferDesc>> m_FrameBuffers;
         LRUCache<RenderPassDesc, Scope<DeviceRenderPass>,Hash<RenderPassDesc>> m_RenderPasses;
     };

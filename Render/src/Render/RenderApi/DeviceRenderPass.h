@@ -47,8 +47,8 @@ inline constexpr VkAttachmentStoreOp DeviceAttachmentStoreOpToVkStoreOp(DeviceAt
 }
 struct DeviceAttachmentDesc
 {
-    DeviceAttachmentLoadOp load;
-    DeviceAttachmentStoreOp store;
+    DeviceAttachmentLoadOp loadOp;
+    DeviceAttachmentStoreOp storeOp;
     PixelFormat format;
 };
 

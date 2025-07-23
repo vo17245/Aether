@@ -18,8 +18,6 @@ public:
     {
         // render resource
         DeviceCommandBufferView commandBuffer;
-        DeviceRenderPassView renderPass;
-        DeviceFrameBufferView frameBuffer;
         DeviceDescriptorPool& descriptorPool;
         // text
         Font& font;

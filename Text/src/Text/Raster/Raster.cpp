@@ -253,14 +253,14 @@ void main()
     Init();
     vec2 uv = v_UV;
     vec2 inverseDiameter = 1.0 / (g_AntiAliasingWindowSize * fwidth(v_UV));// uv到屏幕空间的缩放
-    uv=HintingCenter(uv,inverseDiameter.x*16);
+    uv=HintingCenter(uv,inverseDiameter.x*256);
     float alpha = 0.0;
     Glyph glyph = FetchGlyph(v_GlyphIndex);
     for (int i = 0; i < glyph.count; i++) {
 		Curve curve = FetchCurve(glyph.start+i);
-        curve.p0=Hinting(curve.p0,inverseDiameter.x*16);
-        curve.p1=Hinting(curve.p1,inverseDiameter.x*16);
-        curve.p2=Hinting(curve.p2,inverseDiameter.x*16);
+        curve.p0=Hinting(curve.p0,inverseDiameter.x*256);
+        curve.p1=Hinting(curve.p1,inverseDiameter.x*256);
+        curve.p2=Hinting(curve.p2,inverseDiameter.x*256);
 		vec2 p0 = curve.p0 - uv;
 		vec2 p1 = curve.p1 - uv;
 		vec2 p2 = curve.p2 - uv;
@@ -478,8 +478,7 @@ bool Raster::UpdateDescriptorSet(RenderPassResource& resource,RenderPassParam& p
 bool Raster::RecordCommand(RenderPassParam& param, RenderPassResource& resource)
 {
     auto& commandBuffer = param.commandBuffer.GetVk();
-    auto& renderPass = param.renderPass.GetVk();
-    auto& frameBuffer = param.frameBuffer.GetVk();
+
     commandBuffer.BindPipeline(m_Pipeline.GetVk());
     auto& descriptorSet = m_DescriptorSet.GetVk();
     for (size_t i = 0; i < descriptorSet.sets.size(); ++i)

@@ -62,6 +62,10 @@ public:
     {
         return m_Desc;
     }
+    Desc& GetDesc()
+    {
+        return m_Desc;
+    }
     /**
      * @note check a resource holds a actual or borrow by Transient() function
      * if Transient() is true, call GetActual() to get the actual resource

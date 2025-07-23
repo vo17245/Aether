@@ -56,7 +56,7 @@ inline Scope<DeviceBuffer> Realize(const BufferDesc& desc)
 template <>
 inline Scope<DeviceTexture> Realize(const TextureDesc& desc)
 {
-    auto deviceTexture = DeviceTexture::Create(desc.width, desc.height, desc.pixelFormat, desc.usages, DeviceImageLayout::Undefined);
+    auto deviceTexture = DeviceTexture::Create(desc.width, desc.height, desc.pixelFormat, desc.usages, desc.layout);
     if (!deviceTexture)
     {
         return nullptr;
@@ -76,8 +76,8 @@ inline Scope<DeviceRenderPass> Realize(const RenderPassDesc& desc)
     if (desc.depthAttachment)
     {
         d.depthAttachment = DeviceAttachmentDesc{
-            .load = desc.depthAttachment->loadOp,
-            .store = desc.depthAttachment->storeOp,   
+            .loadOp = desc.depthAttachment->loadOp,
+            .storeOp = desc.depthAttachment->storeOp,   
             .format = desc.depthAttachment->texture->GetDesc().pixelFormat,
             
         };

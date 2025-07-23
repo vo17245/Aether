@@ -52,7 +52,10 @@ public:
      * @brief 将texture中的数据拷贝到buffer中
     */
     bool SyncCopyToBuffer(const Buffer& buffer);
-
+    VkImageUsageFlags GetVkUsageFlags() const
+    {
+        return m_VkUsageFlags;
+    }
 private:
     Texture2D(VkImage image, VmaAllocation allocation, VmaAllocationInfo allocInfo, PixelFormat format, uint32_t width, uint32_t height);
     Texture2D();
@@ -64,6 +67,7 @@ private:
     PixelFormat m_Format;
     uint32_t m_Width;
     uint32_t m_Height;
+    VkImageUsageFlags m_VkUsageFlags=0;
 
 public:
     enum class Usage

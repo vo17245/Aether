@@ -45,6 +45,7 @@ public:
     void Compile()
     {
         CalculateTimeline();
+        CreateTextureLayoutTransitions();
         MergeRenderPass();
     }
     template <typename ActualType, typename DescType>
@@ -63,6 +64,24 @@ public:
         m_Resources.emplace_back(std::move(r));
         return static_cast<Resource<ActualType, DescType>*>(m_Resources.back().get());
     }
+    Texture* AddRetainedTextureBorrow(const std::string& tag,Borrow<DeviceTexture> actual,DeviceImageLayout layout)
+    {
+        TextureDesc desc;
+        desc.height= actual->GetHeight();
+        desc.width= actual->GetWidth();
+        desc.pixelFormat=actual->GetVk().GetFormat();
+        desc.usages=actual->GetUsages();
+        desc.layout=layout;
+        auto r = CreateScope<Texture>(tag, nullptr, desc);
+        r->SetActualBorrow(actual);
+        m_Resources.emplace_back(std::move(r));
+        auto* res=static_cast<Texture*>(m_Resources.back().get());
+        return res;
+    }
+    void OnFrameBegin()
+    {
+        m_TransientResourcePool.OnFrameBegin();
+    }
     bool CheckGraph()
     {
         // TODO: check if cycle exists
@@ -75,6 +94,19 @@ public:
             for (auto& resource : timeline.realizedResources)
             {
                 RealizeResource(*resource);
+            }
+            for (auto& layoutTransition : timeline.layoutTransitions)
+            {
+                DeviceTexture* actual;
+                if(layoutTransition.texture->Transient())
+                {
+                    actual = layoutTransition.texture->GetActual().get();
+                }
+                else
+                {
+                    actual = layoutTransition.texture->GetActualBorrow().Get();
+                }
+                actual->AsyncTransitionLayout(layoutTransition.oldLayout, layoutTransition.newLayout, m_CommandBuffer);
             }
             ExecuteTask executeTask{m_CommandBuffer,m_TransientResourcePool};
             std::visit(executeTask, timeline.task);
@@ -92,8 +124,10 @@ private:
     /**
      * @brief Merge consecutive render tasks that use the same render pass into a render task array
     */
-    void MergeRenderPass();
+    
     void CalculateTimeline();
+    void CreateTextureLayoutTransitions();
+    void MergeRenderPass();
 private:
     
     void RealizeResource(ResourceBase& resource)
@@ -112,33 +146,44 @@ private:
             resource.Derealize();
         }
     }
-    
+    struct LayoutTransition
+    {
+        DeviceImageLayout oldLayout;
+        DeviceImageLayout newLayout;
+        Texture* texture;
+    };
     struct Timeline
     {
         Task task;
         std::vector<Borrow<ResourceBase>> realizedResources;   // should realize before task
-        std::vector<Borrow<ResourceBase>> derealizedResources; // should derealize after task
+        std::vector<Borrow<ResourceBase>> derealizedResources; // should derealize after tasks
+        std::vector<LayoutTransition> layoutTransitions; // should transition layout before task(execute after resources realize)
+        
     };
     struct ExecuteTask
     {
         DeviceCommandBufferView& commandBuffer;
         TransientResourcePool& m_TransientResourcePool;
+        Scope<DeviceRenderPass> renderPass;
+        Scope<DeviceFrameBuffer> frameBuffer;
+        FrameBufferDesc frameBufferDesc;
+        RenderPassDesc renderPassDesc;
         void operator()(const std::monostate&)
         {
             return;
         }
-        void operator()(const Borrow<RenderTaskBase>& task)
+        void BeginRenderPass(const RenderPassDesc& desc)
         {
-            
+            renderPassDesc = desc;
             // get or create render pass
-            auto renderPass=m_TransientResourcePool.PopRenderPass(task->GetRenderPassDesc());
+            renderPass=m_TransientResourcePool.PopRenderPass(desc);
             if(!renderPass)
             {
-                renderPass=CreateRenderPass(task->GetRenderPassDesc());
+                renderPass=CreateRenderPass(desc);
                 assert(renderPass);
             }
             // get or create frame buffer
-            auto frameBufferDesc=RenderPassDescToFrameBufferDesc(task->GetRenderPassDesc());
+            frameBufferDesc=RenderPassDescToFrameBufferDesc(desc);
             auto frameBuffer=m_TransientResourcePool.PopFrameBuffer(frameBufferDesc);
             if(!frameBuffer)
             {
@@ -148,43 +193,34 @@ private:
             // render pass
             commandBuffer.GetVk().BeginRenderPass(renderPass->GetVk(),
             frameBuffer->GetVk(), 
-            task->GetRenderPassDesc().clearColor);
-
-            task->Execute(commandBuffer);
+            desc.clearColor);
+            commandBuffer.GetVk().SetViewport(0, 0, frameBuffer->GetSize().x() , frameBuffer->GetSize().y());
+            commandBuffer.GetVk().SetScissor(0, 0, frameBuffer->GetSize().x() , frameBuffer->GetSize().y());
+        }
+        void EndRenderPass()
+        {
             commandBuffer.GetVk().EndRenderPass();
             // push render pass and frame buffer to transient resource pool
-            m_TransientResourcePool.PushRenderPass(std::move(renderPass),task->GetRenderPassDesc());
+            m_TransientResourcePool.PushRenderPass(std::move(renderPass),renderPassDesc);
             m_TransientResourcePool.PushFrameBuffer(std::move(frameBuffer),frameBufferDesc);
+        }
+        void operator()(const Borrow<RenderTaskBase>& task)
+        {
+            auto& renderPassDesc= task->GetRenderPassDesc();
+            BeginRenderPass(renderPassDesc);
+            task->Execute(commandBuffer);
+            EndRenderPass();
+            
         }
         void operator()(const Borrow<RenderTaskArray>& task)
         {
-            // get or create render pass
-            auto renderPass=m_TransientResourcePool.PopRenderPass(task->renderPassDesc);
-            if(!renderPass)
-            {
-                renderPass=CreateRenderPass(task->renderPassDesc);
-                assert(renderPass);
-            }
-            // get or create frame buffer
-            auto frameBufferDesc=RenderPassDescToFrameBufferDesc(task->renderPassDesc);
-            auto frameBuffer=m_TransientResourcePool.PopFrameBuffer(frameBufferDesc);
-            if(!frameBuffer)
-            {
-                frameBuffer=CreateFrameBuffer(frameBufferDesc,*renderPass);
-                assert(frameBuffer);
-            }
-            // render pass
-            commandBuffer.GetVk().BeginRenderPass(renderPass->GetVk(),
-            frameBuffer->GetVk(), 
-            task->renderPassDesc.clearColor);
+            auto& renderPassDesc = task->renderPassDesc;
+            BeginRenderPass(renderPassDesc);
             for(auto& t:task->tasks)
             {
                 t->Execute(commandBuffer);
             }
-            commandBuffer.GetVk().EndRenderPass();
-            // push render pass and frame buffer to transient resource pool
-            m_TransientResourcePool.PushRenderPass(std::move(renderPass),task->renderPassDesc);
-            m_TransientResourcePool.PushFrameBuffer(std::move(frameBuffer),frameBufferDesc);
+            EndRenderPass();
         }
         FrameBufferDesc RenderPassDescToFrameBufferDesc(const RenderPassDesc& desc)
         {
@@ -265,15 +301,15 @@ private:
             renderPassDesc.colorAttachmentCount=desc.colorAttachmentCount;
             for(size_t i=0;i<desc.colorAttachmentCount;++i)
             {
-                renderPassDesc.colorAttachments[i].load=desc.colorAttachment[i].loadOp;
-                renderPassDesc.colorAttachments[i].store=desc.colorAttachment[i].storeOp;
+                renderPassDesc.colorAttachments[i].loadOp=desc.colorAttachment[i].loadOp;
+                renderPassDesc.colorAttachments[i].storeOp=desc.colorAttachment[i].storeOp;
                 renderPassDesc.colorAttachments[i].format=desc.colorAttachment[i].texture->GetDesc().pixelFormat;
             }
             if(desc.depthAttachment)
             {
                 DeviceAttachmentDesc depthAttachmentDesc;
-                depthAttachmentDesc.load=desc.depthAttachment->loadOp;
-                depthAttachmentDesc.store=desc.depthAttachment->storeOp;
+                depthAttachmentDesc.loadOp=desc.depthAttachment->loadOp;
+                depthAttachmentDesc.storeOp=desc.depthAttachment->storeOp;
                 depthAttachmentDesc.format=desc.depthAttachment->texture->GetDesc().pixelFormat;
                 renderPassDesc.depthAttachment=depthAttachmentDesc;
             }
@@ -310,7 +346,6 @@ inline ResourceType* RenderTaskBuilder::Read(ResourceType* _resource)
 
     resource->readers.push_back(m_Task);
     m_Task->reads.push_back(resource);
-    
     return _resource;
 }
 template <typename ResourceType>

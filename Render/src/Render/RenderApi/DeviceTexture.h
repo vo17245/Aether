@@ -101,6 +101,31 @@ inline VkImageUsageFlags DeviceImageUsageFlagsToVk(DeviceImageUsageFlags flags)
     }
     return res;
 }
+inline DeviceImageUsageFlags VkImageUsageFlagsToRenderApi(VkImageUsageFlags flags)
+{
+    DeviceImageUsageFlags res = 0;
+    if (flags & VK_IMAGE_USAGE_SAMPLED_BIT)
+    {
+        res |= (uint32_t)DeviceImageUsage::Sample;
+    }
+    if (flags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+    {
+        res |= (uint32_t)DeviceImageUsage::Download;
+    }
+    if (flags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+    {
+        res |= (uint32_t)DeviceImageUsage::Upload;
+    }
+    if (flags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+    {
+        res |= (uint32_t)DeviceImageUsage::ColorAttachment;
+    }
+    if (flags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+    {
+        res |= (uint32_t)DeviceImageUsage::DepthAttachment;
+    }
+    return res;
+}
 inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
 {
     switch (layout)
@@ -240,6 +265,7 @@ public:
     }
     static DeviceTexture Create(int width, int height, PixelFormat format, DeviceImageUsageFlags usages, DeviceImageLayout initLayout)
     {
+        DeviceTexture res;
         switch (Render::Config::RenderApi)
         {
         case Render::Api::Vulkan: {
@@ -250,13 +276,14 @@ public:
             {
                 return std::monostate{};
             }
-            return std::move(texture.value());
+            res=std::move(texture.value());
         }
         break;
         default:
             assert(false && "Not implemented");
             return std::monostate{};
         }
+        return res;
     }
     std::optional<std::string> CopyBuffer(const DeviceBuffer& buffer)
     {
@@ -319,11 +346,11 @@ public:
     {
         return Get<vk::Texture2D>();
     }
-    void AsyncTransitionLayout(DeviceImageLayout oldLayout, DeviceImageLayout newLayout, DeviceCommandBufferView commandBuffer)
+    void AsyncTransitionLayout( DeviceImageLayout oldLayout,DeviceImageLayout newLayout, DeviceCommandBufferView commandBuffer)
     {
         std::visit(AsyncTransitionLayoutImpl{oldLayout, newLayout, commandBuffer}, m_Texture);
     }
-    void SyncTransitionLayout(DeviceImageLayout oldLayout, DeviceImageLayout newLayout)
+    void SyncTransitionLayout( DeviceImageLayout oldLayout,DeviceImageLayout newLayout)
     {
         std::visit(SyncTransitionLayoutImpl{oldLayout, newLayout}, m_Texture);
     }
@@ -343,6 +370,20 @@ public:
         break;
         default:
             assert(false && "Not implemented");
+        }
+    }
+    DeviceImageUsageFlags GetUsages() const
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            auto& texture = Get<vk::Texture2D>();
+            return VkImageUsageFlagsToRenderApi(texture.GetVkUsageFlags());
+        }
+        break;
+        default:
+            assert(false && "Not implemented");
+            return 0;
         }
     }
 
