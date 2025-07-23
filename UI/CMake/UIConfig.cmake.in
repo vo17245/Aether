@@ -10,5 +10,6 @@ find_dependency(tinyxml2 REQUIRED CONFIG)
 find_dependency(Text REQUIRED CONFIG)
 find_dependency(nativefiledialog REQUIRED CONFIG)
 find_dependency(Lua REQUIRED CONFIG)
+find_dependency(Resource REQUIRED CONFIG)
 
 include("${CMAKE_CURRENT_LIST_DIR}/UITargets.cmake")
