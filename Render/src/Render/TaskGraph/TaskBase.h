@@ -5,7 +5,6 @@
 namespace Aether::TaskGraph
 {
 class ResourceBase;
-class TaskBuilder;
 class TaskBase
 {
 public:

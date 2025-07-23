@@ -2,6 +2,7 @@
 #include <Render/RenderApi.h>
 #include "ResourceImpl.h"
 #include <Core/Cache.h>
+#include "RenderPass.h"
 namespace Aether::TaskGraph 
 {
     class TransientResourcePool
@@ -9,20 +10,18 @@ namespace Aether::TaskGraph
     public:
         TransientResourcePool(size_t frameBufferCacheSize = 64, size_t renderPassCacheSize = 64)
             : m_FrameBuffers(frameBufferCacheSize), m_RenderPasses(renderPassCacheSize) {}
-        void PushFrameBufferf(Scope<DeviceFrameBuffer>&& frameBuffer,const FrameBufferDesc& desc)
+        void PushFrameBuffer(Scope<DeviceFrameBuffer>&& frameBuffer,const FrameBufferDesc& desc)
         {
             m_FrameBuffers.Put(desc, std::move(frameBuffer));
         }
         Scope<DeviceFrameBuffer> PopFrameBuffer(const FrameBufferDesc& desc)
         {
-            auto frameBuffer = m_FrameBuffers.Get(desc);
-            if (frameBuffer.has_value())
+            auto frameBuffer = m_FrameBuffers.Pop(desc);
+            if(!frameBuffer.has_value())
             {
-                auto res= std::move(frameBuffer.value());
-                m_FrameBuffers.Erase(desc);
-                return std::move(res);
+                return nullptr;
             }
-            return nullptr;
+            return std::move(frameBuffer.value());
         }
         void PushRenderPass(Scope<DeviceRenderPass>&& renderPass, const RenderPassDesc& desc)
         {
@@ -30,14 +29,12 @@ namespace Aether::TaskGraph
         }
         Scope<DeviceRenderPass> PopRenderPass(const RenderPassDesc& desc)
         {
-            auto renderPass = m_RenderPasses.Get(desc);
-            if (renderPass.has_value())
+            auto renderPass = m_RenderPasses.Pop(desc);
+            if (!renderPass.has_value())
             {
-                auto res = std::move(renderPass.value());
-                m_RenderPasses.Erase(desc);
-                return std::move(res);
+                return nullptr;
             }
-            return nullptr;
+            return std::move(renderPass.value());
         }
         
     private:

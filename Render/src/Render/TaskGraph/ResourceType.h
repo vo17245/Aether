@@ -7,6 +7,5 @@ namespace Aether::TaskGraph
         Unknown = 0,
         Buffer ,
         Texture ,
-        FrameBuffer ,
     };
 }

@@ -10,12 +10,12 @@ template <typename Key, typename Value,typename Hash=std::hash<Key>>
 class LRUCache {
 public:
     LRUCache(size_t capacity) : m_Capacity(capacity) {}
-
-    void Put(const Key& key, const Value& value) {
+    template<typename V>
+    void Put(const Key& key, V&& value) {
         if (m_CacheMap.find(key) != m_CacheMap.end()) {
             m_CacheItems.erase(m_CacheMap[key]);
         }
-        m_CacheItems.push_front(std::make_pair(key, value));
+        m_CacheItems.push_front(std::make_pair(key, std::forward<V>(value)));
         m_CacheMap[key] = m_CacheItems.begin();
 
         if (m_CacheMap.size() > m_Capacity) {
@@ -26,6 +26,7 @@ public:
         }
     }
 
+
     std::optional<Value> Get(const Key& key) {
         if (m_CacheMap.find(key) == m_CacheMap.end()) {
             return std::nullopt;
@@ -33,6 +34,17 @@ public:
         auto it = m_CacheMap[key];
         m_CacheItems.splice(m_CacheItems.begin(), m_CacheItems, it);
         return it->second;
+    }
+    std::optional<Value> Pop(const Key& key)
+    {
+        if (m_CacheMap.find(key) == m_CacheMap.end()) {
+            return std::nullopt;
+        }
+        auto it = m_CacheMap[key];
+        Value value = std::move(it->second);
+        m_CacheItems.erase(it);
+        m_CacheMap.erase(key);
+        return value;
     }
     void Erase(const Key& key) {
         if (m_CacheMap.find(key) != m_CacheMap.end()) {

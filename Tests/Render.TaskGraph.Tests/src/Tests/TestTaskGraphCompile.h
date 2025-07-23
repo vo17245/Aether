@@ -17,27 +17,19 @@ public:
         CreateQuads(window->GetSize().cast<uint32_t>());
         CreateTaskGraph();
     }
-virtual void OnRender(
+    virtual void OnRender(
         vk::RenderPass& renderPass,
         vk::FrameBuffer& framebuffer,
-        vk::GraphicsCommandBuffer& commandBuffer
-    )override
+        vk::GraphicsCommandBuffer& commandBuffer) override
     {
-        DeviceCommandBufferView cbv(commandBuffer);
-
-        commandBuffer.BeginRenderPass(renderPass,
-                                      framebuffer,
-                                      Vec4(0.0,0.0,0.0,1.0));
-        for(auto& quad:m_Quads)
-        {
-            quad->Render(cbv);
-        }
-        commandBuffer.EndRenderPass();
+        m_TaskGraph->SetCommandBuffer(commandBuffer);
+        m_TaskGraph->Execute();
     }
+
 private:
     void CreateQuads(const Vec2u& screenSize)
     {
-        const char* vs=R"(
+        const char* vs = R"(
         #version 450
 layout(location=0)in vec2 a_Position;
 layout(location=1)in vec2 a_UV;
@@ -49,7 +41,7 @@ void main()
     v_UV=a_UV;
 }
         )";
-        const char* fs=R"(
+        const char* fs = R"(
         #version 450
 layout(location=0)in vec2 v_UV;
 layout(location=0)out vec4 FragColor;
@@ -61,7 +53,7 @@ void main()
 
 }
         )";
-        auto quadEx=DrawQuad::Create(vs, fs, Mat2x3f::Identity(), PixelFormat::RGBA8888, true);
+        auto quadEx = DrawQuad::Create(vs, fs, Mat2x3f::Identity(), PixelFormat::RGBA8888, true);
         assert(quadEx.has_value() && "failed to create draw quad");
         m_Quads.push_back(CreateScope<DrawQuad>(std::move(quadEx.value())));
         m_Quads.back()->SetScreenSize(screenSize);
@@ -70,52 +62,47 @@ void main()
     {
         struct TaskData
         {
-            TaskGraph::FrameBuffer* frameBuffer;
+            
         };
-        TaskGraph::Texture* finalTexture=m_TaskGraph->AddRetainedResourceBorrow<DeviceTexture>("final image",
-            &(m_Window->GetFinalTexture()),
-            TaskGraph::TextureDesc{});
-        auto data=m_TaskGraph->AddRenderTask<TaskData>(
-            [&](TaskGraph::TaskBuilder& builder,TaskData& data){
-                data.frameBuffer=builder.Create<TaskGraph::FrameBuffer>("final texture framebuffer", TaskGraph::FrameBufferDesc{
-                    .colorAttachments={finalTexture}
-                });
-                builder.Write(finalTexture);
-            }, 
-            [=](TaskData& data,DeviceCommandBuffer& commandBuffer){
+        TaskGraph::Texture* finalTexture = m_TaskGraph->AddRetainedResourceBorrow<DeviceTexture>("final image",
+                                                                                                 &(m_Window->GetFinalTexture()),
+                                                                                                 TaskGraph::TextureDesc{
+                                                                                                    .usages=(uint32_t)DeviceImageUsage::ColorAttachment,
+                                                                                                    .pixelFormat = PixelFormat::RGBA8888,
+                                                                                                    .width = (uint32_t)m_Window->GetSize().x(),
+                                                                                                    .height = (uint32_t)m_Window->GetSize().y()
 
+                                                                                                });
+
+        auto data = m_TaskGraph->AddRenderTask<TaskData>(
+            {.colorAttachment = {
+                 {finalTexture, DeviceAttachmentLoadOp::Clear, DeviceAttachmentStoreOp::Store}},
+             .depthAttachment = std::nullopt,
+             .colorAttachmentCount = 1,
+             .clearColor = {0.0f, 0.0f, 0.0f, 1.0f}},
+            [&](TaskGraph::RenderTaskBuilder& builder, TaskData& data) {
+                
+            },
+            [=,this](TaskData& data, DeviceCommandBufferView& commandBuffer) {
+                for(auto& quad : m_Quads)
+                {
+                    quad->Render(commandBuffer);
+                }
             });
+        m_TaskGraph->Compile();
     }
     void InitRenderResource(Window* window)
     {
-        auto commandBuffer=GlobalApplicationResource::GetInstance().GetCommandBufferPool().AllocateCommandBuffer();
+        auto commandBuffer = GlobalApplicationResource::GetInstance().GetCommandBufferPool().AllocateCommandBuffer();
         assert(!commandBuffer.Empty() && "failed to allocate command buffer");
-        m_TaskGraph = CreateScope<TaskGraph::TaskGraph>(std::move(commandBuffer));
+        m_TaskGraph = CreateScope<TaskGraph::TaskGraph>();
         auto& finalImage = window->GetFinalTexture();
 
-        // create final image render pass
-        {
-            DeviceRenderPassDesc desc;
-            desc.colorAttachmentCount = 1;
-            auto& colorAttach = desc.colorAttachments[0];
-            colorAttach.format = PixelFormat::RGBA8888;
-            colorAttach.load = DeviceAttachmentLoadOp::Clear;
-            colorAttach.store = DeviceAttachmentStoreOp::Store;
-            m_FinalImageRenderPass = CreateScope<DeviceRenderPass>(DeviceRenderPass::Create(desc));
-            assert(!m_FinalImageRenderPass->Empty() && "failed to create final image render pass");
-        }
-        // create final image framebuffer
-        {
-            auto frameBuffer = DeviceFrameBuffer::CreateFromColorAttachment(*m_FinalImageRenderPass, finalImage);
-            assert(!frameBuffer.Empty());
-            m_FinalImageFrameBuffer = CreateScope<DeviceFrameBuffer>(std::move(frameBuffer));
-        }
+
     }
 
 private:
     Scope<TaskGraph::TaskGraph> m_TaskGraph;
-    Scope<DeviceFrameBuffer> m_FinalImageFrameBuffer;
-    Scope<DeviceRenderPass> m_FinalImageRenderPass;
     Scope<DeviceTexture> m_FinalImageTexture;
     std::vector<Scope<DrawQuad>> m_Quads;
     Window* m_Window = nullptr;

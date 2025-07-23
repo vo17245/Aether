@@ -292,6 +292,8 @@ public:
                 return *m_DefaultImageView;
             }
         }
+        assert(m_DefaultImageView && "Default image view is not created");
+        return *m_DefaultImageView;
     }
     DeviceImageView& GetDefaultImageView()
     {
