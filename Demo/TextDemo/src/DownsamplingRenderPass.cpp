@@ -1,12 +1,12 @@
-#include "DownsamplerRenderPass.h"
+#include "DownsamplingRenderPass.h"
 #include <Render/Mesh/Geometry.h>
 #include <Render/Utils.h>
-std::optional<DownsamplerRenderPass> DownsamplerRenderPass::Create()
+std::optional<DownsamplingRenderPass> DownsamplingRenderPass::Create(DeviceDescriptorPool& pool)
 {
     static const char* vs=R"(
     #version 450
 layout(location=0)in vec2 a_Position;
-layout(location=2)in vec2 a_UV;
+layout(location=1)in vec2 a_UV;
 layout(location=0)out vec2 v_UV;
 void main()
 {
@@ -32,7 +32,7 @@ vec4 BoxFilter(sampler2D tex, vec2 uv) {
 }
 void main()
 {
-    Vec4 color = BoxFilter(u_Texture, v_UV);
+    vec4 color = BoxFilter(u_Texture, v_UV);
     FragColor = color;
 }
     )";
@@ -44,7 +44,7 @@ void main()
         return std::nullopt;
     }
     auto& shader = shaderEx.value();
-    DownsamplerRenderPass pass;
+    DownsamplingRenderPass pass;
     // create mesh
     auto mesh=Geometry::CreateQuad();
     pass.m_Mesh=DeviceMesh::Create(mesh);
@@ -60,8 +60,15 @@ void main()
         assert(false && "create render pass failed");
         return std::nullopt;
     }
+    // create descriptor set layout
+    auto set=pool.CreateSet(0, 0, 1);
+    // create sampler
+    pass.m_Sampler=DeviceSampler::CreateNearest();
+    // create pipeline layout
     vk::PipelineLayout::Builder layoutBuilder;
-    pass.m_PipelineLayout=layoutBuilder.Build().value();
+
+    pass.m_PipelineLayout=layoutBuilder.AddDescriptorSetLayouts(set.GetVk().layouts).Build().value();
+    // create pipeline
     vk::GraphicsPipeline::Builder builder(renderPass.GetVk(),pass.m_PipelineLayout.GetVk());
     builder.PushVertexBufferLayouts(mesh.CreateVertexBufferLayouts());
     builder.AddVertexStage(shader.GetVk().vertex,"main");
@@ -70,9 +77,28 @@ void main()
     return pass;
 
 }
-bool DownsamplerRenderPass::Render(DeviceCommandBufferView& commandBuffer,DeviceTexture& texture)
+bool DownsamplingRenderPass::Render(DeviceCommandBufferView& commandBuffer,DeviceTexture& texture,DeviceDescriptorPool& pool)
 {
     auto& cb=commandBuffer.GetVk();
+    // create and update descriptor set
+    auto set=pool.CreateSet(0, 0, 1);
+    assert(set);
+    auto& vkSet=set.GetVk();
+    for(auto& sampler:set.GetVk().samplers)
+    {
+        auto& s=vkSet.sets[sampler.set];
+        vk::DescriptorSetOperator op(s);
+        op.BindSampler(sampler.binding, m_Sampler.GetVk(), texture.GetOrCreateDefaultImageView().GetVk());
+        op.Apply();
+    }
+
+    // bind pipeline
     cb.BindPipeline(m_Pipeline.GetVk());
+    for(size_t i=0;i<vkSet.sets.size();++i)
+    {
+        auto& s=vkSet.sets[i];
+        cb.BindDescriptorSet(s, m_PipelineLayout.GetVk(), i);
+    }
     Render::Utils::DrawMesh(cb, m_Mesh.GetVk());
+    return true;
 }

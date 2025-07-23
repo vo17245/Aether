@@ -237,6 +237,17 @@ void TaskGraph::MergeRenderPass()
 }
 void TaskGraph::CreateTextureLayoutTransitions()
 {
+    // save init layout
+    std::vector<DeviceImageLayout> layouts;
+    for(auto& resource:m_Resources)
+    {
+        if(resource->type==ResourceType::Texture)
+        {
+            auto& texture=(Texture&)*resource;
+            layouts.push_back(texture.GetDesc().layout);
+        }
+    }
+    // create layout transition 
     for (auto& timeline : m_Timelines)
     {
         auto& task = timeline.task;
@@ -291,6 +302,28 @@ void TaskGraph::CreateTextureLayoutTransitions()
                 }
             }
         }
+    }
+    // restore layout
+    size_t index=0;
+    Timeline timeline{std::monostate{},{},{},{}};
+    auto& layoutTransitions = timeline.layoutTransitions;
+    for(auto& resource:m_Resources)
+    {
+        if(resource->type==ResourceType::Texture)
+        {
+            auto& texture = (Texture&)*resource;
+            auto& desc = texture.GetDesc();
+            if(desc.layout!=layouts[index])
+            {
+                layoutTransitions.push_back({desc.layout,layouts[index],&texture});
+                desc.layout=layouts[index];
+            }
+            ++index;
+        }
+    }
+    if(!layoutTransitions.empty())
+    {
+        m_Timelines.emplace_back(std::move(timeline));
     }
 }
 } // namespace Aether::TaskGraph

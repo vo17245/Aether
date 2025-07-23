@@ -248,12 +248,8 @@ vec3 rainbowNoise(vec2 uv) {
     else if (t < 0.8) return mix(color4, color5, (t - 0.6) * 5.0);
     else return mix(color5, color6, (t - 0.8) * 5.0);
 }
-void main()
+float CalculateCoverageAtUv(vec2 uv,vec2 inverseDiameter)
 {
-    Init();
-    vec2 uv = v_UV;
-    vec2 inverseDiameter = 1.0 / (g_AntiAliasingWindowSize * fwidth(v_UV));// uv到屏幕空间的缩放
-    uv=HintingCenter(uv,inverseDiameter.x*256);
     float alpha = 0.0;
     Glyph glyph = FetchGlyph(v_GlyphIndex);
     for (int i = 0; i < glyph.count; i++) {
@@ -276,19 +272,24 @@ void main()
 
 	}
     alpha/=2;
+    return alpha;
+}
+float CalculateCoverageAtUv_Oversampling(vec2 uv,vec2 inverseDiameter)
+{
+
+}
+void main()
+{
+    Init();
+    vec2 uv = v_UV;
+    vec2 inverseDiameter = 1.0 / (g_AntiAliasingWindowSize * fwidth(v_UV));// uv到屏幕空间的缩放
+    uv=HintingCenter(uv,inverseDiameter.x*256);
+    float alpha=CalculateCoverageAtUv(uv,inverseDiameter);
     vec3 fontColor= ubo.u_Color.rgb;
     vec3 edgeColor=rainbowNoise(uv);
     vec3 color = mix(edgeColor, fontColor, clamp(alpha * 1.5, 0.0, 1.0));
     color=fontColor;
     FragColor=vec4(color,alpha);
-
-
-
-
-
-
-
-
 }
 )";
     static const char* vert = R"(

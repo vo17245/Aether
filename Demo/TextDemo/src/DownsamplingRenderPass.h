@@ -1,18 +1,18 @@
 #pragma once
 #include <Render/RenderApi.h>
 using namespace Aether;
-class DownsamplerRenderPass
+class DownsamplingRenderPass
 {
 public:
     
-    static std::optional<DownsamplerRenderPass> Create();
+    static std::optional<DownsamplingRenderPass> Create(DeviceDescriptorPool& pool);
     /**
      * @note
      * renderpass desc:
      * - color attachment: 1
      *   rgba8888     size:1/4        loadOp: clear  storeOp: store
     */
-    bool Render(DeviceCommandBufferView& commandBuffer,DeviceTexture& texture);
+    bool Render(DeviceCommandBufferView& commandBuffer,DeviceTexture& texture,DeviceDescriptorPool& pool);
 private:
     DevicePipeline m_Pipeline;
     DevicePipelineLayout m_PipelineLayout;

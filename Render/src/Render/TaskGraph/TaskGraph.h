@@ -97,15 +97,8 @@ public:
             }
             for (auto& layoutTransition : timeline.layoutTransitions)
             {
-                DeviceTexture* actual;
-                if(layoutTransition.texture->Transient())
-                {
-                    actual = layoutTransition.texture->GetActual().get();
-                }
-                else
-                {
-                    actual = layoutTransition.texture->GetActualBorrow().Get();
-                }
+                DeviceTexture* actual=layoutTransition.texture->GetActual();
+                
                 actual->AsyncTransitionLayout(layoutTransition.oldLayout, layoutTransition.newLayout, m_CommandBuffer);
             }
             ExecuteTask executeTask{m_CommandBuffer,m_TransientResourcePool};
@@ -184,7 +177,7 @@ private:
             }
             // get or create frame buffer
             frameBufferDesc=RenderPassDescToFrameBufferDesc(desc);
-            auto frameBuffer=m_TransientResourcePool.PopFrameBuffer(frameBufferDesc);
+            frameBuffer=m_TransientResourcePool.PopFrameBuffer(frameBufferDesc);
             if(!frameBuffer)
             {
                 frameBuffer=CreateFrameBuffer(frameBufferDesc,*renderPass);
@@ -262,28 +255,13 @@ private:
             for(size_t i=0;i<desc.colorAttachmentCount;++i)
             {
                 auto* texture=desc.colorAttachments[i];
-                DeviceTexture* actual;
-                if(texture->Transient())
-                {
-                    actual = texture->GetActual().get();
-                }
-                else
-                {
-                    actual = texture->GetActualBorrow().Get();
-                }
+                DeviceTexture* actual=texture->GetActual();
+               
                 frameBufferDesc.colorAttachments[i]=&actual->GetOrCreateDefaultImageView();
             }
             if(desc.depthAttachment)
             {
-                DeviceTexture* actual;
-                if(desc.depthAttachment->Transient())
-                {
-                    actual = desc.depthAttachment->GetActual().get();
-                }
-                else
-                {
-                    actual = desc.depthAttachment->GetActualBorrow().Get();
-                }
+                DeviceTexture* actual=desc.depthAttachment->GetActual();
                 frameBufferDesc.depthAttachment= &actual->GetOrCreateDefaultImageView();
             }
             frameBufferDesc.width=desc.width;

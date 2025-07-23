@@ -7,6 +7,7 @@
 #include <Core/String.h>
 #include <variant>
 #include <Render/TaskGraph.h>
+#include "DownsamplingRenderPass.h"
 using namespace Aether;
 class TextLayer : public Layer
 {
@@ -42,14 +43,52 @@ public:
     {
         m_Window = window;
         {
+            auto downsampling = DownsamplingRenderPass::Create(ApplicationResource::GetSingleton().descriptorPool);
+            if (!downsampling)
+            {
+                assert(false && "create downsampling render pass failed");
+                return;
+            }
+            m_Downsampling = CreateScope<DownsamplingRenderPass>(std::move(downsampling.value()));
+        }
+        {
             auto texture = DeviceTexture::CreateForColorAttachment(m_Window->GetSize().x() * 4,
-                                                           m_Window->GetSize().y() * 4,
-                                                           PixelFormat::RGBA8888);
+                                                                   m_Window->GetSize().y() * 4,
+                                                                   PixelFormat::RGBA8888);
             m_OversamplingTexture = CreateScope<DeviceTexture>(std::move(texture.value()));
         }
-        auto* oversamplingTexture = m_TaskGraph.AddRetainedTextureBorrow("oversampling texture", 
-            m_OversamplingTexture.get(),
-            DeviceImageLayout::Undefined);
+        auto* oversamplingTexture = m_TaskGraph.AddRetainedTextureBorrow("oversampling texture",
+                                                                         m_OversamplingTexture.get(),
+                                                                         DeviceImageLayout::Undefined);
+        auto* finalImage = m_TaskGraph.AddRetainedTextureBorrow("final image",
+                                                                window->GetFinalTexture(),
+                                                                DeviceImageLayout::ColorAttachment);
+
+        DrawText(oversamplingTexture);
+        //DrawText(finalImage);
+        Downsampling(finalImage, oversamplingTexture);
+        m_TaskGraph.Compile();
+    }
+    void Downsampling(TaskGraph::Texture* finalTexture, TaskGraph::Texture* oversamplingTexture)
+    {
+        struct TaskData
+        {
+        };
+        TaskGraph::RenderPassDesc renderPassDesc;
+        renderPassDesc.colorAttachmentCount = 1;
+        renderPassDesc.colorAttachment[0].texture = finalTexture;
+        renderPassDesc.colorAttachment[0].loadOp = DeviceAttachmentLoadOp::Clear;
+        renderPassDesc.colorAttachment[0].storeOp = DeviceAttachmentStoreOp::Store;
+        renderPassDesc.clearColor = Vec4f{1.0, 1.0, 1.0, 1.0};
+        m_TaskGraph.AddRenderTask<TaskData>(renderPassDesc, [&](TaskGraph::RenderTaskBuilder& builder, TaskData&)
+         { builder.Read(oversamplingTexture); }, 
+         [this,oversamplingTexture](TaskData&, DeviceCommandBufferView& commandBuffer)
+          { 
+            m_Downsampling->Render(commandBuffer, *oversamplingTexture->GetActual(),ApplicationResource::GetSingleton().descriptorPool);
+             });
+    }
+    void DrawText(TaskGraph::Texture* oversamplingTexture)
+    {
         {
             struct TaskData
             {
@@ -59,6 +98,7 @@ public:
             renderPassDesc.colorAttachment[0].texture = oversamplingTexture;
             renderPassDesc.colorAttachment[0].loadOp = DeviceAttachmentLoadOp::Clear;
             renderPassDesc.colorAttachment[0].storeOp = DeviceAttachmentStoreOp::Store;
+            renderPassDesc.clearColor = Vec4f{1.0, 1.0, 1.0, 1.0};
             m_TaskGraph.AddRenderTask<TaskData>(renderPassDesc, [&](TaskGraph::RenderTaskBuilder& builder, TaskData&) {
 
             },
@@ -82,7 +122,7 @@ float framePerSec = m_Frame / m_Sec;
         // calculate glyph layout
         std::vector<Vec2f> glyphPos;
         glyphPos.reserve(unicodes.size());
-        float worldSize = 64.0f;
+        float worldSize = 16.0f;
         {
             float scale = worldSize / ApplicationResource::GetSingleton().font->emSize;
             float x = 0;
@@ -123,7 +163,6 @@ float framePerSec = m_Frame / m_Sec;
         ApplicationResource::GetSingleton().textRaster->Render(param,
                                                                *ApplicationResource::GetSingleton().rasterResource); });
         }
-        m_TaskGraph.Compile();
     }
     virtual void OnUpdate(float sec) override
     {
@@ -137,4 +176,5 @@ private:
     uint32_t m_Frame = 0;
     Scope<DeviceTexture> m_OversamplingTexture;
     TaskGraph::TaskGraph m_TaskGraph;
+    Scope<DownsamplingRenderPass> m_Downsampling;
 };

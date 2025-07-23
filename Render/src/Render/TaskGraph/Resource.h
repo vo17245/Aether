@@ -9,7 +9,7 @@ class RenderTaskBase;
 class ResourceBase
 {
 public:
-    ResourceBase(const std::string& _tag,RenderTaskBase* creator)
+    ResourceBase(const std::string& _tag, RenderTaskBase* creator)
     {
 #if AETHER_RENDER_TASKGRAPH_DEBUG_ENABLE_DEBUG_TAG
         tag = _tag;
@@ -19,9 +19,9 @@ public:
     virtual ~ResourceBase() = default;
     virtual void Realize() = 0;
     virtual void Derealize() = 0;
-    bool Transient()const
+    bool Transient() const
     {
-        return creator!=nullptr;
+        return creator != nullptr;
     }
     RenderTaskBase* creator = nullptr;
     std::vector<RenderTaskBase*> readers;
@@ -31,16 +31,15 @@ public:
     std::string tag;
 #endif
     ResourceType type = ResourceType::Unknown;
-
 };
-template<typename Desc>
+template <typename Desc>
 struct GetResourceType;
 template <typename Actual, typename Desc>
 class Resource : public ResourceBase
 {
 public:
-    Resource(const std::string& tag,RenderTaskBase* creator ,const Desc& desc) :
-        ResourceBase(tag,creator),m_Desc(desc)
+    Resource(const std::string& tag, RenderTaskBase* creator, const Desc& desc) :
+        ResourceBase(tag, creator), m_Desc(desc)
     {
         type = GetResourceType<Desc>::type;
     }
@@ -58,7 +57,7 @@ public:
     {
         m_Actual = std::move(actual);
     }
-    const Desc& GetDesc()const
+    const Desc& GetDesc() const
     {
         return m_Desc;
     }
@@ -70,8 +69,8 @@ public:
      * @note check a resource holds a actual or borrow by Transient() function
      * if Transient() is true, call GetActual() to get the actual resource
      * if Transient() is false, call GetActualBorrow() to get the borrow resource
-    */
-    Scope<Actual>& GetActual()
+     */
+    Scope<Actual>& GetActualScope()
     {
         assert(m_Actual && "resource not realized");
         return m_Actual;
@@ -85,11 +84,23 @@ public:
     {
         m_ActualBorrow = actual;
     }
+    Actual* GetActual()
+    {
+        if (m_Actual)
+        {
+            return m_Actual.get();
+        }
+        else if (m_ActualBorrow)
+        {
+            return m_ActualBorrow;
+        }
+        assert(false && "resource not realized or borrowed");
+        return nullptr;
+    }
 
 private:
-    
-    Scope<Actual> m_Actual;// for transient resource in task graph, or owned external resource resource 
-    Actual* m_ActualBorrow=nullptr;// for not owned external resource, just a borrow, task graph will *NOT* manage its lifetime
+    Scope<Actual> m_Actual;           // for transient resource in task graph, or owned external resource resource
+    Actual* m_ActualBorrow = nullptr; // for not owned external resource, just a borrow, task graph will *NOT* manage its lifetime
     Desc m_Desc;
 };
 template <typename T>
