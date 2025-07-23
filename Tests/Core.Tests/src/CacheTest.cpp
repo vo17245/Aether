@@ -25,21 +25,17 @@ struct CustomKey
         return tag==other.tag;
     }
 };
-namespace Aether
-{
 
-template<>
-struct LRUCacheHash<CustomKey>
+struct LRUCacheHash
 {
     size_t operator()(const CustomKey& key) const
     {
         return std::hash<std::string>()(key.tag);
     }
 };
-}
 TEST_CASE("LRUCache CustomKey")
 {
-    LRUCache<CustomKey, int> cache(2);
+    LRUCache<CustomKey, int,LRUCacheHash> cache(2);
     cache.Put({"key1"}, 1);
     cache.Put({"key2"}, 2);
     CHECK(cache.Get({"key1"}).value() == 1);

@@ -62,7 +62,7 @@ public:
         commandBuffer.BeginRenderPass(ApplicationResource::s_Instance->renderPass.GetVk(),
                                       ApplicationResource::s_Instance->frameBuffer.GetVk(),
                                       clearValues);
-        m_Hierarchy->OnRender(commandBuffer, renderPass, framebuffer,
+        m_Hierarchy->OnRender(commandBuffer,  framebuffer,
                              m_ScreenSize);
         commandBuffer.EndRenderPass();
     }
