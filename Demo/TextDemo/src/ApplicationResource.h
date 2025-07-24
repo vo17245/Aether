@@ -55,7 +55,9 @@ private:
     {
         defaultRenderPass=vk::RenderPass::CreateDefault().value();
         descriptorPool=DeviceDescriptorPool::Create().value();
-        auto textRasterOpt=Text::Raster::Create(defaultRenderPass, true, descriptorPool,false);
+        auto textRasterOpt=Text::Raster::Create(defaultRenderPass, 
+            true, descriptorPool,false,
+        PackFlags(Text::Raster::Keyword::Fill));
         textRaster=CreateScope<Text::Raster>(std::move(textRasterOpt.value()));
         auto textContextOpt=Text::Context::Create();
         textContext=CreateScope<Text::Context>(std::move(textContextOpt.value()));

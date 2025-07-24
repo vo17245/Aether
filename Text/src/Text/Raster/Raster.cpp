@@ -308,8 +308,219 @@ void Fill()
     FragColor = vec4(fontColor, alpha);
     #endif
 }
+#define INF (1.0/0.0)
+#define EPSILON 1e-10
+#define PI 3.14159265358979323846
+vec2 QuadraticBezier(vec2 P0, vec2 P1, vec2 P2, float t)
+{
+    float u = 1.0 - t;
+    return u * u * P0 + 2.0 * u * t * P1 + t * t * P2;
+}
+/**
+ * @brief 计算点到贝塞尔曲线的最近距离,如果最近的点不在贝塞尔上(t不在[0-1]),返回inf
+*/
+float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
+{
+    vec2 A=P1-P0;
+    vec2 B=P2-P1-A;
+    vec2 Ma=P0-M;
+    float a=dot(B,B);
+    float b=3*dot(A,B);
+    float c=2*dot(A,A)+dot(Ma,B);
+    float d=dot(Ma,A);
+
+
+    // 处理退化情况
+    if (abs(a) < EPSILON)  // 不是三次方程
+    {
+        if (abs(b) < EPSILON)  // 一次方程 cx + d = 0
+        {
+            if (abs(c) < EPSILON)// 无解或无穷解
+            {
+                return INF;// 丢弃这个case
+            }
+            float t= -d/c;
+            if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
+            {
+                return INF;
+            }
+            vec2 point= QuadraticBezier(P0, P1, P2, t);
+            return length(point - M);
+        }
+
+        else  // 二次方程 bx² + cx + d = 0
+        {
+            float discriminant = c*c - 4*b*d;
+            if (discriminant < 0) //无解
+            {
+                return INF; // 丢弃这个case
+            }
+            else if (discriminant == 0)//单根
+            {
+                float t = -c/(2*b);
+                if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
+                {
+                    return INF;
+                }
+                vec2 point = QuadraticBezier(P0, P1, P2, t);
+                return length(point - M);
+            }
+            else // 两个根
+            {
+                float sqrt_disc = sqrt(discriminant);
+                float t1=(-c + sqrt_disc)/(2*b);
+                float t2=(-c - sqrt_disc)/(2*b);
+                float minDist = INF;
+                if (t1 >= 0.0 && t1 < 1.0) {
+                    vec2 point1 = QuadraticBezier(P0, P1, P2, t1);
+                    minDist = length(point1 - M);
+                }
+                if (t2 >= 0.0 && t2 < 1.0) {
+                    vec2 point2 = QuadraticBezier(P0, P1, P2, t2);
+                    float dist2 = length(point2 - M);
+                    if (dist2 < minDist) {
+                        minDist = dist2;
+                    }
+                }
+                return minDist;
+            }
+                
+        }
+
+    }
+    // 处理非退化情况
+    // 三次方程求解 - 使用Cardano公式
+    // 先转换为标准形式 t³ + pt + q = 0
+    float p = (3*a*c - b*b) / (3*a*a);
+    float q = (2*b*b*b - 9*a*b*c + 27*a*a*d) / (27*a*a*a);
+    
+    float discriminant = pow(q/2.0,2.0) + pow(p/3.0,3.0);
+    
+    
+    if (discriminant > 0)
+    {
+        //一个实根
+        float sqrt_disc = sqrt(discriminant);
+        float u;
+        if((-q/2.0 + sqrt_disc) >= 0)
+        {
+            u=pow(-q/2.0 + sqrt_disc,1.0/3.0);
+        }
+        else
+        {
+            u=-pow(abs(-q/2.0 + sqrt_disc),1.0/3.0);
+        }
+       
+        float v;
+        if((-q/2.0 - sqrt_disc) >= 0)
+        {
+            v=pow(-q/2.0 - sqrt_disc,1.0/3.0);
+        }
+        else
+        {
+            v=-pow(abs(-q/2.0 - sqrt_disc),1.0/3.0);
+        }
+        float x = u + v;
+        float t = x - b/(3*a);
+        if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
+        {
+            return INF;
+        }
+        vec2 point = QuadraticBezier(P0, P1, P2, t);
+        return length(point - M);
+    }
+        
+    else if (discriminant == 0)
+    {
+    // 两个或三个实根
+        if (abs(q) < EPSILON)
+        {
+            // 三重根
+            float t = -b/(3*a);
+            if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
+            {
+                return INF;
+            }
+            vec2 point = QuadraticBezier(P0, P1, P2, t);
+            return length(point - M);
+        }
+            
+        else
+        {
+            // 一个单根，一个二重根
+            float x1;
+            if(abs(p)>EPSILON)
+            {
+                x1 = 3*q/p;
+            }
+            else
+            {
+                x1 = 0;
+            }
+            float x2;
+            if(abs(p)>EPSILON)
+            {
+                x2 = -3*q/(2*p);
+            }
+            else
+            {
+                x2 = 0;
+            }
+            float t1 = x1 - b/(3*a);
+            float t2 = x2 - b/(3*a);
+            float minDist = INF;
+            if (t1 >= 0.0 && t1 < 1.0) {
+                vec2 point1 = QuadraticBezier(P0, P1, P2, t1);
+                minDist = length(point1 - M);
+            }
+            if (t2 >= 0.0 && t2 < 1.0) {
+                vec2 point2 = QuadraticBezier(P0, P1, P2, t2);
+                float dist2 = length(point2 - M);
+                if (dist2 < minDist) {
+                    minDist = dist2;
+                }
+            }
+            return minDist;
+        }
+            
+    }
+        
+    else
+    {
+    // 三个不同实根
+        float rho = sqrt(pow(-(p/3),3.0));
+        float theta = acos(-q/(2*rho));
+        float minDist = INF;
+        for(int k=0;k<3;++k)
+        {
+            float x = 2 * (pow(rho,1.0/3.0)) * cos((theta + 2*k*PI)/3.0);
+            float t = x - b/(3*a);
+            if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
+            {
+                continue;
+            }
+            vec2 point = QuadraticBezier(P0, P1, P2, t);
+            float dist = length(point - M);
+            if (dist < minDist) {
+                minDist = dist;
+            }
+            
+        }
+        return minDist;
+    }
+}
 void Sdf()
 {
+    float minDist = INF;
+    Glyph glyph = FetchGlyph(v_GlyphIndex);
+    for (int i = 0; i < glyph.count; i++) {
+		Curve curve = FetchCurve(glyph.start+i);
+        float dist=NearestToBezier(curve.p0, curve.p1, curve.p2, v_UV);
+        if (dist < minDist) {
+            minDist = dist;
+        }
+	}
+    FragColor=vec4(minDist, minDist, minDist, 1.0);
 }
 void main()
 {
@@ -325,12 +536,12 @@ void main()
 )";
     static const char* vert = R"(
 #version 450
-layout(location=0)in vec3 a_Position;
+layout(location=0)in vec3 a_Position;//屏幕坐标系,glyph的aabb
 layout(location=1)in uint a_GlyphIndex;
-layout(location=2)in vec2 a_UV;
+layout(location=2)in vec2 a_UV;// 在归一化的em坐标系
 layout(std140,binding=0)uniform UniformBufferObject
 {
-    mat4 u_MVP;
+    mat4 u_MVP;// 只有view和projection矩阵,model矩阵是identity
 }ubo;
 
 layout(location=0)flat out uint v_GlyphIndex;

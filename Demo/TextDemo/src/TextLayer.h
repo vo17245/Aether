@@ -128,7 +128,7 @@ float framePerSec = m_Frame / m_Sec;
         // calculate glyph layout
         std::vector<Vec2f> glyphPos;
         glyphPos.reserve(unicodes.size());
-        float worldSize = 8.0f;
+        float worldSize = 64.0f;
         {
             float scale = worldSize / ApplicationResource::GetSingleton().font->emSize;
             float x = 0;
