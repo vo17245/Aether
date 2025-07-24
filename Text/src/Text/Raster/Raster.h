@@ -46,8 +46,20 @@ public:
         resource.uniformBuffer = DeviceBuffer::CreateForUniform(sizeof(HostUniformBuffer));
         return resource;
     }
+    enum class Keyword:uint32_t
+    {
+        // optional keywords
+        ColorfulEdge=Bit(0),
+        // Oversampling or AntiAliasing
+        Oversampling=Bit(1),
+        AntiAliasing=Bit(2),
+        // Fill or SDF
+        Fill=Bit(3),
+        Sdf=Bit(4),
+    };
+    using KeywordFlags = uint32_t;
     static std::optional<Raster> Create(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,
-                                        bool enableDepthTest)
+                                        bool enableDepthTest,KeywordFlags keywords= PackFlags(Keyword::ColorfulEdge,Keyword::AntiAliasing,Keyword::Fill))
     {
         Raster raster;
         bool res = raster.Init(renderPass, enableBlend, descriptorPool,enableDepthTest);

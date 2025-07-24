@@ -76,12 +76,12 @@ private:
         DeviceRenderPassDesc desc;
         desc.colorAttachmentCount = 1;
         desc.colorAttachments[0].format = PixelFormat::RGBA8888;
-        desc.colorAttachments[0].load = DeviceAttachmentLoadOp::Load;
-        desc.colorAttachments[0].store = DeviceAttachmentStoreOp::Store;
+        desc.colorAttachments[0].loadOp = DeviceAttachmentLoadOp::Load;
+        desc.colorAttachments[0].storeOp = DeviceAttachmentStoreOp::Store;
         DeviceAttachmentDesc depthDesc;
         depthDesc.format = PixelFormat::R_FLOAT32_DEPTH;
-        depthDesc.load = DeviceAttachmentLoadOp::Clear;
-        depthDesc.store = DeviceAttachmentStoreOp::DontCare;
+        depthDesc.loadOp = DeviceAttachmentLoadOp::Clear;
+        depthDesc.storeOp = DeviceAttachmentStoreOp::DontCare;
         desc.depthAttachment = depthDesc;
         return DeviceRenderPass::Create(desc);
     }

@@ -155,8 +155,6 @@ public:
             // render glyph
             Text::Raster::RenderPassParam param{
                 .commandBuffer = commandBuffer,
-                .renderPass = renderPass,
-                .frameBuffer = frameBuffer,
                 .descriptorPool = *m_DescriptorPool,
                 .font = *text.font,
                 .unicodes = u32s.GetData(),

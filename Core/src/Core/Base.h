@@ -12,12 +12,6 @@ inline constexpr uint64_t Bit(uint8_t bit)
 {
     return 1ULL << bit;
 }
-template <typename... Ts>
-inline constexpr uint64_t PackBits(Ts... bits)
-{
-    return (Bit(bits) | ...);
-}
-
 template <typename T>
 using Ref = std::shared_ptr<T>;
 template <typename T>
@@ -31,5 +25,24 @@ template <typename T, typename... Args>
 Scope<T> CreateScope(Args&&... args)
 {
     return std::make_unique<T>(std::forward<Args>(args)...);
+}
+template<typename... Ts>
+struct AreAllScopedEnum;
+template<typename T>
+struct AreAllScopedEnum<T>
+{
+    static constexpr bool value = std::is_scoped_enum_v<T>;
+};
+template<typename T, typename U,typename... Ts>
+struct AreAllScopedEnum<T,U,Ts...>
+{
+    static constexpr bool value = std::is_scoped_enum_v<T> && AreAllScopedEnum<U,Ts...>::value;
+};
+
+template<typename... Ts>
+requires AreAllScopedEnum<Ts...>::value
+inline constexpr auto PackFlags(const Ts&... flags)
+{
+    return (static_cast<std::underlying_type_t<Ts>>(flags) | ...);
 }
 } // namespace Aether

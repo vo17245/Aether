@@ -44,7 +44,7 @@ public:
         commandBuffer.BeginRenderPass(defaultRenderPass.GetVk(), m_FinalFrameBuffer.GetVk(), {0, 0, 0, 1.0});
         // render quads to final image
         camera.CalculateMatrix();
-        renderer.Begin(renderPass, m_FinalFrameBuffer, camera);
+        renderer.Begin(m_FinalFrameBuffer, camera);
         for (auto& quad : m_Quads)
         {
             renderer.DrawQuad(quad);

@@ -5,7 +5,7 @@ using namespace Aether;
 
 TEST_CASE("LRUCache test")
 {
-    LRUCache<int, int> cache(2);
+    LRUCache<int, int> cache;
     cache.Put(1, 1);
     cache.Put(2, 2);
     CHECK(cache.Get(1).value() == 1);
@@ -35,7 +35,7 @@ struct LRUCacheHash
 };
 TEST_CASE("LRUCache CustomKey")
 {
-    LRUCache<CustomKey, int,LRUCacheHash> cache(2);
+    LRUCache<CustomKey, int,LRUCacheHash> cache;
     cache.Put({"key1"}, 1);
     cache.Put({"key2"}, 2);
     CHECK(cache.Get({"key1"}).value() == 1);
@@ -50,7 +50,7 @@ TEST_CASE("LRUCache CustomKey")
 
 TEST_CASE("LRUCache large capacity")
 {
-    LRUCache<int, int> cache(1000);
+    LRUCache<int, int> cache;
     for (int i = 0; i < 1000; i++)
     {
         cache.Put(i, i);

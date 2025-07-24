@@ -40,8 +40,8 @@ public:
         {
             return std::nullopt;
         }
-        m_CacheItems.splice(m_CacheItems.begin(), m_CacheItems, iter);
-        return iter->second;
+        m_CacheItems.splice(m_CacheItems.begin(), m_CacheItems, iter->second);
+        return iter->second->second;
     }
     std::optional<Value> Pop(const Key& key)
     {

@@ -7,13 +7,13 @@ static DeviceRenderPass CreateRenderPass(PixelFormat colorAttachPixelFormat,bool
     desc.colorAttachments[0].format=colorAttachPixelFormat;
     if(clear)
     {
-        desc.colorAttachments[0].load=DeviceAttachmentLoadOp::Clear;
+        desc.colorAttachments[0].loadOp=DeviceAttachmentLoadOp::Clear;
     }
     else  
     {
-        desc.colorAttachments[0].load=DeviceAttachmentLoadOp::Clear;
+        desc.colorAttachments[0].loadOp=DeviceAttachmentLoadOp::Clear;
     }
-    desc.colorAttachments[0].store=DeviceAttachmentStoreOp::Store;
+    desc.colorAttachments[0].storeOp=DeviceAttachmentStoreOp::Store;
     return DeviceRenderPass::Create(desc);
 }
 static Mesh CreateMesh(const Mat2x3f& affine)
