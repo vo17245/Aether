@@ -91,7 +91,7 @@ struct Curve {
 uint g_GlyphInLine;
 uint g_CurveInLine;
 float g_AntiAliasingWindowSize = 2.0;
-
+#define HINTING_SCALE 256
 
 Glyph FetchGlyph(uint index)
 {
@@ -254,9 +254,9 @@ float CalculateCoverageAtUv(vec2 uv,vec2 inverseDiameter)
     Glyph glyph = FetchGlyph(v_GlyphIndex);
     for (int i = 0; i < glyph.count; i++) {
 		Curve curve = FetchCurve(glyph.start+i);
-        curve.p0=Hinting(curve.p0,inverseDiameter.x*256);
-        curve.p1=Hinting(curve.p1,inverseDiameter.x*256);
-        curve.p2=Hinting(curve.p2,inverseDiameter.x*256);
+        curve.p0=Hinting(curve.p0,inverseDiameter.x*HINTING_SCALE);
+        curve.p1=Hinting(curve.p1,inverseDiameter.x*HINTING_SCALE);
+        curve.p2=Hinting(curve.p2,inverseDiameter.x*HINTING_SCALE);
 		vec2 p0 = curve.p0 - uv;
 		vec2 p1 = curve.p1 - uv;
 		vec2 p2 = curve.p2 - uv;
@@ -276,20 +276,51 @@ float CalculateCoverageAtUv(vec2 uv,vec2 inverseDiameter)
 }
 float CalculateCoverageAtUv_Oversampling(vec2 uv,vec2 inverseDiameter)
 {
-return 0;
+    vec2 delta=fwidth(uv)*0.2;
+    float alpha = 0.0;
+    for(int i=-2;i<=2;++i)
+    {
+        for(int j=-2;j<=2;++j)
+        {
+            vec2 offset=vec2(i,j)*delta;
+            alpha += CalculateCoverageAtUv(uv+offset,inverseDiameter*5);
+        }
+    }
+    return alpha/25;
+}
+void Fill()
+{
+    vec2 uv = v_UV;
+    vec2 inverseDiameter = 1.0 / (g_AntiAliasingWindowSize * fwidth(v_UV));// uv到屏幕空间的缩放
+    uv=HintingCenter(uv,inverseDiameter.x*HINTING_SCALE);
+    #ifdef OVERSAMPLING
+    float alpha=CalculateCoverageAtUv_Oversampling(uv,inverseDiameter);
+    #else
+    float alpha=CalculateCoverageAtUv(uv,inverseDiameter);
+    #endif
+    
+    vec3 fontColor= ubo.u_Color.rgb;
+    #ifdef COLORFUL_EDGE
+    vec3 edgeColor=rainbowNoise(uv);
+    vec3 color = mix(edgeColor, fontColor, clamp(alpha * 1.5, 0.0, 1.0));
+    FragColor=vec4(color,alpha);
+    #else
+    FragColor = vec4(fontColor, alpha);
+    #endif
+}
+void Sdf()
+{
 }
 void main()
 {
     Init();
-    vec2 uv = v_UV;
-    vec2 inverseDiameter = 1.0 / (g_AntiAliasingWindowSize * fwidth(v_UV));// uv到屏幕空间的缩放
-    uv=HintingCenter(uv,inverseDiameter.x*256);
-    float alpha=CalculateCoverageAtUv(uv,inverseDiameter);
-    vec3 fontColor= ubo.u_Color.rgb;
-    vec3 edgeColor=rainbowNoise(uv);
-    vec3 color = mix(edgeColor, fontColor, clamp(alpha * 1.5, 0.0, 1.0));
-    color=fontColor;
-    FragColor=vec4(color,alpha);
+    #ifdef FILL
+    Fill();
+    #endif
+    #ifdef SDF
+    Sdf();
+    #endif
+    
 }
 )";
     static const char* vert = R"(
@@ -313,8 +344,26 @@ void main()
 
 }
 )";
+    std::stringstream ss;
+    if(IsFlagSet(m_Keywords,Keyword::ColorfulEdge))
+    {
+        ss<< "#define COLORFUL_EDGE\n";
+    }
+    if(IsFlagSet(m_Keywords,Keyword::Oversampling))
+    {
+        ss<< "#define OVERSAMPLING\n";
+    }
+    if(IsFlagSet(m_Keywords,Keyword::Fill))
+    {
+        ss<< "#define FILL\n";
+    }
+    if(IsFlagSet(m_Keywords,Keyword::Sdf))
+    {
+        ss<< "#define SDF\n";
+    }
     auto shaderEx = DeviceShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert),
-                                         ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, frag));
+                                         ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, 
+                                            frag,ss.str()));
     if (!shaderEx)
     {
         Debug::Log::Error("create shader failed:\n{}",shaderEx.error());
@@ -444,8 +493,6 @@ bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& res
     m_HostUniformBuffer.color[0] = param.color.x();
     m_HostUniformBuffer.color[1] = param.color.y();
     m_HostUniformBuffer.color[2] = param.color.z();
-    //m_HostUniformBuffer.screenSize[0] = camera.screenSize.x();
-    //m_HostUniformBuffer.screenSize[1] = camera.screenSize.y();
     // stagging
     m_StaggingBuffer.SetData(std::span<uint8_t>((uint8_t*)&m_HostUniformBuffer,
                                                 sizeof(m_HostUniformBuffer)));

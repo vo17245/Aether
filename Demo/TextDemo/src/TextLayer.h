@@ -70,9 +70,9 @@ public:
                                                                 window->GetFinalTexture(),
                                                                 DeviceImageLayout::ColorAttachment);
 
-        DrawText(m_TgOversamplingTexture);
-        //DrawText(m_TgFinalTexture);
-        Downsampling(m_TgFinalTexture, m_TgOversamplingTexture);
+        //DrawText(m_TgOversamplingTexture);
+        DrawText(m_TgFinalTexture);
+        //Downsampling(m_TgFinalTexture, m_TgOversamplingTexture);
         m_TaskGraph.Compile();
     }
     void Downsampling(TaskGraph::Texture* finalTexture, TaskGraph::Texture* oversamplingTexture)
@@ -128,7 +128,7 @@ float framePerSec = m_Frame / m_Sec;
         // calculate glyph layout
         std::vector<Vec2f> glyphPos;
         glyphPos.reserve(unicodes.size());
-        float worldSize = 16.0f;
+        float worldSize = 8.0f;
         {
             float scale = worldSize / ApplicationResource::GetSingleton().font->emSize;
             float x = 0;

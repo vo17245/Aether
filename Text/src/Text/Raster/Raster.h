@@ -50,18 +50,18 @@ public:
     {
         // optional keywords
         ColorfulEdge=Bit(0),
-        // Oversampling or AntiAliasing
+        // optional keywords
         Oversampling=Bit(1),
-        AntiAliasing=Bit(2),
-        // Fill or SDF
+        // require Fill or SDF
         Fill=Bit(3),
         Sdf=Bit(4),
     };
     using KeywordFlags = uint32_t;
     static std::optional<Raster> Create(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,
-                                        bool enableDepthTest,KeywordFlags keywords= PackFlags(Keyword::ColorfulEdge,Keyword::AntiAliasing,Keyword::Fill))
+                                        bool enableDepthTest,KeywordFlags keywords= PackFlags(Keyword::Fill))
     {
         Raster raster;
+        raster.m_Keywords = keywords;
         bool res = raster.Init(renderPass, enableBlend, descriptorPool,enableDepthTest);
         if (!res)
         {
@@ -103,5 +103,7 @@ private:
     // anti-aliasing. Value is relative to emSize.
     float m_Dilation = 0;
     float m_WorldSize = 0;
+private:
+    KeywordFlags m_Keywords = 0;
 };
 } // namespace Aether::Text

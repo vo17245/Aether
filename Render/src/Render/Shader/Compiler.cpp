@@ -110,7 +110,7 @@ static void InitResources(TBuiltInResource& Resources)
     Resources.limits.generalVariableIndexing = 1;
     Resources.limits.generalConstantMatrixVectorIndexing = 1;
 }
-std::expected<std::vector<uint32_t>, std::string> Compiler::GLSL2SPIRV(const char** codes, size_t codeCnt, ShaderStageType shaderType)
+std::expected<std::vector<uint32_t>, std::string> Compiler::GLSL2SPIRV(const char** codes, size_t codeCnt, ShaderStageType shaderType,const char* preamble)
 {
     EShLanguage glslangShaderType;
     switch (shaderType)
@@ -126,8 +126,8 @@ std::expected<std::vector<uint32_t>, std::string> Compiler::GLSL2SPIRV(const cha
         break;
     }
     glslang::TShader shader(glslangShaderType);
+    shader.setPreamble(preamble);
     shader.setStrings(codes, codeCnt);
-
     // Set up default environment
     const int ClientInputSemanticsVersion = 450; // GLSL version
     glslang::TProgram program;
@@ -162,7 +162,7 @@ std::expected<std::vector<uint32_t>, std::string> Compiler::GLSL2SPIRV(const cha
     glslang::GlslangToSpv(*program.getIntermediate(glslangShaderType), spirv);
     return spirv;
 }
-std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char** codes,size_t codeCnt,ShaderStageType shaderType)
+std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char** codes,size_t codeCnt,ShaderStageType shaderType,const char* preamble)
 {
     EShLanguage glslangShaderType;
     switch (shaderType)
@@ -180,6 +180,7 @@ std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char
 
 
     glslang::TShader shader(glslangShaderType);
+    shader.setPreamble(preamble);
     shader.setStrings(codes, codeCnt);
     // Set the shader to HLSL
     shader.setEnvInput(glslang::EShSourceHlsl, glslangShaderType, glslang::EShClientVulkan, Render::Config::VulkanApiVersionNumber);
@@ -220,12 +221,12 @@ std::expected<std::vector<uint32_t>,std::string> Compiler::Compile(const ShaderS
         case ShaderLanguage::GLSL:
         {
             const char* code=source.GetCode().c_str();
-            return GLSL2SPIRV(&code,1,source.GetStageType());
+            return GLSL2SPIRV(&code,1,source.GetStageType(),source.GetPreamble().c_str());
         }
         case ShaderLanguage::HLSL:
         {
             const char* code=source.GetCode().c_str();
-            return HLSL2SPIRV(&code,1,source.GetStageType());
+            return HLSL2SPIRV(&code,1,source.GetStageType(),source.GetPreamble().c_str());
         }
         default:
             return std::unexpected<std::string>("Unsupported Shader Language");

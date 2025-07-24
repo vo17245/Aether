@@ -45,4 +45,10 @@ inline constexpr auto PackFlags(const Ts&... flags)
 {
     return (static_cast<std::underlying_type_t<Ts>>(flags) | ...);
 }
+template<typename T,typename U>
+requires std::is_scoped_enum_v<U>
+inline constexpr bool IsFlagSet(T flags, U flag)
+{
+    return (flags & static_cast<std::underlying_type_t<U>>(flag)) ;
+}
 } // namespace Aether
