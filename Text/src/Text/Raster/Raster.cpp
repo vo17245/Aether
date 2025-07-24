@@ -276,7 +276,7 @@ float CalculateCoverageAtUv(vec2 uv,vec2 inverseDiameter)
 }
 float CalculateCoverageAtUv_Oversampling(vec2 uv,vec2 inverseDiameter)
 {
-
+return 0;
 }
 void main()
 {

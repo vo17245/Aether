@@ -24,10 +24,16 @@ public:
             camera.target.x() = resizeEvent.GetWidth() / 2.0;
             camera.target.y() = resizeEvent.GetHeight() / 2.0;
             {
-                auto texture = DeviceTexture::CreateForTexture(m_Window->GetSize().x() * 2,
-                                                               m_Window->GetSize().y() * 2,
+                auto texture = DeviceTexture::CreateForColorAttachment(m_Window->GetSize().x() * 4,
+                                                               m_Window->GetSize().y() * 4,
                                                                PixelFormat::RGBA8888);
                 m_OversamplingTexture = CreateScope<DeviceTexture>(std::move(texture.value()));
+                m_TgOversamplingTexture->GetDesc().width= m_Window->GetSize().x() * 4;
+                m_TgOversamplingTexture->GetDesc().height = m_Window->GetSize().y() * 4;
+                m_TgOversamplingTexture->SetActualBorrow(m_OversamplingTexture.get());
+                m_TgFinalTexture->GetDesc().width = m_Window->GetSize().x();
+                m_TgFinalTexture->GetDesc().height = m_Window->GetSize().y();
+                m_TgFinalTexture->SetActualBorrow(m_Window->GetFinalTexture());
             }
         }
     }
@@ -57,16 +63,16 @@ public:
                                                                    PixelFormat::RGBA8888);
             m_OversamplingTexture = CreateScope<DeviceTexture>(std::move(texture.value()));
         }
-        auto* oversamplingTexture = m_TaskGraph.AddRetainedTextureBorrow("oversampling texture",
+        m_TgOversamplingTexture = m_TaskGraph.AddRetainedTextureBorrow("oversampling texture",
                                                                          m_OversamplingTexture.get(),
                                                                          DeviceImageLayout::Undefined);
-        auto* finalImage = m_TaskGraph.AddRetainedTextureBorrow("final image",
+        m_TgFinalTexture = m_TaskGraph.AddRetainedTextureBorrow("final image",
                                                                 window->GetFinalTexture(),
                                                                 DeviceImageLayout::ColorAttachment);
 
-        DrawText(oversamplingTexture);
-        //DrawText(finalImage);
-        Downsampling(finalImage, oversamplingTexture);
+        DrawText(m_TgOversamplingTexture);
+        //DrawText(m_TgFinalTexture);
+        Downsampling(m_TgFinalTexture, m_TgOversamplingTexture);
         m_TaskGraph.Compile();
     }
     void Downsampling(TaskGraph::Texture* finalTexture, TaskGraph::Texture* oversamplingTexture)
@@ -177,4 +183,6 @@ private:
     Scope<DeviceTexture> m_OversamplingTexture;
     TaskGraph::TaskGraph m_TaskGraph;
     Scope<DownsamplingRenderPass> m_Downsampling;
+    TaskGraph::Texture* m_TgFinalTexture=nullptr;
+    TaskGraph::Texture* m_TgOversamplingTexture = nullptr;
 };
