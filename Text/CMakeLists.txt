@@ -15,7 +15,10 @@ find_package(freetype REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC freetype)
 target_link_libraries(${MODULE_NAME} PUBLIC Debug)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
-
+find_package(fribidi REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC fribidi)
+find_package(harfbuzz REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC harfbuzz::harfbuzz)
 
 
 target_include_directories(${MODULE_NAME} PUBLIC 

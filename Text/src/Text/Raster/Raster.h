@@ -1,6 +1,6 @@
 #pragma once
 #include "Render/RenderApi/DeviceSampler.h"
-#include "Text/Font.h"
+#include "Text/Font/Font.h"
 #include "QuadArrayMesh.h"
 #include "Render/RenderApi/DeviceCommandBuffer.h"
 #include "Render/RenderApi/DeviceDescriptorPool.h"
@@ -21,7 +21,7 @@ public:
         DeviceDescriptorPool& descriptorPool;
         // text
         Font& font;
-        std::vector<uint32_t>& unicodes;
+        std::vector<uint32_t>& bufferGlyphInfoIndexes;//glyph indexes in font
         std::vector<Vec2f>& glyphPosition;
         float worldSize = 32.0f;
         Camera2D& camera;//@note 传入的camera需要提前调用过CalculateMatrix, raster中不会调用

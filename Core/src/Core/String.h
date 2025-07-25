@@ -31,6 +31,23 @@ public://constructors
     U32String& operator=(const U32String& other) = default;
     U32String& operator=(U32String&& other) = default;
     U32String(const std::string_view data);
+    void Push(Unicode unicode)
+    {
+        m_Data.push_back(unicode);
+    }
+    std::string ToStdString()const
+    {
+        std::string res;
+        uint32_t utf8;
+        uint8_t len;
+        for (auto& unicode : m_Data)
+        {
+            
+            len = Unicode2Utf8(unicode, utf8);
+            res.append(reinterpret_cast<const char*>(&utf8), len);
+        }
+        return res;
+    }
 public://operators
     U32String operator+(const U32String& other) const
     {
@@ -59,6 +76,10 @@ public://operators
     {
         return m_Data[i];
     }
+    operator std::basic_string_view<uint32_t>()
+    {
+        return std::basic_string_view<uint32_t>(m_Data.data(), m_Data.size());
+    } 
 
 public: // getters/setters
     size_t Size() const

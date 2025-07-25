@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include "Core/Math/Def.h"
-#include "Text/Font.h"
+#include "Text/Font/Font.h"
 namespace Aether::Text
 {
     struct PackGlyph
