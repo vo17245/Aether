@@ -117,34 +117,30 @@ float framePerSec = m_Frame / m_Sec;
 
             ;
         // get glyph curve
-        ApplicationResource::GetSingleton().font->prepareGlyphsForText(s);
+        auto glyphs=ApplicationResource::GetSingleton().font->prepareGlyphsForText(s,{},false);
 
-        U32String u32s(s);
-        std::vector<uint32_t> unicodes;
-        for (size_t i = 0; i < u32s.Size(); i++)
-        {
-            unicodes.push_back(u32s[i]);
-        }
+        
         // calculate glyph layout
         std::vector<Vec2f> glyphPos;
-        glyphPos.reserve(unicodes.size());
-        float worldSize = 64.0f;
+        std::vector<uint32_t> glyphToRender;
+        glyphPos.reserve(glyphs.size());
+        float worldSize = 32.0f;
         {
             float scale = worldSize / ApplicationResource::GetSingleton().font->emSize;
             float x = 0;
             float y = 0;
             float width = 700;
             float emSize = ApplicationResource::GetSingleton().font->emSize;
-            for (auto& unicode : unicodes)
+            for (auto& [index,text] : glyphs)
             {
-                auto& glyph = ApplicationResource::GetSingleton().font->glyphs[unicode];
-                if (unicode == '\n')
+                auto& glyph = ApplicationResource::GetSingleton().font->bufferGlyphInfo[index];
+                if (text == "\n")
                 {
                     x = 0;
                     y += worldSize;
-                    glyphPos.push_back(Vec2f(0, 0));
                     continue;
                 }
+                glyphToRender.push_back(index);
                 glyphPos.push_back(Vec2f(x, y + (emSize - glyph.bearingY) * scale));
                 x += (glyph.advance + glyph.kerningX) * scale;
                 if (x > width)
@@ -154,18 +150,23 @@ float framePerSec = m_Frame / m_Sec;
                 }
             }
         }
+        if(glyphToRender.empty())
+        {
+            return;
+        }
         auto& camera = ApplicationResource::GetSingleton().camera;
         camera.CalculateMatrix();
         Text::Raster::RenderPassParam param{
             .commandBuffer = commandBuffer,
             .descriptorPool = ApplicationResource::GetSingleton().descriptorPool,
             .font = *ApplicationResource::GetSingleton().font,
-            .unicodes = unicodes,
+            .bufferGlyphInfoIndexes = glyphToRender,
             .glyphPosition = glyphPos,
             .worldSize = worldSize,
             .camera = camera,
             .z = 0.0f};
         param.color = Vec3f(0, 0, 0);
+
         ApplicationResource::GetSingleton().textRaster->Render(param,
                                                                *ApplicationResource::GetSingleton().rasterResource); });
         }

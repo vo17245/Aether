@@ -5,3 +5,4 @@
 #include "String.h"
 #include <expected>
 #include "Defer.h"
+#include "Hash.h"

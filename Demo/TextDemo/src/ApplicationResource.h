@@ -6,7 +6,7 @@
 #include "Render/RenderApi/DeviceTexture.h"
 #include "Render/Scene/Camera2D.h"
 #include "Render/Vulkan/RenderPass.h"
-#include "Text/Font.h"
+#include "Text/Font/Font.h"
 #include "Text/Raster/Raster.h"
 using namespace Aether;
 class ApplicationResource
@@ -36,7 +36,7 @@ public:
     DeviceRenderPass defaultRenderPass;
     DeviceDescriptorPool descriptorPool;
     Scope<Text::Font> font;
-    Scope<Text::Context> textContext;
+    Scope<Text::Library> textLibrary;
     Scope<Text::Face> textFace;
     Scope<Text::Raster::RenderPassResource> rasterResource;
     Camera2D camera;
@@ -57,13 +57,21 @@ private:
         descriptorPool=DeviceDescriptorPool::Create().value();
         auto textRasterOpt=Text::Raster::Create(defaultRenderPass, 
             true, descriptorPool,false,
-        PackFlags(Text::Raster::Keyword::Fill));
+        PackFlags(Text::Raster::Keyword::Fill,Text::Raster::Keyword::Oversampling));
         textRaster=CreateScope<Text::Raster>(std::move(textRasterOpt.value()));
-        auto textContextOpt=Text::Context::Create();
-        textContext=CreateScope<Text::Context>(std::move(textContextOpt.value()));
-        auto textFaceOpt=Text::Face::Create(*textContext, "Assets/SourceHanSerifCN-Regular-1.otf");
+        auto textLibraryOpt=Text::Library::Create();
+        textLibrary=CreateScope<Text::Library>(std::move(textLibraryOpt.value()));
+        auto textFaceOpt=Text::Face::Create(*textLibrary, "Assets/SourceHanSerifCN-Regular-1.otf");
         textFace=CreateScope<Text::Face>(std::move(textFaceOpt.value()));
-        auto fontOpt=Text::Font::Create(textFace.get());
+        Text::FontCreateInfo fontCreateInfo;
+        fontCreateInfo.context = textLibrary.get();
+        fontCreateInfo.face = textFace.get();
+        fontCreateInfo.worldSize = 24.0f;
+        fontCreateInfo.hinting = false;
+        fontCreateInfo.strokeParam = Text::StrokeParam();
+        fontCreateInfo.useStroke = false;
+
+        auto fontOpt=Text::Font::Create(fontCreateInfo);
         font=CreateScope<Text::Font>(std::move(fontOpt.value()));
         auto resource=textRaster->CreateRenderPassResource();
         rasterResource=CreateScope<Text::Raster::RenderPassResource>(std::move(resource));

@@ -646,12 +646,12 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
     float emSize = param.font.emSize;
     float worldSize = param.worldSize;
     float scale=worldSize/param.font.emSize;
-    assert(param.unicodes.size()==param.glyphPosition.size());
-    for(size_t i=0;i<param.unicodes.size();++i)
+    assert(param.bufferGlyphInfoIndexes.size()==param.glyphPosition.size());
+    for(size_t i=0;i<param.bufferGlyphInfoIndexes.size();++i)
     {
-        auto unicode=param.unicodes[i];
+        auto index=param.bufferGlyphInfoIndexes[i];
         auto& pos=param.glyphPosition[i];
-        auto& glyph = param.font.glyphs[unicode];
+        auto& glyph = param.font.bufferGlyphInfo[index];
         auto& bufferGlyph=param.font.bufferGlyphs[glyph.bufferIndex];
         if(bufferGlyph.count==0)
         {
