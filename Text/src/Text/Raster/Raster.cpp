@@ -520,6 +520,7 @@ void Sdf()
             minDist = dist;
         }
 	}
+    minDist=minDist*5;
     FragColor=vec4(minDist, minDist, minDist, 1.0);
 }
 void main()
@@ -661,15 +662,15 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
        
         FT_Pos d = (FT_Pos) (emSize * m_Dilation);
 
-		float u0 = (float)(glyph.bearingX-d) / emSize;
-		float v0 = (float)(glyph.bearingY-glyph.height-d) / emSize;
-		float u1 = (float)(glyph.bearingX+glyph.width+d) / emSize;
-		float v1 = (float)(glyph.bearingY+d) / emSize;
+		float u0 = (float)(glyph.bearingX-d-10) / emSize;
+		float v0 = (float)(glyph.bearingY-glyph.height-d-10) / emSize;
+		float u1 = (float)(glyph.bearingX+glyph.width+d+10) / emSize;
+		float v1 = (float)(glyph.bearingY+d+10) / emSize;
 		
-        float x0=pos.x();
-        float y0 = pos.y(); 
-		float x1 = x0 + glyph.width*scale;
-        float y1 = y0 + glyph.height*scale;
+        float x0=pos.x()-10*scale;
+        float y0 = pos.y()-10*scale; 
+		float x1 = x0 + glyph.width*scale+10*scale;
+        float y1 = y0 + glyph.height*scale+10*scale;
         // 创建quad
         Quad quad;
         quad.position = Vec2f(x0, y0);

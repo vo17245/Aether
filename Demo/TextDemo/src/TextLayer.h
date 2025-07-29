@@ -8,6 +8,9 @@
 #include <variant>
 #include <Render/TaskGraph.h>
 #include "DownsamplingRenderPass.h"
+#ifdef DrawText
+#undef DrawText
+#endif
 using namespace Aether;
 class TextLayer : public Layer
 {
@@ -25,10 +28,10 @@ public:
             camera.target.y() = resizeEvent.GetHeight() / 2.0;
             {
                 auto texture = DeviceTexture::CreateForColorAttachment(m_Window->GetSize().x() * 4,
-                                                               m_Window->GetSize().y() * 4,
-                                                               PixelFormat::RGBA8888);
+                                                                       m_Window->GetSize().y() * 4,
+                                                                       PixelFormat::RGBA8888);
                 m_OversamplingTexture = CreateScope<DeviceTexture>(std::move(texture.value()));
-                m_TgOversamplingTexture->GetDesc().width= m_Window->GetSize().x() * 4;
+                m_TgOversamplingTexture->GetDesc().width = m_Window->GetSize().x() * 4;
                 m_TgOversamplingTexture->GetDesc().height = m_Window->GetSize().y() * 4;
                 m_TgOversamplingTexture->SetActualBorrow(m_OversamplingTexture.get());
                 m_TgFinalTexture->GetDesc().width = m_Window->GetSize().x();
@@ -64,15 +67,15 @@ public:
             m_OversamplingTexture = CreateScope<DeviceTexture>(std::move(texture.value()));
         }
         m_TgOversamplingTexture = m_TaskGraph.AddRetainedTextureBorrow("oversampling texture",
-                                                                         m_OversamplingTexture.get(),
-                                                                         DeviceImageLayout::Undefined);
+                                                                       m_OversamplingTexture.get(),
+                                                                       DeviceImageLayout::Undefined);
         m_TgFinalTexture = m_TaskGraph.AddRetainedTextureBorrow("final image",
                                                                 window->GetFinalTexture(),
                                                                 DeviceImageLayout::ColorAttachment);
 
-        //DrawText(m_TgOversamplingTexture);
+        // DrawText(m_TgOversamplingTexture);
         DrawText(m_TgFinalTexture);
-        //Downsampling(m_TgFinalTexture, m_TgOversamplingTexture);
+        // Downsampling(m_TgFinalTexture, m_TgOversamplingTexture);
         m_TaskGraph.Compile();
     }
     void Downsampling(TaskGraph::Texture* finalTexture, TaskGraph::Texture* oversamplingTexture)
@@ -86,12 +89,7 @@ public:
         renderPassDesc.colorAttachment[0].loadOp = DeviceAttachmentLoadOp::Clear;
         renderPassDesc.colorAttachment[0].storeOp = DeviceAttachmentStoreOp::Store;
         renderPassDesc.clearColor = Vec4f{1.0, 1.0, 1.0, 1.0};
-        m_TaskGraph.AddRenderTask<TaskData>(renderPassDesc, [&](TaskGraph::RenderTaskBuilder& builder, TaskData&)
-         { builder.Read(oversamplingTexture); }, 
-         [this,oversamplingTexture](TaskData&, DeviceCommandBufferView& commandBuffer)
-          { 
-            m_Downsampling->Render(commandBuffer, *oversamplingTexture->GetActual(),ApplicationResource::GetSingleton().descriptorPool);
-             });
+        m_TaskGraph.AddRenderTask<TaskData>(renderPassDesc, [&](TaskGraph::RenderTaskBuilder& builder, TaskData&) { builder.Read(oversamplingTexture); }, [this, oversamplingTexture](TaskData&, DeviceCommandBufferView& commandBuffer) { m_Downsampling->Render(commandBuffer, *oversamplingTexture->GetActual(), ApplicationResource::GetSingleton().descriptorPool); });
     }
     void DrawText(TaskGraph::Texture* oversamplingTexture)
     {
@@ -114,40 +112,50 @@ float framePerSec = m_Frame / m_Sec;
                         + "我能吞下玻璃而不伤身体\n"
                         + "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
                         + "Innovation in China 中国智造，慧及全球 0123456789\n"
+                        +"123مرحبًا\n";
 
-            ;
+            s=R"(
+            123
+            123مرحبًا
+)";
+
         // get glyph curve
-        auto glyphs=ApplicationResource::GetSingleton().font->prepareGlyphsForText(s,{},false);
+        auto lines=ApplicationResource::GetSingleton().font->prepareGlyphsForText(s,{},false);
 
-        
+        size_t glyphCount = 0;
+        for (auto& line : lines)
+        {
+            glyphCount += line.visualGlyphs.size();
+        }
         // calculate glyph layout
         std::vector<Vec2f> glyphPos;
         std::vector<uint32_t> glyphToRender;
-        glyphPos.reserve(glyphs.size());
-        float worldSize = 32.0f;
+        glyphPos.reserve(glyphCount);
+        float worldSize = 16.0f;
         {
             float scale = worldSize / ApplicationResource::GetSingleton().font->emSize;
             float x = 0;
             float y = 0;
             float width = 700;
             float emSize = ApplicationResource::GetSingleton().font->emSize;
-            for (auto& [index,text] : glyphs)
+            for (auto& line : lines)
             {
-                auto& glyph = ApplicationResource::GetSingleton().font->bufferGlyphInfo[index];
-                if (text == "\n")
+                for(auto& glyph:line.visualGlyphs)
                 {
-                    x = 0;
-                    y += worldSize;
-                    continue;
-                }
-                glyphToRender.push_back(index);
-                glyphPos.push_back(Vec2f(x, y + (emSize - glyph.bearingY) * scale));
-                x += (glyph.advance + glyph.kerningX) * scale;
+                auto& info= ApplicationResource::GetSingleton().font->bufferGlyphInfo[glyph.indexInBuffer];
+                glyphToRender.push_back(glyph.indexInBuffer);
+                glyphPos.push_back(Vec2f(x+(glyph.xOffset+info.bearingX)*scale, y + (emSize-info.bearingY-glyph.yOffset ) * scale));
+                x += glyph.xAdvance  * scale;
+                y+= glyph.yAdvance * scale;
                 if (x > width)
                 {
                     x = 0;
                     y += worldSize;
                 }
+                }
+                x = 0;
+                y += worldSize;
+              
             }
         }
         if(glyphToRender.empty())
@@ -184,6 +192,6 @@ private:
     Scope<DeviceTexture> m_OversamplingTexture;
     TaskGraph::TaskGraph m_TaskGraph;
     Scope<DownsamplingRenderPass> m_Downsampling;
-    TaskGraph::Texture* m_TgFinalTexture=nullptr;
+    TaskGraph::Texture* m_TgFinalTexture = nullptr;
     TaskGraph::Texture* m_TgOversamplingTexture = nullptr;
 };

@@ -3,6 +3,8 @@
 #include <harfbuzz/hb.h>
 #include <vector>
 #include <string>
+#include <cassert>
+#include <algorithm>
 namespace Aether::Text
 {
 struct Run
@@ -11,50 +13,121 @@ struct Run
     uint32_t length;
     FriBidiParType direction;
     hb_script_t script;
-    std::string language="en";
+    std::string language;
 };
-inline std::vector<Run> SplitRunsByDirectionAndScript(const std::basic_string_view<uint32_t>& text32)
+struct Line
 {
-    int len = text32.size();
     std::vector<Run> runs;
-
-    // 1. 使用 FriBidi 获取方向信息
-    std::vector<FriBidiChar> fribidi_input(text32.begin(), text32.end());
-    std::vector<FriBidiParType> bidi_types(len);
-    std::vector<FriBidiLevel> bidi_levels(len);
-    FriBidiParType base_dir = FRIBIDI_PAR_ON;
-
-    fribidi_get_bidi_types(fribidi_input.data(), len, bidi_types.data());
-    fribidi_get_par_embedding_levels(bidi_types.data(), len, &base_dir, bidi_levels.data());
-
-    // 2. 使用 HarfBuzz 获取 Script 信息
-    std::vector<hb_script_t> scripts(len);
-    for (int i = 0; i < len; ++i)
+};
+inline hb_direction_t FribidiDirectionToHbDirection(FriBidiParType direction)
+{
+    switch (direction)
     {
-        scripts[i] = hb_unicode_script(hb_unicode_funcs_get_default(), text32[i]);
+    case FRIBIDI_PAR_LTR:
+        return HB_DIRECTION_LTR;
+    case FRIBIDI_PAR_RTL:
+        return HB_DIRECTION_RTL;
+
+    default:
+        assert(false && "Unsupported direction");
+        return HB_DIRECTION_INVALID;
+    }
+}
+
+inline std::vector<FriBidiStrIndex> CalculateLineVisualMap(const std::basic_string_view<uint32_t>& text)
+{
+    int nLineSize = text.size();
+
+    uint32_t* pTempLogicalLine = new uint32_t[nLineSize];
+    uint32_t* pTempVisualLine = new uint32_t[nLineSize];
+    std::vector<FriBidiStrIndex> pTempPositionLogicToVisual = std::vector<FriBidiStrIndex>(nLineSize);
+    FriBidiCharType* pTempBidiTypes = new FriBidiCharType[nLineSize];
+    FriBidiLevel* pTempEmbeddingLevels = new FriBidiLevel[nLineSize];
+    FriBidiJoiningType* pTempJtypes = new FriBidiJoiningType[nLineSize];
+    FriBidiArabicProp* pTempArProps = new FriBidiArabicProp[nLineSize];
+
+    for (int i = 0; i < nLineSize; ++i)
+    {
+        pTempLogicalLine[i] = text[i];
     }
 
-    // 3. 合并方向和脚本来分割 run
-    uint32_t run_start = 0;
-    FriBidiParType cur_dir = base_dir;
-    hb_script_t cur_script = scripts[0];
+    // Get letter types.
+    fribidi_get_bidi_types(pTempLogicalLine, nLineSize, pTempBidiTypes);
 
-    for (int i = 1; i < len; ++i)
+    FriBidiParType baseDirection = FRIBIDI_PAR_ON;
+    FriBidiLevel resolveParDir = fribidi_get_par_embedding_levels(pTempBidiTypes, nLineSize, &baseDirection, pTempEmbeddingLevels);
+
+    // joine types.
+    fribidi_get_joining_types(pTempLogicalLine, nLineSize, pTempJtypes);
+
+    // arabic join.
+    memcpy(pTempArProps, pTempJtypes, nLineSize * sizeof(FriBidiJoiningType));
+    fribidi_join_arabic(pTempBidiTypes, nLineSize, pTempEmbeddingLevels, pTempArProps);
+
+    // shapes.
+    fribidi_shape(FRIBIDI_FLAG_SHAPE_MIRRORING | FRIBIDI_FLAG_SHAPE_ARAB_PRES | FRIBIDI_FLAG_SHAPE_ARAB_LIGA,
+                  pTempEmbeddingLevels, nLineSize, pTempArProps, pTempLogicalLine);
+
+    memcpy(pTempVisualLine, pTempLogicalLine, nLineSize * sizeof(uint32_t));
+    for (int i = 0; i < nLineSize; i++)
     {
-        if (bidi_levels[i] != bidi_levels[run_start] || scripts[i] != cur_script)
+        pTempPositionLogicToVisual[i] = i;
+    }
+
+    FriBidiLevel levels = fribidi_reorder_line(FRIBIDI_FLAGS_ARABIC, pTempBidiTypes, nLineSize,
+                                               0, baseDirection, pTempEmbeddingLevels, pTempVisualLine, pTempPositionLogicToVisual.data());
+
+    if (pTempJtypes) { delete[] pTempJtypes; }
+    if (pTempArProps) { delete[] pTempArProps; }
+    if (pTempLogicalLine) { delete[] pTempLogicalLine; }
+    if (pTempEmbeddingLevels) { delete[] pTempEmbeddingLevels; }
+    if (pTempBidiTypes) { delete[] pTempBidiTypes; }
+    if (pTempVisualLine) { delete[] pTempVisualLine; }
+
+    return pTempPositionLogicToVisual;
+}
+
+inline std::vector<Run> SplitToRuns(const std::basic_string_view<uint32_t>& text)
+{
+    std::vector<Run> res;
+
+    size_t length = text.size();
+
+    hb_unicode_funcs_t* ufuncs = hb_unicode_funcs_get_default();
+
+    hb_script_t currentScript = hb_unicode_script(ufuncs, text[0]);
+    uint32_t chunkStart = 0;
+
+    for (size_t i = 1; i < length; i++)
+    {
+        uint32_t currentText = i;
+        hb_script_t script = hb_unicode_script(ufuncs, text[currentText]);
+
+        // Skip for HB_SCRIPT_INHERITED, because it can be diacritics.
+        if ((script != currentScript && script != HB_SCRIPT_INHERITED))
         {
-            runs.push_back({run_start, i - run_start, bidi_levels[run_start] & 1 ? (FriBidiParType)FRIBIDI_PAR_RTL : (FriBidiParType)FRIBIDI_PAR_LTR, cur_script});
-            run_start = i;
-            cur_script = scripts[i];
+            Run chunk;
+            chunk.start = chunkStart;
+            chunk.length = currentText - chunkStart;
+            chunk.script = currentScript;
+            res.push_back(chunk);
+
+            chunkStart = currentText;
+            currentScript = script;
         }
     }
-    // push last run
-    uint32_t run_length = len - run_start;
-    if (run_length > 0)
+
+    uint32_t lastSymbol = length - 1;
+    if (chunkStart <= lastSymbol)
     {
-        runs.push_back({run_start, run_length, bidi_levels[run_start] & 1 ? (FriBidiParType)FRIBIDI_PAR_RTL : (FriBidiParType)FRIBIDI_PAR_LTR, cur_script});
+        Run chunk;
+        chunk.start = chunkStart;
+        chunk.length = lastSymbol - chunkStart + 1;
+        chunk.script = currentScript;
+        res.push_back(chunk);
     }
 
-    return runs;
+    return res;
 }
+
 } // namespace Aether::Text

@@ -3,6 +3,7 @@
 #include <Core/Core.h>
 #include <Debug/Log.h>
 #include <Text/Layout/Run.h>
+#include <harfbuzz/hb-ft.h>
 namespace Aether::Text
 {
 
@@ -44,6 +45,47 @@ struct Hash<Text::FontGlyphCacheKey>
 } // namespace Aether
 namespace Aether::Text
 {
+struct HbFont
+{
+    hb_font_t* font;
+    HbFont(hb_font_t* font) :
+        font(font)
+    {
+    }
+    HbFont() :
+        font(nullptr)
+    {
+    }
+    HbFont(const HbFont&) = delete;
+    HbFont& operator=(const HbFont&) = delete;
+    HbFont(HbFont&& other) noexcept
+        :
+        font(other.font)
+    {
+        other.font = nullptr;
+    }
+    HbFont& operator=(HbFont&& other) noexcept
+    {
+        if (this != &other)
+        {
+            if (font)
+            {
+                hb_font_destroy(font);
+            }
+            font = other.font;
+            other.font = nullptr;
+        }
+        return *this;
+    }
+    ~HbFont()
+    {
+        if (font)
+        {
+            hb_font_destroy(font);
+            font = nullptr;
+        }
+    }
+};
 struct Font
 {
 public:
@@ -77,6 +119,7 @@ public:
 public:
     static std::optional<Font> Create(const FontCreateInfo& info)
     {
+        // freetype
         Font font;
         font.context = info.context;
         font.face = info.face;
@@ -120,51 +163,115 @@ public:
         {
             return std::nullopt;
         }
-
+        // harfbuzz
+        font.hbFont = HbFont(hb_ft_font_create(font.face->handle, nullptr));
+        // set font scale
+        hb_font_set_scale(font.hbFont.font, font.emSize,font.emSize);
         return font;
     }
-    struct GlyphIndexWithText
+    struct ShapedGlyph
     {
         uint32_t glyphIndex;
-        std::string text;//cluster utf8 text
+        int32_t xOffset;  // x offset in font units
+        int32_t yOffset;  // y offset in font units
+        int32_t xAdvance; // x advance in font units
+        int32_t yAdvance; // y advance in font units (for vertical text)
+        uint32_t cluster; // cluster index
+    };
+    struct ShapedLine
+    {
+        std::vector<ShapedGlyph> visualGlyphs;
     };
     /**
      * @brief means shaping
-    */
-    std::vector<GlyphIndexWithText> GetGlyphIndexes(const std::string& _text)
+     */
+    std::vector<ShapedLine> GetShapedGlyphs(const std::string& _text)
     {
-        std::vector<GlyphIndexWithText> glyphIndexes;
-        U32String u32Text = U32String(_text);
-        // split runs
-        auto runs=SplitRunsByDirectionAndScript(u32Text);
-        // shaping
-        //for(auto& run:runs)
-        //{
-        //    hb_buffer_t* buffer = hb_buffer_create();
-        //    // 设置文本范围
-        //    hb_buffer_add_utf8(buffer, , -1, run_start, run_length);
-        //}
-        U32String reorderedText;
-        for(auto& run:runs)
+        std::vector<ShapedLine> res;
+        hb_buffer_t* buffer = hb_buffer_create();
+        defer
         {
-            for(size_t i=run.start;i<run.length+run.start;i++)
+            hb_buffer_destroy(buffer);
+        };
+        auto processLine = [&](const std::string& line, std::vector<ShapedGlyph>& shapedGlyphs) -> void {
+            U32String u32Text = U32String(line);
+            // runs in logical order
+            auto runs = SplitToRuns(u32Text);
+
+            // shaping
+
+
+            auto processRun = [&](const Run& run) {
+                hb_buffer_clear_contents(buffer);
+                // 设置文本范围
+                hb_buffer_add_utf32(buffer, (uint32_t*)u32Text.GetData().data(),
+                                    u32Text.Size(),
+                                    run.start,
+                                    run.length);
+                hb_buffer_set_script(buffer, run.script);
+                hb_direction_t dir = hb_script_get_horizontal_direction(run.script);
+                hb_buffer_set_direction(buffer, dir);
+                hb_buffer_set_language(buffer, hb_language_from_string(run.language.c_str(), run.language.size()));
+                hb_shape(hbFont.font, buffer, NULL, 0);
+                // 获取 glyph info
+                unsigned int count;
+                hb_glyph_info_t* info = hb_buffer_get_glyph_infos(buffer, &count);
+                unsigned int count1;
+                hb_glyph_position_t* pos = hb_buffer_get_glyph_positions(buffer, &count1);
+                assert(count == count1);
+                for (size_t i = 0; i < count; i++)
+                {
+                    auto& curInfo = info[i];
+                    ShapedGlyph g;
+                    g.glyphIndex = curInfo.codepoint;
+                    g.xOffset = pos[i].x_offset;
+                    g.yOffset = pos[i].y_offset;
+                    g.xAdvance = pos[i].x_advance;
+                    g.yAdvance = pos[i].y_advance;
+                    g.cluster = curInfo.cluster;
+                    shapedGlyphs.push_back(g);
+                }
+            };
+
+            for (auto& run : runs)
             {
-                reorderedText.Push(u32Text[i]);
+                processRun(run);
+            }
+            if (shapedGlyphs.empty())
+            {
+                return;
+            }
+            // reorder glyphs by cluster and fribidi visual_map
+            auto V2L = CalculateLineVisualMap(u32Text); // visual order -> logical order
+            std::vector<FriBidiStrIndex> L2V(V2L.size());
+            for (size_t i = 0; i < V2L.size(); i++)
+            {
+                L2V[V2L[i]] = static_cast<FriBidiStrIndex>(i);
+            }
+            std::sort(shapedGlyphs.begin(), shapedGlyphs.end(), [&](const ShapedGlyph& a, const ShapedGlyph& b) {
+                return L2V[a.cluster] < L2V[b.cluster];
+            });
+        };
+        std::string lineText;
+        for (auto c : _text)
+        {
+            lineText.push_back(c);
+            if (c == '\n')
+            {
+                std::vector<ShapedGlyph> lineGlyphs;
+                processLine(lineText, lineGlyphs);
+                res.emplace_back(ShapedLine{.visualGlyphs = std::move(lineGlyphs)});
+                lineText.clear();
             }
         }
-        auto text= reorderedText.ToStdString();
-        
-        
-        for (const char* textIt = text.c_str(); *textIt != '\0';)
+        if (!lineText.empty())
         {
-            uint32_t charcode = decodeCharcode(&textIt);
-            FT_UInt glyphIndex = FT_Get_Char_Index(face->handle, charcode);
-            uint32_t u8;
-            uint8_t len=Unicode2Utf8(charcode,u8);
-            std::string glyphText=std::string((const char*)&(u8),(const char*)&(u8)+len);
-            glyphIndexes.push_back({glyphIndex,glyphText});
+            std::vector<ShapedGlyph> lineGlyphs;
+            processLine(lineText, lineGlyphs);
+            res.emplace_back(ShapedLine{.visualGlyphs = std::move(lineGlyphs)});
         }
-        return glyphIndexes;
+
+        return res;
     }
     void BuildGlyph(const FontGlyphCacheKey& key, FT_UInt glyphIndex)
     {
@@ -258,37 +365,61 @@ public:
         (*text) += size;
         return result;
     }
-    struct BufferGlyphInfoIndexWidthText
+    struct VisualGlyph
     {
-        size_t index;
-        std::string text;
+        size_t indexInBuffer;
+        int32_t xOffset;  // x offset in font units
+        int32_t yOffset;  // y offset in font units
+        int32_t xAdvance; // x advance in font units
+        int32_t yAdvance; // y advance in font units (for vertical text)
     };
-    std::vector<BufferGlyphInfoIndexWidthText> prepareGlyphsForText(const std::string& text, const StrokeParam& param, bool useStroke)
+    struct VisualLine
     {
-        std::vector<BufferGlyphInfoIndexWidthText> res;
+        std::vector<VisualGlyph> visualGlyphs;
+    };
+    std::vector<VisualLine> prepareGlyphsForText(const std::string& text, const StrokeParam& param, bool useStroke)
+    {
+        std::vector<VisualLine> res;
         bool changed = false;
-        auto glyphIndexes = GetGlyphIndexes(text);
-        for (auto& [glyphIndex,text] : glyphIndexes)
+        auto shapedLines = GetShapedGlyphs(text);
+        for (auto& shapedLine : shapedLines)
         {
-            FontGlyphCacheKey key;
-            key.glyphIndex = glyphIndex;
-            key.strokeParam = param;
-            key.useStroke = useStroke;
-            auto iter=glyphs.find(key);
-            if(iter!=glyphs.end())
+            VisualLine visualLine;
+            for (auto& shapedGlyph : shapedLine.visualGlyphs)
             {
-                res.push_back({iter->second,text});
-                continue;
+                FontGlyphCacheKey key;
+                key.glyphIndex = shapedGlyph.glyphIndex;
+                key.strokeParam = param;
+                key.useStroke = useStroke;
+                auto iter = glyphs.find(key);
+                if (iter != glyphs.end())
+                {
+                    visualLine.visualGlyphs.emplace_back(
+                        VisualGlyph{
+                            .indexInBuffer = iter->second,
+                            .xOffset = shapedGlyph.xOffset,
+                            .yOffset = shapedGlyph.yOffset,
+                            .xAdvance = shapedGlyph.xAdvance,
+                            .yAdvance = shapedGlyph.yAdvance});
+                    continue;
+                }
+                FT_Error error = FT_Load_Glyph(face->handle, shapedGlyph.glyphIndex, loadFlags);
+                if (error)
+                {
+                    Debug::Log::Debug("[Font] Error while loading glyph for character: {} Error: {},{}:{}", shapedGlyph.glyphIndex, error, __FILE__, __LINE__);
+                    continue;
+                }
+                BuildGlyph(key, shapedGlyph.glyphIndex);
+                visualLine.visualGlyphs.emplace_back(
+                        VisualGlyph{
+                            .indexInBuffer = bufferGlyphInfo.size() - 1,
+                            .xOffset = shapedGlyph.xOffset,
+                            .yOffset = shapedGlyph.yOffset,
+                            .xAdvance = shapedGlyph.xAdvance,
+                            .yAdvance = shapedGlyph.yAdvance});
+                changed = true;
             }
-            FT_Error error = FT_Load_Glyph(face->handle, glyphIndex, loadFlags);
-            if (error)
-            {
-                Debug::Log::Debug("[Font] Error while loading glyph for character: {} Error: {},{}:{}", glyphIndex, error, __FILE__, __LINE__);
-                continue;
-            }
-            BuildGlyph(key, glyphIndex);
-            res.push_back({bufferGlyphInfo.size() - 1, text});
-            changed = true;
+            res.emplace_back(std::move(visualLine));
         }
         if (changed)
         {
@@ -551,5 +682,6 @@ public:
     Library* context; // not own
     StrokeParam strokeParam;
     bool useStroke = false;
+    HbFont hbFont; // harfbuzz font
 };
 } // namespace Aether::Text

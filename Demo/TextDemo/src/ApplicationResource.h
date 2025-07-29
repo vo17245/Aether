@@ -61,7 +61,8 @@ private:
         textRaster=CreateScope<Text::Raster>(std::move(textRasterOpt.value()));
         auto textLibraryOpt=Text::Library::Create();
         textLibrary=CreateScope<Text::Library>(std::move(textLibraryOpt.value()));
-        auto textFaceOpt=Text::Face::Create(*textLibrary, "Assets/SourceHanSerifCN-Regular-1.otf");
+        //auto textFaceOpt=Text::Face::Create(*textLibrary, "Assets/SourceHanSerifCN-Regular-1.otf");
+        auto textFaceOpt=Text::Face::Create(*textLibrary, "Assets/NotoNaskhArabic-Regular.otf");
         textFace=CreateScope<Text::Face>(std::move(textFaceOpt.value()));
         Text::FontCreateInfo fontCreateInfo;
         fontCreateInfo.context = textLibrary.get();
