@@ -48,9 +48,6 @@ namespace Aether::Text
 		curveTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
 		curveTexture.GetOrCreateDefaultImageView();
 		glyphTexture=DeviceTexture::CreateForTexture(128, 128, PixelFormat::RGBA8888_UInt).value();
-		//debug
-		glyphTexture=DeviceTexture::CreateForDownloadableTexture(128, 128, PixelFormat::RGBA8888_UInt).value();
-		//debug end
 		if(!glyphTexture)
 		{
 			assert(false && "create glyph texture failed");

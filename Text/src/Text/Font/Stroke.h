@@ -76,24 +76,17 @@ enum class LineJoin : uint32_t
     MiterFixed = FT_STROKER_LINEJOIN_MITER_FIXED,
 
 };
-enum class StrokeMode : uint32_t
-{
-    Inside,
-    Outsize,
-    Both,
-};
+
 struct StrokeParam
 {
     uint32_t radius = 0;
     LineCap lineCap = LineCap::Butt;
     LineJoin lineJoin = LineJoin::Round;
     uint32_t miterLimit = 32;
-    StrokeMode strokeMode = StrokeMode::Outsize;
 	bool operator==(const StrokeParam& other) const
 	{
 		return radius == other.radius && lineCap == other.lineCap &&
-			lineJoin == other.lineJoin && miterLimit == other.miterLimit &&
-			strokeMode == other.strokeMode;
+			lineJoin == other.lineJoin && miterLimit == other.miterLimit ;
 	}
 };
 

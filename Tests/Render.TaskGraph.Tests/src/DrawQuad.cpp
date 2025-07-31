@@ -82,7 +82,6 @@ static Mesh CreateMesh(const Mat2x3f& affine)
     mesh.accessors[positionAccessorIndex].componentType=Mesh::ComponentType::FLOAT32;
     mesh.accessors[positionAccessorIndex].count=static_cast<uint32_t>(positions.size());
     mesh.accessors[positionAccessorIndex].type=Mesh::Type::VEC2;
-    mesh.accessors[positionAccessorIndex].byteStride=0; // 紧密排列
     size_t uvAccessorIndex=mesh.accessors.size();
     mesh.accessors.emplace_back();
     mesh.accessors[uvAccessorIndex].bufferView=uvBufferViewIndex;
@@ -90,7 +89,6 @@ static Mesh CreateMesh(const Mat2x3f& affine)
     mesh.accessors[uvAccessorIndex].componentType=Mesh::ComponentType::FLOAT32;
     mesh.accessors[uvAccessorIndex].count=static_cast<uint32_t>(uvs.size());
     mesh.accessors[uvAccessorIndex].type=Mesh::Type::VEC2;
-    mesh.accessors[uvAccessorIndex].byteStride=0; // 紧密排列
     size_t indexAccessorIndex=mesh.accessors.size();
     mesh.accessors.emplace_back();
     mesh.accessors[indexAccessorIndex].bufferView=indexBufferViewIndex;
@@ -98,9 +96,8 @@ static Mesh CreateMesh(const Mat2x3f& affine)
     mesh.accessors[indexAccessorIndex].componentType=Mesh::ComponentType::UINT32;
     mesh.accessors[indexAccessorIndex].count=static_cast<uint32_t>(indices.size());
     mesh.accessors[indexAccessorIndex].type=Mesh::Type::SCALAR;
-    mesh.accessors[indexAccessorIndex].byteStride=0; // 紧密排列
-    mesh.primitive.attributes[Mesh::Primitive::Attribute::POSITION] = positionAccessorIndex;
-    mesh.primitive.attributes[Mesh::Primitive::Attribute::TEXCOORD] = uvAccessorIndex;
+    mesh.primitive.attributes[Mesh::Attribute::POSITION] = positionAccessorIndex;
+    mesh.primitive.attributes[Mesh::Attribute::TEXCOORD] = uvAccessorIndex;
     mesh.primitive.index = indexAccessorIndex;
     return mesh;
 }

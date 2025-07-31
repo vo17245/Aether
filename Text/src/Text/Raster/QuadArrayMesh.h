@@ -41,36 +41,32 @@ public:
         0,
         Mesh::ComponentType::FLOAT32,
         0,
-        Mesh::Type::VEC3,
-        0});
+        Mesh::Type::VEC3});
         // glyph index accessor
         m_GlyphIndexAccessorIndex=m_Mesh.accessors.size();
         m_Mesh.accessors.push_back({m_GlyphIndexBufferViewIndex,
         0,
         Mesh::ComponentType::UINT32,
         0,
-        Mesh::Type::SCALAR,
-        0});
+        Mesh::Type::SCALAR});
         // index accessor
         m_IndexAccessorIndex=m_Mesh.accessors.size();
         m_Mesh.accessors.push_back({m_IndexBufferViewIndex,
         0,
         Mesh::ComponentType::UINT32,
         0,
-        Mesh::Type::SCALAR,
-        0});
+        Mesh::Type::SCALAR});
         // uv accessor
         m_UvAccessorIndex=m_Mesh.accessors.size();
         m_Mesh.accessors.push_back({m_UvBufferViewIndex,
         0,
         Mesh::ComponentType::FLOAT32,
         0,
-        Mesh::Type::VEC2,
-        0});
+        Mesh::Type::VEC2});
         // primitive
-        m_Mesh.primitive.attributes[Mesh::Primitive::Attribute::POSITION]=m_PositionAccessorIndex;
-        m_Mesh.primitive.attributes[Mesh::Primitive::Attribute::NORMAL]=m_GlyphIndexAccessorIndex;
-        m_Mesh.primitive.attributes[Mesh::Primitive::Attribute::TEXCOORD]=m_UvAccessorIndex;
+        m_Mesh.primitive.attributes[Mesh::Attribute::POSITION]=m_PositionAccessorIndex;
+        m_Mesh.primitive.attributes[Mesh::Attribute::NORMAL]=m_GlyphIndexAccessorIndex;
+        m_Mesh.primitive.attributes[Mesh::Attribute::TEXCOORD]=m_UvAccessorIndex;
         m_Mesh.primitive.index=m_IndexAccessorIndex;
     }
     void PushQuad(const Quad& quad)

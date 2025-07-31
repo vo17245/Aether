@@ -170,13 +170,13 @@ private:
 
     bool CreatePrimitive(const Mesh& Mesh)
     {
-        std::unordered_map<Mesh::Primitive::Attribute, uint32_t> attributeLocation = {
-            {Mesh::Primitive::Attribute::POSITION, 0},
-            {Mesh::Primitive::Attribute::NORMAL, 1},
-            {Mesh::Primitive::Attribute::TEXCOORD, 2},
-            {Mesh::Primitive::Attribute::TANGENT, 3},
-            {Mesh::Primitive::Attribute::COLOR, 4},
-            {Mesh::Primitive::Attribute::BITANGENT, 5},
+        std::unordered_map<Mesh::Attribute, uint32_t> attributeLocation = {
+            {Mesh::Attribute::POSITION, 0},
+            {Mesh::Attribute::NORMAL, 1},
+            {Mesh::Attribute::TEXCOORD, 2},
+            {Mesh::Attribute::TANGENT, 3},
+            {Mesh::Attribute::COLOR, 4},
+            {Mesh::Attribute::BITANGENT, 5},
         };
         auto& primitive = Mesh.primitive;
         Primitive vkPrimitive;
@@ -195,12 +195,12 @@ private:
         // vertex
         PrimitiveVertexResource vertexResource;
         // sort attribute
-        std::vector<Mesh::Primitive::Attribute> attributes;
+        std::vector<Mesh::Attribute> attributes;
         for (const auto& [attribute, _] : primitive.attributes)
         {
             attributes.push_back(attribute);
         }
-        std::sort(attributes.begin(), attributes.end(), [](Mesh::Primitive::Attribute a, Mesh::Primitive::Attribute b) {
+        std::sort(attributes.begin(), attributes.end(), [](Mesh::Attribute a, Mesh::Attribute b) {
             return a < b;
         });
 
@@ -226,7 +226,7 @@ private:
 
             switch (attribute)
             {
-            case Mesh::Primitive::Attribute::POSITION: {
+            case Mesh::Attribute::POSITION: {
                 BufferElementFormat format = BufferElementFormat::None;
                 if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
@@ -244,7 +244,7 @@ private:
                 layout.PushAttribute(VertexBufferLayout::Attribute({attributeLocation[attribute], accessor.byteOffset, format}));
             }
             break;
-            case Mesh::Primitive::Attribute::NORMAL: {
+            case Mesh::Attribute::NORMAL: {
                 if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
@@ -273,7 +273,7 @@ private:
                 }
             }
             break;
-            case Mesh::Primitive::Attribute::TEXCOORD: {
+            case Mesh::Attribute::TEXCOORD: {
                 if (accessor.type == Mesh::Type::VEC2 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
@@ -288,7 +288,7 @@ private:
                 }
             }
             break;
-            case Mesh::Primitive::Attribute::TANGENT: {
+            case Mesh::Attribute::TANGENT: {
                 if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
@@ -303,7 +303,7 @@ private:
                 }
             }
             break;
-            case Mesh::Primitive::Attribute::COLOR: {
+            case Mesh::Attribute::COLOR: {
                 if (accessor.type == Mesh::Type::VEC4 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
@@ -325,7 +325,7 @@ private:
                 }
             }
             break;
-            case Mesh::Primitive::Attribute::BITANGENT: {
+            case Mesh::Attribute::BITANGENT: {
                 if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(

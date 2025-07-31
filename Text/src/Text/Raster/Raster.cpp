@@ -644,9 +644,9 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
     // create host mesh data
     QuadArrayMesh mesh;
     bool res;
-    float emSize = param.font.emSize;
+    
     float worldSize = param.worldSize;
-    float scale=worldSize/param.font.emSize;
+    
     assert(param.bufferGlyphInfoIndexes.size()==param.glyphPosition.size());
     for(size_t i=0;i<param.bufferGlyphInfoIndexes.size();++i)
     {
@@ -654,6 +654,8 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
         auto& pos=param.glyphPosition[i];
         auto& glyph = param.font.bufferGlyphInfo[index];
         auto& bufferGlyph=param.font.bufferGlyphs[glyph.bufferIndex];
+        float emSize = glyph.emSize;
+        float scale=worldSize/emSize;
         if(bufferGlyph.count==0)
         {
             //skip empty glyph(like space)
@@ -662,15 +664,15 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
        
         FT_Pos d = (FT_Pos) (emSize * m_Dilation);
 
-		float u0 = (float)(glyph.bearingX-d-10) / emSize;
-		float v0 = (float)(glyph.bearingY-glyph.height-d-10) / emSize;
-		float u1 = (float)(glyph.bearingX+glyph.width+d+10) / emSize;
-		float v1 = (float)(glyph.bearingY+d+10) / emSize;
+		float u0 = (float)(glyph.bearingX-d) / emSize;
+		float v0 = (float)(glyph.bearingY-glyph.height-d) / emSize;
+		float u1 = (float)(glyph.bearingX+glyph.width+d) / emSize;
+		float v1 = (float)(glyph.bearingY+d) / emSize;
 		
-        float x0=pos.x()-10*scale;
-        float y0 = pos.y()-10*scale; 
-		float x1 = x0 + glyph.width*scale+10*scale;
-        float y1 = y0 + glyph.height*scale+10*scale;
+        float x0=pos.x();
+        float y0 = pos.y(); 
+		float x1 = x0 + glyph.width*scale;
+        float y1 = y0 + glyph.height*scale;
         // 创建quad
         Quad quad;
         quad.position = Vec2f(x0, y0);

@@ -222,7 +222,7 @@ public:
         uint32_t stride = 0;
         for (const auto& attribute : m_Attributes)
         {
-            stride += BufferElementFormatSize(attribute.format);
+            stride = std::max(BufferElementFormatSize(attribute.format)+attribute.offset,stride);
         }
         return stride;
     }

@@ -80,27 +80,24 @@ Mesh Geometry::CreateSphere(float radius, uint32_t segments)
         0,
         Mesh::ComponentType::FLOAT32,
         8,
-        Mesh::Type::VEC3,
-        static_cast<uint32_t>(positions.size())});
+        Mesh::Type::VEC3});
     uint32_t normalAccessorIndex = Mesh.accessors.size();
     Mesh.accessors.emplace_back(Mesh::Accessor{
         normalBufferViewIndex,
         0,
         Mesh::ComponentType::FLOAT32,
         8,
-        Mesh::Type::VEC3,
-        static_cast<uint32_t>(normals.size())});
+        Mesh::Type::VEC3});
     uint32_t indexAccessorIndex = Mesh.accessors.size();
     Mesh.accessors.emplace_back(Mesh::Accessor{
         indexBufferViewIndex,
         0,
         Mesh::ComponentType::UINT32,
         static_cast<uint32_t>(indices.size()),
-        Mesh::Type::SCALAR,
-        0});
+        Mesh::Type::SCALAR});
     auto primitive = Mesh::Primitive{};
-    primitive.attributes[Mesh::Primitive::Attribute::POSITION] = positionAccessorIndex;
-    primitive.attributes[Mesh::Primitive::Attribute::NORMAL] = normalAccessorIndex;
+    primitive.attributes[Mesh::Attribute::POSITION] = positionAccessorIndex;
+    primitive.attributes[Mesh::Attribute::NORMAL] = normalAccessorIndex;
     primitive.index = indexAccessorIndex;
     Mesh.primitive = std::move(primitive);
     return Mesh;
@@ -241,7 +238,6 @@ Mesh Geometry::CreateBox()
     Mesh.accessors[posAccessorIndex].componentType = Mesh::ComponentType::FLOAT32;
     Mesh.accessors[posAccessorIndex].count = positions.size();
     Mesh.accessors[posAccessorIndex].type = Mesh::Type::VEC3;
-    Mesh.accessors[posAccessorIndex].byteStride = sizeof(Vec3);
     size_t normalAccessorIndex = Mesh.accessors.size();
     Mesh.accessors.emplace_back();
     Mesh.accessors[normalAccessorIndex].bufferView = normalBufferViewIndex;
@@ -249,7 +245,6 @@ Mesh Geometry::CreateBox()
     Mesh.accessors[normalAccessorIndex].componentType = Mesh::ComponentType::FLOAT32;
     Mesh.accessors[normalAccessorIndex].count = normals.size();
     Mesh.accessors[normalAccessorIndex].type = Mesh::Type::VEC3;
-    Mesh.accessors[normalAccessorIndex].byteStride = sizeof(Vec3);
     size_t indexAccessorIndex = Mesh.accessors.size();
     Mesh.accessors.emplace_back();
     Mesh.accessors[indexAccessorIndex].bufferView = indexBufferViewIndex;
@@ -257,10 +252,9 @@ Mesh Geometry::CreateBox()
     Mesh.accessors[indexAccessorIndex].componentType = Mesh::ComponentType::UINT16;
     Mesh.accessors[indexAccessorIndex].count = indices.size();
     Mesh.accessors[indexAccessorIndex].type = Mesh::Type::SCALAR;
-    Mesh.accessors[indexAccessorIndex].byteStride = sizeof(uint16_t);
     // primitive
-    Mesh.primitive.attributes[Mesh::Primitive::Attribute::POSITION] = posAccessorIndex;
-    Mesh.primitive.attributes[Mesh::Primitive::Attribute::NORMAL] = normalAccessorIndex;
+    Mesh.primitive.attributes[Mesh::Attribute::POSITION] = posAccessorIndex;
+    Mesh.primitive.attributes[Mesh::Attribute::NORMAL] = normalAccessorIndex;
     Mesh.primitive.index = indexAccessorIndex;
     return Mesh;
 }
@@ -321,7 +315,6 @@ Mesh Geometry::CreateQuad()
     Mesh.accessors[posAccessorIndex].componentType = Mesh::ComponentType::FLOAT32;
     Mesh.accessors[posAccessorIndex].count = positions.size();
     Mesh.accessors[posAccessorIndex].type = Mesh::Type::VEC2;
-    Mesh.accessors[posAccessorIndex].byteStride = sizeof(Vec2);
     size_t texCoordAccessorIndex = Mesh.accessors.size();
     Mesh.accessors.emplace_back();
     Mesh.accessors[texCoordAccessorIndex].bufferView = texCoordBufferViewIndex;
@@ -329,7 +322,6 @@ Mesh Geometry::CreateQuad()
     Mesh.accessors[texCoordAccessorIndex].componentType = Mesh::ComponentType::FLOAT32;
     Mesh.accessors[texCoordAccessorIndex].count = texCoords.size();
     Mesh.accessors[texCoordAccessorIndex].type = Mesh::Type::VEC2;
-    Mesh.accessors[texCoordAccessorIndex].byteStride = sizeof(Vec2);
     size_t indexAccessorIndex = Mesh.accessors.size();
     Mesh.accessors.emplace_back();
     Mesh.accessors[indexAccessorIndex].bufferView = indexBufferViewIndex;
@@ -337,9 +329,8 @@ Mesh Geometry::CreateQuad()
     Mesh.accessors[indexAccessorIndex].componentType = Mesh::ComponentType::UINT16;
     Mesh.accessors[indexAccessorIndex].count = indices.size();
     Mesh.accessors[indexAccessorIndex].type = Mesh::Type::SCALAR;
-    Mesh.accessors[indexAccessorIndex].byteStride = sizeof(uint16_t);
-    Mesh.primitive.attributes[Mesh::Primitive::Attribute::POSITION] = posAccessorIndex;
-    Mesh.primitive.attributes[Mesh::Primitive::Attribute::TEXCOORD] = texCoordAccessorIndex;
+    Mesh.primitive.attributes[Mesh::Attribute::POSITION] = posAccessorIndex;
+    Mesh.primitive.attributes[Mesh::Attribute::TEXCOORD] = texCoordAccessorIndex;
     Mesh.primitive.index = indexAccessorIndex;
     return Mesh;
 }

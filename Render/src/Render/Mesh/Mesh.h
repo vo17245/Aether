@@ -103,11 +103,8 @@ struct Mesh
         ComponentType componentType = ComponentType::NONE;
         uint32_t count = std::numeric_limits<uint32_t>::max();
         Type type = Type::NONE;
-        uint32_t byteStride = 0; // 0表示紧密排列
     };
-    struct Primitive
-    {
-        enum class Attribute
+    enum class Attribute
         {
             POSITION,
             NORMAL,
@@ -117,6 +114,9 @@ struct Mesh
             BITANGENT,
 
         };
+    struct Primitive
+    {
+        
         std::unordered_map<Attribute, uint32_t> attributes; // attribute -> accessor
         std::optional<uint32_t> index;                      // accessor
         static std::optional<std::string> AttributeToString(Attribute attribute)
@@ -163,7 +163,7 @@ struct Mesh
     Primitive primitive;
     size_t CalculateVertexCount() const
     {
-        return accessors[primitive.attributes.at(Primitive::Attribute::POSITION)].count;
+        return accessors[primitive.attributes.at(Attribute::POSITION)].count;
     }
     static BufferElementFormat GetBufferElementFormat(Type type,ComponentType componentType)
     {
@@ -221,12 +221,12 @@ struct Mesh
     std::vector<VertexBufferLayout> CreateVertexBufferLayouts()const
     {
         // sort attribute by index in enum
-        std::vector<Primitive::Attribute> attributes;
+        std::vector<Attribute> attributes;
         for(const auto& [attribute,_]:primitive.attributes)
         {
             attributes.push_back(attribute);
         }
-        std::sort(attributes.begin(),attributes.end(),[](Primitive::Attribute a,Primitive::Attribute b){
+        std::sort(attributes.begin(),attributes.end(),[](Attribute a,Attribute b){
             return a<b;
         });
         // create layout for each bufferView used in vertex

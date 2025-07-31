@@ -2,7 +2,7 @@
 #include "Render/RenderApi/DeviceDescriptorPool.h"
 #include "Render/Scene/Camera2D.h"
 #include "System.h"
-#include "Text/Font.h"
+#include "Text/Font/Font.h"
 #include "Text/Raster/Raster.h"
 #include "UI/Hierarchy/Component/Base.h"
 #include <memory>
@@ -24,8 +24,8 @@ public:
     struct FontSignature
     {
         std::string path;
-        //如果不需要hinting,worldSize都设置为0，如果需要hinting,worldSize需要是有效的值
-        float worldSize=0;
+        // 如果不需要hinting,worldSize都设置为0，如果需要hinting,worldSize需要是有效的值
+        float worldSize = 0;
         bool operator==(const FontSignature& other) const
         {
             return path == other.path && worldSize == other.worldSize;
@@ -34,7 +34,6 @@ public:
         {
             return !(*this == other);
         }
-
     };
     struct FontSignatureHash
     {
@@ -43,6 +42,7 @@ public:
             return std::hash<std::string>()(sig.path) ^ std::hash<float>()(sig.worldSize);
         }
     };
+
 public:
     ~TextSystem()
 
@@ -65,11 +65,11 @@ public:
 
         for (const auto& [entity, base, text] : view.each())
         {
-            if(!text.visible)
+            if (!text.visible)
             {
                 continue; // skip invisible text
             }
-            if(text.content.empty())
+            if (text.content.empty())
             {
                 continue; // skip empty text
             }
@@ -78,8 +78,7 @@ public:
             {
                 FontSignature sig{
                     .path = text.fontpath.empty() ? m_DefaultFont : text.fontpath,
-                    .worldSize = text.hinting? text.worldSize : 0
-                };
+                    .worldSize = text.hinting ? text.worldSize : 0};
                 auto iter = m_Fonts.find(sig);
                 if (iter == m_Fonts.end())
                 {
@@ -94,10 +93,11 @@ public:
                 }
                 else
                 {
-                    text.font=iter->second.font.get();
+                    text.font = iter->second.font.get();
                 }
             }
-            text.font->prepareGlyphsForText(text.content);
+
+            auto lines = text.font->prepareGlyphsForText(text.content, {});
             // ensure render resource
             if (!text.renderResource)
             {
@@ -113,57 +113,44 @@ public:
             std::vector<Vec2f> glyphPos;
             glyphPos.reserve(u32s.Size());
             float worldSize = text.worldSize;
-            float scale = worldSize / text.font->emSize;
+            
             uint32_t prevUnicode = 0;
-            auto getKerning=[&text](uint32_t prev,uint32_t cur)->long
+
+            std::vector<uint32_t> glyphToRender;
+            for (auto& line : lines)
             {
-                auto& face=*text.font->face;
-                if(!(face.handle->face_flags & FT_FACE_FLAG_KERNING))
+                for (auto& glyph : line.visualGlyphs)
                 {
-                    return 0; // no kerning
+                    
+                    auto& info = text.font->bufferGlyphInfo[glyph.indexInBuffer];
+                    float emSize= info.emSize;
+                    float scale = worldSize / info.emSize;
+                    float curY = y + (emSize - info.bearingY) * scale;
+                    glyphPos.emplace_back(Vec2f(x, curY));
+                    // float kerningX=glyph.kerningX;
+
+                    x += (info.advance) * scale;
+                    if (x > width + base.position.x())
+                    {
+                        x = base.position.x();
+                        y += worldSize;
+                    }
                 }
-                FT_Vector res;
-                FT_Get_Kerning(face.handle,
-               FT_Get_Char_Index(face.handle, prev),
-               FT_Get_Char_Index(face.handle, cur),
-               FT_KERNING_UNSCALED,
-               &res);
-               return res.x;
-            };
-            for (auto unicode : u32s.GetData())
-            {
-                if(unicode=='\n')
-                {
-                    x = base.position.x();
-                    y += worldSize;
-                    glyphPos.emplace_back(Vec2f(0, 0));
-                    continue;
-                }
-                auto& glyph = text.font->glyphs[unicode];
-                float curY = y + (text.font->emSize - glyph.bearingY) * scale;
-                glyphPos.emplace_back(Vec2f(x, curY));
-                //float kerningX=glyph.kerningX;
-                float kerningX= getKerning(prevUnicode, unicode) ;
-                x+=(glyph.advance+kerningX)*scale;
-                if (x > width+base.position.x())
-                {
-                    x = base.position.x();
-                    y += worldSize;
-                }
-                prevUnicode = unicode;
+                x = base.position.x();
+                y += worldSize;
             }
+           
             // render glyph
             Text::Raster::RenderPassParam param{
                 .commandBuffer = commandBuffer,
                 .descriptorPool = *m_DescriptorPool,
                 .font = *text.font,
-                .unicodes = u32s.GetData(),
+                .bufferGlyphInfoIndexes = glyphToRender,
                 .glyphPosition = glyphPos,
                 .worldSize = worldSize,
                 .camera = *m_Camera,
                 .z = base.z,
-                .color=text.color
-            };
+                .color = text.color};
 
             m_Raster->Render(param,
                              *text.renderResource);
@@ -178,13 +165,13 @@ public:
             return nullptr;
         }
         system->m_Raster = std::make_unique<Text::Raster>(std::move(raster.value()));
-        auto contextOpt = Text::Context::Create();
+        auto contextOpt = Text::Library::Create();
         if (!contextOpt)
         {
             assert(false && "failed to create text context(freetype library)");
             return nullptr;
         }
-        system->m_Context = std::move(Text::Context::Create().value());
+        system->m_Context = CreateScope<Text::Library>(std::move(Text::Library::Create().value()));
         return system;
     }
 
@@ -227,16 +214,7 @@ private:
             return false;
         }
         auto face = std::make_unique<Text::Face>(std::move(faceOpt.value()));
-        std::optional<Text::Font> fontOpt;
-        if(signature.worldSize)
-        {
-            fontOpt = Text::Font::Create(face.get(),signature.worldSize,true);
-        }
-        else 
-        {
-            fontOpt = Text::Font::Create(face.get()); // no hinting
-        }
-       
+        auto fontOpt = Text::Font::Create(m_Context.get(),face.get());
         if (!fontOpt)
         {
             return false;
@@ -251,12 +229,12 @@ private:
     }
 
 private:
-    std::unordered_map<FontSignature, Font,FontSignatureHash> m_Fonts;
+    std::unordered_map<FontSignature, Font, FontSignatureHash> m_Fonts;
     std::unique_ptr<Text::Raster> m_Raster;
     std::vector<std::string> m_AssetDirs;
     DeviceDescriptorPool* m_DescriptorPool = nullptr; // not own
     Camera2D* m_Camera;                               // not own
-    std::optional<Text::Context> m_Context;
-    std::string m_DefaultFont="SourceHanSerifCN-Regular-1.otf";
+    Scope<Text::Library> m_Context;
+    std::string m_DefaultFont = "SourceHanSerifCN-Regular-1.otf";
 };
 } // namespace Aether::UI

@@ -4,26 +4,22 @@
 #include <Debug/Log.h>
 #include <Text/Layout/Run.h>
 #include <harfbuzz/hb-ft.h>
+#include <freetype/ftbbox.h>
 namespace Aether::Text
 {
 
-struct FontCreateInfo
-{
-    Library* context;
-    Face* face;
-    float worldSize;
-    bool hinting;
-    StrokeParam strokeParam;
-    bool useStroke;
-};
+
 struct FontGlyphCacheKey
 {
     uint32_t glyphIndex;
     StrokeParam strokeParam;
     bool useStroke;
+    float worldSize;
+    bool hinting;
     bool operator==(const FontGlyphCacheKey& other) const
     {
-        return glyphIndex == other.glyphIndex && strokeParam.radius == other.strokeParam.radius && strokeParam.lineCap == other.strokeParam.lineCap && strokeParam.lineJoin == other.strokeParam.lineJoin && strokeParam.miterLimit == other.strokeParam.miterLimit && useStroke == other.useStroke;
+        return glyphIndex == other.glyphIndex && strokeParam.radius == other.strokeParam.radius && strokeParam.lineCap == other.strokeParam.lineCap && strokeParam.lineJoin == other.strokeParam.lineJoin && strokeParam.miterLimit == other.strokeParam.miterLimit && useStroke == other.useStroke && worldSize == other.worldSize && hinting == other.hinting;
+        ;
     }
 };
 } // namespace Aether::Text
@@ -39,6 +35,8 @@ struct Hash<Text::FontGlyphCacheKey>
         hash ^= std::hash<uint32_t>()(key.glyphIndex);
         hash ^= Hash<Text::StrokeParam>()(key.strokeParam);
         hash ^= std::hash<bool>()(key.useStroke);
+        hash ^= std::hash<float>()(key.worldSize);
+        hash ^= std::hash<bool>()(key.hinting);
         return hash;
     }
 };
@@ -86,6 +84,13 @@ struct HbFont
         }
     }
 };
+struct OutlineParam
+{
+    StrokeParam strokeParam;
+    bool stroke=false;
+    float worldSize=0.0f;// 用于hinting，hinting为false时，worldSize无效
+    bool hinting = false; // 是否启用hinting
+};
 struct Font
 {
 public:
@@ -97,6 +102,7 @@ public:
         int32_t curveCount;
 
         // Important glyph metrics in font units.
+        float emSize;
         FT_Pos width, height;
         FT_Pos bearingX;
         FT_Pos bearingY;
@@ -117,56 +123,43 @@ public:
 #pragma pack(pop) // 恢复默认对齐
 
 public:
-    static std::optional<Font> Create(const FontCreateInfo& info)
+    bool SetHinting(float worldSize,bool hinting)
     {
-        // freetype
-        Font font;
-        font.context = info.context;
-        font.face = info.face;
-        font.worldSize = info.worldSize;
-        font.hinting = info.hinting;
-        if (info.hinting)
+        if(hinting)
         {
-            font.loadFlags = FT_LOAD_NO_BITMAP;
+            loadFlags = FT_LOAD_NO_BITMAP;
             // font.kerningMode = FT_KERNING_DEFAULT;
-            font.kerningMode = FT_KERNING_UNSCALED;
-            font.emSize = info.worldSize * 64;
-            FT_Error error = FT_Set_Pixel_Sizes(info.face->handle, 0, static_cast<FT_UInt>(std::ceil(info.worldSize)));
+            kerningMode = FT_KERNING_UNSCALED;
+            emSize = worldSize * 64;
+            FT_Error error = FT_Set_Pixel_Sizes(face->handle, 0, static_cast<FT_UInt>(std::ceil(worldSize)));
             if (error)
             {
-                // std::cerr << "[font] error while setting pixel size: " << error << std::endl;
-                return std::nullopt;
+                return false;
             }
         }
         else
         {
-            font.loadFlags = FT_LOAD_NO_SCALE | FT_LOAD_NO_HINTING | FT_LOAD_NO_BITMAP;
-            font.kerningMode = FT_KERNING_UNSCALED;
-            font.emSize = info.face->handle->units_per_EM;
+            loadFlags = FT_LOAD_NO_SCALE | FT_LOAD_NO_HINTING | FT_LOAD_NO_BITMAP;
+            kerningMode = FT_KERNING_UNSCALED;
+            emSize = face->handle->units_per_EM;
         }
-        {
-            uint32_t charcode = 0;
-            FT_UInt glyphIndex = 0;
-            FT_Error error = FT_Load_Glyph(info.face->handle, glyphIndex, font.loadFlags);
-            if (error)
-            {
-                // std::cerr << "[font] error while loading undefined glyph: " << error << std::endl;
-                return std::nullopt;
-            }
-            FontGlyphCacheKey key{
-                .glyphIndex = 0,
-                .strokeParam = info.strokeParam,
-                .useStroke = info.useStroke};
-            font.BuildGlyph(key, glyphIndex);
-        }
+        hb_font_set_scale(hbFont.font, emSize, emSize);
+        return true;
+    }
+    static std::optional<Font> Create(Library* library,Face* face)
+    {
+        // freetype
+        Font font;
+        font.library = library;
+        font.face = face;
+        
+
         if (!font.CreateDeviceData())
         {
             return std::nullopt;
         }
         // harfbuzz
         font.hbFont = HbFont(hb_ft_font_create(font.face->handle, nullptr));
-        // set font scale
-        hb_font_set_scale(font.hbFont.font, font.emSize,font.emSize);
         return font;
     }
     struct ShapedGlyph
@@ -199,7 +192,6 @@ public:
             auto runs = SplitToRuns(u32Text);
 
             // shaping
-
 
             auto processRun = [&](const Run& run) {
                 hb_buffer_clear_contents(buffer);
@@ -275,16 +267,63 @@ public:
     }
     void BuildGlyph(const FontGlyphCacheKey& key, FT_UInt glyphIndex)
     {
-        BufferGlyph bufferGlyph;
-        bufferGlyph.start = static_cast<int32_t>(bufferCurves.size());
+        // get contour
+        auto getContour = [this](const FT_Outline& outline, BufferGlyph& bufferGlyph) {
+            bufferGlyph.start = static_cast<int32_t>(bufferCurves.size());
 
-        short start = 0;
-        for (int i = 0; i < face->handle->glyph->outline.n_contours; i++)
+            short start = 0;
+            for (int i = 0; i < outline.n_contours; i++)
+            {
+                // Note: The end indices in face->glyph->outline.contours are inclusive.
+                ConvertContour(bufferCurves, &outline,
+                               start, outline.contours[i], emSize);
+                start = outline.contours[i] + 1;
+            }
+        };
+        BufferGlyph bufferGlyph;
+        FT_Pos width = 0, height = 0;
+        FT_Pos bearingX = 0, bearingY = 0;
+        // stroke?
+        if (key.useStroke)
         {
-            // Note: The end indices in face->glyph->outline.contours are inclusive.
-            ConvertContour(bufferCurves, &face->handle->glyph->outline,
-                           start, face->handle->glyph->outline.contours[i], emSize);
-            start = face->handle->glyph->outline.contours[i] + 1;
+            // 获取 glyph
+            FT_GlyphSlot slot = face->handle->glyph;
+            FT_Outline* outline = &slot->outline;
+            // 设置描边参数
+            library->SetStrokerParam(key.strokeParam);
+            // 把原始轮廓送入 stroker
+            FT_Stroker_ParseOutline(library->stroker, outline, 0);
+            // 查询结果 outline 的点数
+            FT_UInt num_points, num_contours;
+            FT_Stroker_GetCounts(library->stroker, &num_points, &num_contours);
+            // 准备结果 outline
+            FT_Outline strokedOutline;
+            FT_Error err=FT_Outline_New(library->handle, num_points, num_contours, &strokedOutline);
+            strokedOutline.n_points = 0;
+            strokedOutline.n_contours = 0;
+            // 导出描边后的 outline
+            FT_Stroker_Export(library->stroker, &strokedOutline);
+
+            // 获取描边后的轮廓
+            getContour(strokedOutline, bufferGlyph);
+            FT_BBox bbox;
+            //FT_Outline_Get_CBox(&strokedOutline, &bbox);快但是不准(直接使用贝塞尔控制点计算范围，会大一些)
+            FT_Outline_Get_BBox(&strokedOutline, &bbox);// 精确计算轮廓范围
+            width = bbox.xMax - bbox.xMin;
+            height = bbox.yMax - bbox.yMin;
+            bearingX = bbox.xMin;
+            bearingY = bbox.yMax;
+            // 释放描边后的 outline
+            FT_Outline_Done(library->handle, &strokedOutline); 
+        }
+        else
+        {
+            // 获取轮廓
+            getContour(face->handle->glyph->outline, bufferGlyph);
+            width= face->handle->glyph->metrics.width;
+            height = face->handle->glyph->metrics.height;
+            bearingX = face->handle->glyph->metrics.horiBearingX;
+            bearingY = face->handle->glyph->metrics.horiBearingY;
         }
 
         bufferGlyph.count = static_cast<int32_t>(bufferCurves.size()) - bufferGlyph.start;
@@ -305,11 +344,12 @@ public:
         glyph.index = glyphIndex;
         glyph.bufferIndex = bufferIndex;
         glyph.curveCount = bufferGlyph.count;
-        glyph.width = face->handle->glyph->metrics.width;
-        glyph.height = face->handle->glyph->metrics.height;
-        glyph.bearingX = (*face).handle->glyph->metrics.horiBearingX;
-        glyph.bearingY = (*face).handle->glyph->metrics.horiBearingY;
+        glyph.width = width;
+        glyph.height = height;
+        glyph.bearingX = bearingX;
+        glyph.bearingY = bearingY;
         glyph.advance = (*face).handle->glyph->metrics.horiAdvance;
+        glyph.emSize = emSize;
         size_t index = bufferGlyphInfo.size();
         bufferGlyphInfo.emplace_back(glyph);
         glyphs[key] = index;
@@ -377,8 +417,13 @@ public:
     {
         std::vector<VisualGlyph> visualGlyphs;
     };
-    std::vector<VisualLine> prepareGlyphsForText(const std::string& text, const StrokeParam& param, bool useStroke)
+    struct HintingParam
     {
+        float worldSize;
+    };
+    std::vector<VisualLine> prepareGlyphsForText(const std::string& text, const OutlineParam& outlineParam)
+    {
+        SetHinting(outlineParam.worldSize, outlineParam.hinting);
         std::vector<VisualLine> res;
         bool changed = false;
         auto shapedLines = GetShapedGlyphs(text);
@@ -389,8 +434,10 @@ public:
             {
                 FontGlyphCacheKey key;
                 key.glyphIndex = shapedGlyph.glyphIndex;
-                key.strokeParam = param;
-                key.useStroke = useStroke;
+                key.strokeParam = outlineParam.strokeParam;
+                key.useStroke = outlineParam.stroke;
+                key.worldSize = outlineParam.worldSize;
+                key.hinting = outlineParam.hinting;
                 auto iter = glyphs.find(key);
                 if (iter != glyphs.end())
                 {
@@ -411,12 +458,12 @@ public:
                 }
                 BuildGlyph(key, shapedGlyph.glyphIndex);
                 visualLine.visualGlyphs.emplace_back(
-                        VisualGlyph{
-                            .indexInBuffer = bufferGlyphInfo.size() - 1,
-                            .xOffset = shapedGlyph.xOffset,
-                            .yOffset = shapedGlyph.yOffset,
-                            .xAdvance = shapedGlyph.xAdvance,
-                            .yAdvance = shapedGlyph.yAdvance});
+                    VisualGlyph{
+                        .indexInBuffer = bufferGlyphInfo.size() - 1,
+                        .xOffset = shapedGlyph.xOffset,
+                        .yOffset = shapedGlyph.yOffset,
+                        .xAdvance = shapedGlyph.xAdvance,
+                        .yAdvance = shapedGlyph.yAdvance});
                 changed = true;
             }
             res.emplace_back(std::move(visualLine));
@@ -669,19 +716,18 @@ public:
     Face* face;                                                                    // not own
     std::unordered_map<FontGlyphCacheKey, size_t, Hash<FontGlyphCacheKey>> glyphs; // glyph index and stroke param -> buffer glyph index
     std::vector<Glyph> bufferGlyphInfo;
-    bool hinting;
-    FT_Int32 loadFlags;
-    FT_Kerning_Mode kerningMode;
+   
     std::vector<BufferGlyph> bufferGlyphs;
     std::vector<BufferCurve> bufferCurves;
-    float emSize;
-    float worldSize; // world -> screen(or framebuffer) , worldSize-> pixelSize
+    
     DeviceBuffer stagingBuffer;
     DeviceTexture glyphTexture;
     DeviceTexture curveTexture;
-    Library* context; // not own
-    StrokeParam strokeParam;
-    bool useStroke = false;
+    Library* library; // not own
     HbFont hbFont; // harfbuzz font
+private:// current state
+    float emSize;
+    FT_Int32 loadFlags;
+    FT_Kerning_Mode kerningMode;
 };
 } // namespace Aether::Text

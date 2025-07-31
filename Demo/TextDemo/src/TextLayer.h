@@ -111,16 +111,15 @@ float framePerSec = m_Frame / m_Sec;
         std::string s = std::string("") + "fps: " + std::to_string(framePerSec) + "\n"
                         + "我能吞下玻璃而不伤身体\n"
                         + "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
-                        + "Innovation in China 中国智造，慧及全球 0123456789\n"
-                        +"123مرحبًا\n";
+                        + "Innovation in China 中国智造，慧及全球 0123456789\n";
 
-            s=R"(
-            123
-            123مرحبًا
-)";
+
 
         // get glyph curve
-        auto lines=ApplicationResource::GetSingleton().font->prepareGlyphsForText(s,{},false);
+        Text::StrokeParam strokeParam;
+        strokeParam.radius=64;
+        auto lines=ApplicationResource::GetSingleton().font->prepareGlyphsForText(s,
+            {.strokeParam=strokeParam,.stroke=true,.worldSize=0.0,.hinting=false});
 
         size_t glyphCount = 0;
         for (auto& line : lines)
@@ -131,27 +130,30 @@ float framePerSec = m_Frame / m_Sec;
         std::vector<Vec2f> glyphPos;
         std::vector<uint32_t> glyphToRender;
         glyphPos.reserve(glyphCount);
-        float worldSize = 16.0f;
+        float worldSize = 128.0f;
         {
-            float scale = worldSize / ApplicationResource::GetSingleton().font->emSize;
+            
             float x = 0;
             float y = 0;
             float width = 700;
-            float emSize = ApplicationResource::GetSingleton().font->emSize;
+            
             for (auto& line : lines)
             {
                 for(auto& glyph:line.visualGlyphs)
                 {
-                auto& info= ApplicationResource::GetSingleton().font->bufferGlyphInfo[glyph.indexInBuffer];
-                glyphToRender.push_back(glyph.indexInBuffer);
-                glyphPos.push_back(Vec2f(x+(glyph.xOffset+info.bearingX)*scale, y + (emSize-info.bearingY-glyph.yOffset ) * scale));
-                x += glyph.xAdvance  * scale;
-                y+= glyph.yAdvance * scale;
-                if (x > width)
-                {
-                    x = 0;
-                    y += worldSize;
-                }
+                    auto& info= ApplicationResource::GetSingleton().font->bufferGlyphInfo[glyph.indexInBuffer];
+                    float emSize = info.emSize;
+                    float scale = worldSize / emSize;
+                   
+                    glyphToRender.push_back(glyph.indexInBuffer);
+                    glyphPos.push_back(Vec2f(x+(glyph.xOffset+info.bearingX)*scale, y + (emSize-info.bearingY-glyph.yOffset ) * scale));
+                    x += glyph.xAdvance  * scale;
+                    y+= glyph.yAdvance * scale;
+                    if (x > width)
+                    {
+                        x = 0;
+                        y += worldSize;
+                    }
                 }
                 x = 0;
                 y += worldSize;

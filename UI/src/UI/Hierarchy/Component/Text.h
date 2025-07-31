@@ -3,7 +3,7 @@
 #include <string>
 #include <Core/Math.h>
 #include <Render/RenderApi.h>
-#include <Text/Font.h>
+#include <Text/Font/Font.h>
 namespace Aether::UI
 {
 struct TextComponent
