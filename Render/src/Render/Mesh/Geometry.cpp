@@ -4,7 +4,7 @@ namespace Aether
 {
 Mesh Geometry::CreateSphere(float radius, uint32_t segments)
 {
-    std::vector<Vec3> positions;
+    std::vector<Vec3f> positions;
     std::vector<uint32_t> indices;
     for (uint32_t i = 0; i <= segments; i++)
     {
@@ -12,7 +12,7 @@ Mesh Geometry::CreateSphere(float radius, uint32_t segments)
         for (uint32_t j = 0; j <= segments; j++)
         {
             float phi = j * 2 * Math::PI / segments;
-            Vec3 position = Vec3(
+            Vec3f position = Vec3f(
                 radius * sin(theta) * cos(phi),
                 radius * cos(theta),
                 radius * sin(theta) * sin(phi));
@@ -35,7 +35,7 @@ Mesh Geometry::CreateSphere(float radius, uint32_t segments)
             indices.push_back(i2);
         }
     }
-    std::vector<Vec3> normals(positions.size());
+    std::vector<Vec3f> normals(positions.size());
     for (size_t i = 0; i < normals.size(); i++)
     {
         normals[i] = positions[i].normalized();
@@ -46,12 +46,12 @@ Mesh Geometry::CreateSphere(float radius, uint32_t segments)
     Mesh.buffers.emplace_back(
         Mesh::Buffer(
             (uint8_t*)positions.data(),
-            (uint8_t*)(positions.data()) + positions.size() * sizeof(Vec3)));
+            (uint8_t*)(positions.data()) + positions.size() * sizeof(Vec3f)));
     uint32_t normalBufferIndex = Mesh.buffers.size();
     Mesh.buffers.emplace_back(
         Mesh::Buffer(
             (uint8_t*)normals.data(),
-            (uint8_t*)(normals.data()) + normals.size() * sizeof(Vec3)));
+            (uint8_t*)(normals.data()) + normals.size() * sizeof(Vec3f)));
     uint32_t indexBufferIndex = Mesh.buffers.size();
     Mesh.buffers.emplace_back(Mesh::Buffer(
         (uint8_t*)indices.data(),
@@ -59,13 +59,13 @@ Mesh Geometry::CreateSphere(float radius, uint32_t segments)
     uint32_t psitionBufferViewIndex = Mesh.bufferViews.size();
     Mesh.bufferViews.emplace_back(Mesh::BufferView{
         0,
-        static_cast<uint32_t>(positions.size() * sizeof(Vec3)),
+        static_cast<uint32_t>(positions.size() * sizeof(Vec3f)),
         positionBufferIndex,
         Mesh::Target::Vertex});
     uint32_t normalBufferViewIndex = Mesh.bufferViews.size();
     Mesh.bufferViews.emplace_back(Mesh::BufferView{
         0,
-        static_cast<uint32_t>(normals.size() * sizeof(Vec3)),
+        static_cast<uint32_t>(normals.size() * sizeof(Vec3f)),
         normalBufferIndex,
         Mesh::Target::Vertex});
     uint32_t indexBufferViewIndex = Mesh.bufferViews.size();
@@ -106,57 +106,57 @@ Mesh Geometry::CreateBox()
 {
     Mesh Mesh;
     // =================Position=========
-    std::array<Vec3, 24> positions = {
-        Vec3(-1.0, -1.0, 1.0),
-        Vec3(1.0, -1.0, 1.0),
-        Vec3(-1.0, 1.0, 1.0),
-        Vec3(1.0, 1.0, 1.0),
-        Vec3(1.0, -1.0, 1.0),
-        Vec3(-1.0, -1.0, 1.0),
-        Vec3(1.0, -1.0, -1.0),
-        Vec3(-1.0, -1.0, -1.0),
-        Vec3(1.0, 1.0, 1.0),
-        Vec3(1.0, -1.0, 1.0),
-        Vec3(1.0, 1.0, -1.0),
-        Vec3(1.0, -1.0, -1.0),
-        Vec3(-1.0, 1.0, 1.0),
-        Vec3(1.0, 1.0, 1.0),
-        Vec3(-1.0, 1.0, -1.0),
-        Vec3(1.0, 1.0, -1.0),
-        Vec3(-1.0, -1.0, 1.0),
-        Vec3(-1.0, 1.0, 1.0),
-        Vec3(-1.0, -1.0, -1.0),
-        Vec3(-1.0, 1.0, -1.0),
-        Vec3(-1.0, -1.0, -1.0),
-        Vec3(-1.0, 1.0, -1.0),
-        Vec3(1.0, -1.0, -1.0),
-        Vec3(1.0, 1.0, -1.0)};
+    std::array<Vec3f, 24> positions = {
+        Vec3f(-1.0, -1.0, 1.0),
+        Vec3f(1.0, -1.0, 1.0),
+        Vec3f(-1.0, 1.0, 1.0),
+        Vec3f(1.0, 1.0, 1.0),
+        Vec3f(1.0, -1.0, 1.0),
+        Vec3f(-1.0, -1.0, 1.0),
+        Vec3f(1.0, -1.0, -1.0),
+        Vec3f(-1.0, -1.0, -1.0),
+        Vec3f(1.0, 1.0, 1.0),
+        Vec3f(1.0, -1.0, 1.0),
+        Vec3f(1.0, 1.0, -1.0),
+        Vec3f(1.0, -1.0, -1.0),
+        Vec3f(-1.0, 1.0, 1.0),
+        Vec3f(1.0, 1.0, 1.0),
+        Vec3f(-1.0, 1.0, -1.0),
+        Vec3f(1.0, 1.0, -1.0),
+        Vec3f(-1.0, -1.0, 1.0),
+        Vec3f(-1.0, 1.0, 1.0),
+        Vec3f(-1.0, -1.0, -1.0),
+        Vec3f(-1.0, 1.0, -1.0),
+        Vec3f(-1.0, -1.0, -1.0),
+        Vec3f(-1.0, 1.0, -1.0),
+        Vec3f(1.0, -1.0, -1.0),
+        Vec3f(1.0, 1.0, -1.0)};
     //=========Normal===============
-    std::array<Vec3, 24> normals = {
-        Vec3(0, 0, 1),
-        Vec3(0, 0, 1),
-        Vec3(0, 0, 1),
-        Vec3(0, 0, 1),
-        Vec3(0, -1, 0),
-        Vec3(0, -1, 0),
-        Vec3(0, -1, 0),
-        Vec3(0, -1, 0),
-        Vec3(1, 0, 0),
-        Vec3(1, 0, 0),
-        Vec3(1, 0, 0),
-        Vec3(1, 0, 0),
-        Vec3(0, 1, 0),
-        Vec3(0, 1, 0),
-        Vec3(0, 1, 0),
-        Vec3(0, 1, 0),
-        Vec3(-1, 0, 0),
-        Vec3(-1, 0, 0),
-        Vec3(-1, 0, 0),
-        Vec3(-1, 0, 0),
-        Vec3(0, 0, -1),
-        Vec3(0, 0, -1),
-        Vec3(0, 0, -1),
-        Vec3(0, 0, -1)};
+    std::array<Vec3f, 24> normals = {
+        Vec3f(0, 0, 1),
+        Vec3f(0, 0, 1),
+        Vec3f(0, 0, 1),
+        Vec3f(0, 0, 1),
+        Vec3f(0, -1, 0),
+        Vec3f(0, -1, 0),
+        Vec3f(0, -1, 0),
+        Vec3f(0, -1, 0),
+        Vec3f(1, 0, 0),
+        Vec3f(1, 0, 0),
+        Vec3f(1, 0, 0),
+        Vec3f(1, 0, 0),
+        Vec3f(0, 1, 0),
+        Vec3f(0, 1, 0),
+        Vec3f(0, 1, 0),
+        Vec3f(0, 1, 0),
+        Vec3f(-1, 0, 0),
+        Vec3f(-1, 0, 0),
+        Vec3f(-1, 0, 0),
+        Vec3f(-1, 0, 0),
+        Vec3f(0, 0, -1),
+        Vec3f(0, 0, -1),
+        Vec3f(0, 0, -1),
+        Vec3f(0, 0, -1)};
     //========= Indices =============
     std::array<uint16_t, 36> indices = {
 
@@ -199,13 +199,13 @@ Mesh Geometry::CreateBox()
     // buffer
     size_t posBufferIndex = Mesh.buffers.size();
     Mesh.buffers.emplace_back();
-    Mesh.buffers[posBufferIndex].resize(positions.size() * sizeof(Vec3));
+    Mesh.buffers[posBufferIndex].resize(positions.size() * sizeof(Vec3f));
     memcpy(Mesh.buffers[posBufferIndex].data(),
            positions.data(),
            Mesh.buffers[posBufferIndex].size());
     size_t normalBufferIndex = Mesh.buffers.size();
     Mesh.buffers.emplace_back();
-    Mesh.buffers[normalBufferIndex].resize(normals.size() * sizeof(Vec3));
+    Mesh.buffers[normalBufferIndex].resize(normals.size() * sizeof(Vec3f));
     memcpy(Mesh.buffers[normalBufferIndex].data(), normals.data(), Mesh.buffers[normalBufferIndex].size());
     size_t indexBufferIndex = Mesh.buffers.size();
     Mesh.buffers.emplace_back();
@@ -261,16 +261,16 @@ Mesh Geometry::CreateBox()
 Mesh Geometry::CreateQuad()
 {
     Mesh Mesh;
-    static const std::array<Vec2, 4> positions = {
-        Vec2(-1.0, -1.0),
-        Vec2(1.0, -1.0),
-        Vec2(-1.0, 1.0),
-        Vec2(1.0, 1.0)};
-    static const std::array<Vec2, 4> texCoords = {
-        Vec2(0.0, 0.0),
-        Vec2(1.0, 0.0),
-        Vec2(0.0, 1.0),
-        Vec2(1.0, 1.0)};
+    static const std::array<Vec2f, 4> positions = {
+        Vec2f(-1.0, -1.0),
+        Vec2f(1.0, -1.0),
+        Vec2f(-1.0, 1.0),
+        Vec2f(1.0, 1.0)};
+    static const std::array<Vec2f, 4> texCoords = {
+        Vec2f(0.0, 0.0),
+        Vec2f(1.0, 0.0),
+        Vec2f(0.0, 1.0),
+        Vec2f(1.0, 1.0)};
     static const std::array<uint16_t, 6> indices = {
         0,
         1,
@@ -280,11 +280,11 @@ Mesh Geometry::CreateQuad()
         2};
     size_t posBufferIndex = Mesh.buffers.size();
     Mesh.buffers.emplace_back();
-    Mesh.buffers[posBufferIndex].resize(positions.size() * sizeof(Vec2));
+    Mesh.buffers[posBufferIndex].resize(positions.size() * sizeof(Vec2f));
     memcpy(Mesh.buffers[posBufferIndex].data(), positions.data(), Mesh.buffers[posBufferIndex].size());
     size_t texCoordBufferIndex = Mesh.buffers.size();
     Mesh.buffers.emplace_back();
-    Mesh.buffers[texCoordBufferIndex].resize(texCoords.size() * sizeof(Vec2));
+    Mesh.buffers[texCoordBufferIndex].resize(texCoords.size() * sizeof(Vec2f));
     memcpy(Mesh.buffers[texCoordBufferIndex].data(), texCoords.data(), Mesh.buffers[texCoordBufferIndex].size());
     size_t indexBufferIndex = Mesh.buffers.size();
     Mesh.buffers.emplace_back();

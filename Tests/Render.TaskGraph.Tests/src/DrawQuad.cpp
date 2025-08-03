@@ -34,7 +34,7 @@ static Mesh CreateMesh(const Mat2x3f& affine)
         0,1,2,
         0,2,3
     };
-    Eigen::Matrix<float, 2, 3> _affine=affine.ToEigen();
+    Eigen::Matrix<float, 2, 3> _affine=affine;
     
     for(auto& p:positions)
     {

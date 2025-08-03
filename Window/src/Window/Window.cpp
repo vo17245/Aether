@@ -458,7 +458,7 @@ void Window::OnRender()
     auto& curCommandBuffer = *m_GraphicsCommandBuffer[m_CurrentFrame];
     auto& curRenderPass = *m_RenderPass[m_CurrentFrame];
     auto& curFrameBuffer = m_SwapChainFramebuffers[imageIndex];
-    Vec4 clearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    Vec4f clearColor(0.0f, 0.0f, 0.0f, 1.0f);
     curCommandBuffer.Reset();
     curCommandBuffer.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
@@ -479,7 +479,7 @@ void Window::OnRender()
     DeviceImageLayout::Texture, curCommandBuffer);
     curCommandBuffer.BeginRenderPass(*m_RenderPass[m_CurrentFrame],
      m_SwapChainFramebuffers[imageIndex],
-    Vec4(0.0,0.0,0.0,1.0));
+    Vec4f(0.0,0.0,0.0,1.0));
     curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
     curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
     m_GammaFilter->Render(m_FinalTexture, m_SwapChainFramebuffers[imageIndex], curCommandBuffer, m_DescriptorPool);

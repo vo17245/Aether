@@ -53,11 +53,12 @@ public:
                 {
                     continue;
                 }
-                DrawInstance(instance);
+                DrawInstance(instance,commandBuffer);
             }
         }
     }
-
+private:
+    bool CreatePipeline();
 private:
     struct InstanceDraw
     {
@@ -74,6 +75,6 @@ private:
     DeviceSampler m_Sampler;
 
 private:
-    void DrawInstance(const InstanceDraw& instance);
+    void DrawInstance(const InstanceDraw& instance,DeviceCommandBuffer& commandBuffer);
 };
 } // namespace Aether::Sprite

@@ -121,7 +121,7 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
         {
             auto& modelMatrix = m_Camera.matrix;
             m_BasicUboLocalBuffer.model = modelMatrix;
-            m_BasicUboLocalBuffer.view = Mat4::Identity();
+            m_BasicUboLocalBuffer.view = Mat4f::Identity();
             UploadBasicBuffer();
         }
         auto& descriptorResource = m_BasicDescriptorSet.GetVk();
@@ -432,8 +432,8 @@ bool Renderer::UpdateQuadWithTextureDeviceUniformBuffer()
 {
     // update local uniform buffer
     m_QuadWithTextureUboLocalBuffer.model = m_Camera.matrix;
-    m_QuadWithTextureUboLocalBuffer.view = Mat4::Identity();
-    m_QuadWithTextureUboLocalBuffer.texCoord = Mat4::Identity();
+    m_QuadWithTextureUboLocalBuffer.view = Mat4f::Identity();
+    m_QuadWithTextureUboLocalBuffer.texCoord = Mat4f::Identity();
     return true;
 }
 bool Renderer::CreateQuadWithTextureBuffer()

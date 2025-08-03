@@ -11,13 +11,8 @@ using Vec4f = Eigen::Vector4f;
 using Mat2f = Eigen::Matrix2f;
 using Mat3f = Eigen::Matrix3f;
 using Mat4f = Eigen::Matrix4f;
-// float32 alias
-using Vec2 = Vec2f;
-using Vec3 = Vec3f;
-using Vec4 = Vec4f;
-using Mat2 = Mat2f;
-using Mat3 = Mat3f;
-using Mat4 = Mat4f;
+using Mat2x3f = Eigen::Matrix<float, 2, 3>;
+
 
 // double
 using Vec2d = Eigen::Vector2d;

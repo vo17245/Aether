@@ -50,13 +50,13 @@ public:
             m_CurPos = e.GetPosition();
         }
     }
-    Vec2 GetCurPos() const
+    Vec2f GetCurPos() const
     {
         return m_CurPos;
     }
 
 private:
-    Vec2 m_CurPos;
+    Vec2f m_CurPos;
 };
 class Input
 {
@@ -72,7 +72,7 @@ public:
     {
         return m_Keyboard.IsPressed(key);
     }
-    Vec2 MouseCurPos() const
+    Vec2f MouseCurPos() const
     {
         return m_Mouse.GetCurPos();
     }

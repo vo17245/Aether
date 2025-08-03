@@ -76,34 +76,34 @@ namespace Aether
      *      如果basis有伸缩变换，通过改变basis的方向向量的长度来表达
      * @return 把点在basis from 下的表示转换为basis to 下的表示
     */
-    inline Mat3 CalculateBasisTransform(const Basis2D& from,const Basis2D& to)
+    inline Mat3f CalculateBasisTransform(const Basis2D& from,const Basis2D& to)
     {
-        Mat2 e_from=Mat2::Identity();
+        Mat2f e_from=Mat2f::Identity();
         e_from.block<2,1>(0,0)=from.x;
         e_from.block<2,1>(0,1)=from.y;
-        Mat2 e_to=Mat2::Identity();
+        Mat2f e_to=Mat2f::Identity();
         e_to.block<2,1>(0,0)=to.x;
         e_to.block<2,1>(0,1)=to.y;
-        Mat2 e_to_inv=e_to.inverse();
+        Mat2f e_to_inv=e_to.inverse();
         Vec2f oto_ofrom=from.o-to.o;
-        Mat2 m=e_to_inv*e_from;
-        Vec2 v=e_to_inv*oto_ofrom;
-        Mat3 res = Math::MergeTranslation(m, v);
+        Mat2f m=e_to_inv*e_from;
+        Vec2f v=e_to_inv*oto_ofrom;
+        Mat3f res = Math::MergeTranslation(m, v);
         return res;
     }
-    inline Mat4 CalculateBasisTransform(const Basis3D& from,const Basis3D& to)
+    inline Mat4f CalculateBasisTransform(const Basis3D& from,const Basis3D& to)
     {
-        Mat3 e_from=Mat3::Identity();
+        Mat3f e_from=Mat3f::Identity();
         e_from.block<3,1>(0,0)=from.x;
         e_from.block<3,1>(0,1)=from.y;
         e_from.block<3,1>(0,2)=from.z;
-        Mat3 e_to=Mat3::Identity();
+        Mat3f e_to=Mat3f::Identity();
         e_to.block<3,1>(0,0)=to.x;
         e_to.block<3,1>(0,1)=to.y;
         e_to.block<3,1>(0,2)=to.z;
-        Mat3 e_to_inv=e_to.inverse();
+        Mat3f e_to_inv=e_to.inverse();
         Vec3f oto_ofrom=from.o-to.o;
-        Mat3 m=e_to_inv*e_from;
+        Mat3f m=e_to_inv*e_from;
         Vec3f v=e_to_inv*oto_ofrom;
         return Math::MergeTranslation(m,v);
     }

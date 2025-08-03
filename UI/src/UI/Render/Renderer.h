@@ -57,8 +57,8 @@ private:
     // ====== basic
     struct BasicUniformBlock
     {
-        Mat4 model = Mat4::Identity();
-        Mat4 view = Mat4::Identity();
+        Mat4f model = Mat4f::Identity();
+        Mat4f view = Mat4f::Identity();
     };
     static_assert(sizeof(BasicUniformBlock) == 4 * 16 * 2);
     DeviceBuffer m_BasicUboBuffer;
@@ -85,9 +85,9 @@ private:
     std::vector<QuadWithTexture> m_QuadsWithTexture;
     struct QuadWithTextureUniformBlock
     {
-        Mat4 model = Mat4::Identity();
-        Mat4 view = Mat4::Identity();
-        Mat4 texCoord = Mat4::Identity(); // 只有左上角的3x3矩阵有用，其他部分是为了shader中16字节内存对齐
+        Mat4f model = Mat4f::Identity();
+        Mat4f view = Mat4f::Identity();
+        Mat4f texCoord = Mat4f::Identity(); // 只有左上角的3x3矩阵有用，其他部分是为了shader中16字节内存对齐
     };
     DeviceBuffer m_QuadWithTextureUboBuffer;
     DevicePipeline m_QuadWithTexturePipeline;

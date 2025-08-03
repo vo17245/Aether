@@ -6,11 +6,11 @@ namespace Aether {
 class MousePositionEvent : public EventBase<MousePositionEvent>
 {
 public:
-    MousePositionEvent(const Vec2& position) :
+    MousePositionEvent(const Vec2f& position) :
         m_Position(position)
     {
     }
-    const Vec2& GetPosition() const
+    const Vec2f& GetPosition() const
     {
         return m_Position;
     }
@@ -24,7 +24,7 @@ public:
     }
 
 private:
-    Vec2 m_Position;
+    Vec2f m_Position;
 };
 class MouseButtonPressedEvent : public EventBase<MouseButtonPressedEvent>
 {

@@ -19,7 +19,7 @@ Eigen::Matrix4f Perspective(const float fovy, const float aspectRatio, const flo
     return perspectiveMatrix;
 }
 
-Eigen::Matrix4f Translation(const Vec3& v)
+Eigen::Matrix4f Translation(const Vec3f& v)
 {
     Eigen::Matrix4f m;
     m << 1, 0, 0, v.x(),
@@ -29,7 +29,7 @@ Eigen::Matrix4f Translation(const Vec3& v)
     return m;
 }
 
-Eigen::Matrix4f Scale(const Vec3& v)
+Eigen::Matrix4f Scale(const Vec3f& v)
 {
     Eigen::Matrix4f m;
     m << v.x(), 0, 0, 0,
@@ -71,7 +71,7 @@ Eigen::Matrix4f RotateZ(float a)
         0, 0, 0, 1;
     return m;
 }
-Eigen::Matrix4f Rotation(const Vec3& v)
+Eigen::Matrix4f Rotation(const Vec3f& v)
 {
     return RotateZ(v.z()) * RotateY(v.y()) * RotateX(v.x());
 }
@@ -160,34 +160,11 @@ Eigen::Matrix4d Translationd(const Vec3d& v)
         0, 0, 0, 1;
     return m;
 }
-Mat4 Castd2f(const Mat4d& m)
+
+std::tuple<Vec3f, Quat, Vec3f> DecomposeTransform(const Mat4f& matrix)
 {
-    Mat4f result;
-    for (size_t i = 0; i < 4; i++)
-    {
-        for (size_t j = 0; j < 4; j++)
-        {
-            result(i, j) = m(i, j);
-        }
-    }
-    return result;
-}
-Mat4d Castf2d(const Mat4& m)
-{
-    Mat4d result;
-    for (size_t i = 0; i < 4; i++)
-    {
-        for (size_t j = 0; j < 4; j++)
-        {
-            result(i, j) = m(i, j);
-        }
-    }
-    return result;
-}
-std::tuple<Vec3, Quat, Vec3> DecomposeTransform(const Mat4& matrix)
-{
-    Vec3 T;
-    Vec3 S;
+    Vec3f T;
+    Vec3f S;
     // 提取平移
     T = matrix.block<3, 1>(0, 3);
     // 提取旋转和缩放矩阵
@@ -204,16 +181,16 @@ std::tuple<Vec3, Quat, Vec3> DecomposeTransform(const Mat4& matrix)
     Eigen::Quaternionf Q(R);
     return std::make_tuple(T, Q, S);
 }
-Mat3 MergeTranslation(const Mat2& m,const Vec2& v)
+Mat3f MergeTranslation(const Mat2f& m,const Vec2f& v)
 {
-    Mat3 result = Mat3::Identity();
+    Mat3f result = Mat3f::Identity();
     result.block<2, 2>(0, 0) = m;
     result.block<2, 1>(0, 2) = v;
     return result;
 }
-Mat4 MergeTranslation(const Mat3& m,const Vec3& v)
+Mat4f MergeTranslation(const Mat3f& m,const Vec3f& v)
 {
-    Mat4 result = Mat4::Identity();
+    Mat4f result = Mat4f::Identity();
     result.block<3, 3>(0, 0) = m;
     result.block<3, 1>(0, 3) = v;
     return result;
@@ -235,6 +212,19 @@ Mat4f LookAt(const Vec3f& eye, const Vec3f& target, const Vec3f& up)
         -right.dot(eye), -upNew.dot(eye), forward.dot(eye), 1;
     
     return viewMatrix;
+}
+Mat2x3f CreateAffine2D(float sx,float sy,float tx,float ty,float r)
+{
+    Mat2x3f m;
+    m(0,2)=tx;
+    m(1,2)=ty;
+    float cosR = std::cos(r);
+    float sinR = std::sin(r);
+    m(0,0) = cosR * sx;
+    m(0,1) = -sinR * sy;
+    m(1,0) = sinR * sx;
+    m(1,1) = cosR * sy;
+    return m;
 }
 }
 
