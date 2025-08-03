@@ -4,6 +4,15 @@
 #include <unordered_map>
 namespace Aether::Sprite
 {
+struct RenderResource
+{
+inline static constexpr const size_t BufferQuadTextureWidth=768;
+inline static constexpr const size_t BufferQuadTextureHeight=768;
+inline static constexpr const size_t BufferQuadPerLine=BufferQuadTextureWidth/3;
+inline static constexpr const size_t MaxQuadCount=BufferQuadPerLine*BufferQuadTextureHeight;
+DeviceTexture bufferQuadTexture;
+size_t quadCount=0;
+};
 class Renderer
 {
 public:
@@ -12,7 +21,7 @@ public:
         m_Layers.clear();
         m_ZOrderToLayerIndex.clear();
     }
-    void DrawQuad(const Quad& quad)
+    void PushQuad(const Quad& quad)
     {
         // search layer(quads with same zOrder are in the same layer)
         if (quad.zOrder >= m_ZOrderToLayerIndex.size())
@@ -31,12 +40,12 @@ public:
         {
             if (instance.atlas == quad.atlas->texture)
             {
-                instance.quads.push_back(QuadInstance{quad.affine, quad.CalculateUvOffsetAndScale()});
+                instance.quads.push_back(quad.ToBufferQuad());
                 return;
             }
         }
         // not found, create new instance
-        layer.instances.push_back(InstanceDraw{quad.atlas->texture, {QuadInstance{quad.affine, quad.CalculateUvOffsetAndScale()}}});
+        layer.instances.push_back(InstanceDraw{quad.atlas->texture, {quad.ToBufferQuad()}});
     }
     void End(DeviceCommandBuffer& commandBuffer)
     {
@@ -63,7 +72,7 @@ private:
     struct InstanceDraw
     {
         Borrow<DeviceTexture> atlas;
-        std::vector<QuadInstance> quads;
+        std::vector<BufferQuad> quads;
     };
     struct RenderLayer
     {

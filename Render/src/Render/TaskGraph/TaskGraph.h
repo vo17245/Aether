@@ -80,7 +80,7 @@ public:
     }
     void OnFrameBegin()
     {
-        m_TransientResourcePool.OnFrameBegin();
+        m_RenderPassResourcePool.OnFrameBegin();
     }
     bool CheckGraph()
     {
@@ -101,7 +101,7 @@ public:
                 
                 actual->AsyncTransitionLayout(layoutTransition.oldLayout, layoutTransition.newLayout, m_CommandBuffer);
             }
-            ExecuteTask executeTask{m_CommandBuffer,m_TransientResourcePool};
+            ExecuteTask executeTask{m_CommandBuffer,m_RenderPassResourcePool};
             std::visit(executeTask, timeline.task);
             for (auto& resource : timeline.derealizedResources)
             {
@@ -125,19 +125,21 @@ private:
     
     void RealizeResource(ResourceBase& resource)
     {
-        switch (resource.type)
-        {
-        default:
-            resource.Realize();
-        }
+        //switch (resource.type)
+        //{
+        //default:
+        //    resource.Realize();
+        //}
+        resource.Realize();
     }
     void DerealizeResource(ResourceBase& resource)
     {
-        switch (resource.type)
-        {
-        default:
-            resource.Derealize();
-        }
+        //switch (resource.type)
+        //{
+        //default:
+        //    resource.Derealize();
+        //}
+        resource.Derealize();
     }
     struct LayoutTransition
     {
@@ -156,7 +158,7 @@ private:
     struct ExecuteTask
     {
         DeviceCommandBufferView& commandBuffer;
-        TransientResourcePool& m_TransientResourcePool;
+        RenderPassResourcePool& m_RenderPassResourcePool;
         Scope<DeviceRenderPass> renderPass;
         Scope<DeviceFrameBuffer> frameBuffer;
         FrameBufferDesc frameBufferDesc;
@@ -169,7 +171,7 @@ private:
         {
             renderPassDesc = desc;
             // get or create render pass
-            renderPass=m_TransientResourcePool.PopRenderPass(desc);
+            renderPass=m_RenderPassResourcePool.PopRenderPass(desc);
             if(!renderPass)
             {
                 renderPass=CreateRenderPass(desc);
@@ -177,7 +179,7 @@ private:
             }
             // get or create frame buffer
             frameBufferDesc=RenderPassDescToFrameBufferDesc(desc);
-            frameBuffer=m_TransientResourcePool.PopFrameBuffer(frameBufferDesc);
+            frameBuffer=m_RenderPassResourcePool.PopFrameBuffer(frameBufferDesc);
             if(!frameBuffer)
             {
                 frameBuffer=CreateFrameBuffer(frameBufferDesc,*renderPass);
@@ -194,8 +196,8 @@ private:
         {
             commandBuffer.GetVk().EndRenderPass();
             // push render pass and frame buffer to transient resource pool
-            m_TransientResourcePool.PushRenderPass(std::move(renderPass),renderPassDesc);
-            m_TransientResourcePool.PushFrameBuffer(std::move(frameBuffer),frameBufferDesc);
+            m_RenderPassResourcePool.PushRenderPass(std::move(renderPass),renderPassDesc);
+            m_RenderPassResourcePool.PushFrameBuffer(std::move(frameBuffer),frameBufferDesc);
         }
         void operator()(const Borrow<RenderTaskBase>& task)
         {
@@ -304,7 +306,9 @@ private:
     std::vector<Timeline> m_Timelines; // create on compile, execute every frame
 private:                               // render resource
     DeviceCommandBufferView m_CommandBuffer;
-    TransientResourcePool m_TransientResourcePool;
+    RenderPassResourcePool m_RenderPassResourcePool;
+    uint32_t m_CurrentFrameIndex = 0; // current frame index for in-flight resources
+    std::vector<Scope<ResourceBase>> m_InFlightResources[Render::Config::InFlightFrameResourceSlots];// transient in-flight resources 
 };
 template <typename ResourceType, typename Desc>
     requires std::derived_from<ResourceType, ResourceBase>
