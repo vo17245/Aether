@@ -684,6 +684,10 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
         mesh.PushQuad(quad);
        
     }
+    if(mesh.GetMesh().CalculateVertexCount()==0)
+    {
+        return false;// no glyph to render
+    }
     // create device mesh data
     if (resource.mesh)
     {

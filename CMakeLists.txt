@@ -33,3 +33,5 @@ add_subdirectory("Audio")
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
     DESTINATION Vendor
 )
+
+add_subdirectory("Sprite")

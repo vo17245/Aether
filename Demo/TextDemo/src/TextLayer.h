@@ -110,16 +110,14 @@ public:
 float framePerSec = m_Frame / m_Sec;
         std::string s = std::string("") + "fps: " + std::to_string(framePerSec) + "\n"
                         + "我能吞下玻璃而不伤身体\n"
-                        + "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
-                        + "Innovation in China 中国智造，慧及全球 0123456789\n";
-
+                        + "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n";
 
 
         // get glyph curve
         Text::StrokeParam strokeParam;
-        strokeParam.radius=64;
+        strokeParam.radius=32;
         auto lines=ApplicationResource::GetSingleton().font->prepareGlyphsForText(s,
-            {.strokeParam=strokeParam,.stroke=true,.worldSize=0.0,.hinting=false});
+            {});
 
         size_t glyphCount = 0;
         for (auto& line : lines)
@@ -130,7 +128,7 @@ float framePerSec = m_Frame / m_Sec;
         std::vector<Vec2f> glyphPos;
         std::vector<uint32_t> glyphToRender;
         glyphPos.reserve(glyphCount);
-        float worldSize = 128.0f;
+        float worldSize = 32.0f;
         {
             
             float x = 0;

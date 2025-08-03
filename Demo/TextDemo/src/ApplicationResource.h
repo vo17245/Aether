@@ -63,6 +63,7 @@ private:
         textLibrary=CreateScope<Text::Library>(std::move(textLibraryOpt.value()));
         auto textFaceOpt=Text::Face::Create(*textLibrary, "Assets/SourceHanSerifCN-Regular-1.otf");
         //auto textFaceOpt=Text::Face::Create(*textLibrary, "Assets/NotoNaskhArabic-Regular.otf");
+        
         textFace=CreateScope<Text::Face>(std::move(textFaceOpt.value()));
 
         auto fontOpt=Text::Font::Create(textLibrary.get(),textFace.get());
