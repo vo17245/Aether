@@ -3,7 +3,8 @@
 #include <limits>
 #include <cassert>
 #include <vector>
-namespace Aether::TaskGraph
+#include <Core/Core.h>
+namespace Aether::RenderGraph
 {
 struct Handle
 {
@@ -90,4 +91,15 @@ private:
     std::vector<Handle::Id> m_FreeIds;
     Handle::Id m_NextId = 0;
 };
-} // namespace Aether::TaskGraph
+} // namespace Aether::RenderGraph
+namespace Aether
+{
+template <>
+struct Hash<RenderGraph::Handle>
+{
+    size_t operator()(const RenderGraph::Handle& handle) const
+    {
+        return std::hash<RenderGraph::Handle::Id>()(handle.id) ^ std::hash<RenderGraph::Handle::Version>()(handle.version);
+    }
+};
+} // namespace Aether
