@@ -4,6 +4,7 @@
 #include "Debug.h"
 #include "ResourceType.h"
 #include <limits>
+#include "Handle.h"
 #ifdef max
 #undef max
 #endif
@@ -11,79 +12,19 @@ namespace Aether::TaskGraph
 {
 struct ResourceHandle
 {
-    using Id = uint16_t;
-    using Version = uint16_t;
-    constexpr static inline const Version InvalidVersion = std::numeric_limits<Version>::max();
-    constexpr static inline const Id InvalidId = std::numeric_limits<Id>::max();
-    Id id;
-    Version version;
-    ResourceHandle(Id id, Version version) :
-        id(id), version(version)
-    {
-    }
-    ResourceHandle() :
-        id(0), version(InvalidVersion)
-    {
-    }
-    bool IsValid() const
-    {
-        return version != InvalidVersion;
-    }
-    bool operator==(const ResourceHandle& other) const
-    {
-        return id == other.id && version == other.version;
-    }
-    bool operator!=(const ResourceHandle& other) const
-    {
-        return !(*this == other);
-    }
-    bool operator<(const ResourceHandle& other) const
-    {
-        return id < other.id || (id == other.id && version < other.version);
-    }
+    Handle handle;
 };
 // typed resource handle
 template <typename ResourceType>
 struct ResourceId
 {
-    ResourceHandle handle;
-    ResourceId(ResourceHandle handle) :
+    Handle handle;
+    ResourceId(Handle handle) :
         handle(handle)
     {
     }
 };
-class ResourceHandleAllocator
-{
-public:
-    static constexpr inline const ResourceHandle::Id MaxResourceId = ResourceHandle::InvalidId;
-    ResourceHandleAllocator() :
-        m_Versions(MaxResourceId + 1, 0)
-    {
-    }
-    ResourceHandle Allocate()
-    {
-        if (m_NextId >= MaxResourceId)
-        {
-            assert(false && "resource handle allocator out of resource");
-            return ResourceHandle();
-        }
-        auto version = m_Versions[m_NextId]++;
-        if (version == ResourceHandle::InvalidVersion)
-        {
-            assert(false && "resource handle version overflow");
-            return ResourceHandle();
-        }
-        return ResourceHandle(m_NextId++, version);
-    }
-    ResourceHandle::Version GetCurrentVersion(const ResourceHandle::Id& id) const
-    {
-        return m_Versions[id];// equal to 
-    }
 
-private:
-    std::vector<ResourceHandle::Version> m_Versions;
-    ResourceHandle::Id m_NextId = 0;
-};
 class RenderTaskBase;
 class ResourceBase
 {
