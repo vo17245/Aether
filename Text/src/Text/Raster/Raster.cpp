@@ -317,7 +317,8 @@ vec2 QuadraticBezier(vec2 P0, vec2 P1, vec2 P2, float t)
     return u * u * P0 + 2.0 * u * t * P1 + t * t * P2;
 }
 /**
- * @brief 计算点到贝塞尔曲线的最近距离,如果最近的点不在贝塞尔上(t不在[0-1]),返回inf
+ * @brief 计算点到贝塞尔曲线的最近距离,如果最近的点不在贝塞尔上(t不在[0-1]),返回到最近端点的距离
+ * @param p0 p1 p2 端点 控制点 端点
 */
 float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
 {
@@ -337,12 +338,18 @@ float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
         {
             if (abs(c) < EPSILON)// 无解或无穷解
             {
-                return INF;// 丢弃这个case
+            // 丢弃这个case，设置为无穷大，这个点的距离会被其他最小距离代替
+            // 如果真的存在这个case,会表现为这个点突起
+                return INF;
             }
             float t= -d/c;
             if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
             {
-                return INF;
+            // 与曲线的切点不在曲线上，最近点为两个端点中最近的点
+                float dist1 = length(P0 - M);
+                float dist2 = length(P2 - M);
+                return min(dist1, dist2);
+
             }
             vec2 point= QuadraticBezier(P0, P1, P2, t);
             return length(point - M);
@@ -360,7 +367,10 @@ float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
                 float t = -c/(2*b);
                 if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
                 {
-                    return INF;
+                    // 与曲线的切点不在曲线上，最近点为两个端点中最近的点
+                float dist1 = length(P0 - M);
+                float dist2 = length(P2 - M);
+                return min(dist1, dist2);
                 }
                 vec2 point = QuadraticBezier(P0, P1, P2, t);
                 return length(point - M);
@@ -370,7 +380,9 @@ float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
                 float sqrt_disc = sqrt(discriminant);
                 float t1=(-c + sqrt_disc)/(2*b);
                 float t2=(-c - sqrt_disc)/(2*b);
-                float minDist = INF;
+                float dist1 = length(P0 - M);
+                float dist2 = length(P2 - M);
+                float minDist= min(dist1, dist2);
                 if (t1 >= 0.0 && t1 < 1.0) {
                     vec2 point1 = QuadraticBezier(P0, P1, P2, t1);
                     minDist = length(point1 - M);
@@ -424,7 +436,10 @@ float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
         float t = x - b/(3*a);
         if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
         {
-            return INF;
+            // 与曲线的切点不在曲线上，最近点为两个端点中最近的点
+                float dist1 = length(P0 - M);
+                float dist2 = length(P2 - M);
+                return min(dist1, dist2);
         }
         vec2 point = QuadraticBezier(P0, P1, P2, t);
         return length(point - M);
@@ -439,7 +454,10 @@ float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
             float t = -b/(3*a);
             if (t < 0.0 || t >= 1.0) // t不在[0,1]区间
             {
-                return INF;
+                // 与曲线的切点不在曲线上，最近点为两个端点中最近的点
+                float dist1 = length(P0 - M);
+                float dist2 = length(P2 - M);
+                return min(dist1, dist2);
             }
             vec2 point = QuadraticBezier(P0, P1, P2, t);
             return length(point - M);
@@ -468,7 +486,9 @@ float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
             }
             float t1 = x1 - b/(3*a);
             float t2 = x2 - b/(3*a);
-            float minDist = INF;
+            float dist1 = length(P0 - M);
+                float dist2 = length(P2 - M);
+                float minDist= min(dist1, dist2);
             if (t1 >= 0.0 && t1 < 1.0) {
                 vec2 point1 = QuadraticBezier(P0, P1, P2, t1);
                 minDist = length(point1 - M);
@@ -490,7 +510,9 @@ float NearestToBezier(vec2 P0,vec2 P1,vec2 P2,vec2 M)
     // 三个不同实根
         float rho = sqrt(pow(-(p/3),3.0));
         float theta = acos(-q/(2*rho));
-        float minDist = INF;
+                float dist1 = length(P0 - M);
+                float dist2 = length(P2 - M);
+                float minDist= min(dist1, dist2);
         for(int k=0;k<3;++k)
         {
             float x = 2 * (pow(rho,1.0/3.0)) * cos((theta + 2*k*PI)/3.0);
