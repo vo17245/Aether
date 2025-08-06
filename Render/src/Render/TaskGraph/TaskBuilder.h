@@ -12,14 +12,14 @@ namespace Aether::TaskGraph
         :m_TaskGraph(graph),m_Task(task){}
         template<typename ResourceType,typename Desc>
         requires std::derived_from<ResourceType, ResourceBase>
-        ResourceType* Create(const std::string& tag,const Desc& desc);
+        ResourceId<ResourceType> Create(const std::string& tag,const Desc& desc);
 
         template<typename ResourceType>
         requires std::derived_from<ResourceType, ResourceBase>
-        ResourceType* Write(ResourceType* resource);
+        ResourceId<ResourceType> Write(ResourceId<ResourceType> resource);
         template<typename ResourceType>
         requires std::derived_from<ResourceType, ResourceBase>
-        ResourceType* Read(ResourceType* resource);
+        ResourceId<ResourceType> Read(ResourceId<ResourceType> resource);
         
     private:
         TaskGraph* m_TaskGraph;

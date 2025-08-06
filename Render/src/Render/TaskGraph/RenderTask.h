@@ -3,6 +3,7 @@
 #include "ResourceImpl.h"
 #include "TaskBuilder.h"
 #include "RenderPass.h"
+#include "ResourceAccessor.h"
 namespace Aether::TaskGraph
 {
 
@@ -15,7 +16,7 @@ public:
     }
     virtual ~RenderTaskBase() = default;
     virtual void Setup(RenderTaskBuilder& builder) = 0;
-    virtual void Execute(DeviceCommandBufferView& commandBuffer) = 0;
+    virtual void Execute(DeviceCommandBufferView& commandBuffer,ResourceAccessor& resourceAccessor) = 0;
     const RenderPassDesc& GetRenderPassDesc() const
     {
         return m_RenderPassDesc;
@@ -35,14 +36,14 @@ class RenderTask : public RenderTaskBase
 {
 public:
     RenderTask(const RenderPassDesc& renderPassDesc,
-               std::function<void(RenderTaskBuilder&,TaskData&)> setup,
-               std::function<void(TaskData&, DeviceCommandBufferView& commandBuffer)> execute) :
-        m_Execute(execute), m_Setup(setup),RenderTaskBase(renderPassDesc)
+               std::function<void(RenderTaskBuilder&,TaskData&)>&& setup,
+               std::function<void(TaskData&, DeviceCommandBufferView& ,ResourceAccessor&)>&& execute) :
+        m_Execute(std::move(execute)), m_Setup(std::move(setup)),RenderTaskBase(renderPassDesc)
     {
     }
-    void Execute(DeviceCommandBufferView& commandBuffer) override
+    void Execute(DeviceCommandBufferView& commandBuffer,ResourceAccessor& resourceAccessor) override
     {
-        m_Execute(m_Data, commandBuffer);
+        m_Execute(m_Data, commandBuffer,resourceAccessor);
     }
     void Setup(RenderTaskBuilder& builder) override
     {
@@ -55,7 +56,7 @@ public:
 
 private:
     TaskData m_Data;
-    std::function<void(TaskData&, DeviceCommandBufferView& commandBuffer)> m_Execute;
+    std::function<void(TaskData&, DeviceCommandBufferView& ,ResourceAccessor&)> m_Execute;
     std::function<void(RenderTaskBuilder&,TaskData&)> m_Setup;
     
 };

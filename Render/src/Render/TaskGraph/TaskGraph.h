@@ -89,6 +89,7 @@ public:
     }
     void Execute()
     {
+        ResourceAccessor resourceAccessor(m_Resources, m_ResourceIdToIndex, m_ResourceHandleAllocator, m_CurrentFrameIndex);
         for (auto& timeline : m_Timelines)
         {
             for (auto& resource : timeline.realizedResources)
@@ -101,7 +102,7 @@ public:
                 
                 actual->AsyncTransitionLayout(layoutTransition.oldLayout, layoutTransition.newLayout, m_CommandBuffer);
             }
-            ExecuteTask executeTask{m_CommandBuffer,m_RenderPassResourcePool};
+            ExecuteTask executeTask{m_CommandBuffer,m_RenderPassResourcePool,resourceAccessor};
             std::visit(executeTask, timeline.task);
             for (auto& resource : timeline.derealizedResources)
             {
@@ -113,6 +114,12 @@ public:
     {
         m_CommandBuffer = commandBuffer;
     }
+    template<typename ResourceType>
+    ResourceId<ResourceType> AllocateResourceId()
+    {
+        return m_ResourceHandleAllocator.Allocate();
+    }
+
 private:
     /**
      * @brief Merge consecutive render tasks that use the same render pass into a render task array
@@ -159,10 +166,12 @@ private:
     {
         DeviceCommandBufferView& commandBuffer;
         RenderPassResourcePool& m_RenderPassResourcePool;
+        ResourceAccessor& resourceAccessor;
         Scope<DeviceRenderPass> renderPass;
         Scope<DeviceFrameBuffer> frameBuffer;
         FrameBufferDesc frameBufferDesc;
         RenderPassDesc renderPassDesc;
+        
         void operator()(const std::monostate&)
         {
             return;
@@ -203,7 +212,7 @@ private:
         {
             auto& renderPassDesc= task->GetRenderPassDesc();
             BeginRenderPass(renderPassDesc);
-            task->Execute(commandBuffer);
+            task->Execute(commandBuffer,resourceAccessor);
             EndRenderPass();
             
         }
@@ -213,7 +222,7 @@ private:
             BeginRenderPass(renderPassDesc);
             for(auto& t:task->tasks)
             {
-                t->Execute(commandBuffer);
+                t->Execute(commandBuffer,resourceAccessor);
             }
             EndRenderPass();
         }
@@ -302,6 +311,16 @@ private:
         }
     };
     std::vector<Scope<ResourceBase>> m_Resources;
+    ResourceBase* GetResource(const ResourceHandle& handle)
+    {
+        return m_Resources[m_ResourceIdToIndex[handle.id][handle.version]].get();
+    }
+    /**
+     * @brief get resource index in m_Resources by m_ResourceIdToIndex[handle.id][handle.version]
+     * get current frame resource version by m_CurrentFrameIndex%m_ResourceHandleAllocator.GetCurrentVersion(handle.id)
+    */
+    std::vector<std::array<size_t,Render::Config::InFlightFrameResourceSlots>> m_ResourceIdToIndex;
+    ResourceHandleAllocator m_ResourceHandleAllocator;
     std::vector<Scope<RenderTaskBase>> m_RenderTasks;
     std::vector<Timeline> m_Timelines; // create on compile, execute every frame
 private:                               // render resource
@@ -312,8 +331,10 @@ private:                               // render resource
 };
 template <typename ResourceType, typename Desc>
     requires std::derived_from<ResourceType, ResourceBase>
-ResourceType* RenderTaskBuilder::Create(const std::string& tag, const Desc& desc)
+ResourceId<ResourceType> RenderTaskBuilder::Create(const std::string& tag, const Desc& desc)
 {
+    ResourceId<ResourceType> resourceId = m_TaskGraph->m_ResourceHandleAllocator.Allocate();
+    m_TaskGraph->m_ResourceIdToIndex[resourceId.handle.id][resourceId.handle.version]= m_TaskGraph->m_Resources.size();
     m_TaskGraph->m_Resources.emplace_back(CreateScope<ResourceType>(tag, m_Task, desc));
 
     auto* resource = m_TaskGraph->m_Resources.back().get();

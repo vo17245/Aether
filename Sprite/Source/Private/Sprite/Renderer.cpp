@@ -6,14 +6,13 @@ bool CreatePipeline()
     static const char vert[]=R"(
     #version 450
 layout(location=0)in vec2 a_Position;//屏幕坐标系,glyph的aabb
-layout(location=2)in vec2 a_UV;
+layout(location=1)in vec2 a_UV;
 layout(std140,binding=0)uniform UniformBufferObject
 {
     mat4 u_MVP;// 只有view和projection矩阵,model矩阵是identity
 }ubo;
 
-layout(location=0)flat out uint v_GlyphIndex;
-layout(location=1)out vec2 v_UV;
+layout(location=0)out vec2 v_UV;
 void main()
 {
     vec4 pos=vec4(a_Position,1.0);

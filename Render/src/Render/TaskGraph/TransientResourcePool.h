@@ -46,13 +46,11 @@ private:
     LRUCache<FrameBufferDesc, Scope<DeviceFrameBuffer>, Hash<FrameBufferDesc>> m_FrameBuffers;
     LRUCache<RenderPassDesc, Scope<DeviceRenderPass>, Hash<RenderPassDesc>> m_RenderPasses;
 };
-struct InFlightResourceStorage
-{
-};
+
 class CurrentFrameTransientResourcePool
 {
 };
-class TransientResourcePool
+class LRUTransientResourcePool
 {
 public:
 private:
