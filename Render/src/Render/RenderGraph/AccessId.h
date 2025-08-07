@@ -1,25 +1,25 @@
 #pragma once
-#include "../Handle.h"
+#include "Handle.h"
 #include <Core/Core.h>
 namespace Aether::RenderGraph
 {
 // typed resource id
 template <typename T>
-struct ResourceId
+struct AccessId
 {
     Handle handle;
 };
-class ResourceIdAllocator
+class AccessIdAllocator
 {
 public:
     template <typename T>
-    ResourceId<T> Allocate()
+    AccessId<T> Allocate()
     {
         Handle handle = m_Allocator.Allocate();
-        return ResourceId<T>{handle};
+        return AccessId<T>{handle};
     }
     template <typename T>
-    Handle::Version GetNextVersion(ResourceId<T> id)
+    Handle::Version GetNextVersion(AccessId<T> id)
     {
         return m_Allocator.GetNextVersion(id.handle.id);
     }
@@ -31,9 +31,9 @@ private:
 namespace Aether
 {
 template <typename T>
-struct Hash<RenderGraph::ResourceId<T>>
+struct Hash<RenderGraph::AccessId<T>>
 {
-    size_t operator()(const RenderGraph::ResourceId<T>& id) const
+    size_t operator()(const RenderGraph::AccessId<T>& id) const
     {
         return Hash<RenderGraph::Handle>()(id.handle);
     }

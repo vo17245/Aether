@@ -33,7 +33,9 @@ inline hb_direction_t FribidiDirectionToHbDirection(FriBidiParType direction)
         return HB_DIRECTION_INVALID;
     }
 }
-
+/**
+ * @return visual order -> logical order
+*/
 inline std::vector<FriBidiStrIndex> CalculateLineVisualMap(const std::basic_string_view<uint32_t>& text)
 {
     int nLineSize = text.size();
