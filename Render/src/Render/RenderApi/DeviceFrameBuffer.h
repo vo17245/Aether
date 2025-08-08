@@ -1,12 +1,9 @@
 #pragma once
-#include "../Vulkan/FrameBuffer.h"
 #include <cassert>
-#include <type_traits>
 #include <variant>
-#include "DeviceTexture.h"
 #include "Render/Config.h"
 #include "DeviceRenderPass.h"
-#include "Render/Vulkan/ImageView.h"
+#include <Render/RenderApi.h>
 // for alloca
 #ifdef _MSC_VER
 #include <malloc.h>

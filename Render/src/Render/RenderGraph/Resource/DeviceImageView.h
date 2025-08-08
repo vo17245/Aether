@@ -7,5 +7,12 @@ namespace Aether::RenderGraph
     struct ImageViewDesc
     {
         ResourceId<DeviceTexture> texture;
+        DeviceImageViewDesc desc;
     };
+    template<>
+    struct ResourceDescType<DeviceImageView>
+    {
+        using Type = ImageViewDesc;
+    };
+
 }

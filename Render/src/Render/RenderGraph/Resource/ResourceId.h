@@ -8,6 +8,10 @@ template <typename T>
 struct ResourceId
 {
     Handle handle;
+    static constexpr ResourceId<T> CreateInvalid()
+    {
+        return ResourceId<T>{Handle{Handle::InvalidId,0}};
+    }
 };
 class ResourceIdAllocator
 {

@@ -3,7 +3,6 @@
 #include "Render/Config.h"
 #include "Render/PixelFormat.h"
 #include "Render/RenderApi/DeviceCommandBuffer.h"
-#include "Render/RenderApi/DeviceTexture.h"
 #include <cassert>
 #include <variant>
 #include <expected>
@@ -13,50 +12,10 @@
 #include "DeviceBuffer.h"
 #include "Render/Vulkan/ImageView.h"
 #include "vulkan/vulkan_core.h"
+#include "DeviceImageView.h"
 namespace Aether
 {
-class DeviceImageView
-{
-public:
-    bool Empty() const
-    {
-        return m_ImageView.index() == 0;
-    }
-    template <typename T>
-    T& Get()
-    {
-        return std::get<T>(m_ImageView);
-    }
-    template <typename T>
-    const T& Get() const
-    {
-        return std::get<T>(m_ImageView);
-    }
-    DeviceImageView(std::monostate) :
-        m_ImageView(std::monostate{})
-    {
-    }
-    DeviceImageView(vk::ImageView&& imageView) :
-        m_ImageView(std::move(imageView))
-    {
-    }
-    DeviceImageView()
-    {
-    }
-    DeviceImageView(DeviceImageView&&) = default;
-    DeviceImageView& operator=(DeviceImageView&&) = default;
-    vk::ImageView& GetVk()
-    {
-        return std::get<vk::ImageView>(m_ImageView);
-    }
-    const vk::ImageView& GetVk() const
-    {
-        return std::get<vk::ImageView>(m_ImageView);
-    }
 
-private:
-    std::variant<std::monostate, vk::ImageView> m_ImageView;
-};
 enum class DeviceImageLayout
 {
     Present,
@@ -202,7 +161,7 @@ public:
     }
     /**
      * @deprecated This function is deprecated.Use Create Instead.
-    */
+     */
     // usage:  download & upload & sample
     static std::optional<DeviceTexture> CreateForDownloadableTexture(int width, int height, PixelFormat format)
     {
@@ -223,7 +182,7 @@ public:
     }
     /**
      * @deprecated This function is deprecated.Use Create Instead.
-    */
+     */
     // usage: color attachment & sample
     static std::expected<DeviceTexture, std::string> CreateForColorAttachment(int width, int height, PixelFormat format)
     {
@@ -244,7 +203,7 @@ public:
     }
     /**
      * @deprecated This function is deprecated.Use Create Instead.
-    */
+     */
     // usage: depth attachment & sample
     static std::expected<DeviceTexture, std::string> CreateForDepthAttachment(int width, int height, PixelFormat format)
     {
@@ -276,7 +235,7 @@ public:
             {
                 return std::monostate{};
             }
-            res=std::move(texture.value());
+            res = std::move(texture.value());
         }
         break;
         default:
@@ -322,6 +281,25 @@ public:
         assert(m_DefaultImageView && "Default image view is not created");
         return *m_DefaultImageView;
     }
+    DeviceImageView CreateImageView(const DeviceImageViewDesc& desc)
+    {
+        if (Render::Config::RenderApi == Render::Api::Vulkan)
+        {
+            auto& vkTexture = GetVk();
+            auto imageView = vk::ImageView::Create(vkTexture);
+            if (!imageView)
+            {
+                assert(false && "Failed to create image view");
+                return DeviceImageView(std::monostate{});
+            }
+            return DeviceImageView(std::move(imageView.value()));
+        }
+        else
+        {
+            assert(false && "Not implemented");
+            return DeviceImageView(std::monostate{});
+        }
+    }
     DeviceImageView& GetDefaultImageView()
     {
         return *m_DefaultImageView;
@@ -346,11 +324,11 @@ public:
     {
         return Get<vk::Texture2D>();
     }
-    void AsyncTransitionLayout( DeviceImageLayout oldLayout,DeviceImageLayout newLayout, DeviceCommandBufferView commandBuffer)
+    void AsyncTransitionLayout(DeviceImageLayout oldLayout, DeviceImageLayout newLayout, DeviceCommandBufferView commandBuffer)
     {
         std::visit(AsyncTransitionLayoutImpl{oldLayout, newLayout, commandBuffer}, m_Texture);
     }
-    void SyncTransitionLayout( DeviceImageLayout oldLayout,DeviceImageLayout newLayout)
+    void SyncTransitionLayout(DeviceImageLayout oldLayout, DeviceImageLayout newLayout)
     {
         std::visit(SyncTransitionLayoutImpl{oldLayout, newLayout}, m_Texture);
     }
