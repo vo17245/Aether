@@ -23,7 +23,7 @@ private:// resource lru
         using Key=ResourceDescType<ResourceType>;
         List resources;
         std::unordered_map<Key, std::vector<typename List::iterator>,Hash<Key>> resourceMap;
-        ResourceArena& arena;
+        Borrow<ResourceArena> arena;
         size_t capacity;
         LruPool(ResourceArena& _arena,size_t _capacity) :arena(_arena), capacity(_capacity) {}
         void Push(Key key,Id id)
@@ -56,7 +56,7 @@ private:// resource lru
                     resourceMap.erase(iter);
                 }
             }
-            arena.Destroy(oldest.id);
+            arena->Destroy(oldest.id);
             resources.pop_back();
         }
         Id Pop(Key key)
@@ -152,7 +152,7 @@ private://resource in use
     ResourceInUseList m_ResourceInUseList;
 public:
     inline static constexpr size_t DefaultLruPoolSize=64;
-    ResourceLruPoolBase(ResourceArena& arena):
+    ResourceLruPoolBase(Borrow<ResourceArena> arena):
         m_LruPoolList{LruPool<Ts>(arena, DefaultLruPoolSize)...}
     {
     }
@@ -191,6 +191,18 @@ public:
         const auto& pool = std::get<LruPool<ResourceType>>(m_LruPoolList.pools);
         return pool.capacity;
     }
+    template<typename ResourceType>
+    ResourceId<ResourceType> PopOrCreate(const ResourceDescType<ResourceType>::Type& desc)
+    {
+        auto id = Pop(desc);
+        if(id.handle.IsValid())
+        {
+            return id;
+        }
+        return m_ResourceArena->Allocate<ResourceType>(desc);
+    }
+private:
+    Borrow<ResourceArena> m_ResourceArena;
 };
 using ResourceLruPool = ResourceLruPoolBase<DeviceTexture, DeviceBuffer,  DeviceRenderPass, DeviceFrameBuffer,DeviceImageView>;
 } // namespace Aether::RenderGraph

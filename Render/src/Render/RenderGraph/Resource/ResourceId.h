@@ -12,6 +12,10 @@ struct ResourceId
     {
         return ResourceId<T>{Handle{Handle::InvalidId,0}};
     }
+    bool operator==(const ResourceId<T>& other) const
+    {
+        return handle == other.handle;
+    }
 };
 class ResourceIdAllocator
 {
