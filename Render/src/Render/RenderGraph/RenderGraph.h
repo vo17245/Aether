@@ -15,7 +15,7 @@ public:
     RenderGraph(Borrow<ResourceArena> arena, Borrow<ResourceLruPool> pool) :
          m_ResourceArena(arena), m_ResourceLruPool(pool)
     {
-        m_ResourceAccessor = CreateScope<ResourceAccessor>(arena);
+        m_ResourceAccessor = CreateScope<ResourceAccessor>(arena,pool);
     }
     template <typename TaskDataType>
     TaskDataType AddRenderTask(const std::function<void(RenderTaskBuilder&, TaskDataType&)>& setup,
@@ -24,7 +24,7 @@ public:
         auto task=CreateScope<RenderTask<TaskDataType>>();
         
         task->execute = std::move(execute);
-        RenderTaskBuilder builder(task, *this);
+        RenderTaskBuilder builder(static_cast<RenderTaskBase*>(task.get()), *this);
         setup(builder, task->data);
         m_Tasks.push_back(std::move(task));
         return static_cast<RenderTask<TaskDataType>*>(m_Tasks.back().get())->data;
@@ -43,17 +43,18 @@ private:
     std::vector<Scope<TaskBase>> m_Tasks;
     std::vector<Scope<VirtualResourceBase>> m_Resources;
     Scope<ResourceAccessor> m_ResourceAccessor;
-    std::unordered_map<Handle, uint32_t> m_AccessIdToResourceIndex;
+    std::unordered_map<Handle, uint32_t,Hash<Handle>> m_AccessIdToResourceIndex;
 };
 template <typename ResourceType>
 inline AccessId<ResourceType> RenderTaskBuilder::Create(const ResourceDescType<ResourceType>::Type& desc)
 {
-    auto id = m_Graph.m_ResourceAccessor->CreateSlot<ResourceType>(desc);
+    auto& slot = m_Graph.m_ResourceAccessor->CreateSlot<ResourceType>(desc);
+    auto id=slot.id;
     auto resource = CreateScope<VirtualResource<ResourceType>>(desc, id);
-    resource.creator = m_Task;
+    resource->creator = m_Task;
     m_Task->creates.push_back(resource.get());
     m_Graph.m_Resources.push_back(std::move(resource));
-    m_Graph.m_AccessIdToResourceIndex[id] = static_cast<uint32_t>(m_Graph.m_Resources.size() - 1);
+    m_Graph.m_AccessIdToResourceIndex[id.handle] = static_cast<uint32_t>(m_Graph.m_Resources.size() - 1);
     return id;
 }
 template <typename ResourceType>

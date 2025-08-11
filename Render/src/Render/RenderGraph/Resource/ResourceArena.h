@@ -129,7 +129,7 @@ public:
             auto iter = m_TextureMap.find(id);
             if (iter != m_TextureMap.end())
             {
-                return iter->second->get();
+                return iter->second->Get();
             }
         }
         else if constexpr (std::is_same_v<T, DeviceImageView>)
@@ -137,7 +137,7 @@ public:
             auto iter = m_ImageViewMap.find(id);
             if (iter != m_ImageViewMap.end())
             {
-                return iter->second->get();
+                return iter->second->Get();
             }
         }
         else if constexpr (std::is_same_v<T, DeviceFrameBuffer>)
@@ -145,7 +145,7 @@ public:
             auto iter = m_FrameBufferMap.find(id);
             if (iter != m_FrameBufferMap.end())
             {
-                return iter->second->get();
+                return iter->second->Get();
             }
         }
         else if constexpr (std::is_same_v<T, DeviceRenderPass>)
@@ -153,7 +153,7 @@ public:
             auto iter = m_RenderPassMap.find(id);
             if (iter != m_RenderPassMap.end())
             {
-                return iter->second->get();
+                return iter->second->Get();
             }
         }
         else

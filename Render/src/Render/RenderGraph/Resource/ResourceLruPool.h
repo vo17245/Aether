@@ -25,7 +25,7 @@ private:// resource lru
         std::unordered_map<Key, std::vector<typename List::iterator>,Hash<Key>> resourceMap;
         Borrow<ResourceArena> arena;
         size_t capacity;
-        LruPool(ResourceArena& _arena,size_t _capacity) :arena(_arena), capacity(_capacity) {}
+        LruPool( Borrow<ResourceArena> _arena,size_t _capacity) :arena(_arena), capacity(_capacity) {}
         void Push(Key key,Id id)
         {
             auto iter=resourceMap.find(key);
@@ -153,7 +153,7 @@ private://resource in use
 public:
     inline static constexpr size_t DefaultLruPoolSize=64;
     ResourceLruPoolBase(Borrow<ResourceArena> arena):
-        m_LruPoolList{LruPool<Ts>(arena, DefaultLruPoolSize)...}
+        m_LruPoolList(std::make_tuple(LruPool<Ts>(arena, DefaultLruPoolSize)...)),m_ResourceArena(arena)
     {
     }
     template <typename T>

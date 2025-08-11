@@ -74,7 +74,7 @@ private:
     RenderGraph& m_Graph;
 };
 template<typename TaskDataType>
-struct RenderTask:public TaskBase
+struct RenderTask:public RenderTaskBase
 {
     TaskDataType data;
     std::function<void(DeviceCommandBuffer& ,ResourceAccessor&,TaskDataType&)> execute;

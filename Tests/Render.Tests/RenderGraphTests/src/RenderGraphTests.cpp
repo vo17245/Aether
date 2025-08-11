@@ -31,6 +31,11 @@ void main()
 class TestLayer : public Layer
 {
 public:
+    ~TestLayer()
+    {
+        m_RenderGraph.reset();
+        m_ResourceLruPool.reset();
+    }
     virtual void OnRender(DeviceRenderPass& renderPass, DeviceFrameBuffer& framebuffer,
                           DeviceCommandBuffer& _commandBuffer) override
     {
@@ -57,9 +62,9 @@ public:
     {
         // create command buffer pool
         m_CommandPool = vk::GraphicsCommandPool::CreateScope();
-        // create cpu grid
+        //// create cpu grid
         auto sphere = Geometry::CreateBox();
-        // create gpu grid
+        //// create gpu grid
         m_Mesh = VkMesh::CreateScope(*m_CommandPool, sphere);
         // compile shader in cpu
         auto vsBin = Shader::Compiler::GLSL2SPIRV(&vertexShaderCode, 1, ShaderStageType::Vertex);
@@ -72,22 +77,20 @@ public:
         m_FragmentShader = vk::ShaderModule::CreateScopeFromBinaryCode(*fsBin);
         m_RenderPass = CreateScope<vk::RenderPass>(vk::RenderPass::CreateDefault().value());
         { // test RenderGraph
-            m_ResourceLruPool = CreateScope<RenderGraph::ResourceLruPool>(m_ResourceArena);
-            m_RenderGraph = CreateScope<RenderGraph::RenderGraph>(m_ResourceArena, m_ResourceLruPool);
+            m_ResourceArena = CreateScope<RenderGraph::ResourceArena>();
+            m_ResourceLruPool = CreateScope<RenderGraph::ResourceLruPool>(*m_ResourceArena);
+            m_RenderGraph = CreateScope<RenderGraph::RenderGraph>(m_ResourceArena.get(), m_ResourceLruPool.get());
             struct TaskData
             {
                 RenderGraph::AccessId<DeviceTexture> texture;
                 RenderGraph::AccessId<DeviceImageView> imageView;
             };
-            auto taskData=m_RenderGraph->AddRenderTask<TaskData>(
+            auto taskData = m_RenderGraph->AddRenderTask<TaskData>(
                 [](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
                     data.texture = builder.Create<DeviceTexture>(RenderGraph::TextureDesc{
                         .usages = PackFlags(DeviceImageUsage::ColorAttachment, DeviceImageUsage::Sample)});
-
-                    data.imageView =
-                        builder.Create<DeviceImageView>(RenderGraph::ImageViewDesc{.texture = data.texture, .desc = {}
-
-                        });
+                    data.imageView = builder.Create<DeviceImageView>(
+                        RenderGraph::ImageViewDesc{.texture = data.texture, .desc = {}});
                     RenderGraph::RenderPassDesc renderPassDesc;
                     renderPassDesc.colorAttachmentCount = 1;
                     renderPassDesc.colorAttachment[0].imageView = data.imageView;
@@ -96,7 +99,6 @@ public:
                 [](DeviceCommandBuffer& commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {
                     auto& texture = *accessor.GetResource(data.texture);
                 });
-            
         }
     }
 
@@ -111,7 +113,7 @@ private:
 
 private:
     Scope<RenderGraph::RenderGraph> m_RenderGraph;
-    RenderGraph::ResourceArena m_ResourceArena;
+    Scope<RenderGraph::ResourceArena> m_ResourceArena;
     Scope<RenderGraph::ResourceLruPool> m_ResourceLruPool;
 };
 
@@ -121,11 +123,15 @@ public:
     virtual void OnInit(Window& window) override
     {
         auto* testLayer = new TestLayer();
+        m_Layers.push_back(testLayer);
         window.PushLayer(testLayer);
     }
     virtual void OnShutdown() override
     {
-        for (auto* layer : m_Layers) { delete layer; }
+        for (auto* layer : m_Layers)
+        {
+            delete layer;
+        }
     }
     virtual void OnFrameBegin() override
     {

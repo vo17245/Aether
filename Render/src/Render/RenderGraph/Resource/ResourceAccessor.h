@@ -47,7 +47,7 @@ public:
             assert(false && "Resource slot not found");
             return nullptr;
         }
-        ResourceSlot<ResourceType>& slot = *(*iter->second);
+        ResourceSlot<ResourceType>& slot = *iter->second;
         uint32_t index=m_FrameIndex % slot.resourceCount;
         if(!slot.isRealized[index])
         {
@@ -86,7 +86,7 @@ public:
         auto& slots = indexedSlots.m_Slots;
         auto& slotMap = indexedSlots.m_SlotMap;
         AccessId<ResourceType> id = m_Allocator.Allocate<ResourceType>();
-        ResourceSlot<ResourceType> slot(std::forward(desc));
+        ResourceSlot<ResourceType> slot(std::forward<ResourceDescType>(desc));
         slot.resourceCount=1;
         slot.id = id;
         slots.push_back(std::move(slot));
