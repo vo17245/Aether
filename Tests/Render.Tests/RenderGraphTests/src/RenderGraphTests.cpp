@@ -109,7 +109,7 @@ public:
     }
     virtual const char* GetName() const override
     {
-        return "TextDemo";
+        return "RenderGraphTests";
     }
 private:
     std::vector<Layer*> m_Layers;
