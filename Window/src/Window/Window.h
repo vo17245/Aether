@@ -90,12 +90,12 @@ private:
     std::unique_ptr<vk::Semaphore> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
     std::unique_ptr<vk::Semaphore> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
     Scope<vk::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
-    Scope<vk::GraphicsCommandBuffer> m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
+    DeviceCommandBuffer m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
     uint32_t m_CurrentFrame = 0;
     //=========== final image
     DeviceTexture m_FinalTexture;
-    Scope<vk::FrameBuffer> m_FinalFrameBuffer;
-    Scope<vk::RenderPass> m_FinalRenderPass; 
+    DeviceFrameBuffer m_FinalFrameBuffer;
+    DeviceRenderPass m_FinalRenderPass; 
     Scope<WindowInternal::GammaFilter> m_GammaFilter;
     DeviceDescriptorPool m_DescriptorPool;
     //================================

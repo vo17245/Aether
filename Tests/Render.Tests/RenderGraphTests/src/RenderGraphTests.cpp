@@ -1,9 +1,3 @@
-#include "Render/Vulkan/DescriptorSet.h"
-#include "Render/Vulkan/GraphicsCommandPool.h"
-#include "Render/Vulkan/Pipeline.h"
-#include "Render/Vulkan/PipelineLayout.h"
-#include "Render/Vulkan/RenderContext.h"
-#include "Render/Vulkan/ShaderModule.h"
 #include "Window/Layer.h"
 #include "Window/Window.h"
 #include "Window/WindowContext.h"
@@ -13,6 +7,7 @@
 #include "Render/Shader/Compiler.h"
 #include "Render/Utils.h"
 #include <print>
+#include "Entry/Application.h"
 using namespace Aether;
 static const char* vertexShaderCode = R"(
 #version 450
@@ -90,25 +85,34 @@ private:
     Scope<vk::RenderPass> m_RenderPass;
     
 };
-int main()
-{
-    WindowContext::Init();
-    {
-        auto window = std::unique_ptr<Window>(Window::Create(800, 600, "Hello, Aether"));
-        // 会在window中创建vulkan对象,在销毁vulkan context前必须调用window 的ReleaseVulkanObjects 销毁window中的vulkan对象
-        vk::GRC::Init(window.get(), true);
-        auto* testLayer = new TestLayer();
-        window->PushLayer(testLayer);
-        while (!window->ShouldClose())
-        {
-            WindowContext::PollEvents();
-            window->OnRender();
-        }
-        vkDeviceWaitIdle(vk::GRC::GetDevice());
-        delete testLayer;
-        window->ReleaseVulkanObjects();
-        vk::GRC::Cleanup();
-    }
 
-    WindowContext::Shutdown();
-}
+
+
+class RenderGraphTests : public Application
+{
+public:
+    virtual void OnInit(Window& window) override
+    {
+        auto* testLayer = new TestLayer();
+        window.PushLayer(testLayer);
+    }
+    virtual void OnShutdown()override
+    {
+        for(auto* layer:m_Layers)
+        {
+            delete layer;
+        }
+    }
+    virtual void OnFrameBegin()override
+    {
+
+    }
+    virtual const char* GetName() const override
+    {
+        return "TextDemo";
+    }
+private:
+    std::vector<Layer*> m_Layers;
+    Window* m_MainWindow;
+};
+DEFINE_APPLICATION(RenderGraphTests);

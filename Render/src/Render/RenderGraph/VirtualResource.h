@@ -39,6 +39,7 @@ namespace Aether::RenderGraph
     struct VirtualResource:public VirtualResourceBase
     {
         ResourceDescType<ResourceType>::Type desc;
+        AccessId<ResourceType> id;
         VirtualResource()
         {
             code=GetResourceCode<ResourceType>::value;            

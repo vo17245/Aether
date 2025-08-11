@@ -31,7 +31,6 @@
 #include <ranges>
 namespace Aether
 {
-using namespace vk;
 Window::~Window()
 {
     m_Layers.clear();
@@ -142,19 +141,19 @@ std::vector<VkImage>& Window::GetImages()
 {
     return m_SwapChainImages;
 }
-const std::vector<ImageView>& Window::GetImageViews() const
+const std::vector<vk::ImageView>& Window::GetImageViews() const
 {
     return m_SwapChainImageViews;
 }
-std::vector<ImageView>& Window::GetImageViews()
+std::vector<vk::ImageView>& Window::GetImageViews()
 {
     return m_SwapChainImageViews;
 }
-const std::vector<FrameBuffer>& Window::GetFrameBuffers() const
+const std::vector<vk::FrameBuffer>& Window::GetFrameBuffers() const
 {
     return m_SwapChainFramebuffers;
 }
-std::vector<FrameBuffer>& Window::GetFrameBuffers()
+std::vector<vk::FrameBuffer>& Window::GetFrameBuffers()
 {
     return m_SwapChainFramebuffers;
 }
@@ -162,14 +161,14 @@ void Window::CreateCommandBuffer()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_GraphicsCommandBuffer[i] = vk::GraphicsCommandBuffer::CreateScope(vk::GRC::GetGraphicsCommandPool());
+        m_GraphicsCommandBuffer[i] = DeviceCommandBuffer(vk::GraphicsCommandBuffer::Create(vk::GRC::GetGraphicsCommandPool()).value());
     }
 }
 bool Window::CreateRenderObject()
 {
-    VkInstance instance = GRC::GetInstance();
-    VkPhysicalDevice physicalDevice = GRC::GetPhysicalDevice();
-    VkDevice device = GRC ::GetDevice();
+    VkInstance instance = vk::GRC::GetInstance();
+    VkPhysicalDevice physicalDevice = vk::GRC::GetPhysicalDevice();
+    VkDevice device = vk::GRC ::GetDevice();
     CreateSurface(instance);
     CreateSwapChain(instance, physicalDevice, device);
     CreateImageViews();
@@ -194,16 +193,16 @@ bool Window::CreateFinalImage()
         return false;
     }
     auto& texture = *textureOpt;
-    auto renderPassOpt = RenderPass::CreateDefault(PixelFormat::RGBA8888);
+    auto renderPassOpt = vk::RenderPass::CreateDefault(PixelFormat::RGBA8888);
     if (!renderPassOpt)
     {
         assert(false && "RenderPass::CreateDefault failed");
         return false;
     }
-    m_FinalRenderPass = CreateScope<RenderPass>(std::move(renderPassOpt.value()));
+    m_FinalRenderPass = DeviceRenderPass(std::move(renderPassOpt.value()));
 
     VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
-    auto framebufferOpt = vk::FrameBuffer::Create(*m_FinalRenderPass, extent, texture.GetOrCreateDefaultImageView().GetVk());
+    auto framebufferOpt = vk::FrameBuffer::Create(m_FinalRenderPass.GetVk(), extent, texture.GetOrCreateDefaultImageView().GetVk());
     if (!framebufferOpt)
     {
         assert(false && "FrameBuffer::Create failed");
@@ -229,14 +228,14 @@ bool Window::CreateFinalImage()
 
 
     m_FinalTexture = std::move(texture);
-    m_FinalFrameBuffer = CreateScope<vk::FrameBuffer>(std::move(framebuffer));
+    m_FinalFrameBuffer = DeviceFrameBuffer(std::move(framebuffer));
     m_DescriptorPool = std::move(pool);
 }
 void Window::ReleaseFinalImage()
 {
     m_FinalTexture = DeviceTexture();
-    m_FinalFrameBuffer.reset();
-    m_FinalRenderPass.reset();
+    m_FinalFrameBuffer= DeviceFrameBuffer();
+    m_FinalRenderPass= DeviceRenderPass();
     m_GammaFilter.reset();
     m_DescriptorPool = DeviceDescriptorPool();
 }
@@ -251,18 +250,18 @@ void Window::ReleaseRenderObject()
     m_SwapChainImages.clear();
     if (m_SwapChain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(GRC::GetDevice(), m_SwapChain, nullptr);
+        vkDestroySwapchainKHR(vk::GRC::GetDevice(), m_SwapChain, nullptr);
         m_SwapChain = VK_NULL_HANDLE;
     }
 
     if (m_Surface != VK_NULL_HANDLE)
     {
-        vkDestroySurfaceKHR(GRC::GetInstance(), m_Surface, nullptr);
+        vkDestroySurfaceKHR(vk::GRC::GetInstance(), m_Surface, nullptr);
         m_Surface = VK_NULL_HANDLE;
     }
     for (size_t i : std::views::iota(0, MAX_FRAMES_IN_FLIGHT))
     {
-        m_GraphicsCommandBuffer[i].reset();
+        m_GraphicsCommandBuffer[i]= DeviceCommandBuffer();
     }
     ReleaseFinalImage();
 }
@@ -270,7 +269,7 @@ VkSurfaceKHR Window::GetSurface() const
 {
     return m_Surface;
 }
-RenderPass& Window::GetRenderPass(uint32_t index) const
+vk::RenderPass& Window::GetRenderPass(uint32_t index) const
 {
     return *m_RenderPass[index];
 }
@@ -282,7 +281,7 @@ void Window::CreateFramebuffers()
 {
     for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
     {
-        auto framebufferOpt = FrameBuffer::Create(*m_RenderPass[i],
+        auto framebufferOpt = vk::FrameBuffer::Create(*m_RenderPass[i],
                                                   m_SwapChainExtent,
                                                   m_SwapChainImageViews[i]);
         if (!framebufferOpt.has_value())
@@ -329,11 +328,11 @@ void Window::SetSize(uint32_t width, uint32_t height)
  */
 void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevice, VkDevice device)
 {
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice, m_Surface);
+    vk::SwapChainSupportDetails swapChainSupport = vk::querySwapChainSupport(physicalDevice, m_Surface);
 
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_Handle);
+    VkSurfaceFormatKHR surfaceFormat = vk::chooseSwapSurfaceFormat(swapChainSupport.formats);
+    VkPresentModeKHR presentMode = vk::chooseSwapPresentMode(swapChainSupport.presentModes);
+    VkExtent2D extent = vk::chooseSwapExtent(swapChainSupport.capabilities, m_Handle);
 
     uint32_t imageCount = 0;
     // uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -362,7 +361,7 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice, m_Surface);
+    vk::QueueFamilyIndices indices = vk::findQueueFamilies(physicalDevice, m_Surface);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
     if (indices.graphicsFamily != indices.presentFamily)
@@ -403,7 +402,7 @@ void Window::CreateImageViews()
     auto size = GetSize();
     for (size_t i = 0; i < m_SwapChainImages.size(); i++)
     {
-        auto imageViewOpt = ImageView::Create(m_SwapChainImages[i], m_SwapChainImageFormat, size.x(), size.y());
+        auto imageViewOpt = vk::ImageView::Create(m_SwapChainImages[i], m_SwapChainImageFormat, size.x(), size.y());
         if (!imageViewOpt.has_value())
         {
             assert(false && "ImageView::Create failed");
@@ -441,7 +440,7 @@ void Window::OnRender()
 
     // async acquire next image
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(GRC::GetDevice(),
+    VkResult result = vkAcquireNextImageKHR(vk::GRC::GetDevice(),
                                             m_SwapChain,
                                             UINT64_MAX,
                                             m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle(),
@@ -455,7 +454,7 @@ void Window::OnRender()
 
     // record command buffer
     size_t lastFrame = (m_CurrentFrame + MAX_FRAMES_IN_FLIGHT - 1) % MAX_FRAMES_IN_FLIGHT;
-    auto& curCommandBuffer = *m_GraphicsCommandBuffer[m_CurrentFrame];
+    auto& curCommandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
     auto& curRenderPass = *m_RenderPass[m_CurrentFrame];
     auto& curFrameBuffer = m_SwapChainFramebuffers[imageIndex];
     Vec4f clearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -470,9 +469,9 @@ void Window::OnRender()
         // layer->OnRender(*m_RenderPass[m_CurrentFrame],
         //                 m_SwapChainFramebuffers[imageIndex],
         //                 *m_GraphicsCommandBuffer[m_CurrentFrame]);
-        layer->OnRender(*m_FinalRenderPass,
-                        *m_FinalFrameBuffer,
-                        *m_GraphicsCommandBuffer[m_CurrentFrame]);
+        layer->OnRender(m_FinalRenderPass,
+                        m_FinalFrameBuffer,
+                        m_GraphicsCommandBuffer[m_CurrentFrame]);
     }
     // render to screen
     m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::ColorAttachment, 
@@ -490,7 +489,7 @@ void Window::OnRender()
     auto imageAvailableSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle();
     static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
     auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetHandle();
-    m_GraphicsCommandBuffer[m_CurrentFrame]->Submit(1,
+    m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1,
                                                     &imageAvailableSemaphore,
                                                     &stage, 1, &renderFinishedSemaphore, m_CommandBufferFences[m_CurrentFrame]->GetHandle());
     // async present
@@ -503,21 +502,21 @@ void Window::OnRender()
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
-    vkQueuePresentKHR(GRC::GetPresentQueue().GetHandle(), &presentInfo);
+    vkQueuePresentKHR(vk::GRC::GetPresentQueue().GetHandle(), &presentInfo);
 }
 bool Window::CreateSyncObjects()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_CommandBufferFences[i] = std::make_unique<Fence>(std::move(Fence::Create(true).value()));
+        m_CommandBufferFences[i] = std::make_unique<vk::Fence>(std::move(vk::Fence::Create(true).value()));
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_ImageAvailableSemaphore[i] = std::make_unique<Semaphore>(std::move(Semaphore::Create().value()));
+        m_ImageAvailableSemaphore[i] = std::make_unique<vk::Semaphore>(std::move(vk::Semaphore::Create().value()));
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_RenderFinishedSemaphore[i] = std::make_unique<Semaphore>(std::move(Semaphore::Create().value()));
+        m_RenderFinishedSemaphore[i] = std::make_unique<vk::Semaphore>(std::move(vk::Semaphore::Create().value()));
     }
     return true;
 }
@@ -552,7 +551,7 @@ void Window::CreateRenderPass(VkFormat format)
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_RenderPass[i] = std::make_unique<RenderPass>(*RenderPass::CreateForPresent(format));
+        m_RenderPass[i] = std::make_unique<vk::RenderPass>(*vk::RenderPass::CreateForPresent(format));
     }
 }
 bool Window::ReleaseVulkanObjects()
@@ -574,7 +573,7 @@ bool Window::ResizeFinalImage(const Vec2u& size)
     }
     auto& texture = *textureOpt;
     VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
-    auto framebufferOpt = vk::FrameBuffer::Create(*m_FinalRenderPass, extent, texture.GetOrCreateDefaultImageView().GetVk());
+    auto framebufferOpt = vk::FrameBuffer::Create(m_FinalRenderPass.GetVk(), extent, texture.GetOrCreateDefaultImageView().GetVk());
     if (!framebufferOpt)
     {
         assert(false && "FrameBuffer::Create failed");
@@ -583,7 +582,7 @@ bool Window::ResizeFinalImage(const Vec2u& size)
     auto& framebuffer = *framebufferOpt;
     texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
     m_FinalTexture = std::move(texture);
-    m_FinalFrameBuffer = CreateScope<vk::FrameBuffer>(std::move(framebuffer));
+    m_FinalFrameBuffer = DeviceFrameBuffer(std::move(framebuffer));
     return true;
 }
 void Window::OnWindowResize(const Vec2u& size)

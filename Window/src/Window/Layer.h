@@ -1,10 +1,6 @@
 #pragma once
-#include "Render/Vulkan/GraphicsCommandBuffer.h"
 #include "Window/Event.h"
-#include "Render/Vulkan/RenderPass.h"
-#include "Render/Vulkan/FrameBuffer.h"
-#include "Render/Vulkan/Semaphore.h"
-#include "Render/Vulkan/Fence.h"
+#include <Render/RenderApi.h>
 namespace Aether {
 class Window;
 class Layer
@@ -27,9 +23,9 @@ public:
     }
 
     virtual void OnRender(
-        vk::RenderPass& renderPass,
-        vk::FrameBuffer& framebuffer,
-        vk::GraphicsCommandBuffer& commandBuffer
+        DeviceRenderPass& renderPass,
+        DeviceFrameBuffer& framebuffer,
+        DeviceCommandBuffer& commandBuffer
     )
     {
     }

@@ -46,12 +46,18 @@ struct RenderPassDesc
         return depthAttachment == other.depthAttachment;
     }
 };
-struct RenderTask;
+struct RenderTaskBase:public TaskBase
+{
+    RenderPassDesc renderPassDesc;
+    bool skipRenderPassBegin = false;
+    bool skipRenderPassEnd = false;
+    virtual ~RenderTaskBase() = default;
+};
 struct RenderGraph;
 class RenderTaskBuilder
 {
 public:
-    RenderTaskBuilder(RenderTask& task,RenderGraph& graph):
+    RenderTaskBuilder(Borrow<RenderTaskBase> task,RenderGraph& graph):
         m_Task(task),m_Graph(graph)
     {
     }
@@ -59,24 +65,19 @@ public:
     template<typename ResourceType>
     AccessId<ResourceType> Create(const ResourceDescType<ResourceType>::Type& desc);
     template<typename ResourceType>
-    AccessId<ResourceType> Write(ResourceId<ResourceType> resourceId);
+    AccessId<ResourceType> Write(AccessId<ResourceType> resourceId);
     template<typename ResourceType>
-    AccessId<ResourceType> Read(ResourceId<ResourceType> resourceId);
+    AccessId<ResourceType> Read(AccessId<ResourceType> resourceId);
     
 private:
-    RenderTask& m_Task;
+    Borrow<RenderTaskBase> m_Task;
     RenderGraph& m_Graph;
 };
+template<typename TaskDataType>
 struct RenderTask:public TaskBase
 {
-    RenderPassDesc renderPassDesc;
-    bool skipRenderPassBegin=false;
-    bool skipRenderPassEnd=false;
-    std::function<void(DeviceCommandBuffer& ,ResourceAccessor& )> execute;
+    TaskDataType data;
+    std::function<void(DeviceCommandBuffer& ,ResourceAccessor&,TaskDataType&)> execute;
 };
-inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassDesc& desc)
-{
-    m_Task.renderPassDesc = desc;
-    return *this;
-}
+
 } // namespace Aether::RenderGraph
