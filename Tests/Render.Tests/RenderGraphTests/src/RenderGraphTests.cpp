@@ -8,6 +8,7 @@
 #include "Render/Utils.h"
 #include <print>
 #include "Entry/Application.h"
+#include <Render/RenderGraph/RenderGraph.h>
 using namespace Aether;
 static const char* vertexShaderCode = R"(
 #version 450
@@ -30,11 +31,8 @@ void main()
 class TestLayer : public Layer
 {
 public:
-    
-    virtual void OnRender(
-        DeviceRenderPass& renderPass,
-        DeviceFrameBuffer& framebuffer,
-        DeviceCommandBuffer& _commandBuffer) override
+    virtual void OnRender(DeviceRenderPass& renderPass, DeviceFrameBuffer& framebuffer,
+                          DeviceCommandBuffer& _commandBuffer) override
     {
         if (!m_Pipeline)
         {
@@ -45,12 +43,12 @@ public:
             pipelineBuilder.AddFragmentStage(*m_FragmentShader, "main");
             pipelineBuilder.AddVertexStage(*m_VertexShader, "main");
             pipelineBuilder.PushVertexBufferLayouts(m_Mesh->GetVertexBufferLayouts());
-            m_Pipeline=pipelineBuilder.BuildScope();
+            m_Pipeline = pipelineBuilder.BuildScope();
         }
         auto& commandBuffer = _commandBuffer.GetVk();
-        commandBuffer.BeginRenderPass(*m_RenderPass, framebuffer.GetVk(),Vec4f(1.0f,1.0f,1.0f,1.0f));
+        commandBuffer.BeginRenderPass(*m_RenderPass, framebuffer.GetVk(), Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
         commandBuffer.SetViewport(0, 0, framebuffer.GetSize().x(), framebuffer.GetSize().y());
-        commandBuffer.SetScissor(0, 0, framebuffer.GetSize().x(),framebuffer.GetSize().y());
+        commandBuffer.SetScissor(0, 0, framebuffer.GetSize().x(), framebuffer.GetSize().y());
         commandBuffer.BindPipeline(*m_Pipeline);
         Render::Utils::DrawMesh(commandBuffer, *m_Mesh);
         commandBuffer.EndRenderPass();
@@ -72,7 +70,34 @@ public:
         std::print("fragment shader size: {}\n", fsBin->size());
         m_VertexShader = vk::ShaderModule::CreateScopeFromBinaryCode(*vsBin);
         m_FragmentShader = vk::ShaderModule::CreateScopeFromBinaryCode(*fsBin);
-        m_RenderPass=CreateScope<vk::RenderPass>(vk::RenderPass::CreateDefault().value());
+        m_RenderPass = CreateScope<vk::RenderPass>(vk::RenderPass::CreateDefault().value());
+        { // test RenderGraph
+            m_ResourceLruPool = CreateScope<RenderGraph::ResourceLruPool>(m_ResourceArena);
+            m_RenderGraph = CreateScope<RenderGraph::RenderGraph>(m_ResourceArena, m_ResourceLruPool);
+            struct TaskData
+            {
+                RenderGraph::AccessId<DeviceTexture> texture;
+                RenderGraph::AccessId<DeviceImageView> imageView;
+            };
+            auto taskData=m_RenderGraph->AddRenderTask<TaskData>(
+                [](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
+                    data.texture = builder.Create<DeviceTexture>(RenderGraph::TextureDesc{
+                        .usages = PackFlags(DeviceImageUsage::ColorAttachment, DeviceImageUsage::Sample)});
+
+                    data.imageView =
+                        builder.Create<DeviceImageView>(RenderGraph::ImageViewDesc{.texture = data.texture, .desc = {}
+
+                        });
+                    RenderGraph::RenderPassDesc renderPassDesc;
+                    renderPassDesc.colorAttachmentCount = 1;
+                    renderPassDesc.colorAttachment[0].imageView = data.imageView;
+                    builder.SetRenderPassDesc(renderPassDesc);
+                },
+                [](DeviceCommandBuffer& commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {
+                    auto& texture = *accessor.GetResource(data.texture);
+                });
+            
+        }
     }
 
 private:
@@ -83,10 +108,12 @@ private:
     Scope<vk::ShaderModule> m_VertexShader;
     Scope<vk::ShaderModule> m_FragmentShader;
     Scope<vk::RenderPass> m_RenderPass;
-    
+
+private:
+    Scope<RenderGraph::RenderGraph> m_RenderGraph;
+    RenderGraph::ResourceArena m_ResourceArena;
+    Scope<RenderGraph::ResourceLruPool> m_ResourceLruPool;
 };
-
-
 
 class RenderGraphTests : public Application
 {
@@ -96,21 +123,18 @@ public:
         auto* testLayer = new TestLayer();
         window.PushLayer(testLayer);
     }
-    virtual void OnShutdown()override
+    virtual void OnShutdown() override
     {
-        for(auto* layer:m_Layers)
-        {
-            delete layer;
-        }
+        for (auto* layer : m_Layers) { delete layer; }
     }
-    virtual void OnFrameBegin()override
+    virtual void OnFrameBegin() override
     {
-
     }
     virtual const char* GetName() const override
     {
         return "RenderGraphTests";
     }
+
 private:
     std::vector<Layer*> m_Layers;
     Window* m_MainWindow;

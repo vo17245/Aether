@@ -191,16 +191,7 @@ public:
         const auto& pool = std::get<LruPool<ResourceType>>(m_LruPoolList.pools);
         return pool.capacity;
     }
-    template<typename ResourceType>
-    ResourceId<ResourceType> PopOrCreate(const ResourceDescType<ResourceType>::Type& desc)
-    {
-        auto id = Pop(desc);
-        if(id.handle.IsValid())
-        {
-            return id;
-        }
-        return m_ResourceArena->Allocate<ResourceType>(desc);
-    }
+
 private:
     Borrow<ResourceArena> m_ResourceArena;
 };

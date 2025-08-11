@@ -1,5 +1,5 @@
 #pragma once
-#include "Handle.h"
+#include "../Handle.h"
 #include <Core/Core.h>
 namespace Aether::RenderGraph
 {
@@ -8,6 +8,14 @@ template <typename T>
 struct AccessId
 {
     Handle handle;
+    bool operator==(const AccessId<T>& other) const
+    {
+        return handle == other.handle;
+    }
+    bool operator!=(const AccessId<T>& other) const
+    {
+        return !(*this == other);
+    }
 };
 class AccessIdAllocator
 {

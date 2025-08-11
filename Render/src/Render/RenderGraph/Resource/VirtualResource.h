@@ -1,6 +1,6 @@
 #pragma once
-#include "Resource/Resource.h"
-#include "Resource/ResourceTypeTraits.h"
+#include "Resource.h"
+#include "ResourceTypeTraits.h"
 #include <Core/Core.h>
 #include "AccessId.h"
 namespace Aether::RenderGraph
@@ -48,11 +48,11 @@ namespace Aether::RenderGraph
 
 }
 // specialize GetResourceCode for each resource type
-#include "Resource/DeviceBuffer.h"
-#include "Resource/DeviceTexture.h"
-#include "Resource/DeviceImageView.h"
-#include "Resource/DeviceFrameBuffer.h"
-#include "Resource/DeviceRenderPass.h"
+#include "DeviceBuffer.h"
+#include "DeviceTexture.h"
+#include "DeviceImageView.h"
+#include "DeviceFrameBuffer.h"
+#include "DeviceRenderPass.h"
 namespace Aether::RenderGraph
 {
     template<>

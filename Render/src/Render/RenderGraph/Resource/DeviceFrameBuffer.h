@@ -1,9 +1,9 @@
 #pragma once
 #include <Render/RenderApi.h>
 #include "Resource.h"
-#include "../Handle.h"
 #include "ResourceId.h"
 #include "DeviceImageView.h"
+#include "AccessId.h"
 namespace Aether::RenderGraph
 {
 
@@ -11,7 +11,7 @@ struct FrameBufferDesc
 {
     struct Attachment
     {
-        ResourceId<DeviceImageView> imageView;
+        AccessId<DeviceImageView> imageView;
         DeviceAttachmentLoadOp loadOp = DeviceAttachmentLoadOp::Clear;
         DeviceAttachmentStoreOp storeOp = DeviceAttachmentStoreOp::Store;
     };

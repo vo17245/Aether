@@ -2,18 +2,18 @@
 #include <Render/RenderApi.h>
 #include "Resource/DeviceTexture.h"
 #include "Resource/ResourceId.h"
-#include "ResourceAccessor.h"
+#include "Resource/ResourceAccessor.h"
 #include "TaskBase.h"
 namespace Aether::RenderGraph
 {
 struct Attachment
 {
-    ResourceId<DeviceImageView> texture;
+    AccessId<DeviceImageView> imageView;
     DeviceAttachmentLoadOp loadOp;
     DeviceAttachmentStoreOp storeOp;
     bool operator==(const Attachment& other) const
     {
-        return texture == other.texture && loadOp == other.loadOp && storeOp == other.storeOp;
+        return imageView == other.imageView && loadOp == other.loadOp && storeOp == other.storeOp;
     }
     bool operator!=(const Attachment& other) const
     {

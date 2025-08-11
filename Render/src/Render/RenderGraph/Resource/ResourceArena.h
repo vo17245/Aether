@@ -162,151 +162,85 @@ public:
         }
         return nullptr;
     }
-    template <typename T>
-        requires IsResource<T>::value
-    ResourceId<T> Allocate(const ResourceDescType<T>::Type& desc);
+
     template<typename T>
     requires IsResource<T>::value
     void Destroy(ResourceId<T> id);
-
-private:
-    std::list<Scope<DeviceFrameBuffer>> m_FrameBuffers;
-    std::unordered_map<ResourceId<DeviceFrameBuffer>, typename std::list<Scope<DeviceFrameBuffer>>::iterator, Hash<ResourceId<DeviceFrameBuffer>>> m_FrameBufferMap;
-    std::list<Scope<DeviceImageView>> m_ImageViews;
-    std::unordered_map<ResourceId<DeviceImageView>, typename std::list<Scope<DeviceImageView>>::iterator, Hash<ResourceId<DeviceImageView>>> m_ImageViewMap;
-
-    std::unordered_map<ResourceId<DeviceImageView>, std::vector<ResourceId<DeviceFrameBuffer>>, Hash<ResourceId<DeviceImageView>>> m_ImageViewToFrameBufferMap;
-    std::list<Scope<DeviceTexture>> m_Textures;
-    std::unordered_map<ResourceId<DeviceTexture>, typename std::list<Scope<DeviceTexture>>::iterator, Hash<ResourceId<DeviceTexture>>> m_TextureMap;
-    std::unordered_map<ResourceId<DeviceTexture>, std::vector<ResourceId<DeviceImageView>>, Hash<ResourceId<DeviceTexture>>> m_TextureToImageViewMap;
-    ResourceIdAllocator m_ResourceIdAllocator;
-    std::list<Scope<DeviceRenderPass>> m_RenderPasses;
-    std::unordered_map<ResourceId<DeviceRenderPass>, typename std::list<Scope<DeviceRenderPass>>::iterator, Hash<ResourceId<DeviceRenderPass>>> m_RenderPassMap;
-};
-template <>
-struct Realize<DeviceImageView>
-{
-    ResourceArena& arena;
-    Scope<DeviceImageView> operator()(const ImageViewDesc& desc)
+    template<typename T>
+    ResourceId<T> Import(T* resource)
     {
-        DeviceTexture* texture = arena.GetResource(desc.texture);
-        if (!texture || texture->Empty())
+        auto id = m_ResourceIdAllocator.Allocate<T>();
+        if constexpr (std::is_same_v<T, DeviceTexture>)
         {
-            return nullptr;
+            m_Textures.push_back(ResourceWrapper<T>(resource));
+            auto iter = m_Textures.end();
+            --iter;
+            m_TextureMap[id] = iter;
         }
-        auto imageView = texture->CreateImageView(desc.desc);
-        if (!imageView)
+        else if constexpr (std::is_same_v<T, DeviceImageView>)
         {
-            return nullptr;
+            m_ImageViews.push_back(ResourceWrapper<T>(resource));
+            auto iter = m_ImageViews.end();
+            --iter;
+            m_ImageViewMap[id] = iter;
         }
-        return CreateScope<DeviceImageView>(std::move(imageView));
-    }
-};
-template <>
-struct Realize<DeviceFrameBuffer>
-{
-    ResourceArena& arena;
-    Scope<DeviceFrameBuffer> operator()(const FrameBufferDesc& desc)
-    {
-        DeviceFrameBufferDesc frameBufferDesc;
-        DeviceRenderPass* renderPass = arena.GetResource(desc.renderPass);
-        if (!renderPass || renderPass->Empty())
+        else if constexpr (std::is_same_v<T, DeviceFrameBuffer>)
         {
-            return nullptr;
+            m_FrameBuffers.push_back(ResourceWrapper<T>(resource));
+            auto iter = m_FrameBuffers.end();
+            --iter;
+            m_FrameBufferMap[id] = iter;
         }
-        frameBufferDesc.width = desc.width;
-        frameBufferDesc.height = desc.height;
-        frameBufferDesc.colorAttachmentCount = desc.colorAttachmentCount;
-        for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
+        else if constexpr (std::is_same_v<T, DeviceRenderPass>)
         {
-            auto& attachment = desc.colorAttachment[i];
-            auto& imageViewId = attachment.imageView;
-            DeviceImageView* imageView = arena.GetResource(imageViewId);
-
-            frameBufferDesc.colorAttachments[i] = imageView;
-        }
-        if (desc.depthAttachment)
-        {
-            auto& attachment = desc.depthAttachment.value();
-            auto& imageViewId = attachment.imageView;
-            DeviceImageView* imageView = arena.GetResource(imageViewId);
-            frameBufferDesc.depthAttachment = imageView;
-        }
-        auto frameBuffer = DeviceFrameBuffer::Create(*renderPass, frameBufferDesc);
-        if (frameBuffer.Empty())
-        {
-            return nullptr;
-        }
-        return CreateScope<DeviceFrameBuffer>(std::move(frameBuffer));
-    }
-};
-namespace Detail
-{
-template <typename T>
-    requires IsResource<T>::value
-struct RealizeAdapter
-{
-    ResourceArena& arena;
-    Scope<T> operator()(const ResourceDescType<T>::Type& desc)
-    {
-        if (std::is_constructible_v<Realize<T>, ResourceArena&>)
-        {
-            return Realize<T>{arena}(desc);
+            m_RenderPasses.push_back(ResourceWrapper<T>(resource));
+            auto iter = m_RenderPasses.end();
+            --iter;
+            m_RenderPassMap[id] = iter;
         }
         else
         {
-            return Realize<T>()(desc);
+            static_assert(false, "Not implemented resource type");
         }
+        return id;
     }
+private:
+    template<typename T>
+    struct ResourceWrapper
+    {
+        Scope<T> owned;
+        T* imported=nullptr;
+        T* Get()
+        {
+            if (imported)
+            {
+                return imported;
+            }
+            return owned.get();
+        }
+        ResourceWrapper(Scope<T>&& resource) : owned(std::move(resource)) {}
+        ResourceWrapper(T* resource) : imported(resource) {}
+        ResourceWrapper() = default;
+        ResourceWrapper(const ResourceWrapper&) = delete;
+        ResourceWrapper(ResourceWrapper&&) = default;
+        ResourceWrapper& operator=(const ResourceWrapper&) = delete;
+        ResourceWrapper& operator=(ResourceWrapper&&) = default;
+    };
+    std::list<ResourceWrapper<DeviceFrameBuffer>> m_FrameBuffers;
+    std::unordered_map<ResourceId<DeviceFrameBuffer>, typename std::list<ResourceWrapper<DeviceFrameBuffer>>::iterator, Hash<ResourceId<DeviceFrameBuffer>>> m_FrameBufferMap;
+    std::list<ResourceWrapper<DeviceImageView>> m_ImageViews;
+    std::unordered_map<ResourceId<DeviceImageView>, typename std::list<ResourceWrapper<DeviceImageView>>::iterator, Hash<ResourceId<DeviceImageView>>> m_ImageViewMap;
+
+    std::unordered_map<ResourceId<DeviceImageView>, std::vector<ResourceId<DeviceFrameBuffer>>, Hash<ResourceId<DeviceImageView>>> m_ImageViewToFrameBufferMap;
+    std::list<ResourceWrapper<DeviceTexture>> m_Textures;
+    std::unordered_map<ResourceId<DeviceTexture>, typename std::list<ResourceWrapper<DeviceTexture>>::iterator, Hash<ResourceId<DeviceTexture>>> m_TextureMap;
+    std::unordered_map<ResourceId<DeviceTexture>, std::vector<ResourceId<DeviceImageView>>, Hash<ResourceId<DeviceTexture>>> m_TextureToImageViewMap;
+    ResourceIdAllocator m_ResourceIdAllocator;
+    std::list<ResourceWrapper<DeviceRenderPass>> m_RenderPasses;
+    std::unordered_map<ResourceId<DeviceRenderPass>, typename std::list<ResourceWrapper<DeviceRenderPass>>::iterator, Hash<ResourceId<DeviceRenderPass>>> m_RenderPassMap;
 };
-} // namespace Detail
-template <typename T>
-    requires IsResource<T>::value
-inline ResourceId<T> ResourceArena::Allocate(const ResourceDescType<T>::Type& desc)
-{
-    // create resource
-    Detail::RealizeAdapter<T> realize{*this};
-    auto resource = realize(desc);
-    if (!resource)
-    {
-        assert(false && "Failed to create resource");
-        return ResourceId<T>::Invalid();
-    }
-    // allocate id
-    auto id = m_ResourceIdAllocator.Allocate<T>();
-    // push resource to list and set map
-    if constexpr (std::is_same_v<T, DeviceTexture>)
-    {
-        m_Textures.push_back(std::move(resource));
-        auto iter = m_Textures.end();
-        --iter;
-        m_TextureMap[id] = iter;
-    }
-    else if constexpr (std::is_same_v<T, DeviceImageView>)
-    {
-        m_ImageViews.push_back(std::move(resource));
-        auto iter = m_ImageViews.end();
-        --iter;
-        m_ImageViewMap[id] = iter;
-    }
-    else if constexpr (std::is_same_v<T, DeviceFrameBuffer>)
-    {
-        m_FrameBuffers.push_back(std::move(resource));
-        auto iter = m_FrameBuffers.end();
-        --iter;
-        m_FrameBufferMap[id] = iter;
-    }
-    else if constexpr (std::is_same_v<T, DeviceRenderPass>)
-    {
-        m_RenderPasses.push_back(std::move(resource));
-        auto iter = m_RenderPasses.end();
-        --iter;
-        m_RenderPassMap[id] = iter;
-    }
-    else
-    {
-        static_assert(false, "Not implemented resource type");
-    }
-}
+
+
+
 
 } // namespace Aether::RenderGraph

@@ -1,9 +1,9 @@
 #pragma once
 #include "TaskBase.h"
-#include "VirtualResource.h"
+#include "Resource/VirtualResource.h"
 #include <Render/RenderApi.h>
 #include "RenderTask.h"
-#include "ResourceAccessor.h"
+#include "Resource/ResourceAccessor.h"
 namespace Aether::RenderGraph
 {
 class RenderGraph
@@ -12,13 +12,13 @@ public:
     friend class RenderTaskBuilder;
 
 public:
-    RenderGraph(Borrow<ResourceArena> arena, Borrow<ResourceLruPool> pool, Borrow<DeviceCommandBuffer> commandBuffer) :
-        m_CommandBuffer(commandBuffer), m_ResourceArena(arena), m_ResourceLruPool(pool)
+    RenderGraph(Borrow<ResourceArena> arena, Borrow<ResourceLruPool> pool) :
+         m_ResourceArena(arena), m_ResourceLruPool(pool)
     {
         m_ResourceAccessor = CreateScope<ResourceAccessor>(arena);
     }
     template <typename TaskDataType>
-    TaskDataType AddRenderTask(const std::function<TaskDataType(RenderTaskBuilder&, TaskDataType&)>& setup,
+    TaskDataType AddRenderTask(const std::function<void(RenderTaskBuilder&, TaskDataType&)>& setup,
                        std::function<void(DeviceCommandBuffer&, ResourceAccessor&, TaskDataType&)>&& execute)
     {
         auto task=CreateScope<RenderTask<TaskDataType>>();
@@ -31,9 +31,13 @@ public:
     }
     void Compile();
     void Execute();
+    void SetCommandBuffer(DeviceCommandBuffer* commandBuffer)
+    {
+        m_CommandBuffer = commandBuffer;
+    }
 
 private:
-    Borrow<DeviceCommandBuffer> m_CommandBuffer;
+    DeviceCommandBuffer* m_CommandBuffer=nullptr;
     Borrow<ResourceArena> m_ResourceArena;
     Borrow<ResourceLruPool> m_ResourceLruPool;
     std::vector<Scope<TaskBase>> m_Tasks;
@@ -85,11 +89,11 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     };
     for(size_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
-        read(desc.colorAttachment[i].texture.handle);
+        read(desc.colorAttachment[i].imageView.handle);
     }
     if (desc.depthAttachment)
     {
-        read(desc.depthAttachment->texture.handle);
+        read(desc.depthAttachment->imageView.handle);
     }
     return *this;
 }

@@ -38,6 +38,10 @@ struct Handle
     {
         return id < other.id || (id == other.id && version < other.version);
     }
+    static Handle CreateInvalid()
+    {
+        return Handle{InvalidId, 0};
+    }
 };
 
 class HandleAllocator
