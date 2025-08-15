@@ -12,9 +12,23 @@
 #include "DeviceBuffer.h"
 #include "Render/Vulkan/ImageView.h"
 #include "vulkan/vulkan_core.h"
+#include <Core/Core.h>
 namespace Aether
 {
-struct DeviceImageViewDesc{};
+struct DeviceImageViewDesc{
+    bool operator==(const DeviceImageViewDesc& other) const
+    {
+        return true; // Placeholder, as DeviceImageViewDesc is empty
+    }
+};
+template<>
+struct Hash<DeviceImageViewDesc>
+{
+    std::size_t operator()(const DeviceImageViewDesc&) const
+    {
+        return 0; // Placeholder hash function, as DeviceImageViewDesc is empty
+    }
+};
 class DeviceImageView
 {
 public:

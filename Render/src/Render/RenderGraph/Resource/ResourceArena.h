@@ -158,7 +158,7 @@ public:
         }
         else
         {
-            static_assert(false, "Not implemented resource type");
+            static_assert(always_false_v<T>, "Not implemented resource type");
         }
         return nullptr;
     }
@@ -200,7 +200,7 @@ public:
         }
         else
         {
-            static_assert(false, "Not implemented resource type");
+            static_assert(always_false_v<T>, "Not implemented resource type");
         }
         return id;
     }

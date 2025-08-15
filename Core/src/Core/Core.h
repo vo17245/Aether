@@ -8,3 +8,4 @@
 #include "Hash.h"
 #include "Pool.h"
 #include "Cache.h"
+#include "TypeTraits.h"

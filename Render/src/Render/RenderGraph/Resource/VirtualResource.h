@@ -3,29 +3,10 @@
 #include "ResourceTypeTraits.h"
 #include <Core/Core.h>
 #include "AccessId.h"
+#include "ResourceCode.h"
 namespace Aether::RenderGraph
 {
-enum class ResourceCode : uint32_t
-{
-    Texture,
-    ImageView,
-    FrameBuffer,
-    RenderPass,
-    Buffer,
-};
-template <typename ResourceType>
-struct GetResourceCode;
-template <typename ResourceType, typename = void>
-struct HasGetResourceCodeImpl
-{
-    static constexpr bool value = false;
-};
-template <typename ResourceType>
-struct HasGetResourceCodeImpl<ResourceType, std::void_t<decltype(GetResourceCode<ResourceType>::value)>>
-{
-    static constexpr bool value =
-        std::is_same_v<std::decay_t<decltype(GetResourceCode<ResourceType>::value)>, ResourceCode>;
-};
+
 struct TaskBase;
 struct VirtualResourceBase
 {
@@ -34,14 +15,20 @@ struct VirtualResourceBase
     std::vector<Borrow<TaskBase>> writers;
     TaskBase* creator = nullptr;
     ResourceCode code;
+    size_t refCount = 0;            // for culling when compile
+    size_t lastAccessTaskIndex = 0; // for resource aliasing when compile
 };
-template <typename ResourceType>
-    requires IsResource<ResourceType>::value && HasGetResourceCodeImpl<ResourceType>::value
+
+
+
+template <typename R>
+    requires IsResource<R>::value && HasGetResourceCodeImpl<R>::value
 struct VirtualResource : public VirtualResourceBase
 {
-    ResourceDescType<ResourceType>::Type desc;
+    using ResourceType = R;
+    typename ResourceDescType<ResourceType>::Type desc;
     AccessId<ResourceType> id;
-    VirtualResource(const ResourceDescType<ResourceType>::Type& _desc, const AccessId<ResourceType>& _id) :
+    VirtualResource(const typename ResourceDescType<ResourceType>::Type& _desc, const AccessId<ResourceType>& _id) :
         desc(_desc), id(_id)
     {
     }
@@ -51,38 +38,40 @@ struct VirtualResource : public VirtualResourceBase
     }
 };
 
-} // namespace Aether::RenderGraph
-// specialize GetResourceCode for each resource type
-#include "DeviceBuffer.h"
-#include "DeviceTexture.h"
-#include "DeviceImageView.h"
-#include "DeviceFrameBuffer.h"
-#include "DeviceRenderPass.h"
-namespace Aether::RenderGraph
+
+
+namespace Detail
 {
-template <>
-struct GetResourceCode<DeviceTexture>
+template <typename F, typename T>
+struct VirtualResourceVisitorCommanRetType;
+template <typename F, typename... Ts>
+struct VirtualResourceVisitorCommanRetType<F, TypeArray<Ts...>>
 {
-    static constexpr ResourceCode value = ResourceCode::Texture;
+    using Type = std::common_type_t<decltype(std::declval<F>()(std::declval<Ts>()))...>;
 };
-template <>
-struct GetResourceCode<DeviceImageView>
+template <typename R,typename F, size_t... Is>
+decltype(auto) VisitVirtualResourceImpl(R&& resource, F&& f, std::index_sequence<Is...>)
 {
-    static constexpr ResourceCode value = ResourceCode::ImageView;
-};
-template <>
-struct GetResourceCode<DeviceFrameBuffer>
+    using Ret = typename VirtualResourceVisitorCommanRetType<F, ResourceTypeArray>::Type;
+    using Fn = Ret (*)(VirtualResourceBase&, F&);
+    using Tuple = typename TypeArrayToTuple<ResourceTypeArray>::Type;
+    static constexpr Fn table[] = {+[](VirtualResourceBase& r, F& f) -> Ret {
+#ifdef NDEBUG
+        return f(static_cast<VirtualResource<std::tuple_element_t<Is, Tuple>>&>(r));
+#else
+        return f(dynamic_cast<VirtualResource<std::tuple_element_t<Is, Tuple>>&>(r));
+#endif
+    }...};
+    return table[(size_t)resource.code](resource, f);
+}
+} // namespace Detail
+template <typename R,typename F>
+requires std::is_same_v<VirtualResourceBase,std::decay_t<R>>
+decltype(auto) VisitVirtualResource(R&& resource, F&& f)
 {
-    static constexpr ResourceCode value = ResourceCode::FrameBuffer;
-};
-template <>
-struct GetResourceCode<DeviceRenderPass>
-{
-    static constexpr ResourceCode value = ResourceCode::RenderPass;
-};
-template <>
-struct GetResourceCode<DeviceBuffer>
-{
-    static constexpr ResourceCode value = ResourceCode::Buffer;
-};
+    using Tuple = typename TypeArrayToTuple<ResourceTypeArray>::Type;
+    assert(resource.code < ResourceCode::Count && "Invalid resource code");
+    return Detail::VisitVirtualResourceImpl(resource, f, std::make_index_sequence<std::tuple_size_v<Tuple>>{});
+}
+
 } // namespace Aether::RenderGraph

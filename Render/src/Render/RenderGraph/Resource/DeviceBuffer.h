@@ -78,3 +78,14 @@ struct Realize<DeviceBuffer>
 };
 } // namespace Aether::RenderGraph
 
+namespace Aether
+{
+template <>
+struct Hash<RenderGraph::BufferDesc>
+{
+    std::size_t operator()(const RenderGraph::BufferDesc& value) const
+    {
+        return std::hash<uint32_t>()(static_cast<uint32_t>(value.type)) ^ std::hash<size_t>()(value.size);
+    }
+};
+} // namespace Aether

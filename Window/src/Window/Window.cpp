@@ -122,7 +122,6 @@ void Window::PopLayer(Layer* layer)
     {
         (*iter)->OnDetach();
         m_Layers.erase(iter);
-
     }
     else
     {
@@ -161,7 +160,8 @@ void Window::CreateCommandBuffer()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_GraphicsCommandBuffer[i] = DeviceCommandBuffer(vk::GraphicsCommandBuffer::Create(vk::GRC::GetGraphicsCommandPool()).value());
+        m_GraphicsCommandBuffer[i] =
+            DeviceCommandBuffer(vk::GraphicsCommandBuffer::Create(vk::GRC::GetGraphicsCommandPool()).value());
     }
 }
 bool Window::CreateRenderObject()
@@ -202,7 +202,8 @@ bool Window::CreateFinalImage()
     m_FinalRenderPass = DeviceRenderPass(std::move(renderPassOpt.value()));
 
     VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
-    auto framebufferOpt = vk::FrameBuffer::Create(m_FinalRenderPass.GetVk(), extent, texture.GetOrCreateDefaultImageView().GetVk());
+    auto framebufferOpt =
+        vk::FrameBuffer::Create(m_FinalRenderPass.GetVk(), extent, texture.GetOrCreateDefaultImageView().GetVk());
     if (!framebufferOpt)
     {
         assert(false && "FrameBuffer::Create failed");
@@ -217,7 +218,7 @@ bool Window::CreateFinalImage()
     }
     auto& pool = *poolOpt;
     auto filterOpt = WindowInternal::GammaFilter::Create(*m_RenderPass[0], pool);
-    if(!filterOpt)
+    if (!filterOpt)
     {
         assert(false && "GammaFilter::Create failed");
         return false;
@@ -226,7 +227,6 @@ bool Window::CreateFinalImage()
     m_GammaFilter->SetGamma(2.2f);
     texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
 
-
     m_FinalTexture = std::move(texture);
     m_FinalFrameBuffer = DeviceFrameBuffer(std::move(framebuffer));
     m_DescriptorPool = std::move(pool);
@@ -234,8 +234,8 @@ bool Window::CreateFinalImage()
 void Window::ReleaseFinalImage()
 {
     m_FinalTexture = DeviceTexture();
-    m_FinalFrameBuffer= DeviceFrameBuffer();
-    m_FinalRenderPass= DeviceRenderPass();
+    m_FinalFrameBuffer = DeviceFrameBuffer();
+    m_FinalRenderPass = DeviceRenderPass();
     m_GammaFilter.reset();
     m_DescriptorPool = DeviceDescriptorPool();
 }
@@ -261,7 +261,7 @@ void Window::ReleaseRenderObject()
     }
     for (size_t i : std::views::iota(0, MAX_FRAMES_IN_FLIGHT))
     {
-        m_GraphicsCommandBuffer[i]= DeviceCommandBuffer();
+        m_GraphicsCommandBuffer[i] = DeviceCommandBuffer();
     }
     ReleaseFinalImage();
 }
@@ -281,9 +281,7 @@ void Window::CreateFramebuffers()
 {
     for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
     {
-        auto framebufferOpt = vk::FrameBuffer::Create(*m_RenderPass[i],
-                                                  m_SwapChainExtent,
-                                                  m_SwapChainImageViews[i]);
+        auto framebufferOpt = vk::FrameBuffer::Create(*m_RenderPass[i], m_SwapChainExtent, m_SwapChainImageViews[i]);
         if (!framebufferOpt.has_value())
         {
             assert(false && "FrameBuffer::Create failed");
@@ -299,8 +297,7 @@ VkResult Window::CreateSurface(VkInstance instance)
 {
     return glfwCreateWindowSurface(instance, m_Handle, nullptr, &m_Surface);
 }
-Window::Window(GLFWwindow* window) :
-    m_Handle(window)
+Window::Window(GLFWwindow* window) : m_Handle(window)
 {
 }
 /**
@@ -430,22 +427,21 @@ void Window::WaitLastFrameComplete()
 }
 void Window::OnRender()
 {
-    for(auto* layer:m_Layers)
+    for (auto* layer : m_Layers)
     {
         layer->OnFrameBegin();
     }
     m_DescriptorPool.Clear();
-    if (m_Layers.empty()) return;
-    if (GetSize().x() == 0 || GetSize().y() == 0) return;
+    if (m_Layers.empty())
+        return;
+    if (GetSize().x() == 0 || GetSize().y() == 0)
+        return;
 
     // async acquire next image
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(vk::GRC::GetDevice(),
-                                            m_SwapChain,
-                                            UINT64_MAX,
-                                            m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle(),
-                                            VK_NULL_HANDLE,
-                                            &imageIndex);
+    VkResult result =
+        vkAcquireNextImageKHR(vk::GRC::GetDevice(), m_SwapChain, UINT64_MAX,
+                              m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle(), VK_NULL_HANDLE, &imageIndex);
     if (result != VK_SUCCESS)
     {
         return;
@@ -461,24 +457,21 @@ void Window::OnRender()
     curCommandBuffer.Reset();
     curCommandBuffer.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
-    m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::Texture, 
-    DeviceImageLayout::ColorAttachment, curCommandBuffer);
+    m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::ColorAttachment,
+                                         curCommandBuffer);
     for (size_t i = 0; i < m_Layers.size(); ++i)
     {
         auto* layer = m_Layers[i];
         // layer->OnRender(*m_RenderPass[m_CurrentFrame],
         //                 m_SwapChainFramebuffers[imageIndex],
         //                 *m_GraphicsCommandBuffer[m_CurrentFrame]);
-        layer->OnRender(m_FinalRenderPass,
-                        m_FinalFrameBuffer,
-                        m_GraphicsCommandBuffer[m_CurrentFrame]);
+        layer->OnRender(m_GraphicsCommandBuffer[m_CurrentFrame]);
     }
     // render to screen
-    m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::ColorAttachment, 
-    DeviceImageLayout::Texture, curCommandBuffer);
-    curCommandBuffer.BeginRenderPass(*m_RenderPass[m_CurrentFrame],
-     m_SwapChainFramebuffers[imageIndex],
-    Vec4f(0.0,0.0,0.0,1.0));
+    m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::ColorAttachment, DeviceImageLayout::Texture,
+                                         curCommandBuffer);
+    curCommandBuffer.BeginRenderPass(*m_RenderPass[m_CurrentFrame], m_SwapChainFramebuffers[imageIndex],
+                                     Vec4f(0.0, 0.0, 0.0, 1.0));
     curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
     curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
     m_GammaFilter->Render(m_FinalTexture, m_SwapChainFramebuffers[imageIndex], curCommandBuffer, m_DescriptorPool);
@@ -489,9 +482,9 @@ void Window::OnRender()
     auto imageAvailableSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle();
     static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
     auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetHandle();
-    m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1,
-                                                    &imageAvailableSemaphore,
-                                                    &stage, 1, &renderFinishedSemaphore, m_CommandBufferFences[m_CurrentFrame]->GetHandle());
+    m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphore, &stage, 1,
+                                                           &renderFinishedSemaphore,
+                                                           m_CommandBufferFences[m_CurrentFrame]->GetHandle());
     // async present
 
     VkPresentInfoKHR presentInfo{};
@@ -546,7 +539,6 @@ Input& Window::GetInput()
     return m_Input;
 }
 
-
 void Window::CreateRenderPass(VkFormat format)
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -573,7 +565,8 @@ bool Window::ResizeFinalImage(const Vec2u& size)
     }
     auto& texture = *textureOpt;
     VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
-    auto framebufferOpt = vk::FrameBuffer::Create(m_FinalRenderPass.GetVk(), extent, texture.GetOrCreateDefaultImageView().GetVk());
+    auto framebufferOpt =
+        vk::FrameBuffer::Create(m_FinalRenderPass.GetVk(), extent, texture.GetOrCreateDefaultImageView().GetVk());
     if (!framebufferOpt)
     {
         assert(false && "FrameBuffer::Create failed");
@@ -587,10 +580,10 @@ bool Window::ResizeFinalImage(const Vec2u& size)
 }
 void Window::OnWindowResize(const Vec2u& size)
 {
-    if(size.x() == 0 || size.y() == 0)
+    if (size.x() == 0 || size.y() == 0)
     {
         return; // no need to resize
     }
-    assert(ResizeFinalImage(size)&&"failed to resize window final image");
+    assert(ResizeFinalImage(size) && "failed to resize window final image");
 }
 } // namespace Aether

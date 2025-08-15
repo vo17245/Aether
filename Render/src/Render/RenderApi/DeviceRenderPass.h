@@ -4,6 +4,7 @@
 #include <variant>
 #include <cassert>
 #include "../Config.h"
+#include <Core/Core.h>
 namespace Aether
 {
 enum class DeviceAttachmentLoadOp
@@ -50,6 +51,10 @@ struct DeviceAttachmentDesc
     DeviceAttachmentLoadOp loadOp;
     DeviceAttachmentStoreOp storeOp;
     PixelFormat format;
+    bool operator==(const DeviceAttachmentDesc& other) const
+    {
+        return loadOp == other.loadOp && storeOp == other.storeOp && format == other.format;
+    }
 };
 
 struct DeviceRenderPassDesc
@@ -58,6 +63,44 @@ struct DeviceRenderPassDesc
     DeviceAttachmentDesc colorAttachments[MaxColorAttachments];
     uint32_t colorAttachmentCount = 0;
     std::optional<DeviceAttachmentDesc> depthAttachment;
+    bool operator==(const DeviceRenderPassDesc& other) const
+    {
+        if (colorAttachmentCount != other.colorAttachmentCount || depthAttachment != other.depthAttachment)
+        {
+            return false;
+        }
+        for (size_t i = 0; i < colorAttachmentCount; ++i)
+        {
+            if (colorAttachments[i] != other.colorAttachments[i])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+template<>
+struct Hash<DeviceRenderPassDesc>
+{
+    std::size_t operator()(const DeviceRenderPassDesc& value) const
+    {
+        size_t hash = 0;
+        for (size_t i = 0; i < value.colorAttachmentCount; ++i)
+        {
+            const auto& attachment = value.colorAttachments[i];
+            hash ^= std::hash<uint32_t>()(static_cast<uint32_t>(attachment.loadOp));
+            hash ^= std::hash<uint32_t>()(static_cast<uint32_t>(attachment.storeOp));
+            hash ^= std::hash<PixelFormat>()(attachment.format);
+        }
+        if (value.depthAttachment)
+        {
+            const auto& attachment = value.depthAttachment.value();
+            hash ^= std::hash<uint32_t>()(static_cast<uint32_t>(attachment.loadOp));
+            hash ^= std::hash<uint32_t>()(static_cast<uint32_t>(attachment.storeOp));
+            hash ^= std::hash<PixelFormat>()(attachment.format);
+        }
+        return hash;
+    }
 };
 struct VkRenderPassCreateInfoStorage
 {

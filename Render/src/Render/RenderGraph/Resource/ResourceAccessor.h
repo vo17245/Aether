@@ -5,9 +5,20 @@
 #include "ResourceLruPool.h"
 #include "DeviceBuffer.h"
 #include "../Utils.h"
+#include "ResourceCode.h"
 namespace Aether::RenderGraph
 {
 
+template<typename T>
+struct VirtualResourceInfo
+{
+
+};
+template<>
+struct VirtualResourceInfo<DeviceTexture>
+{
+    DeviceImageLayout layout = DeviceImageLayout::Undefined;
+};
 template <typename T>
 struct ResourceSlot
 {
@@ -28,7 +39,9 @@ struct ResourceSlot
     bool isRealized[Render::Config::InFlightFrameResourceSlots] = {false}; // if the resource is realized
     bool external = false; // if the resource is created by the render graph
     AccessId<T> id=AccessId<T>{.handle=Handle::CreateInvalid()}; // access id for the resource
+    VirtualResourceInfo<T> virtualInfo; // for image layout transition
 };
+
 template <typename... Ts>
 class ResourceAccessorBase
 {
@@ -92,6 +105,7 @@ public:
         slots.push_back(std::move(slot));
         auto iter = std::prev(slots.end());
         slotMap[id] = iter;
+        SetSlotVirtualInfo<ResourceType>(desc, iter->virtualInfo);
         return slots.back();
     }
     template<typename ResourceType>
@@ -123,24 +137,18 @@ public:
         }
         return (*iter->second);
     }
-    template<typename ResourceType,typename... ResourceIds>
-    ResourceSlot<ResourceType>& CreateExternalSlot(const ResourceIds&... ids)
+    
+private:
+    template<typename ResourceType>
+    void SetSlotVirtualInfo(const typename ResourceDescType<ResourceType>::Type& desc,VirtualResourceInfo<ResourceType>& info)
     {
-        auto& indexedSlots = std::get<IndexedSlot<ResourceType>>(m_Slots);
-        auto& slots = indexedSlots.m_Slots;
-        auto& slotMap = indexedSlots.m_SlotMap;
-        AccessId<ResourceType> id = m_Allocator.Allocate<ResourceType>();
-        ResourceSlot<ResourceType> slot;
-        slot.id = id;
-        slot.external = true;
-        slot.resourceCount = sizeof...(ResourceIds);
-        SetArray(slot.frameResources, ids...);
-        slots.push_back(std::move(slot));
-        auto iter = std::prev(slots.end());
-        slotMap[id] = iter;
-        return slots.back();
-    }
 
+    }
+    template<>
+    void SetSlotVirtualInfo<DeviceTexture>(const typename ResourceDescType<DeviceTexture>::Type& desc,VirtualResourceInfo<DeviceTexture>& info)
+    {
+        info.layout=desc.layout;
+    }
 private:
     Borrow<ResourceArena> m_ResourceArena;
     Borrow<ResourceLruPool> m_ResourcePool;
@@ -154,7 +162,17 @@ private:
     std::tuple<IndexedSlot<Ts>...> m_Slots;
     AccessIdAllocator m_Allocator;
 };
-using ResourceAccessor = ResourceAccessorBase<DeviceTexture, DeviceImageView, DeviceFrameBuffer, DeviceBuffer>;
+namespace Detail
+{
+    template<typename T>
+    struct BuildResourceAccessor;
+    template<typename... Ts>
+    struct BuildResourceAccessor<TypeArray<Ts...>>
+    {
+        using Type = ResourceAccessorBase<Ts...>;
+    };
+}
+using ResourceAccessor = typename Detail::BuildResourceAccessor<ResourceTypeArray>::Type;
 
 
 

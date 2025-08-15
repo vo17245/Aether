@@ -157,7 +157,7 @@ public:
     {
     }
     template <typename T>
-    void PushResourceInUse(ResourceId<T> resourceId,const ResourceDescType<T>::Type& desc)
+    void PushResourceInUse(ResourceId<T> resourceId,const typename ResourceDescType<T>::Type& desc)
     {
         auto& resourceList = std::get<std::vector<ResourceInUse<T>>>(m_ResourceInUseList.resources);
         resourceList.push_back({desc,resourceId, Render::Config::MaxFramesInFlight});
@@ -168,13 +168,13 @@ public:
         UpdateResourceInUseList<Ts...>{m_ResourceInUseList, m_LruPoolList}();
     }
     template<typename ResourceType>
-    ResourceId<ResourceType> Pop(const ResourceDescType<ResourceType>::Type& desc)
+    ResourceId<ResourceType> Pop(const typename ResourceDescType<ResourceType>::Type& desc)
     {
         auto& pool = std::get<LruPool<ResourceType>>(m_LruPoolList.pools);
         return pool.Pop(desc);
     }
     template<typename ResourceType>
-    void Push(const ResourceDescType<ResourceType>::Type& desc, ResourceId<ResourceType> id)
+    void Push(const typename ResourceDescType<ResourceType>::Type& desc, ResourceId<ResourceType> id)
     {
         auto& pool = std::get<LruPool<ResourceType>>(m_LruPoolList.pools);
         pool.Push(desc, id);

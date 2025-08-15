@@ -23,8 +23,6 @@ public:
     }
 
     virtual void OnRender(
-        DeviceRenderPass& renderPass,
-        DeviceFrameBuffer& framebuffer,
         DeviceCommandBuffer& commandBuffer
     )
     {

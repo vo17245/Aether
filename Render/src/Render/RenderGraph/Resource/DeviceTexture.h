@@ -1,6 +1,7 @@
 #pragma once
 #include <Render/RenderApi.h>
 #include "Resource.h"
+#include <Core/Core.h>
 namespace Aether::RenderGraph
 {
 struct TextureDesc
@@ -36,3 +37,18 @@ struct Realize<DeviceTexture>
 };
 
 } // namespace Aether::RenderGraph
+namespace Aether
+{
+    template<>
+    struct Hash<RenderGraph::TextureDesc>
+    {
+        std::size_t operator()(const Aether::RenderGraph::TextureDesc& value) const
+        {
+            return std::hash<uint32_t>()(static_cast<uint32_t>(value.usages)) ^
+                   std::hash<Aether::PixelFormat>()(value.pixelFormat) ^
+                   std::hash<uint32_t>()(value.width) ^
+                   std::hash<uint32_t>()(value.height) ^
+                   std::hash<uint32_t>()(static_cast<uint32_t>(value.layout));
+        }
+    };
+}

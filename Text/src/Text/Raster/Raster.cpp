@@ -565,6 +565,7 @@ layout(location=2)in vec2 a_UV;// 在归一化的em坐标系
 layout(std140,binding=0)uniform UniformBufferObject
 {
     mat4 u_MVP;// 只有view和projection矩阵,model矩阵是identity
+    vec4 u_Color;
 }ubo;
 
 layout(location=0)flat out uint v_GlyphIndex;

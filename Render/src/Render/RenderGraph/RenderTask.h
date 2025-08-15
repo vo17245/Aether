@@ -48,12 +48,14 @@ struct RenderPassDesc
 };
 struct RenderTaskBase:public TaskBase
 {
+    RenderTaskBase():TaskBase(TaskType::RenderTask){}
+    virtual ~RenderTaskBase() = default;
+
     RenderPassDesc renderPassDesc;
     bool skipRenderPassBegin = false;
     bool skipRenderPassEnd = false;
-    virtual ~RenderTaskBase() = default;
 };
-struct RenderGraph;
+class RenderGraph;
 class RenderTaskBuilder
 {
 public:
@@ -63,10 +65,13 @@ public:
     }
     RenderTaskBuilder& SetRenderPassDesc(const RenderPassDesc& desc);
     template<typename ResourceType>
-    AccessId<ResourceType> Create(const ResourceDescType<ResourceType>::Type& desc);
+    requires IsResource<ResourceType>::value
+    AccessId<ResourceType> Create(const typename ResourceDescType<ResourceType>::Type& desc);
     template<typename ResourceType>
+    requires IsResource<ResourceType>::value
     AccessId<ResourceType> Write(AccessId<ResourceType> resourceId);
     template<typename ResourceType>
+    requires IsResource<ResourceType>::value
     AccessId<ResourceType> Read(AccessId<ResourceType> resourceId);
     
 private:

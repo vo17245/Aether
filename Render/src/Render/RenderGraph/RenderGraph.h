@@ -4,6 +4,7 @@
 #include <Render/RenderApi.h>
 #include "RenderTask.h"
 #include "Resource/ResourceAccessor.h"
+#include "TransferTask.h"
 namespace Aether::RenderGraph
 {
 class RenderGraph
@@ -29,13 +30,42 @@ public:
         m_Tasks.push_back(std::move(task));
         return static_cast<RenderTask<TaskDataType>*>(m_Tasks.back().get())->data;
     }
+    
     void Compile();
     void Execute();
     void SetCommandBuffer(DeviceCommandBuffer* commandBuffer)
     {
         m_CommandBuffer = commandBuffer;
     }
-
+    ResourceAccessor& GetResourceAccessor()
+    {
+        return *m_ResourceAccessor;
+    }
+    template<typename ResourceType,typename... Resources>
+    requires (
+            IsResource<ResourceType>::value &&
+            (std::is_same_v<std::remove_cvref_t<Resources>, ResourceType*> && ...)
+        )
+    AccessId<ResourceType> Import(const typename ResourceDescType<ResourceType>::Type& desc,Resources... resources)
+    {
+        assert(false&&"not implemented");
+    }
+private:
+    
+    // push m_Tasks into m_Steps and cull tasks that do not affect the imported resources.
+    void CullTasks();
+    // Perform resource lifetime analysis and alias freed (dead) resources to reuse memory.
+    void PerformResourceAliasing();
+    void MergeRenderPasses();
+    // insert image layout transition 
+    // render task: write(transfer to color/depth attachment) 
+    //              read(transfer to texture) tasks
+    // transfer task: write(transfer to transfer dst)
+    //                read(transfer to transfer src) 
+    void InsertImageLayoutTransition();
+    // enable resource slot supports in-flight resources for mutable resources
+    void SetResourceSlotSupportsInFlightResources();
+    
 private:
     DeviceCommandBuffer* m_CommandBuffer=nullptr;
     Borrow<ResourceArena> m_ResourceArena;
@@ -44,9 +74,11 @@ private:
     std::vector<Scope<VirtualResourceBase>> m_Resources;
     Scope<ResourceAccessor> m_ResourceAccessor;
     std::unordered_map<Handle, uint32_t,Hash<Handle>> m_AccessIdToResourceIndex;
+    std::vector<TaskBase*> m_Steps;// compile result
 };
 template <typename ResourceType>
-inline AccessId<ResourceType> RenderTaskBuilder::Create(const ResourceDescType<ResourceType>::Type& desc)
+requires IsResource<ResourceType>::value
+AccessId<ResourceType> RenderTaskBuilder::Create(const typename ResourceDescType<ResourceType>::Type& desc)
 {
     auto& slot = m_Graph.m_ResourceAccessor->CreateSlot<ResourceType>(desc);
     auto id=slot.id;
@@ -58,7 +90,8 @@ inline AccessId<ResourceType> RenderTaskBuilder::Create(const ResourceDescType<R
     return id;
 }
 template <typename ResourceType>
-inline AccessId<ResourceType> RenderTaskBuilder::Read(AccessId<ResourceType> resourceId)
+requires IsResource<ResourceType>::value
+AccessId<ResourceType> RenderTaskBuilder::Read(AccessId<ResourceType> resourceId)
 {
     auto& resource = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[resourceId]];
     m_Task->reads.push_back(resource.get());
@@ -66,7 +99,8 @@ inline AccessId<ResourceType> RenderTaskBuilder::Read(AccessId<ResourceType> res
     return resourceId;
 }
 template <typename ResourceType>
-inline AccessId<ResourceType> RenderTaskBuilder::Write(AccessId<ResourceType> resourceId)
+requires IsResource<ResourceType>::value
+AccessId<ResourceType> RenderTaskBuilder::Write(AccessId<ResourceType> resourceId)
 {
     auto& resource = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[resourceId]];
     m_Task->writes.push_back(resource.get());
