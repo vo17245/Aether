@@ -4,24 +4,16 @@
 #include "ResourceId.h"
 #include "DeviceImageView.h"
 #include "AccessId.h"
+#include "Attachment.h"
 namespace Aether::RenderGraph
 {
 
 struct FrameBufferDesc
 {
-    struct Attachment
-    {
-        AccessId<DeviceImageView> imageView;
-        DeviceAttachmentLoadOp loadOp = DeviceAttachmentLoadOp::Clear;
-        DeviceAttachmentStoreOp storeOp = DeviceAttachmentStoreOp::Store;
-        bool operator==(const Attachment& other) const
-        {
-            return imageView == other.imageView && loadOp == other.loadOp && storeOp == other.storeOp;
-        }
-    };
+    
     ResourceId<DeviceRenderPass> renderPass;
     constexpr static inline const uint32_t MaxColorAttachments = 8;
-    Attachment colorAttachment[MaxColorAttachments];
+    Attachment colorAttachments[MaxColorAttachments];
     uint32_t colorAttachmentCount = 0;
     std::optional<Attachment> depthAttachment;
     uint32_t width = 0;
@@ -34,7 +26,7 @@ struct FrameBufferDesc
         }
         for (uint32_t i = 0; i < colorAttachmentCount; ++i)
         {
-            if (colorAttachment[i] != other.colorAttachment[i])
+            if (colorAttachments[i] != other.colorAttachments[i])
             {
                 return false;
             }
@@ -67,9 +59,9 @@ struct Hash<RenderGraph::FrameBufferDesc>
         size_t hash = 0;
         for (size_t i = 0; i < value.colorAttachmentCount; ++i)
         {
-            hash ^= Hash<RenderGraph::AccessId<DeviceImageView>>()(value.colorAttachment[i].imageView);
-            hash ^= static_cast<size_t>(value.colorAttachment[i].loadOp);
-            hash ^= static_cast<size_t>(value.colorAttachment[i].storeOp);
+            hash ^= Hash<RenderGraph::AccessId<DeviceImageView>>()(value.colorAttachments[i].imageView);
+            hash ^= static_cast<size_t>(value.colorAttachments[i].loadOp);
+            hash ^= static_cast<size_t>(value.colorAttachments[i].storeOp);
         }
         if (value.depthAttachment)
         {

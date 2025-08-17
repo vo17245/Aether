@@ -131,7 +131,7 @@ private:
 };
 template <typename T>
 struct BuildVirtualResourcePool;
-template<typename... Ts>
+template <typename... Ts>
 struct BuildVirtualResourcePool<TypeArray<Ts...>>
 {
     using Type = VirtualResourcePoolBase<Ts...>;
@@ -161,38 +161,38 @@ void RenderGraph::PerformResourceAliasing()
         // try to find a compatible resource in the pool
         for (auto& resource : task->creates)
         {
-            auto* compatibleResource = VisitVirtualResource(*resource, [&](auto&& r)->VirtualResourceBase*{
-                
+            auto* compatibleResource = VisitVirtualResource(*resource, [&](auto&& r) -> VirtualResourceBase* {
                 return pool.Pop<typename std::decay_t<decltype(r)>::ResourceType>(r.desc);
             });
-            if(compatibleResource)
+            if (compatibleResource)
             {
                 // forward the resource id
-                VisitVirtualResource(*resource, [&](auto&& r)->void{
-                    using ResourceType= typename std::decay_t<decltype(r)>::ResourceType;
-                    VirtualResource<ResourceType>& from= static_cast<VirtualResource<ResourceType>&>(*compatibleResource);
-                    m_ResourceAccessor->Forward(from.id,r.id);
+                VisitVirtualResource(*resource, [&](auto&& r) -> void {
+                    using ResourceType = typename std::decay_t<decltype(r)>::ResourceType;
+                    VirtualResource<ResourceType>& from =
+                        static_cast<VirtualResource<ResourceType>&>(*compatibleResource);
+                    m_ResourceAccessor->Forward(from.id, r.id);
                 });
             }
         }
         // push dead resources to the pool
-        for(auto& resource: task->reads)
+        for (auto& resource : task->reads)
         {
-            if(resource->lastAccessTaskIndex==i)
+            if (resource->lastAccessTaskIndex == i)
             {
-                VisitVirtualResource(*resource, [&](auto&& r)->void{
-                    using ResourceType= typename std::decay_t<decltype(r)>::ResourceType;
-                    pool.Push(new VirtualResource<ResourceType>(r.desc,r.id));
+                VisitVirtualResource(*resource, [&](auto&& r) -> void {
+                    using ResourceType = typename std::decay_t<decltype(r)>::ResourceType;
+                    pool.Push(new VirtualResource<ResourceType>(r.desc, r.id));
                 });
             }
         }
-        for(auto& resource: task->writes)
+        for (auto& resource : task->writes)
         {
-            if(resource->lastAccessTaskIndex==i)
+            if (resource->lastAccessTaskIndex == i)
             {
-                VisitVirtualResource(*resource, [&](auto&& r)->void{
-                    using ResourceType= typename std::decay_t<decltype(r)>::ResourceType;
-                    pool.Push(new VirtualResource<ResourceType>(r.desc,r.id));
+                VisitVirtualResource(*resource, [&](auto&& r) -> void {
+                    using ResourceType = typename std::decay_t<decltype(r)>::ResourceType;
+                    pool.Push(new VirtualResource<ResourceType>(r.desc, r.id));
                 });
             }
         }
@@ -200,24 +200,23 @@ void RenderGraph::PerformResourceAliasing()
 }
 void RenderGraph::InsertImageLayoutTransition()
 {
-    
     std::vector<TaskBase*> newSteps;
-    for(auto* _task:m_Steps)
+    for (auto* _task : m_Steps)
     {
         auto& task = *_task;
         // insert image layout transition tasks
-        if(task.type==TaskType::RenderTask)
+        if (task.type == TaskType::RenderTask)
         {
             auto& renderTask = static_cast<RenderTaskBase&>(task);
             // handle texture sampling
-            for(auto& resource:task.reads)
+            for (auto& resource : task.reads)
             {
-                if(resource->code==ResourceCode::Texture)
+                if (resource->code == ResourceCode::Texture)
                 {
                     auto& texture = static_cast<VirtualResource<DeviceTexture>&>(*resource);
-                    AccessId<DeviceTexture> id=texture.id;
-                    auto& slot=m_ResourceAccessor->GetSlot(id);
-                    if(slot.virtualInfo.layout!=DeviceImageLayout::Texture)
+                    AccessId<DeviceTexture> id = texture.id;
+                    auto& slot = m_ResourceAccessor->GetSlot(id);
+                    if (slot.virtualInfo.layout != DeviceImageLayout::Texture)
                     {
                         auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                         transitionTask->texture = id;
@@ -230,12 +229,12 @@ void RenderGraph::InsertImageLayoutTransition()
                 }
             }
             // handle color attachment
-            for(size_t i=0;i<renderTask.renderPassDesc.colorAttachmentCount;i++)
+            for (size_t i = 0; i < renderTask.renderPassDesc.colorAttachmentCount; i++)
             {
                 auto& colorAttachment = renderTask.renderPassDesc.colorAttachment[i];
-                auto& viewSlot= m_ResourceAccessor->GetSlot(colorAttachment.imageView);
-                auto& texture=m_ResourceAccessor->GetSlot(viewSlot.desc.texture);
-                if(texture.virtualInfo.layout!=DeviceImageLayout::ColorAttachment)
+                auto& viewSlot = m_ResourceAccessor->GetSlot(colorAttachment.imageView);
+                auto& texture = m_ResourceAccessor->GetSlot(viewSlot.desc.texture);
+                if (texture.virtualInfo.layout != DeviceImageLayout::ColorAttachment)
                 {
                     auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                     transitionTask->texture = texture.id;
@@ -247,12 +246,12 @@ void RenderGraph::InsertImageLayoutTransition()
                 }
             }
             // handle depth attachment
-            if(renderTask.renderPassDesc.depthAttachment)
+            if (renderTask.renderPassDesc.depthAttachment)
             {
                 auto& depthAttachment = *renderTask.renderPassDesc.depthAttachment;
                 auto& viewSlot = m_ResourceAccessor->GetSlot(depthAttachment.imageView);
                 auto& texture = m_ResourceAccessor->GetSlot(viewSlot.desc.texture);
-                if(texture.virtualInfo.layout!=DeviceImageLayout::DepthStencilAttachment)
+                if (texture.virtualInfo.layout != DeviceImageLayout::DepthStencilAttachment)
                 {
                     auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                     transitionTask->texture = texture.id;
@@ -264,12 +263,12 @@ void RenderGraph::InsertImageLayoutTransition()
                 }
             }
         }
-        else if(task.type==TaskType::UploadTextureTask)
+        else if (task.type == TaskType::UploadTextureTask)
         {
             auto& uploadTask = static_cast<UploadTextureTask&>(task);
             auto& sourceSlot = m_ResourceAccessor->GetSlot(uploadTask.source);
             auto& destinationSlot = m_ResourceAccessor->GetSlot(uploadTask.destination);
-            if(destinationSlot.virtualInfo.layout != DeviceImageLayout::TransferDst)
+            if (destinationSlot.virtualInfo.layout != DeviceImageLayout::TransferDst)
             {
                 auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                 transitionTask->texture = uploadTask.destination;
@@ -280,12 +279,12 @@ void RenderGraph::InsertImageLayoutTransition()
                 destinationSlot.virtualInfo.layout = DeviceImageLayout::TransferDst;
             }
         }
-        else if(task.type==TaskType::DownloadTextureTask)
+        else if (task.type == TaskType::DownloadTextureTask)
         {
             auto& downloadTask = static_cast<DownloadTextureTask&>(task);
             auto& sourceSlot = m_ResourceAccessor->GetSlot(downloadTask.source);
             auto& destinationSlot = m_ResourceAccessor->GetSlot(downloadTask.destination);
-            if(sourceSlot.virtualInfo.layout != DeviceImageLayout::TransferSrc)
+            if (sourceSlot.virtualInfo.layout != DeviceImageLayout::TransferSrc)
             {
                 auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                 transitionTask->texture = downloadTask.source;
@@ -302,77 +301,167 @@ void RenderGraph::InsertImageLayoutTransition()
 }
 void RenderGraph::MergeRenderPasses()
 {
-    bool inPass=false;
+    bool inPass = false;
     RenderPassDesc currentPassDesc;
-    RenderTaskBase* lastRenderTask=nullptr;
-    for(auto* _task:m_Steps)
+    RenderTaskBase* lastRenderTask = nullptr;
+    for (auto* _task : m_Steps)
     {
         auto& task = *_task;
-        if(inPass)
+        if (inPass)
         {
-            if(task.type==TaskType::RenderTask)
+            if (task.type == TaskType::RenderTask)
             {
                 auto& renderTask = static_cast<RenderTaskBase&>(task);
-                if(renderTask.renderPassDesc!=currentPassDesc)
+                if (renderTask.renderPassDesc != currentPassDesc)
                 {
                     // 结束上一个render pass
-                    lastRenderTask->skipRenderPassEnd=false;
+                    lastRenderTask->skipRenderPassEnd = false;
                     // 开始新的render pass
-                    currentPassDesc=renderTask.renderPassDesc;
-                    lastRenderTask=&renderTask;
-                    renderTask.skipRenderPassEnd=true;
+                    currentPassDesc = renderTask.renderPassDesc;
+                    lastRenderTask = &renderTask;
+                    renderTask.skipRenderPassEnd = true;
                 }
                 else
                 {
                     // 合并render pass
-                    renderTask.skipRenderPassBegin=true;
-                    renderTask.skipRenderPassEnd=true;
-                    lastRenderTask=&renderTask;
+                    renderTask.skipRenderPassBegin = true;
+                    renderTask.skipRenderPassEnd = true;
+                    lastRenderTask = &renderTask;
                 }
             }
             else
             {
                 // 结束上一个render pass
-                lastRenderTask->skipRenderPassEnd=false;
-                inPass=false;
+                lastRenderTask->skipRenderPassEnd = false;
+                inPass = false;
             }
         }
         else
         {
-            if(task.type==TaskType::RenderTask)
+            if (task.type == TaskType::RenderTask)
             {
                 // 开始新的render pass
                 auto& renderTask = static_cast<RenderTaskBase&>(task);
-                inPass=true;
-                currentPassDesc=renderTask.renderPassDesc;
-                lastRenderTask=&renderTask;
-                renderTask.skipRenderPassEnd=true;
+                inPass = true;
+                currentPassDesc = renderTask.renderPassDesc;
+                lastRenderTask = &renderTask;
+                renderTask.skipRenderPassEnd = true;
             }
         }
     }
-
 }
 void RenderGraph::SetResourceSlotSupportsInFlightResources()
 {
-    for(auto& resource: m_Resources)
+    for (auto& resource : m_Resources)
     {
-        if(resource->code==ResourceCode::ImageView)
+        if (resource->code == ResourceCode::ImageView)
         {
-
+            auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(*resource);
+            auto textureId = imageView.desc.texture;
+            auto& virtualResource = *m_Resources[m_AccessIdToResourceIndex[textureId.handle]];
+            assert(virtualResource.code == ResourceCode::Texture);
+            if (virtualResource.writers.empty())
+            {
+                continue;
+            }
+            m_ResourceAccessor->SetSlotSupportsInFlightResources(imageView.id);
         }
-        else if(resource->code==ResourceCode::FrameBuffer)
+        else if (resource->code == ResourceCode::FrameBuffer)
         {
-
+            auto& frameBuffer = static_cast<VirtualResource<DeviceFrameBuffer>&>(*resource);
+            m_ResourceAccessor->SetSlotSupportsInFlightResources(frameBuffer.id);
+            for (size_t i = 0; i < frameBuffer.desc.colorAttachmentCount; ++i)
+            {
+                auto& colorAttachment = frameBuffer.desc.colorAttachments[i];
+                m_ResourceAccessor->SetSlotSupportsInFlightResources(colorAttachment.imageView);
+            }
+            if (frameBuffer.desc.depthAttachment)
+            {
+                m_ResourceAccessor->SetSlotSupportsInFlightResources(frameBuffer.desc.depthAttachment->imageView);
+            }
         }
         else
         {
-            if(!resource->writers.empty())
+            if (!resource->writers.empty())
             {
-                VisitVirtualResource(*resource, [&](auto&& r)->void{
-                    m_ResourceAccessor->SetSlotSupportsInFlightResources(r.id);
-                });
+                VisitVirtualResource(
+                    *resource, [&](auto&& r) -> void { m_ResourceAccessor->SetSlotSupportsInFlightResources(r.id); });
             }
         }
     }
 }
+DeviceRenderPassDesc RenderGraph::RenderPassDescToDeviceRenderPassDesc(const RenderPassDesc& desc)
+{
+    DeviceRenderPassDesc deviceDesc;
+    deviceDesc.colorAttachmentCount = desc.colorAttachmentCount;
+    for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
+    {
+        auto& attachment = desc.colorAttachment[i];
+        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(
+            *m_Resources[m_AccessIdToResourceIndex[attachment.imageView.handle]]);
+        auto& texture = static_cast<VirtualResource<DeviceTexture>&>(
+            *m_Resources[m_AccessIdToResourceIndex[imageView.desc.texture.handle]]);
+        auto& deviceAttachment = deviceDesc.colorAttachments[i];
+        deviceAttachment.format = texture.desc.pixelFormat;
+        deviceAttachment.loadOp = attachment.loadOp;
+        deviceAttachment.storeOp = attachment.storeOp;
+    }
+    if (desc.depthAttachment)
+    {
+        auto& depthAttachment = *desc.depthAttachment;
+        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(
+            *m_Resources[m_AccessIdToResourceIndex[depthAttachment.imageView.handle]]);
+        auto& texture = static_cast<VirtualResource<DeviceTexture>&>(
+            *m_Resources[m_AccessIdToResourceIndex[imageView.desc.texture.handle]]);
+        DeviceAttachmentDesc attachmentDesc;
+        attachmentDesc.format = texture.desc.pixelFormat;
+        attachmentDesc.loadOp = depthAttachment.loadOp;
+        attachmentDesc.storeOp = depthAttachment.storeOp;
+        deviceDesc.depthAttachment = attachmentDesc;
+    }
+    return deviceDesc;
+}
+FrameBufferDesc RenderGraph::RenderPassDescToFrameBufferDesc(const RenderPassDesc& desc)
+{
+    FrameBufferDesc framebufferDesc;
+    framebufferDesc.colorAttachmentCount=desc.colorAttachmentCount;
+    framebufferDesc.width=desc.width;
+    framebufferDesc.height=desc.height;
+    for(size_t i=0;i<framebufferDesc.colorAttachmentCount;++i)
+    {
+        auto& frameBufferAttachment=framebufferDesc.colorAttachments[i];
+        auto& attachment=desc.colorAttachment[i];
+        frameBufferAttachment.imageView=attachment.imageView;
+        frameBufferAttachment.loadOp=attachment.loadOp;
+        frameBufferAttachment.storeOp=attachment.storeOp;
+    }
+    if(desc.depthAttachment)
+    {
+        auto depthAttachment=Attachment();
+        auto& attachment=*desc.depthAttachment;
+        depthAttachment.imageView=attachment.imageView;
+        depthAttachment.loadOp=attachment.loadOp;
+        depthAttachment.storeOp=attachment.storeOp;
+        framebufferDesc.depthAttachment=depthAttachment;
+    }
+    return framebufferDesc;
+}
+void RenderGraph::Execute()
+{
+    for (auto* _task : m_Steps)
+    {
+        auto& task = *_task;
+        switch (task.type)
+        {
+        case TaskType::RenderTask: {
+            auto& renderTask = static_cast<RenderTaskBase&>(task);
+            renderTask.Execute(*m_CommandBuffer, *m_ResourceAccessor);
+        }
+        break;
+        default:
+            assert(false && "Unsupported task type in RenderGraph::Execute");
+        }
+    }
+}
+
 } // namespace Aether::RenderGraph

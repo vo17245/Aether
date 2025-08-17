@@ -222,7 +222,7 @@ struct Realize<DeviceFrameBuffer>
         frameBufferDesc.colorAttachmentCount = desc.colorAttachmentCount;
         for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
         {
-            auto& attachment = desc.colorAttachment[i];
+            auto& attachment = desc.colorAttachments[i];
             auto& imageViewSlot=accessor.GetSlot(attachment.imageView);
             uint32_t imageViewIndex = frameIndex % imageViewSlot.resourceCount;
             assert(imageViewSlot.isRealized[imageViewIndex]);

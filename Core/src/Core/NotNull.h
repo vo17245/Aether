@@ -1,14 +1,14 @@
 #pragma once
 #include <cassert>
 #include <cstddef>
+#include <type_traits>
 namespace Aether
 {
 template <typename T>
 class NotNull
 {
 public:
-    NotNull(T* ptr) :
-        m_Ptr(ptr)
+    NotNull(T* ptr) : m_Ptr(ptr)
     {
         assert(ptr != nullptr && "NotNull pointer cannot be null");
     }
@@ -19,8 +19,12 @@ public:
     NotNull& operator=(NotNull&&) noexcept = default;
     NotNull(std::nullptr_t) = delete;
     NotNull& operator=(std::nullptr_t) = delete;
-    NotNull(T& v) :
-        m_Ptr(&v)
+    template <typename U>
+    requires std::is_base_of_v<T, U>
+    NotNull(const NotNull<U>& other) : m_Ptr(other.m_Ptr)
+    {
+    }
+    NotNull(T& v) : m_Ptr(&v)
     {
     }
     T* Get() const
