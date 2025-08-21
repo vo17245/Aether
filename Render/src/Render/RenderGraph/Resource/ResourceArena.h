@@ -204,6 +204,35 @@ public:
         }
         return id;
     }
+    template<typename ResourceType>
+    ResourceId<ResourceType> AddResource(Scope<ResourceType>&& resource)
+    {
+        if constexpr (std::is_same_v<ResourceType, DeviceTexture>)
+        {
+            return AddTexture(std::move(resource));
+        }
+        else if constexpr (std::is_same_v<ResourceType, DeviceImageView>)
+        {
+            return AddImageView(std::move(resource));
+        }
+        else if constexpr (std::is_same_v<ResourceType, DeviceFrameBuffer>)
+        {
+            return AddFrameBuffer(std::move(resource));
+        }
+        else if constexpr (std::is_same_v<ResourceType, DeviceRenderPass>)
+        {
+            auto id = m_ResourceIdAllocator.Allocate<DeviceRenderPass>();
+            m_RenderPasses.push_back(std::move(resource));
+            auto iter = m_RenderPasses.end();
+            --iter;
+            m_RenderPassMap[id] = iter;
+            return id;
+        }
+        else
+        {
+            static_assert(always_false_v<ResourceType>, "Not implemented resource type");
+        }
+    }
 private:
     template<typename T>
     struct ResourceWrapper

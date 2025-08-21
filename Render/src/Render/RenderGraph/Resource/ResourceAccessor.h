@@ -88,17 +88,88 @@ public:
         {
             if constexpr (std::is_same_v<ResourceType,DeviceImageView> )
             {
+                ResourceSlot<DeviceImageView>& imageViewSlot = slot;
+                // create image view
                 auto resource=Realize<DeviceImageView>{*m_ResourceArena,*this,m_FrameIndex}(slot.desc);
+                // add to arena
+                if (!resource)
+                {
+                    assert(false && "Failed to create image view");
+                    return nullptr;
+                }
+                auto resourceId=m_ResourceArena->AddResource(std::move(resource));
+                
+                // set resource dependency
+                {
+                    // get texture slot
+                    ResourceSlot<DeviceTexture>& textureSlot = GetSlot(slot.desc.texture);
+                    uint32_t textureIndex = m_FrameIndex % textureSlot.resourceCount;
+                    assert(textureSlot.isRealized[textureIndex]);// 在realize image view时已经检查过
+                    m_ResourceArena->AddDependency(resourceId, textureSlot.frameResources[textureIndex]);
+                }
+                // set slot resource id
+                slot.frameResources[index] = resourceId;
+                // set realized flag
+                slot.isRealized[index] = true;
             }
             else if constexpr (std::is_same_v<ResourceType,DeviceFrameBuffer>)
             {
+                // create frame buffer
+                ResourceSlot<DeviceFrameBuffer>& frameBufferSlot = slot;
+                auto resource=Realize<DeviceFrameBuffer>{*m_ResourceArena,*this,m_FrameIndex}(slot.desc);
+                if(!resource)
+                {
+                    assert(false && "Failed to create frame buffer");
+                    return nullptr;
+                }
+                // add to arena
+                auto resourceId=m_ResourceArena->AddResource(std::move(resource));  
 
+
+                // set resource dependency
+                {
+                    // set color attachments
+                    for(size_t i=0;i<frameBufferSlot.desc.colorAttachmentCount;++i)
+                    {
+                        auto& attachment=frameBufferSlot.desc.colorAttachments[i];
+                        ResourceSlot<DeviceImageView>& imageViewSlot = GetSlot(attachment.imageView);
+                        uint32_t imageViewIndex = m_FrameIndex % imageViewSlot.resourceCount;
+                        assert(imageViewSlot.isRealized[imageViewIndex]);// 在realize frame buffer时已经检查过
+                        m_ResourceArena->AddDependency(resourceId, imageViewSlot.frameResources[imageViewIndex]);
+
+                    }
+                    // set depth attachment
+                    if (frameBufferSlot.desc.depthAttachment)
+                    {
+                        auto& attachment = frameBufferSlot.desc.depthAttachment.value();
+                        ResourceSlot<DeviceImageView>& imageViewSlot = GetSlot(attachment.imageView);
+                        uint32_t imageViewIndex = m_FrameIndex % imageViewSlot.resourceCount;
+                        assert(imageViewSlot.isRealized[imageViewIndex]);// 在realize frame buffer时已经检查过
+                        m_ResourceArena->AddDependency(resourceId, imageViewSlot.frameResources[imageViewIndex]);
+                    }
+
+                }
+                // set slot resource id
+                slot.frameResources[index] = resourceId;
+                // set realized flag
+                slot.isRealized[index] = true;
             }
             else
             {
-
+                // create resource
+                auto resource = Realize<ResourceType>{}(slot.desc);
+                if (!resource)
+                {
+                    assert(false && "Failed to create resource");
+                    return nullptr;
+                }
+                // add to arena
+                auto resourceId = m_ResourceArena->AddResource(std::move(resource));
+                // set slot resource id
+                slot.frameResources[index] = resourceId;
+                // set realized flag
+                slot.isRealized[index] = true;
             }
-            //slot.frameResources[index]=m_ResourcePool->PopOrCreate<ResourceType>(slot.desc);
         }
         ResourceId<ResourceType> resourceId = slot.frameResources[index];
         // 从代码设计上，这里返回的id可能是无效id,但是如果没有在graph创建后再修改资源，不会出现无效id
@@ -252,7 +323,7 @@ struct Realize<DeviceFrameBuffer>
     Scope<DeviceFrameBuffer> operator()(const FrameBufferDesc& desc)
     {
         DeviceFrameBufferDesc frameBufferDesc;
-        DeviceRenderPass* renderPass = arena.GetResource(desc.renderPass);
+        DeviceRenderPass* renderPass = accessor.GetResource(desc.renderPass);
         if (!renderPass || renderPass->Empty())
         {
             return nullptr;
@@ -265,6 +336,10 @@ struct Realize<DeviceFrameBuffer>
             auto& attachment = desc.colorAttachments[i];
             auto& imageViewSlot = accessor.GetSlot(attachment.imageView);
             uint32_t imageViewIndex = frameIndex % imageViewSlot.resourceCount;
+            if(!imageViewSlot.isRealized[imageViewIndex])
+            {
+                accessor.GetResource(attachment.imageView);
+            }
             assert(imageViewSlot.isRealized[imageViewIndex]);
             assert(imageViewSlot.frameResources[imageViewIndex].handle.IsValid());
             ResourceId<DeviceImageView> imageViewId = imageViewSlot.frameResources[imageViewIndex];
@@ -277,6 +352,10 @@ struct Realize<DeviceFrameBuffer>
             auto& attachment = desc.depthAttachment.value();
             auto& imageViewSlot = accessor.GetSlot(attachment.imageView);
             uint32_t imageViewIndex = frameIndex % imageViewSlot.resourceCount;
+            if(!imageViewSlot.isRealized[imageViewIndex])
+            {
+                accessor.GetResource(attachment.imageView);
+            }
             assert(imageViewSlot.isRealized[imageViewIndex]);
             assert(imageViewSlot.frameResources[imageViewIndex].handle.IsValid());
             ResourceId<DeviceImageView> imageViewId = imageViewSlot.frameResources[imageViewIndex];

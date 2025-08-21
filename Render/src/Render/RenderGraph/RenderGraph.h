@@ -161,6 +161,7 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     
     // allocate frame buffer
     auto frameBufferDesc = m_Graph.RenderPassDescToFrameBufferDesc(desc);
+    frameBufferDesc.renderPass= virtualRenderPass.id;
     auto virtualFrameBufferPtr = CreateScope<VirtualResource<DeviceFrameBuffer>>();
     m_Graph.m_Resources.emplace_back(std::move(virtualFrameBufferPtr));
     auto& virtualFrameBuffer = *static_cast<VirtualResource<DeviceFrameBuffer>*>(m_Graph.m_Resources.back().get());

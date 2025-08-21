@@ -83,6 +83,8 @@ public:
                 RenderGraph::RenderPassDesc renderPassDesc;
                 renderPassDesc.colorAttachmentCount = 1;
                 renderPassDesc.colorAttachment[0].imageView = imageView;
+                renderPassDesc.colorAttachment[0].loadOp = DeviceAttachmentLoadOp::Clear;
+                renderPassDesc.colorAttachment[0].storeOp = DeviceAttachmentStoreOp::Store;
                 builder.SetRenderPassDesc(renderPassDesc);
             },
             [size, this](DeviceCommandBuffer& _commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {

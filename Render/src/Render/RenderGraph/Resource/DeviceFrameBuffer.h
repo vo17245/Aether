@@ -11,7 +11,7 @@ namespace Aether::RenderGraph
 struct FrameBufferDesc
 {
     
-    ResourceId<DeviceRenderPass> renderPass;
+    AccessId<DeviceRenderPass> renderPass;
     constexpr static inline const uint32_t MaxColorAttachments = 8;
     Attachment colorAttachments[MaxColorAttachments];
     uint32_t colorAttachmentCount = 0;
