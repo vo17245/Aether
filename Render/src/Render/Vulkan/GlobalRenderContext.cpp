@@ -72,6 +72,7 @@ void GlobalRenderContext::Init(Window* window, bool enableValidationLayers)
     //vk::GRC::GetMainWindow().CreateSyncObjects();
     vk::Allocator::Init();
     window->CreateFinalImage();
+    window->InitRenderGraphResource();
 }
 void GlobalRenderContext::Cleanup()
 {

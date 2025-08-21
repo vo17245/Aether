@@ -1,6 +1,7 @@
 #pragma once
 #include "Window/Event.h"
 #include <Render/RenderApi.h>
+#include <Render/RenderGraph/RenderGraph.h>
 namespace Aether {
 class Window;
 class Layer
@@ -22,13 +23,16 @@ public:
     {
     }
 
-    virtual void OnRender(
-        DeviceCommandBuffer& commandBuffer
-    )
-    {
-    }
     virtual void OnFrameBegin()
     {
+    }
+    virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph)
+    {
+
+    }
+    virtual bool NeedRebuildRenderGraph() const
+    {
+        return false;
     }
    
 };

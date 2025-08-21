@@ -17,6 +17,7 @@
 #include "Render/Vulkan/ImageView.h"
 #include "Input.h"
 #include "GammaFilter.h"
+#include "Render/RenderGraph/RenderGraph.h"
 namespace Aether {
 namespace vk {
 class RenderContext;
@@ -49,61 +50,67 @@ public:
      *   只是把layer挂在到window，不转移所有权
      */
     void PushLayer(Layer* layer);
+    void PushLayers(const std::span<Layer*>& layers);
     void PopLayer(Layer* layer);
     VkSwapchainKHR GetSwapchain() const;
     const std::vector<VkImage>& GetImages() const;
     std::vector<VkImage>& GetImages();
     const std::vector<vk::ImageView>& GetImageViews() const;
     std::vector<vk::ImageView>& GetImageViews();
-    const std::vector<vk::FrameBuffer>& GetFrameBuffers() const;
-    std::vector<vk::FrameBuffer>& GetFrameBuffers();
     bool CreateRenderObject();
     void ReleaseRenderObject();
     bool CreateSyncObjects();
     bool ReleaseSyncObjects();
     bool ReleaseVulkanObjects();
     VkSurfaceKHR GetSurface() const;
-    vk::RenderPass& GetRenderPass(uint32_t index) const;
     Vec2i GetSize() const;
     void OnUpdate(float sec);
     void OnRender();
     void PushEvent(const Event& e);
     Input& GetInput();
 
-    void WaitLastFrameComplete();
     void ReleaseFinalImage();
     bool CreateFinalImage();
-    DeviceTexture& GetFinalTexture();
+    DeviceTexture& GetFinalTexture(uint32_t index);
     void SetSize(uint32_t width, uint32_t height);
+    uint32_t GetCurrentFrameIndex()
+    {
+        return m_CurrentFrame;
+    }
+    RenderGraph::AccessId<DeviceTexture> GetFinalImageAccessId() const
+    {
+        return m_FinalImageAccessId;
+    }
+    DeviceDescriptorPool& GetCurrentDescriptorPool()
+    {
+        return m_DescriptorPools[m_CurrentFrame];
+    }
+    // create resource arena and lru pool
+    void InitRenderGraphResource();
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
     VkSwapchainKHR m_SwapChain = VK_NULL_HANDLE;
     std::vector<VkImage> m_SwapChainImages;
     std::vector<vk::ImageView> m_SwapChainImageViews;
-    std::vector<vk::FrameBuffer> m_SwapChainFramebuffers;
     VkFormat m_SwapChainImageFormat{};
     VkExtent2D m_SwapChainExtent{};
     VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
     GLFWwindow* m_Handle=nullptr;
-    std::unique_ptr<vk::RenderPass> m_RenderPass[MAX_FRAMES_IN_FLIGHT];
     std::unique_ptr<vk::Semaphore> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
     std::unique_ptr<vk::Semaphore> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
     Scope<vk::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
     DeviceCommandBuffer m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
-    uint32_t m_CurrentFrame = 0;
     //=========== final image
-    DeviceTexture m_FinalTexture;
-    DeviceFrameBuffer m_FinalFrameBuffer;
-    DeviceRenderPass m_FinalRenderPass; 
+    DeviceTexture m_FinalTextures[MAX_FRAMES_IN_FLIGHT];
+    DeviceFrameBuffer m_TonemapFrameBuffers[MAX_FRAMES_IN_FLIGHT];
+    DeviceRenderPass m_TonemapRenderPass; 
     Scope<WindowInternal::GammaFilter> m_GammaFilter;
-    DeviceDescriptorPool m_DescriptorPool;
+    DeviceDescriptorPool m_DescriptorPools[MAX_FRAMES_IN_FLIGHT];
     //================================
+    uint32_t m_CurrentFrame=0;
 private:
-    /**
-     * @brief create framebuffers
-     */
-    void CreateFramebuffers();
+
     /**
      * @brief create surface
      */
@@ -121,11 +128,21 @@ private:
      *@brief Create swapchain image views
      */
     void CreateImageViews();
-    void CreateRenderPass(VkFormat format);
     void CreateCommandBuffer();
     bool ResizeFinalImage(const Vec2u& size);
     void OnWindowResize(const Vec2u& size);
 private:
     Input m_Input;
+private://render graph
+    Scope<RenderGraph::ResourceArena> m_ResourceArena;
+    Scope<RenderGraph::ResourceLruPool> m_ResourcePool;
+    Scope<RenderGraph::RenderGraph> m_RenderGraph;
+    
+    // create render graph, register final image
+    // and call each layer RegisterRenderPasses function
+    void CreateRenderGraph();
+    RenderGraph::AccessId<DeviceTexture> m_FinalImageAccessId;
+
+
 };
 } // namespace Aether

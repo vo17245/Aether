@@ -28,7 +28,7 @@ void RenderGraph::CullTasks()
     std::stack<VirtualResourceBase*> unreferencedResources;
     for (auto& resource : m_Resources)
     {
-        if (resource->refCount == 0 && resource->creator == nullptr)
+        if (resource->refCount == 0 && resource->Transient())
             unreferencedResources.push(resource.get());
     }
 
@@ -51,7 +51,7 @@ void RenderGraph::CullTasks()
                 {
                     read_resource->refCount--;
                 }
-                if (read_resource->refCount == 0 && read_resource->creator == nullptr)
+                if (read_resource->refCount == 0 && read_resource->Transient())
                     unreferencedResources.push(read_resource);
             }
         }
@@ -72,7 +72,7 @@ void RenderGraph::CullTasks()
                     {
                         read_resource->refCount--;
                     }
-                    if (read_resource->refCount == 0 && read_resource->creator == nullptr)
+                    if (read_resource->refCount == 0 && read_resource->Transient())
                     {
                         unreferencedResources.push(read_resource);
                     }
@@ -143,15 +143,23 @@ void RenderGraph::PerformResourceAliasing()
     // caculate last access task index in m_Steps for each resource
     for (auto& resource : m_Resources)
     {
-        auto lastReader = std::find_if(m_Steps.begin(), m_Steps.end(),
-                                       [&](const TaskBase* task) { return task == resource->readers.back().Get(); });
-        assert(lastReader != m_Steps.end());
-        resource->lastAccessTaskIndex = std::distance(m_Steps.begin(), lastReader);
-        auto lastWriter = std::find_if(m_Steps.begin(), m_Steps.end(),
-                                       [&](const TaskBase* task) { return task == resource->writers.back().Get(); });
-        assert(lastWriter != m_Steps.end());
-        resource->lastAccessTaskIndex =
-            std::max(resource->lastAccessTaskIndex, size_t(std::distance(m_Steps.begin(), lastWriter)));
+        if (!resource->readers.empty())
+        {
+            auto lastReader = std::find_if(m_Steps.begin(), m_Steps.end(), [&](const TaskBase* task) {
+                return task == resource->readers.back().Get();
+            });
+            assert(lastReader != m_Steps.end());
+            resource->lastAccessTaskIndex = std::distance(m_Steps.begin(), lastReader);
+        }
+        if (!resource->writers.empty())
+        {
+            auto lastWriter = std::find_if(m_Steps.begin(), m_Steps.end(), [&](const TaskBase* task) {
+                return task == resource->writers.back().Get();
+            });
+            assert(lastWriter != m_Steps.end());
+            resource->lastAccessTaskIndex =
+                std::max(resource->lastAccessTaskIndex, int64_t(std::distance(m_Steps.begin(), lastWriter)));
+        }
     }
     // perform resource aliasing
     auto pool = Detail::VirtualResourcePool();
@@ -178,7 +186,7 @@ void RenderGraph::PerformResourceAliasing()
         // push dead resources to the pool
         for (auto& resource : task->reads)
         {
-            if (resource->lastAccessTaskIndex == i)
+            if (resource->lastAccessTaskIndex <= (int64_t)i)
             {
                 VisitVirtualResource(*resource, [&](auto&& r) -> void {
                     using ResourceType = typename std::decay_t<decltype(r)>::ResourceType;
@@ -188,7 +196,7 @@ void RenderGraph::PerformResourceAliasing()
         }
         for (auto& resource : task->writes)
         {
-            if (resource->lastAccessTaskIndex == i)
+            if (resource->lastAccessTaskIndex <= (int64_t)i)
             {
                 VisitVirtualResource(*resource, [&](auto&& r) -> void {
                     using ResourceType = typename std::decay_t<decltype(r)>::ResourceType;
@@ -298,6 +306,26 @@ void RenderGraph::InsertImageLayoutTransition()
         // add the task to new steps
         newSteps.push_back(&task);
     }
+    // restore image layout
+    for (auto& resource : m_Resources)
+    {
+        if (resource->code != ResourceCode::Texture)
+        {
+            continue;
+        }
+        auto& texture = static_cast<VirtualResource<DeviceTexture>&>(*resource);
+        auto& slot = m_ResourceAccessor->GetSlot(texture.id);
+        if (slot.virtualInfo.layout != texture.desc.layout)
+        {
+            auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
+            transitionTask->texture = texture.id;
+            transitionTask->oldLayout = slot.virtualInfo.layout;
+            transitionTask->newLayout = texture.desc.layout;
+            m_Tasks.push_back(std::move(transitionTask));
+            newSteps.push_back(m_Tasks.back().get());
+            slot.virtualInfo.layout = texture.desc.layout;
+        }
+    }
 }
 void RenderGraph::MergeRenderPasses()
 {
@@ -358,6 +386,7 @@ void RenderGraph::SetResourceSlotSupportsInFlightResources()
         {
             auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(*resource);
             auto textureId = imageView.desc.texture;
+            assert(m_AccessIdToResourceIndex.contains(textureId.handle)&&"Texture resource not found");
             auto& virtualResource = *m_Resources[m_AccessIdToResourceIndex[textureId.handle]];
             assert(virtualResource.code == ResourceCode::Texture);
             if (virtualResource.writers.empty())
@@ -424,25 +453,25 @@ DeviceRenderPassDesc RenderGraph::RenderPassDescToDeviceRenderPassDesc(const Ren
 FrameBufferDesc RenderGraph::RenderPassDescToFrameBufferDesc(const RenderPassDesc& desc)
 {
     FrameBufferDesc framebufferDesc;
-    framebufferDesc.colorAttachmentCount=desc.colorAttachmentCount;
-    framebufferDesc.width=desc.width;
-    framebufferDesc.height=desc.height;
-    for(size_t i=0;i<framebufferDesc.colorAttachmentCount;++i)
+    framebufferDesc.colorAttachmentCount = desc.colorAttachmentCount;
+    framebufferDesc.width = desc.width;
+    framebufferDesc.height = desc.height;
+    for (size_t i = 0; i < framebufferDesc.colorAttachmentCount; ++i)
     {
-        auto& frameBufferAttachment=framebufferDesc.colorAttachments[i];
-        auto& attachment=desc.colorAttachment[i];
-        frameBufferAttachment.imageView=attachment.imageView;
-        frameBufferAttachment.loadOp=attachment.loadOp;
-        frameBufferAttachment.storeOp=attachment.storeOp;
+        auto& frameBufferAttachment = framebufferDesc.colorAttachments[i];
+        auto& attachment = desc.colorAttachment[i];
+        frameBufferAttachment.imageView = attachment.imageView;
+        frameBufferAttachment.loadOp = attachment.loadOp;
+        frameBufferAttachment.storeOp = attachment.storeOp;
     }
-    if(desc.depthAttachment)
+    if (desc.depthAttachment)
     {
-        auto depthAttachment=Attachment();
-        auto& attachment=*desc.depthAttachment;
-        depthAttachment.imageView=attachment.imageView;
-        depthAttachment.loadOp=attachment.loadOp;
-        depthAttachment.storeOp=attachment.storeOp;
-        framebufferDesc.depthAttachment=depthAttachment;
+        auto depthAttachment = Attachment();
+        auto& attachment = *desc.depthAttachment;
+        depthAttachment.imageView = attachment.imageView;
+        depthAttachment.loadOp = attachment.loadOp;
+        depthAttachment.storeOp = attachment.storeOp;
+        framebufferDesc.depthAttachment = depthAttachment;
     }
     return framebufferDesc;
 }
@@ -458,6 +487,10 @@ void RenderGraph::Execute()
             renderTask.Execute(*m_CommandBuffer, *m_ResourceAccessor);
         }
         break;
+        case TaskType::ImageLayoutTransitionTask: {
+            auto& transitionTask = static_cast<ImageLayoutTransitionTask&>(task);
+            transitionTask.Execute(*m_CommandBuffer, *m_ResourceAccessor);
+        }
         default:
             assert(false && "Unsupported task type in RenderGraph::Execute");
         }

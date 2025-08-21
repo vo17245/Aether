@@ -3,7 +3,7 @@
 #include <memory>
 #include <ranges>
 #include <vector>
-
+#include <tuple>
 // clang-format on
 namespace Aether
 {
@@ -50,5 +50,19 @@ requires std::is_scoped_enum_v<U>
 inline constexpr bool IsFlagSet(T flags, U flag)
 {
     return (flags & static_cast<std::underlying_type_t<U>>(flag)) ;
+}
+namespace Detail
+{
+template<typename T,typename F, size_t... Is>
+inline constexpr void ForEachInTupleImpl(T&& tuple, F&& f, std::index_sequence<Is...>)
+{
+    (f(std::get<Is>(std::forward<T>(tuple))) , ...);
+}
+}
+template<typename Tuple,typename F>
+inline constexpr void ForEachInTuple(Tuple&& tuple,F&& f)
+{
+    using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
+    Detail::ForEachInTupleImpl(std::forward<Tuple>(tuple), std::forward<F>(f), Indices{});
 }
 } // namespace Aether

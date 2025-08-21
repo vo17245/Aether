@@ -23,7 +23,6 @@ public:
     DeviceDescriptorPool& pool)
     {
         GammaFilter filter;
-        filter.m_UniformBuffer=DeviceBuffer::CreateForUniform(sizeof(UniformBuffer));
         if (!filter.CreateSampler())
         {
             return std::unexpected<std::string>("CreateSampler failed");
@@ -47,11 +46,8 @@ public:
         
         return filter;
     }
-    bool Render(DeviceTexture& from,DeviceFrameBufferView to,DeviceCommandBufferView commandBuffer,DeviceDescriptorPool& pool);
-    void SetGamma(float gamma)
-    {
-        m_HostUniformBuffer.gamma=gamma;
-    }
+    bool Render(DeviceTexture& from,DeviceCommandBufferView commandBuffer,DeviceDescriptorPool& pool);
+
 
 private:
     bool UpdateDescriptor(DeviceTexture& from);// per frame
@@ -61,7 +57,6 @@ private:
     DevicePipelineLayout m_PipelineLayout;
     DeviceDescriptorSet m_DescriptorSet;
     Mesh m_Mesh;
-    DeviceBuffer m_UniformBuffer;
     DeviceMesh m_DeviceMesh;
     DeviceSampler m_Sampler;
     bool CreateSampler();
@@ -76,10 +71,7 @@ private:
         }
         return true;
     }
-    struct UniformBuffer
-    {
-        float gamma=2.2f;
-    } m_HostUniformBuffer;
+
     bool CreatePipeline(const vk::RenderPass& renderPass);
     bool CreateDescriptor(DeviceDescriptorPool& pool);// per frame
     bool CreateShader()
@@ -89,14 +81,11 @@ private:
 layout(location=0) in vec2 v_TexCoord;
 layout(location=0) out vec4 FragColor;
 layout(set=1,binding=0) uniform sampler2D u_Texture;
-layout(set=0,binding=0) uniform UniformBuffer
-{
-    float gamma;
-}ubo;
+
 void main()
 {
 vec4 textureColor=texture(u_Texture,v_TexCoord);
-FragColor=vec4(pow(textureColor.rgb,vec3(ubo.gamma)),textureColor.a);
+FragColor=vec4(pow(textureColor.rgb,vec3(2.2)),textureColor.a);
 }
 )";
         static const char* vert = R"(

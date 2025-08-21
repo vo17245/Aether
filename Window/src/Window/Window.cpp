@@ -114,6 +114,15 @@ void Window::PushLayer(Layer* layer)
     m_Layers.emplace_back(layer);
 
     layer->OnAttach(this);
+    CreateRenderGraph();
+}
+void Window::PushLayers(const std::span<Layer*>& layers)
+{
+    for (auto* layer : layers)
+    {
+        PushLayer(layer);
+    }
+    CreateRenderGraph();
 }
 void Window::PopLayer(Layer* layer)
 {
@@ -148,14 +157,7 @@ std::vector<vk::ImageView>& Window::GetImageViews()
 {
     return m_SwapChainImageViews;
 }
-const std::vector<vk::FrameBuffer>& Window::GetFrameBuffers() const
-{
-    return m_SwapChainFramebuffers;
-}
-std::vector<vk::FrameBuffer>& Window::GetFrameBuffers()
-{
-    return m_SwapChainFramebuffers;
-}
+
 void Window::CreateCommandBuffer()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -172,8 +174,6 @@ bool Window::CreateRenderObject()
     CreateSurface(instance);
     CreateSwapChain(instance, physicalDevice, device);
     CreateImageViews();
-    CreateRenderPass(m_SwapChainImageFormat);
-    CreateFramebuffers();
     CreateSyncObjects();
     CreateCommandBuffer();
     bool res = CreateFinalImage();
@@ -181,71 +181,85 @@ bool Window::CreateRenderObject()
     {
         return false;
     }
+    InitRenderGraphResource();
     return true;
 }
 bool Window::CreateFinalImage()
 {
     auto size = GetSize();
-    auto textureOpt = DeviceTexture::CreateForColorAttachment(size.x(), size.y(), PixelFormat::RGBA8888);
-    if (!textureOpt)
-    {
-        assert(false && "DeviceTexture::CreateForTexture failed");
-        return false;
-    }
-    auto& texture = *textureOpt;
-    auto renderPassOpt = vk::RenderPass::CreateDefault(PixelFormat::RGBA8888);
+    VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
+    // create tonemap render pass
+
+    auto renderPassOpt = vk::RenderPass::CreateForPresent(m_SwapChainImageFormat);
     if (!renderPassOpt)
     {
         assert(false && "RenderPass::CreateDefault failed");
         return false;
     }
-    m_FinalRenderPass = DeviceRenderPass(std::move(renderPassOpt.value()));
+    m_TonemapRenderPass = DeviceRenderPass(std::move(renderPassOpt.value()));
+    // create final image(layer will render to final image)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        auto textureOpt = DeviceTexture::CreateForColorAttachment(size.x(), size.y(), PixelFormat::RGBA8888);
+        if (!textureOpt)
+        {
+            assert(false && "DeviceTexture::CreateForTexture failed");
+            return false;
+        }
+        auto& texture = *textureOpt;
+        texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
 
-    VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
-    auto framebufferOpt =
-        vk::FrameBuffer::Create(m_FinalRenderPass.GetVk(), extent, texture.GetOrCreateDefaultImageView().GetVk());
-    if (!framebufferOpt)
-    {
-        assert(false && "FrameBuffer::Create failed");
-        return false;
+        m_FinalTextures[i] = std::move(texture);
     }
-    auto& framebuffer = *framebufferOpt;
-    auto poolOpt = DeviceDescriptorPool::Create();
-    if (!poolOpt)
+
+    // create tonemap framebuffer
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        assert(false && "DeviceDescriptorPool::Create failed");
-        return false;
+        auto framebufferOpt = vk::FrameBuffer::Create(m_TonemapRenderPass.GetVk(), extent, m_SwapChainImageViews[i]);
+        if (!framebufferOpt)
+        {
+            assert(false && "FrameBuffer::Create failed");
+            return false;
+        }
+        auto& framebuffer = *framebufferOpt;
+        m_TonemapFrameBuffers[i] = std::move(framebuffer);
     }
-    auto& pool = *poolOpt;
-    auto filterOpt = WindowInternal::GammaFilter::Create(*m_RenderPass[0], pool);
+    // create descriptor pool
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        auto poolOpt = DeviceDescriptorPool::Create();
+        if (!poolOpt)
+        {
+            assert(false && "DeviceDescriptorPool::Create failed");
+            return false;
+        }
+        auto& pool = *poolOpt;
+        m_DescriptorPools[i] = std::move(pool);
+    }
+    // create gamma filter
+
+    auto filterOpt = WindowInternal::GammaFilter::Create(m_TonemapRenderPass.GetVk(), m_DescriptorPools[0]);
     if (!filterOpt)
     {
         assert(false && "GammaFilter::Create failed");
         return false;
     }
     m_GammaFilter = CreateScope<WindowInternal::GammaFilter>(std::move(filterOpt.value()));
-    m_GammaFilter->SetGamma(2.2f);
-    texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
-
-    m_FinalTexture = std::move(texture);
-    m_FinalFrameBuffer = DeviceFrameBuffer(std::move(framebuffer));
-    m_DescriptorPool = std::move(pool);
 }
 void Window::ReleaseFinalImage()
 {
-    m_FinalTexture = DeviceTexture();
-    m_FinalFrameBuffer = DeviceFrameBuffer();
-    m_FinalRenderPass = DeviceRenderPass();
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        m_FinalTextures[i] = DeviceTexture();
+        m_TonemapFrameBuffers[i] = DeviceFrameBuffer();
+        m_DescriptorPools[i] = DeviceDescriptorPool();
+    }
+
+    m_TonemapRenderPass = DeviceRenderPass();
     m_GammaFilter.reset();
-    m_DescriptorPool = DeviceDescriptorPool();
 }
 void Window::ReleaseRenderObject()
 {
-    m_SwapChainFramebuffers.clear();
-    for (auto& renderPass : m_RenderPass)
-    {
-        renderPass.reset();
-    }
     m_SwapChainImageViews.clear();
     m_SwapChainImages.clear();
     if (m_SwapChain != VK_NULL_HANDLE)
@@ -264,32 +278,15 @@ void Window::ReleaseRenderObject()
         m_GraphicsCommandBuffer[i] = DeviceCommandBuffer();
     }
     ReleaseFinalImage();
+    m_RenderGraph.reset();
+    m_ResourcePool.reset();
+    m_ResourceArena.reset();
 }
 VkSurfaceKHR Window::GetSurface() const
 {
     return m_Surface;
 }
-vk::RenderPass& Window::GetRenderPass(uint32_t index) const
-{
-    return *m_RenderPass[index];
-}
 
-/**
- * @brief create framebuffers
- */
-void Window::CreateFramebuffers()
-{
-    for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
-    {
-        auto framebufferOpt = vk::FrameBuffer::Create(*m_RenderPass[i], m_SwapChainExtent, m_SwapChainImageViews[i]);
-        if (!framebufferOpt.has_value())
-        {
-            assert(false && "FrameBuffer::Create failed");
-        }
-
-        m_SwapChainFramebuffers.emplace_back(std::move(framebufferOpt.value()));
-    }
-}
 /**
  * @brief create surface
  */
@@ -420,69 +417,74 @@ void Window::OnUpdate(float sec)
     {
         layer->OnUpdate(sec);
     }
+    bool anyLayerNeedRebuild = false;
+    for (auto& layer : m_Layers)
+    {
+        if (layer->NeedRebuildRenderGraph())
+        {
+            anyLayerNeedRebuild = true;
+            break;
+        }
+    }
+    if(anyLayerNeedRebuild)
+    {
+        CreateRenderGraph();
+    }
 }
-void Window::WaitLastFrameComplete()
-{
-    m_CommandBufferFences[m_CurrentFrame]->Wait();
-}
+
 void Window::OnRender()
 {
+    // wait for render resource
+    m_CommandBufferFences[m_CurrentFrame]->Wait();
+
+    // acquire next image
+    uint32_t imageIndex;
+    auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
+    VkResult result = vkAcquireNextImageKHR(vk::GRC::GetDevice(), m_SwapChain, UINT64_MAX,
+                                            imageAvailableSemaphore.GetHandle(), VK_NULL_HANDLE, &imageIndex);
+
+    if (result != VK_SUCCESS)
+    {
+        assert(false && "unknown error");
+        return;
+    }
+    m_DescriptorPools[m_CurrentFrame].Clear();
+
     for (auto* layer : m_Layers)
     {
         layer->OnFrameBegin();
     }
-    m_DescriptorPool.Clear();
     if (m_Layers.empty())
         return;
     if (GetSize().x() == 0 || GetSize().y() == 0)
         return;
 
-    // async acquire next image
-    uint32_t imageIndex;
-    VkResult result =
-        vkAcquireNextImageKHR(vk::GRC::GetDevice(), m_SwapChain, UINT64_MAX,
-                              m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle(), VK_NULL_HANDLE, &imageIndex);
-    if (result != VK_SUCCESS)
-    {
-        return;
-    }
-    m_CommandBufferFences[m_CurrentFrame]->Reset();
-
     // record command buffer
-    size_t lastFrame = (m_CurrentFrame + MAX_FRAMES_IN_FLIGHT - 1) % MAX_FRAMES_IN_FLIGHT;
     auto& curCommandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
-    auto& curRenderPass = *m_RenderPass[m_CurrentFrame];
-    auto& curFrameBuffer = m_SwapChainFramebuffers[imageIndex];
-    Vec4f clearColor(0.0f, 0.0f, 0.0f, 1.0f);
     curCommandBuffer.Reset();
     curCommandBuffer.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
-    m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::ColorAttachment,
-                                         curCommandBuffer);
-    for (size_t i = 0; i < m_Layers.size(); ++i)
-    {
-        auto* layer = m_Layers[i];
-        // layer->OnRender(*m_RenderPass[m_CurrentFrame],
-        //                 m_SwapChainFramebuffers[imageIndex],
-        //                 *m_GraphicsCommandBuffer[m_CurrentFrame]);
-        layer->OnRender(m_GraphicsCommandBuffer[m_CurrentFrame]);
-    }
-    // render to screen
-    m_FinalTexture.AsyncTransitionLayout(DeviceImageLayout::ColorAttachment, DeviceImageLayout::Texture,
-                                         curCommandBuffer);
-    curCommandBuffer.BeginRenderPass(*m_RenderPass[m_CurrentFrame], m_SwapChainFramebuffers[imageIndex],
+    m_FinalTextures[m_CurrentFrame].AsyncTransitionLayout(DeviceImageLayout::Texture,
+                                                          DeviceImageLayout::ColorAttachment, curCommandBuffer);
+    m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
+    m_RenderGraph->SetCurrentFrame(m_CurrentFrame);
+    m_RenderGraph->Execute();
+    // render to screen (tonemap)
+    m_FinalTextures[m_CurrentFrame].AsyncTransitionLayout(DeviceImageLayout::ColorAttachment,
+                                                          DeviceImageLayout::Texture, curCommandBuffer);
+    curCommandBuffer.BeginRenderPass(m_TonemapRenderPass.GetVk(), m_TonemapFrameBuffers[imageIndex].GetVk(),
                                      Vec4f(0.0, 0.0, 0.0, 1.0));
     curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
     curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
-    m_GammaFilter->Render(m_FinalTexture, m_SwapChainFramebuffers[imageIndex], curCommandBuffer, m_DescriptorPool);
+    m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
     curCommandBuffer.EndRenderPass();
     // curCommandBuffer.EndRenderPass();
     curCommandBuffer.End();
     // commit command buffer
-    auto imageAvailableSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame]->GetHandle();
+    auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetHandle();
     static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
     auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetHandle();
-    m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphore, &stage, 1,
+    m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphoreHandle, &stage, 1,
                                                            &renderFinishedSemaphore,
                                                            m_CommandBufferFences[m_CurrentFrame]->GetHandle());
     // async present
@@ -496,6 +498,9 @@ void Window::OnRender()
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
     vkQueuePresentKHR(vk::GRC::GetPresentQueue().GetHandle(), &presentInfo);
+
+    // forward current frame index
+    m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 bool Window::CreateSyncObjects()
 {
@@ -539,44 +544,45 @@ Input& Window::GetInput()
     return m_Input;
 }
 
-void Window::CreateRenderPass(VkFormat format)
-{
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        m_RenderPass[i] = std::make_unique<vk::RenderPass>(*vk::RenderPass::CreateForPresent(format));
-    }
-}
 bool Window::ReleaseVulkanObjects()
 {
     ReleaseRenderObject();
     return ReleaseSyncObjects();
 }
-DeviceTexture& Window::GetFinalTexture()
+DeviceTexture& Window::GetFinalTexture(uint32_t index)
 {
-    return m_FinalTexture;
+    return m_FinalTextures[index];
 }
 bool Window::ResizeFinalImage(const Vec2u& size)
 {
-    auto textureOpt = DeviceTexture::CreateForColorAttachment(size.x(), size.y(), PixelFormat::RGBA8888);
-    if (!textureOpt)
-    {
-        assert(false && "DeviceTexture::CreateForTexture failed");
-        return false;
-    }
-    auto& texture = *textureOpt;
     VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
-    auto framebufferOpt =
-        vk::FrameBuffer::Create(m_FinalRenderPass.GetVk(), extent, texture.GetOrCreateDefaultImageView().GetVk());
-    if (!framebufferOpt)
+    // create final image(layer will render to final image)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        assert(false && "FrameBuffer::Create failed");
-        return false;
+        auto textureOpt = DeviceTexture::CreateForColorAttachment(size.x(), size.y(), PixelFormat::RGBA8888);
+        if (!textureOpt)
+        {
+            assert(false && "DeviceTexture::CreateForTexture failed");
+            return false;
+        }
+        auto& texture = *textureOpt;
+        texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
+
+        m_FinalTextures[i] = std::move(texture);
     }
-    auto& framebuffer = *framebufferOpt;
-    texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
-    m_FinalTexture = std::move(texture);
-    m_FinalFrameBuffer = DeviceFrameBuffer(std::move(framebuffer));
-    return true;
+
+    // create tonemap framebuffer
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        auto framebufferOpt = vk::FrameBuffer::Create(m_TonemapRenderPass.GetVk(), extent, m_SwapChainImageViews[i]);
+        if (!framebufferOpt)
+        {
+            assert(false && "FrameBuffer::Create failed");
+            return false;
+        }
+        auto& framebuffer = *framebufferOpt;
+        m_TonemapFrameBuffers[i] = std::move(framebuffer);
+    }
 }
 void Window::OnWindowResize(const Vec2u& size)
 {
@@ -585,5 +591,37 @@ void Window::OnWindowResize(const Vec2u& size)
         return; // no need to resize
     }
     assert(ResizeFinalImage(size) && "failed to resize window final image");
+    CreateRenderGraph();
+}
+void Window::InitRenderGraphResource()
+{
+    m_ResourceArena = CreateScope<RenderGraph::ResourceArena>();
+    m_ResourcePool = CreateScope<RenderGraph::ResourceLruPool>(m_ResourceArena.get());
+}
+void Window::CreateRenderGraph()
+{
+    // create
+    m_RenderGraph = CreateScope<RenderGraph::RenderGraph>(m_ResourceArena.get(), m_ResourcePool.get());
+    // import final image
+    RenderGraph::ResourceId<DeviceTexture> finalImageResourceIds[MAX_FRAMES_IN_FLIGHT];
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        finalImageResourceIds[i] = m_ResourceArena->Import(&m_FinalTextures[i]);
+    }
+    RenderGraph::TextureDesc finalImageDesc;
+    finalImageDesc.usages = PackFlags(DeviceImageUsage::ColorAttachment , DeviceImageUsage::Sample);
+    finalImageDesc.pixelFormat = PixelFormat::RGBA8888;
+    finalImageDesc.width = m_FinalTextures[0].GetWidth();
+    finalImageDesc.height = m_FinalTextures[0].GetHeight();
+    finalImageDesc.layout = DeviceImageLayout::ColorAttachment;
+    m_FinalImageAccessId = m_RenderGraph->Import(
+        finalImageDesc, std::span<RenderGraph::ResourceId<DeviceTexture>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
+    // call each layer's RegisterRenderPasses function
+    for(auto* layer:m_Layers)
+    {
+        layer->RegisterRenderPasses(*m_RenderGraph);
+    }
+    // compile
+    m_RenderGraph->Compile();
 }
 } // namespace Aether

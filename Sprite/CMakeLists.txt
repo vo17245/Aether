@@ -5,8 +5,8 @@ endif()
 
 set(MODULE_NAME Sprite)
 file(GLOB_RECURSE FILES
-"${CMAKE_CURRENT_SOURCE_DIR}/Source/*.cpp" 
-"${CMAKE_CURRENT_SOURCE_DIR}/Source/*.h"
+"${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" 
+"${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
 
 add_library(${MODULE_NAME} STATIC ${FILES})
@@ -17,7 +17,7 @@ target_include_directories(${MODULE_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source/Public>
     $<INSTALL_INTERFACE:${MODULE_NAME}/include>
 )
-target_include_directories(${MODULE_NAME} PRIVATE "Source/Private")
+target_include_directories(${MODULE_NAME} PRIVATE "src")
 target_link_libraries(${MODULE_NAME} PUBLIC Core
 Render
 Resource
@@ -34,7 +34,7 @@ install(TARGETS ${MODULE_NAME}
 
 include(CMakePackageConfigHelpers)
 # install时拷贝头文件
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Source/Public/"
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/"
     DESTINATION ${MODULE_NAME}/include
     FILES_MATCHING PATTERN "*.h"
 )

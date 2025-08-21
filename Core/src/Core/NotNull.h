@@ -21,7 +21,7 @@ public:
     NotNull& operator=(std::nullptr_t) = delete;
     template <typename U>
     requires std::is_base_of_v<T, U>
-    NotNull(const NotNull<U>& other) : m_Ptr(other.m_Ptr)
+    NotNull(U* ptr) : m_Ptr(ptr)
     {
     }
     NotNull(T& v) : m_Ptr(&v)

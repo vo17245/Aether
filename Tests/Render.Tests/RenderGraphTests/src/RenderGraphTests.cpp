@@ -32,23 +32,11 @@ class TestLayer : public Layer
 public:
     ~TestLayer()
     {
-        m_RenderGraph.reset();
-        m_ResourceLruPool.reset();
     }
-    virtual void OnRender(DeviceCommandBuffer& _commandBuffer) override
-    {
-        m_RenderGraph->SetCommandBuffer(&_commandBuffer);
-        m_RenderGraph->Execute();
-        // auto& commandBuffer = _commandBuffer.GetVk();
-        // commandBuffer.BeginRenderPass(m_RenderPass.GetVk(), m_Framebuffer.GetVk(), Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
-        // commandBuffer.SetViewport(0, 0, m_Framebuffer.GetSize().x(), m_Framebuffer.GetSize().y());
-        // commandBuffer.SetScissor(0, 0, m_Framebuffer.GetSize().x(), m_Framebuffer.GetSize().y());
-        // commandBuffer.BindPipeline(*m_Pipeline);
-        // Render::Utils::DrawMesh(commandBuffer, *m_Mesh);
-        // commandBuffer.EndRenderPass();
-    }
+
     virtual void OnAttach(Window* window) override
     {
+        m_Window = window;
         // create command buffer pool
         m_CommandPool = vk::GraphicsCommandPool::CreateScope();
         //// create cpu grid
@@ -71,68 +59,39 @@ public:
             desc.colorAttachments[0].format = PixelFormat::RGBA8888;
             desc.colorAttachments[0].loadOp = DeviceAttachmentLoadOp::Clear;
             desc.colorAttachments[0].storeOp = DeviceAttachmentStoreOp::Store;
-            m_RenderPass = DeviceRenderPass::Create(desc);
-        }
-        {
-            DeviceFrameBufferDesc desc;
-            desc.colorAttachmentCount = 1;
-            desc.colorAttachments[0] = &window->GetFinalTexture().GetOrCreateDefaultImageView();
-            desc.width = window->GetSize().x();
-            desc.height = window->GetSize().y();
-            m_Framebuffer = DeviceFrameBuffer::Create(m_RenderPass, desc);
-        }
-        {
+            auto renderPass = DeviceRenderPass::Create(desc);
             // create pipeline
             vk::PipelineLayout::Builder layoutBuilder;
             auto pipelineLayout = layoutBuilder.Build();
-            vk::GraphicsPipeline::Builder pipelineBuilder(m_RenderPass.GetVk(), *pipelineLayout);
+            vk::GraphicsPipeline::Builder pipelineBuilder(renderPass.GetVk(), *pipelineLayout);
             pipelineBuilder.AddFragmentStage(*m_FragmentShader, "main");
             pipelineBuilder.AddVertexStage(*m_VertexShader, "main");
             pipelineBuilder.PushVertexBufferLayouts(m_Mesh->GetVertexBufferLayouts());
             m_Pipeline = pipelineBuilder.BuildScope();
         }
-        { // build RenderGraph
-            // create render graph
-            {
-                m_ResourceArena = CreateScope<RenderGraph::ResourceArena>();
-                m_ResourceLruPool = CreateScope<RenderGraph::ResourceLruPool>(*m_ResourceArena);
-                m_RenderGraph = CreateScope<RenderGraph::RenderGraph>(m_ResourceArena.get(), m_ResourceLruPool.get());
-            }
-            RenderGraph::AccessId<DeviceTexture> finalTextureId;
-            // import final texture
-            {
-                auto& finalTexture = window->GetFinalTexture();
-                auto resourceId = m_ResourceArena->Import(&finalTexture);
-                auto& accessor = m_RenderGraph->GetResourceAccessor();
-                auto& slot = accessor.CreateExternalSlot<DeviceTexture>(resourceId);
-                finalTextureId = slot.id;
-            }
-            // create render task
-            {
-                struct TaskData
-                {
-                };
-                Vec2i size = window->GetSize();
-                auto taskData = m_RenderGraph->AddRenderTask<TaskData>(
-                    [&](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
-                        auto imageView = builder.Create<DeviceImageView>(
-                            RenderGraph::ImageViewDesc{.texture = finalTextureId, .desc = {}});
-                        RenderGraph::RenderPassDesc renderPassDesc;
-                        renderPassDesc.colorAttachmentCount = 1;
-                        renderPassDesc.colorAttachment[0].imageView = imageView;
-                        builder.SetRenderPassDesc(renderPassDesc);
-                    },
-                    [size, this](DeviceCommandBuffer& _commandBuffer, RenderGraph::ResourceAccessor& accessor,
-                                 TaskData& data) {
-                        auto& commandBuffer = _commandBuffer.GetVk();
-                        commandBuffer.SetViewport(0, 0, size.x(), size.y());
-                        commandBuffer.SetScissor(0, 0, size.x(), size.y());
-                        commandBuffer.BindPipeline(*m_Pipeline);
-                        Render::Utils::DrawMesh(commandBuffer, *m_Mesh);
-                    });
-            }
-            m_RenderGraph->Compile();
-        }
+    }
+    virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph) override
+    {
+        struct TaskData
+        {
+        };
+        Vec2i size = m_Window->GetSize();
+        auto taskData = renderGraph.AddRenderTask<TaskData>(
+            [&](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
+                auto imageView = builder.Create<DeviceImageView>(
+                    RenderGraph::ImageViewDesc{.texture = m_Window->GetFinalImageAccessId(), .desc = {}});
+                RenderGraph::RenderPassDesc renderPassDesc;
+                renderPassDesc.colorAttachmentCount = 1;
+                renderPassDesc.colorAttachment[0].imageView = imageView;
+                builder.SetRenderPassDesc(renderPassDesc);
+            },
+            [size, this](DeviceCommandBuffer& _commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {
+                auto& commandBuffer = _commandBuffer.GetVk();
+                commandBuffer.SetViewport(0, 0, size.x(), size.y());
+                commandBuffer.SetScissor(0, 0, size.x(), size.y());
+                commandBuffer.BindPipeline(*m_Pipeline);
+                Render::Utils::DrawMesh(commandBuffer, *m_Mesh);
+            });
     }
 
 private:
@@ -142,13 +101,7 @@ private:
     Scope<vk::DescriptorSet> m_DescriptorSet;
     Scope<vk::ShaderModule> m_VertexShader;
     Scope<vk::ShaderModule> m_FragmentShader;
-    DeviceRenderPass m_RenderPass;
-    DeviceFrameBuffer m_Framebuffer;
-
-private:
-    Scope<RenderGraph::RenderGraph> m_RenderGraph;
-    Scope<RenderGraph::ResourceArena> m_ResourceArena;
-    Scope<RenderGraph::ResourceLruPool> m_ResourceLruPool;
+    Window* m_Window = nullptr;
 };
 
 class RenderGraphTests : public Application

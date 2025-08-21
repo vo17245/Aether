@@ -16,7 +16,11 @@ struct VirtualResourceBase
     TaskBase* creator = nullptr;
     ResourceCode code;
     size_t refCount = 0;            // for culling when compile
-    size_t lastAccessTaskIndex = 0; // for resource aliasing when compile
+    int64_t lastAccessTaskIndex = -1; // for resource aliasing when compile
+    inline bool Transient()const
+    {
+        return creator!=nullptr;
+    }
 };
 
 
@@ -31,6 +35,7 @@ struct VirtualResource : public VirtualResourceBase
     VirtualResource(const typename ResourceDescType<ResourceType>::Type& _desc, const AccessId<ResourceType>& _id) :
         desc(_desc), id(_id)
     {
+        code = GetResourceCode<ResourceType>::value;
     }
     VirtualResource()
     {

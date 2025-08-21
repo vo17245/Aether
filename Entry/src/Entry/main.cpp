@@ -28,7 +28,7 @@ int main()
         std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
         while (!window->ShouldClose())
         {
-            window->WaitLastFrameComplete();
+            //window->WaitLastFrameComplete();
             app->OnFrameBegin();
 
             WindowContext::PollEvents();

@@ -160,7 +160,7 @@ public:
     void PushResourceInUse(ResourceId<T> resourceId,const typename ResourceDescType<T>::Type& desc)
     {
         auto& resourceList = std::get<std::vector<ResourceInUse<T>>>(m_ResourceInUseList.resources);
-        resourceList.push_back({desc,resourceId, Render::Config::MaxFramesInFlight});
+        resourceList.push_back({desc,resourceId, (uint32_t)Render::Config::MaxFramesInFlight});
     }
     void OnFrameBegin()
     {

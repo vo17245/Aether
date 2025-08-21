@@ -15,7 +15,6 @@ namespace Aether
         }
         virtual void OnFrameBegin()
         {
-            // e.q. clear last frame temporary resource
         }
         virtual const char* GetName()const
         {

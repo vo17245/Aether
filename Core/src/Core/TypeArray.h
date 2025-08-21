@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <type_traits>
 #include <cstddef>
+#include <tuple>
 namespace Aether
 {
 template <typename T, typename... Ts>
@@ -64,5 +65,11 @@ struct IsArrayContainType<T, TypeArray<Ts...>>
 {
     static constexpr bool value = IsContainType<T, Ts...>::value;
 };
-
+template<typename T>
+struct TypeArrayToTuple;
+template<typename... Ts>
+struct TypeArrayToTuple<TypeArray<Ts...>>
+{
+    using Type = std::tuple<Ts...>;
+};
 } // namespace Aether

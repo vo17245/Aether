@@ -6,8 +6,8 @@
 #include "Window/WindowEvent.h"
 #include <Core/String.h>
 #include <variant>
-#include <Render/TaskGraph.h>
 #include "DownsamplingRenderPass.h"
+#include <Render/RenderGraph/RenderGraph.h>
 #ifdef DrawText
 #undef DrawText
 #endif
@@ -26,27 +26,21 @@ public:
             camera.screenSize.y() = resizeEvent.GetHeight();
             camera.target.x() = resizeEvent.GetWidth() / 2.0;
             camera.target.y() = resizeEvent.GetHeight() / 2.0;
-            {
-                auto texture = DeviceTexture::CreateForColorAttachment(m_Window->GetSize().x() * 4,
-                                                                       m_Window->GetSize().y() * 4,
-                                                                       PixelFormat::RGBA8888);
-                m_OversamplingTexture = CreateScope<DeviceTexture>(std::move(texture.value()));
-                m_TgOversamplingTexture->GetDesc().width = m_Window->GetSize().x() * 4;
-                m_TgOversamplingTexture->GetDesc().height = m_Window->GetSize().y() * 4;
-                m_TgOversamplingTexture->SetActualBorrow(m_OversamplingTexture.get());
-                m_TgFinalTexture->GetDesc().width = m_Window->GetSize().x();
-                m_TgFinalTexture->GetDesc().height = m_Window->GetSize().y();
-                m_TgFinalTexture->SetActualBorrow(m_Window->GetFinalTexture());
-            }
         }
     }
-    virtual void OnRender(
-        vk::RenderPass& renderPass,
-        vk::FrameBuffer& framebuffer,
-        vk::GraphicsCommandBuffer& commandBuffer) override
+    virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph)override
     {
-        m_TaskGraph.SetCommandBuffer(commandBuffer);
-        m_TaskGraph.Execute();
+        auto finalImage = m_Window->GetFinalImageAccessId();
+        // draw text to final image
+        struct TaskData
+        {
+        };
+        renderGraph.AddRenderTask<TaskData>(
+            [&](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
+            },
+            [](DeviceCommandBuffer& commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {
+
+            });
     }
     virtual void OnAttach(Window* window) override
     {
@@ -62,36 +56,12 @@ public:
         }
         {
             auto texture = DeviceTexture::CreateForColorAttachment(m_Window->GetSize().x() * 4,
-                                                                   m_Window->GetSize().y() * 4,
-                                                                   PixelFormat::RGBA8888);
+                                                                   m_Window->GetSize().y() * 4, PixelFormat::RGBA8888);
             m_OversamplingTexture = CreateScope<DeviceTexture>(std::move(texture.value()));
         }
-        m_TgOversamplingTexture = m_TaskGraph.AddRetainedTextureBorrow("oversampling texture",
-                                                                       m_OversamplingTexture.get(),
-                                                                       DeviceImageLayout::Undefined);
-        m_TgFinalTexture = m_TaskGraph.AddRetainedTextureBorrow("final image",
-                                                                window->GetFinalTexture(),
-                                                                DeviceImageLayout::ColorAttachment);
+    }
 
-        // DrawText(m_TgOversamplingTexture);
-        DrawText(m_TgFinalTexture);
-        // Downsampling(m_TgFinalTexture, m_TgOversamplingTexture);
-        m_TaskGraph.Compile();
-    }
-    void Downsampling(TaskGraph::Texture* finalTexture, TaskGraph::Texture* oversamplingTexture)
-    {
-        struct TaskData
-        {
-        };
-        TaskGraph::RenderPassDesc renderPassDesc;
-        renderPassDesc.colorAttachmentCount = 1;
-        renderPassDesc.colorAttachment[0].texture = finalTexture;
-        renderPassDesc.colorAttachment[0].loadOp = DeviceAttachmentLoadOp::Clear;
-        renderPassDesc.colorAttachment[0].storeOp = DeviceAttachmentStoreOp::Store;
-        renderPassDesc.clearColor = Vec4f{1.0, 1.0, 1.0, 1.0};
-        m_TaskGraph.AddRenderTask<TaskData>(renderPassDesc, [&](TaskGraph::RenderTaskBuilder& builder, TaskData&) { builder.Read(oversamplingTexture); }, [this, oversamplingTexture](TaskData&, DeviceCommandBufferView& commandBuffer) { m_Downsampling->Render(commandBuffer, *oversamplingTexture->GetActual(), ApplicationResource::GetSingleton().descriptorPool); });
-    }
-    void DrawText(TaskGraph::Texture* oversamplingTexture)
+    void DrawText(RenderGraph::AccessId<DeviceTexture> finalImage,RenderGraph::RenderGraph& renderGraph)
     {
         {
             struct TaskData
@@ -103,80 +73,81 @@ public:
             renderPassDesc.colorAttachment[0].loadOp = DeviceAttachmentLoadOp::Clear;
             renderPassDesc.colorAttachment[0].storeOp = DeviceAttachmentStoreOp::Store;
             renderPassDesc.clearColor = Vec4f{1.0, 1.0, 1.0, 1.0};
-            m_TaskGraph.AddRenderTask<TaskData>(renderPassDesc, [&](TaskGraph::RenderTaskBuilder& builder, TaskData&) {
+            m_TaskGraph.AddRenderTask<TaskData>(
+                renderPassDesc,
+                [&](TaskGraph::RenderTaskBuilder& builder, TaskData&) {
 
-            },
-                                                [this](TaskData&, DeviceCommandBufferView& commandBuffer) {
-float framePerSec = m_Frame / m_Sec;
-        std::string s = std::string("") + "fps: " + std::to_string(framePerSec) + "\n"
-                        + "我能吞下玻璃而不伤身体\n"
-                        + "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n";
+                },
+                [this](TaskData&, DeviceCommandBufferView& commandBuffer) {
+                    float framePerSec = m_Frame / m_Sec;
+                    std::string s = std::string("") + "fps: " + std::to_string(framePerSec) + "\n"
+                                    + "我能吞下玻璃而不伤身体\n"
+                                    + "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n";
 
+                    // get glyph curve
+                    Text::StrokeParam strokeParam;
+                    strokeParam.radius = 32;
+                    auto lines = ApplicationResource::GetSingleton().font->prepareGlyphsForText(s, {});
 
-        // get glyph curve
-        Text::StrokeParam strokeParam;
-        strokeParam.radius=32;
-        auto lines=ApplicationResource::GetSingleton().font->prepareGlyphsForText(s,
-            {});
-
-        size_t glyphCount = 0;
-        for (auto& line : lines)
-        {
-            glyphCount += line.visualGlyphs.size();
-        }
-        // calculate glyph layout
-        std::vector<Vec2f> glyphPos;
-        std::vector<uint32_t> glyphToRender;
-        glyphPos.reserve(glyphCount);
-        float worldSize = 32.0f;
-        {
-            
-            float x = 0;
-            float y = 0;
-            float width = 700;
-            
-            for (auto& line : lines)
-            {
-                for(auto& glyph:line.visualGlyphs)
-                {
-                    auto& info= ApplicationResource::GetSingleton().font->bufferGlyphInfo[glyph.indexInBuffer];
-                    float emSize = info.emSize;
-                    float scale = worldSize / emSize;
-                   
-                    glyphToRender.push_back(glyph.indexInBuffer);
-                    glyphPos.push_back(Vec2f(x+(glyph.xOffset+info.bearingX)*scale, y + (emSize-info.bearingY-glyph.yOffset ) * scale));
-                    x += glyph.xAdvance  * scale;
-                    y+= glyph.yAdvance * scale;
-                    if (x > width)
+                    size_t glyphCount = 0;
+                    for (auto& line : lines)
                     {
-                        x = 0;
-                        y += worldSize;
+                        glyphCount += line.visualGlyphs.size();
                     }
-                }
-                x = 0;
-                y += worldSize;
-              
-            }
-        }
-        if(glyphToRender.empty())
-        {
-            return;
-        }
-        auto& camera = ApplicationResource::GetSingleton().camera;
-        camera.CalculateMatrix();
-        Text::Raster::RenderPassParam param{
-            .commandBuffer = commandBuffer,
-            .descriptorPool = ApplicationResource::GetSingleton().descriptorPool,
-            .font = *ApplicationResource::GetSingleton().font,
-            .bufferGlyphInfoIndexes = glyphToRender,
-            .glyphPosition = glyphPos,
-            .worldSize = worldSize,
-            .camera = camera,
-            .z = 0.0f};
-        param.color = Vec3f(0, 0, 0);
+                    // calculate glyph layout
+                    std::vector<Vec2f> glyphPos;
+                    std::vector<uint32_t> glyphToRender;
+                    glyphPos.reserve(glyphCount);
+                    float worldSize = 32.0f;
+                    {
+                        float x = 0;
+                        float y = 0;
+                        float width = 700;
 
-        ApplicationResource::GetSingleton().textRaster->Render(param,
-                                                               *ApplicationResource::GetSingleton().rasterResource); });
+                        for (auto& line : lines)
+                        {
+                            for (auto& glyph : line.visualGlyphs)
+                            {
+                                auto& info =
+                                    ApplicationResource::GetSingleton().font->bufferGlyphInfo[glyph.indexInBuffer];
+                                float emSize = info.emSize;
+                                float scale = worldSize / emSize;
+
+                                glyphToRender.push_back(glyph.indexInBuffer);
+                                glyphPos.push_back(Vec2f(x + (glyph.xOffset + info.bearingX) * scale,
+                                                         y + (emSize - info.bearingY - glyph.yOffset) * scale));
+                                x += glyph.xAdvance * scale;
+                                y += glyph.yAdvance * scale;
+                                if (x > width)
+                                {
+                                    x = 0;
+                                    y += worldSize;
+                                }
+                            }
+                            x = 0;
+                            y += worldSize;
+                        }
+                    }
+                    if (glyphToRender.empty())
+                    {
+                        return;
+                    }
+                    auto& camera = ApplicationResource::GetSingleton().camera;
+                    camera.CalculateMatrix();
+                    Text::Raster::RenderPassParam param{.commandBuffer = commandBuffer,
+                                                        .descriptorPool =
+                                                            ApplicationResource::GetSingleton().descriptorPool,
+                                                        .font = *ApplicationResource::GetSingleton().font,
+                                                        .bufferGlyphInfoIndexes = glyphToRender,
+                                                        .glyphPosition = glyphPos,
+                                                        .worldSize = worldSize,
+                                                        .camera = camera,
+                                                        .z = 0.0f};
+                    param.color = Vec3f(0, 0, 0);
+
+                    ApplicationResource::GetSingleton().textRaster->Render(
+                        param, *ApplicationResource::GetSingleton().rasterResource);
+                });
         }
     }
     virtual void OnUpdate(float sec) override
@@ -190,8 +161,5 @@ private:
     float m_Sec = 0;
     uint32_t m_Frame = 0;
     Scope<DeviceTexture> m_OversamplingTexture;
-    TaskGraph::TaskGraph m_TaskGraph;
     Scope<DownsamplingRenderPass> m_Downsampling;
-    TaskGraph::Texture* m_TgFinalTexture = nullptr;
-    TaskGraph::Texture* m_TgOversamplingTexture = nullptr;
 };

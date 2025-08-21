@@ -8,6 +8,7 @@
 #include <type_traits>
 #include "vma/vk_mem_alloc.h"
 #include <cstring>
+
 namespace Aether {
 class Application;
 namespace vk {
@@ -57,6 +58,7 @@ public:
     static bool SyncCopy(const GraphicsCommandPool& commandPool, Buffer& src, Buffer& dst, size_t size);
     static bool SyncCopy(const GraphicsCommandPool& commandPool, Buffer& src, Buffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
     static bool SyncCopy(Buffer& src, Buffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
+    
 public:
     static std::optional<Buffer> Create(size_t size, Usage usage, Property properties);
     static std::optional<Buffer> CreateForStaging(size_t size)

@@ -21,14 +21,17 @@ add_subdirectory("Resource")
 add_subdirectory("IO")
 add_subdirectory("Dependencies")
 add_subdirectory("Entry")
-add_subdirectory("Demo")
-add_subdirectory("Tests")
 add_subdirectory("Scene")
 add_subdirectory("Text")
 add_subdirectory("Debug")
 add_subdirectory("Audio")
 
-
+if(AETHER_BUILD_DEMO)
+add_subdirectory("Demo")
+endif()
+if(AETHER_BUILD_TESTS)
+add_subdirectory("Tests")
+endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
     DESTINATION Vendor

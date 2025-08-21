@@ -52,8 +52,6 @@ void RenderContext::InitVulkan()
     CreateLogicalDevice();
     m_Window->CreateSwapChain(m_Instance, m_PhysicalDevice, m_Device);
     m_Window->CreateImageViews();
-    m_Window->CreateRenderPass(m_Window->m_SwapChainImageFormat);
-    m_Window->CreateFramebuffers();
     m_Window->CreateSyncObjects();
     m_QueueFamilyIndices = findQueueFamilies(m_PhysicalDevice, m_Window->GetSurface());
     // CreateCommandPool();

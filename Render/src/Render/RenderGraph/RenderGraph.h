@@ -32,6 +32,9 @@ public:
     }
 
     void Compile();
+    void SetCurrentFrame(uint32_t frame)
+    {
+    }
     void Execute();
     void SetCommandBuffer(DeviceCommandBuffer* commandBuffer)
     {
@@ -41,12 +44,23 @@ public:
     {
         return *m_ResourceAccessor;
     }
-    template <typename ResourceType, typename... Resources>
-        requires(IsResource<ResourceType>::value
-                 && (std::is_same_v<std::remove_cvref_t<Resources>, ResourceType*> && ...))
-    AccessId<ResourceType> Import(const typename ResourceDescType<ResourceType>::Type& desc, Resources... resources)
+    template <typename ResourceType>
+        requires(IsResource<ResourceType>::value)
+    AccessId<ResourceType> Import(const typename ResourceDescType<ResourceType>::Type& desc,
+                                  const std::span<ResourceId<ResourceType>>& ids)
     {
-        assert(false && "not implemented");
+        auto& slot = m_ResourceAccessor->CreateSlot<ResourceType>(desc);
+        for (size_t i = 0; i < ids.size(); ++i)
+        {
+            slot.frameResources[i] = ids[i];
+            slot.isRealized[i] = true;
+        }
+        slot.resourceCount = static_cast<uint32_t>(ids.size());
+        slot.external=true;
+        auto virtualResource = CreateScope<VirtualResource<ResourceType>>(desc, slot.id);
+        m_AccessIdToResourceIndex[slot.id.handle] = static_cast<uint32_t>(m_Resources.size());
+        m_Resources.push_back(std::move(virtualResource));
+        return slot.id;
     }
 
 private:
@@ -67,6 +81,7 @@ private:
 private:
     DeviceRenderPassDesc RenderPassDescToDeviceRenderPassDesc(const RenderPassDesc& desc);
     FrameBufferDesc RenderPassDescToFrameBufferDesc(const RenderPassDesc& desc);
+
 private:
     DeviceCommandBuffer* m_CommandBuffer = nullptr;
     Borrow<ResourceArena> m_ResourceArena;
@@ -131,30 +146,32 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
         read(desc.depthAttachment->imageView.handle);
     }
     // allocate render pass
-    auto renderPassDesc=m_Graph.RenderPassDescToDeviceRenderPassDesc(desc);
-    auto virtualRenderPassPtr=CreateScope<VirtualResource<DeviceRenderPass>>();
-    auto& virtualRenderPass=*virtualRenderPassPtr;
-    virtualRenderPass.creator=m_Task;
-    virtualRenderPass.readers.push_back(m_Task);
-    virtualRenderPass.desc=renderPassDesc;
-    virtualRenderPass.id=m_Graph.m_ResourceAccessor->CreateSlot<DeviceRenderPass>(virtualRenderPass.desc).id;
-    
-    m_Graph.m_AccessIdToResourceIndex[virtualRenderPass.id.handle]=m_Graph.m_Resources.size();
-    read(virtualRenderPass.id.handle);
-    m_Task->renderPass=virtualRenderPass.id;
+    auto renderPassDesc = m_Graph.RenderPassDescToDeviceRenderPassDesc(desc);
+    auto virtualRenderPassPtr = CreateScope<VirtualResource<DeviceRenderPass>>();
     m_Graph.m_Resources.emplace_back(std::move(virtualRenderPassPtr));
+    auto& virtualRenderPass = *static_cast<VirtualResource<DeviceRenderPass>*>(m_Graph.m_Resources.back().get());
+    virtualRenderPass.creator = m_Task;
+    virtualRenderPass.readers.push_back(m_Task.Get());
+    virtualRenderPass.desc = renderPassDesc;
+    virtualRenderPass.id = m_Graph.m_ResourceAccessor->CreateSlot<DeviceRenderPass>(virtualRenderPass.desc).id;
+
+    m_Graph.m_AccessIdToResourceIndex[virtualRenderPass.id.handle] = m_Graph.m_Resources.size()-1;
+    read(virtualRenderPass.id.handle);
+    m_Task->renderPass = virtualRenderPass.id;
+    
     // allocate frame buffer
-    auto frameBufferDesc=m_Graph.RenderPassDescToFrameBufferDesc(desc);
-    auto virtualFrameBufferPtr=CreateScope<VirtualResource<DeviceFrameBuffer>>();
-    auto& virtualFrameBuffer=*virtualFrameBufferPtr;
-    virtualFrameBuffer.creator=m_Task;
-    virtualFrameBuffer.readers.push_back(m_Task);
-    virtualFrameBuffer.desc=frameBufferDesc;
-    virtualFrameBuffer.id=m_Graph.m_ResourceAccessor->CreateSlot<DeviceFrameBuffer>(virtualFrameBuffer.desc).id;
-    m_Graph.m_AccessIdToResourceIndex[virtualFrameBuffer.id.handle]=m_Graph.m_Resources.size();
-    read(virtualFrameBuffer.id.handle);
-    m_Task->frameBuffer=virtualFrameBuffer.id;
+    auto frameBufferDesc = m_Graph.RenderPassDescToFrameBufferDesc(desc);
+    auto virtualFrameBufferPtr = CreateScope<VirtualResource<DeviceFrameBuffer>>();
     m_Graph.m_Resources.emplace_back(std::move(virtualFrameBufferPtr));
+    auto& virtualFrameBuffer = *static_cast<VirtualResource<DeviceFrameBuffer>*>(m_Graph.m_Resources.back().get());
+    virtualFrameBuffer.creator = m_Task;
+    virtualFrameBuffer.readers.push_back(m_Task.Get());
+    virtualFrameBuffer.desc = frameBufferDesc;
+    virtualFrameBuffer.id = m_Graph.m_ResourceAccessor->CreateSlot<DeviceFrameBuffer>(virtualFrameBuffer.desc).id;
+    m_Graph.m_AccessIdToResourceIndex[virtualFrameBuffer.id.handle] = m_Graph.m_Resources.size()-1;
+    read(virtualFrameBuffer.id.handle);
+    m_Task->frameBuffer = virtualFrameBuffer.id;
+    
     return *this;
 }
 } // namespace Aether::RenderGraph

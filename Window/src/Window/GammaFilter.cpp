@@ -54,7 +54,7 @@ bool GammaFilter::CreatePipeline(const vk::RenderPass& renderPass)
 }
 bool GammaFilter::CreateDescriptor(DeviceDescriptorPool& pool)
 {
-    auto set = pool.CreateSet(1, 0, 1);
+    auto set = pool.CreateSet(0, 0, 1);
     if (!set)
     {
         return false;
@@ -62,10 +62,9 @@ bool GammaFilter::CreateDescriptor(DeviceDescriptorPool& pool)
     m_DescriptorSet = std::move(set);
     return true;
 }
-bool GammaFilter::Render(DeviceTexture& _from, DeviceFrameBufferView _to, DeviceCommandBufferView _commandBuffer,DeviceDescriptorPool& pool)
+bool GammaFilter::Render(DeviceTexture& _from, DeviceCommandBufferView _commandBuffer,DeviceDescriptorPool& pool)
 {
     auto& from = _from.GetVk();
-    auto& to = _to.GetVk();
     auto& commandBuffer = _commandBuffer.GetVk();
     auto& descriptorResource = m_DescriptorSet.GetVk();
     auto& pipeline = m_Pipeline.GetVk();
@@ -89,19 +88,6 @@ bool GammaFilter::Render(DeviceTexture& _from, DeviceFrameBufferView _to, Device
 bool GammaFilter::UpdateDescriptor(DeviceTexture& from)
 {
     auto& descriptorResource = m_DescriptorSet.GetVk();
-
-    // update uniform buffer
-    {
-        // update buffer data
-        m_UniformBuffer.SetData(reinterpret_cast<uint8_t*>(&m_HostUniformBuffer), sizeof(m_HostUniformBuffer));
-        // update descriptor binding
-        auto& uboAccessor = descriptorResource.ubos[0];
-        auto& set = descriptorResource.sets[uboAccessor.set];
-        auto binding = uboAccessor.binding;
-        vk::DescriptorSetOperator op(set);
-        op.BindUBO(binding, m_UniformBuffer.GetVk());
-        op.Apply();
-    }
     // update texture sampler
     {
         auto& accessor = descriptorResource.samplers[0];

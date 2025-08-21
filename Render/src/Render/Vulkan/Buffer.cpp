@@ -67,23 +67,6 @@ bool Buffer::SyncCopy(const GraphicsCommandPool& commandPool, Buffer& src, Buffe
     copyRegion.dstOffset = dstOffset;
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer->GetHandle(), src.GetHandle(), dst.GetHandle(), 1, &copyRegion);
-    //// insert memory barrier
-    // VkBufferMemoryBarrier barrier{};
-    // barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    // barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    // barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    // barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    // barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    // barrier.buffer = dst.GetHandle();
-    // barrier.offset = dstOffset;
-    // barrier.size = size;
-    // vkCmdPipelineBarrier(commandBuffer->GetHandle(),
-    //                      VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
-    //                      0,
-    //                      0, nullptr,
-    //                      1, &barrier,
-    //                      0, nullptr);
-
     commandBuffer->End();
     commandBuffer->BeginSubmit()
         .Fence(fence)
