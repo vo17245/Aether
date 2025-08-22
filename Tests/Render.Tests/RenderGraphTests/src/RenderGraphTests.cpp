@@ -76,15 +76,17 @@ public:
         {
         };
         Vec2i size = m_Window->GetSize();
-        auto taskData = renderGraph.AddRenderTask<TaskData>(
+        auto taskData = renderGraph.AddRenderTask<TaskData>("test render graph",
             [&](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
-                auto imageView = builder.Create<DeviceImageView>(
+                auto imageView = builder.Create<DeviceImageView>("final image view",
                     RenderGraph::ImageViewDesc{.texture = m_Window->GetFinalImageAccessId(), .desc = {}});
                 RenderGraph::RenderPassDesc renderPassDesc;
                 renderPassDesc.colorAttachmentCount = 1;
                 renderPassDesc.colorAttachment[0].imageView = imageView;
                 renderPassDesc.colorAttachment[0].loadOp = DeviceAttachmentLoadOp::Clear;
                 renderPassDesc.colorAttachment[0].storeOp = DeviceAttachmentStoreOp::Store;
+                renderPassDesc.width = size.x();
+                renderPassDesc.height = size.y();
                 builder.SetRenderPassDesc(renderPassDesc);
             },
             [size, this](DeviceCommandBuffer& _commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {

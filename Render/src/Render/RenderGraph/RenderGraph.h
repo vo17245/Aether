@@ -19,11 +19,14 @@ public:
         m_ResourceAccessor = CreateScope<ResourceAccessor>(arena, pool);
     }
     template <typename TaskDataType>
-    TaskDataType AddRenderTask(const std::function<void(RenderTaskBuilder&, TaskDataType&)>& setup,
+    TaskDataType AddRenderTask(const std::string& tag,
+                               const std::function<void(RenderTaskBuilder&, TaskDataType&)>& setup,
                                std::function<void(DeviceCommandBuffer&, ResourceAccessor&, TaskDataType&)>&& execute)
     {
         auto task = CreateScope<RenderTask<TaskDataType>>();
-
+#if AETHER_RENDER_GRAPH_ENABLE_TAG
+        task->tag = tag;
+#endif
         task->execute = std::move(execute);
         RenderTaskBuilder builder(static_cast<RenderTaskBase*>(task.get()), *this);
         setup(builder, task->data);
@@ -34,6 +37,7 @@ public:
     void Compile();
     void SetCurrentFrame(uint32_t frame)
     {
+        m_ResourceAccessor->SetCurrentFrame(frame);
     }
     void Execute();
     void SetCommandBuffer(DeviceCommandBuffer* commandBuffer)
@@ -56,7 +60,7 @@ public:
             slot.isRealized[i] = true;
         }
         slot.resourceCount = static_cast<uint32_t>(ids.size());
-        slot.external=true;
+        slot.external = true;
         auto virtualResource = CreateScope<VirtualResource<ResourceType>>(desc, slot.id);
         m_AccessIdToResourceIndex[slot.id.handle] = static_cast<uint32_t>(m_Resources.size());
         m_Resources.push_back(std::move(virtualResource));
@@ -94,11 +98,15 @@ private:
 };
 template <typename ResourceType>
     requires IsResource<ResourceType>::value
-AccessId<ResourceType> RenderTaskBuilder::Create(const typename ResourceDescType<ResourceType>::Type& desc)
+AccessId<ResourceType> RenderTaskBuilder::Create(const std::string& tag,
+                                                 const typename ResourceDescType<ResourceType>::Type& desc)
 {
     auto& slot = m_Graph.m_ResourceAccessor->CreateSlot<ResourceType>(desc);
     auto id = slot.id;
     auto resource = CreateScope<VirtualResource<ResourceType>>(desc, id);
+#if AETHER_RENDER_GRAPH_ENABLE_TAG
+    resource->tag = tag;
+#endif
     resource->creator = m_Task;
     m_Task->creates.push_back(resource.get());
     m_Graph.m_Resources.push_back(std::move(resource));
@@ -155,13 +163,13 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     virtualRenderPass.desc = renderPassDesc;
     virtualRenderPass.id = m_Graph.m_ResourceAccessor->CreateSlot<DeviceRenderPass>(virtualRenderPass.desc).id;
 
-    m_Graph.m_AccessIdToResourceIndex[virtualRenderPass.id.handle] = m_Graph.m_Resources.size()-1;
+    m_Graph.m_AccessIdToResourceIndex[virtualRenderPass.id.handle] = m_Graph.m_Resources.size() - 1;
     read(virtualRenderPass.id.handle);
     m_Task->renderPass = virtualRenderPass.id;
-    
+
     // allocate frame buffer
     auto frameBufferDesc = m_Graph.RenderPassDescToFrameBufferDesc(desc);
-    frameBufferDesc.renderPass= virtualRenderPass.id;
+    frameBufferDesc.renderPass = virtualRenderPass.id;
     auto virtualFrameBufferPtr = CreateScope<VirtualResource<DeviceFrameBuffer>>();
     m_Graph.m_Resources.emplace_back(std::move(virtualFrameBufferPtr));
     auto& virtualFrameBuffer = *static_cast<VirtualResource<DeviceFrameBuffer>*>(m_Graph.m_Resources.back().get());
@@ -169,10 +177,10 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     virtualFrameBuffer.readers.push_back(m_Task.Get());
     virtualFrameBuffer.desc = frameBufferDesc;
     virtualFrameBuffer.id = m_Graph.m_ResourceAccessor->CreateSlot<DeviceFrameBuffer>(virtualFrameBuffer.desc).id;
-    m_Graph.m_AccessIdToResourceIndex[virtualFrameBuffer.id.handle] = m_Graph.m_Resources.size()-1;
+    m_Graph.m_AccessIdToResourceIndex[virtualFrameBuffer.id.handle] = m_Graph.m_Resources.size() - 1;
     read(virtualFrameBuffer.id.handle);
     m_Task->frameBuffer = virtualFrameBuffer.id;
-    
+
     return *this;
 }
 } // namespace Aether::RenderGraph

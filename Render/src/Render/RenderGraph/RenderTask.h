@@ -81,7 +81,7 @@ public:
     RenderTaskBuilder& SetRenderPassDesc(const RenderPassDesc& desc);
     template <typename ResourceType>
         requires IsResource<ResourceType>::value
-    AccessId<ResourceType> Create(const typename ResourceDescType<ResourceType>::Type& desc);
+    AccessId<ResourceType> Create(const std::string& tag,const typename ResourceDescType<ResourceType>::Type& desc);
     template <typename ResourceType>
         requires IsResource<ResourceType>::value
     AccessId<ResourceType> Write(AccessId<ResourceType> resourceId);

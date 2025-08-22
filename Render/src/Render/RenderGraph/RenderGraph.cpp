@@ -326,6 +326,7 @@ void RenderGraph::InsertImageLayoutTransition()
             slot.virtualInfo.layout = texture.desc.layout;
         }
     }
+    m_Steps = std::move(newSteps);
 }
 void RenderGraph::MergeRenderPasses()
 {
@@ -376,6 +377,11 @@ void RenderGraph::MergeRenderPasses()
                 renderTask.skipRenderPassEnd = true;
             }
         }
+    }
+    // handle the case last task is a render task
+    if (inPass && lastRenderTask)
+    {
+        lastRenderTask->skipRenderPassEnd = false;
     }
 }
 void RenderGraph::SetResourceSlotSupportsInFlightResources()

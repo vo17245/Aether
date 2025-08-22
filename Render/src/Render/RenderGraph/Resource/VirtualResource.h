@@ -15,15 +15,16 @@ struct VirtualResourceBase
     std::vector<Borrow<TaskBase>> writers;
     TaskBase* creator = nullptr;
     ResourceCode code;
-    size_t refCount = 0;            // for culling when compile
+    size_t refCount = 0;              // for culling when compile
     int64_t lastAccessTaskIndex = -1; // for resource aliasing when compile
-    inline bool Transient()const
+    inline bool Transient() const
     {
-        return creator!=nullptr;
+        return creator != nullptr;
     }
+#if AETHER_RENDER_GRAPH_ENABLE_TAG
+    std::string tag;
+#endif
 };
-
-
 
 template <typename R>
     requires IsResource<R>::value && HasGetResourceCodeImpl<R>::value
@@ -43,8 +44,6 @@ struct VirtualResource : public VirtualResourceBase
     }
 };
 
-
-
 namespace Detail
 {
 template <typename F, typename T>
@@ -54,7 +53,7 @@ struct VirtualResourceVisitorCommanRetType<F, TypeArray<Ts...>>
 {
     using Type = std::common_type_t<decltype(std::declval<F>()(std::declval<Ts>()))...>;
 };
-template <typename R,typename F, size_t... Is>
+template <typename R, typename F, size_t... Is>
 decltype(auto) VisitVirtualResourceImpl(R&& resource, F&& f, std::index_sequence<Is...>)
 {
     using Ret = typename VirtualResourceVisitorCommanRetType<F, ResourceTypeArray>::Type;
@@ -70,8 +69,8 @@ decltype(auto) VisitVirtualResourceImpl(R&& resource, F&& f, std::index_sequence
     return table[(size_t)resource.code](resource, f);
 }
 } // namespace Detail
-template <typename R,typename F>
-requires std::is_same_v<VirtualResourceBase,std::decay_t<R>>
+template <typename R, typename F>
+    requires std::is_same_v<VirtualResourceBase, std::decay_t<R>>
 decltype(auto) VisitVirtualResource(R&& resource, F&& f)
 {
     using Tuple = typename TypeArrayToTuple<ResourceTypeArray>::Type;

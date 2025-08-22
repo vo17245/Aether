@@ -436,6 +436,7 @@ void Window::OnRender()
 {
     // wait for render resource
     m_CommandBufferFences[m_CurrentFrame]->Wait();
+    m_CommandBufferFences[m_CurrentFrame]->Reset();
 
     // acquire next image
     uint32_t imageIndex;

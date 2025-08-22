@@ -25,6 +25,8 @@ FragColor=vec4(pow(textureColor.rgb,vec3(ubo.gamma)),textureColor.a);
 }
 ```
 
+如果没有uniform buffer 而有sampler 和ssbo，那么 sampler的set为0 ssbo的set为1 以此类推
+
 2. 相关代码
 
 这个创建逻辑被写在 Aether::vk::DynamicDescriptorPool::CreateSet in Render\src\Render\Vulkan\DynamicDescriptorPool.h中
