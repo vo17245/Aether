@@ -2,7 +2,6 @@
 #include "../Vulkan/Texture2D.h"
 #include "Render/Config.h"
 #include "Render/PixelFormat.h"
-#include "Render/RenderApi/DeviceCommandBuffer.h"
 #include <cassert>
 #include <variant>
 #include <expected>
@@ -324,10 +323,7 @@ public:
     {
         return Get<vk::Texture2D>();
     }
-    void AsyncTransitionLayout(DeviceImageLayout oldLayout, DeviceImageLayout newLayout, DeviceCommandBufferView commandBuffer)
-    {
-        std::visit(AsyncTransitionLayoutImpl{oldLayout, newLayout, commandBuffer}, m_Texture);
-    }
+   
     void SyncTransitionLayout(DeviceImageLayout oldLayout, DeviceImageLayout newLayout)
     {
         std::visit(SyncTransitionLayoutImpl{oldLayout, newLayout}, m_Texture);
@@ -364,6 +360,10 @@ public:
             return 0;
         }
     }
+    PixelFormat GetFormat() const
+    {
+        return std::visit(GetPixelFormatImpl{}, m_Texture);
+    }
 
 private:
     struct GetWidthImpl
@@ -388,21 +388,19 @@ private:
             return 0;
         }
     };
-    struct AsyncTransitionLayoutImpl
+    struct GetPixelFormatImpl
     {
-        DeviceImageLayout oldLayout;
-        DeviceImageLayout newLayout;
-        DeviceCommandBufferView commandBuffer;
-        void operator()(vk::Texture2D& texture)
+        PixelFormat operator()(const vk::Texture2D& texture) const
         {
-            auto& cb = commandBuffer.GetVk();
-            texture.AsyncTransitionLayout(cb, DeviceImageLayoutToVk(oldLayout), DeviceImageLayoutToVk(newLayout));
+            return texture.GetFormat();
         }
-        void operator()(std::monostate&)
+        PixelFormat operator()(std::monostate) const
         {
-            assert(false && "texture is empty");
+            assert(false&&"Empty DeviceTexture");
+            return PixelFormat::R8;
         }
     };
+    
     struct SyncTransitionLayoutImpl
     {
         DeviceImageLayout oldLayout;

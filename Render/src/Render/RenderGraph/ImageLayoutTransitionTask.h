@@ -15,7 +15,7 @@ namespace Aether::RenderGraph
         void Execute(DeviceCommandBuffer& commandBuffer, ResourceAccessor& resourceAccessor) 
         {
             auto* textureActual= resourceAccessor.GetResource(texture);
-            textureActual->AsyncTransitionLayout(oldLayout, newLayout, commandBuffer);
+            commandBuffer.ImageLayoutTransition(*textureActual, oldLayout, newLayout);
         }
     };
 }

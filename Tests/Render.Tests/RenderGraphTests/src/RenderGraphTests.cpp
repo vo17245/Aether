@@ -8,22 +8,28 @@
 #include <print>
 #include "Entry/Application.h"
 #include <Render/RenderGraph/RenderGraph.h>
+#include <IO/Image.h>
 using namespace Aether;
 static const char* vertexShaderCode = R"(
 #version 450
 layout(location = 0) in vec3 a_Position;
-layout(location = 1) in vec3 a_Normal;
+layout(location = 1) in vec3 a_TexCoord;
+layout(location=0) out vec2 v_TexCoord;
 void main()
 {
+    v_TexCoord=a_TexCoord;
     gl_Position = vec4(a_Position,  1.0);
 }
 )";
 static const char* fragmentShaderCode = R"(
 #version 450
 layout(location = 0) out vec4 outColor;
+layout(set = 0, binding = 0) uniform sampler2D u_Texture;
+layout(location = 0) in vec2 v_TexCoord;
+
 void main()
 {
-    outColor = vec4(1.0, 1.0, 0.0, 1.0);
+    outColor = texture(u_Texture, v_TexCoord);
 }
 )";
 
@@ -40,9 +46,9 @@ public:
         // create command buffer pool
         m_CommandPool = vk::GraphicsCommandPool::CreateScope();
         //// create cpu grid
-        auto sphere = Geometry::CreateBox();
+        auto quad = Geometry::CreateQuad();
         //// create gpu grid
-        m_Mesh = VkMesh::CreateScope(*m_CommandPool, sphere);
+        m_Mesh = VkMesh::CreateScope(*m_CommandPool, quad);
         // compile shader in cpu
         auto vsBin = Shader::Compiler::GLSL2SPIRV(&vertexShaderCode, 1, ShaderStageType::Vertex);
         assert(vsBin);
@@ -67,18 +73,51 @@ public:
             pipelineBuilder.AddFragmentStage(*m_FragmentShader, "main");
             pipelineBuilder.AddVertexStage(*m_VertexShader, "main");
             pipelineBuilder.PushVertexBufferLayouts(m_Mesh->GetVertexBufferLayouts());
-            m_Pipeline = pipelineBuilder.BuildScope();
+            m_Pipeline = CreateScope<DevicePipeline>(pipelineBuilder.Build().value());
+            m_PipelineLayout= CreateScope<DevicePipelineLayout>(std::move(pipelineLayout.value()));
+        }
+        { // load texture
+            // load
+            auto imageOpt = Image::LoadFromFile("Assets/bundle/Images/logo.png");
+            assert(imageOpt);
+            auto& image = imageOpt.value();
+            // allocate device texture
+            auto texture=DeviceTexture::Create(image.GetWidth(), image.GetHeight(), 
+            PixelFormat::RGBA8888, PackFlags(DeviceImageUsage::Sample,DeviceImageUsage::Upload), DeviceImageLayout::Undefined);
+            m_Texture=CreateScope<DeviceTexture>(std::move(texture));
+            // upload
+            auto stagingBuffer=DeviceBuffer::CreateForStaging(image.GetWidth()*image.GetHeight()*4);
+            stagingBuffer.SetData(std::span<const uint8_t>(image.GetData(),image.GetDataSize()));
+            m_Texture->CopyBuffer(stagingBuffer);
+            // import 
+            auto& arena = m_Window->GetResourceArena();
+            auto& renderGraph= m_Window->GetRenderGraph();
+            auto resourceId=arena.Import(m_Texture.get());
+            RenderGraph::TextureDesc desc;
+            desc.height=m_Texture->GetHeight();
+            desc.width=m_Texture->GetWidth();
+            desc.usages=m_Texture->GetUsages();
+            desc.pixelFormat=m_Texture->GetFormat();
+            desc.layout=DeviceImageLayout::Undefined;
+            auto accessId=renderGraph.Import(desc,{resourceId});
+            m_TextureId=accessId;
+            // sampler
+            m_Sampler=CreateScope<DeviceSampler>(DeviceSampler::CreateDefault());
         }
     }
     virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph) override
     {
         struct TaskData
         {
+            RenderGraph::AccessId<DeviceTexture> texture;
         };
         Vec2i size = m_Window->GetSize();
-        auto taskData = renderGraph.AddRenderTask<TaskData>("test render graph",
+        auto taskData = renderGraph.AddRenderTask<TaskData>(
+            "test render graph",
             [&](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
-                auto imageView = builder.Create<DeviceImageView>("final image view",
+                // render pass desc
+                auto imageView = builder.Create<DeviceImageView>(
+                    "final image view",
                     RenderGraph::ImageViewDesc{.texture = m_Window->GetFinalImageAccessId(), .desc = {}});
                 RenderGraph::RenderPassDesc renderPassDesc;
                 renderPassDesc.colorAttachmentCount = 1;
@@ -88,24 +127,65 @@ public:
                 renderPassDesc.width = size.x();
                 renderPassDesc.height = size.y();
                 builder.SetRenderPassDesc(renderPassDesc);
+                // texture
+                builder.Read(m_TextureId);
             },
             [size, this](DeviceCommandBuffer& _commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {
+                _commandBuffer.SetViewport(0, 0, size.x(), size.y());
+                _commandBuffer.SetScissor(0, 0, size.x(), size.y());
+                _commandBuffer.BindPipeline(*m_Pipeline);
+                Render::Utils::DrawMesh(_commandBuffer.GetVk(), *m_Mesh);
+            });
+        auto taskData1 = renderGraph.AddRenderTask<TaskData>(
+            "test render graph1",
+            [&](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
+                // render pass
+                auto imageView = builder.Create<DeviceImageView>(
+                    "final image view",
+                    RenderGraph::ImageViewDesc{.texture = m_Window->GetFinalImageAccessId(), .desc = {}});
+                RenderGraph::RenderPassDesc renderPassDesc;
+                renderPassDesc.colorAttachmentCount = 1;
+                renderPassDesc.colorAttachment[0].imageView = imageView;
+                renderPassDesc.colorAttachment[0].loadOp = DeviceAttachmentLoadOp::Clear;
+                renderPassDesc.colorAttachment[0].storeOp = DeviceAttachmentStoreOp::Store;
+                renderPassDesc.width = size.x();
+                renderPassDesc.height = size.y();
+                builder.SetRenderPassDesc(renderPassDesc);
+                // read texture
+                data.texture=builder.Read(m_TextureId);
+            },
+            [size, this](DeviceCommandBuffer& _commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {
+                auto& texture=*accessor.GetResource(data.texture);
+                // create descriptor set
+                auto descriptorSet=m_Window->GetCurrentDescriptorPool().CreateSet(0, 0, 1);
+                descriptorSet.UpdateSampler(*m_Sampler, texture.GetOrCreateDefaultImageView());
+                // record
                 auto& commandBuffer = _commandBuffer.GetVk();
-                commandBuffer.SetViewport(0, 0, size.x(), size.y());
-                commandBuffer.SetScissor(0, 0, size.x(), size.y());
-                commandBuffer.BindPipeline(*m_Pipeline);
+                _commandBuffer.SetViewport(0, 0, size.x(), size.y());
+                _commandBuffer.SetScissor(0, 0, size.x(), size.y());
+                _commandBuffer.BindPipeline(*m_Pipeline);
+
                 Render::Utils::DrawMesh(commandBuffer, *m_Mesh);
             });
     }
+    virtual bool NeedRebuildRenderGraph()override
+    {
+        return m_NeedRebuild;
+    }
 
 private:
-    Scope<vk::GraphicsPipeline> m_Pipeline;
+    Scope<DevicePipeline> m_Pipeline;
+    Scope<DevicePipelineLayout> m_PipelineLayout;
     Scope<VkMesh> m_Mesh;
     Scope<vk::GraphicsCommandPool> m_CommandPool;
     Scope<vk::DescriptorSet> m_DescriptorSet;
     Scope<vk::ShaderModule> m_VertexShader;
     Scope<vk::ShaderModule> m_FragmentShader;
     Window* m_Window = nullptr;
+    Scope<DeviceTexture> m_Texture;
+    RenderGraph::AccessId<DeviceTexture> m_TextureId;
+    Scope<DeviceSampler> m_Sampler;
+    bool m_NeedRebuild;
 };
 
 class RenderGraphTests : public Application

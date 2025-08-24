@@ -87,6 +87,18 @@ public:
     }
     // create resource arena and lru pool
     void InitRenderGraphResource();
+    inline RenderGraph::ResourceArena& GetResourceArena()
+    {
+        return *m_ResourceArena;
+    }
+    inline RenderGraph::ResourceLruPool& GetResourcePool()
+    {
+        return *m_ResourcePool;
+    }
+    inline RenderGraph::RenderGraph& GetRenderGraph()
+    {
+        return *m_RenderGraph;
+    }
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;

@@ -30,7 +30,7 @@ public:
     {
 
     }
-    virtual bool NeedRebuildRenderGraph() const
+    virtual bool NeedRebuildRenderGraph()
     {
         return false;
     }

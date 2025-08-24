@@ -19,7 +19,7 @@ struct Handle
     {
     }
     Handle() :
-        id(0), version(0)
+        id(InvalidId), version(0)
     {
     }
     bool IsValid() const

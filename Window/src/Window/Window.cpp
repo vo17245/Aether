@@ -426,7 +426,7 @@ void Window::OnUpdate(float sec)
             break;
         }
     }
-    if(anyLayerNeedRebuild)
+    if (anyLayerNeedRebuild)
     {
         CreateRenderGraph();
     }
@@ -461,26 +461,27 @@ void Window::OnRender()
         return;
 
     // record command buffer
-    auto& curCommandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
-    curCommandBuffer.Reset();
-    curCommandBuffer.Begin();
+    auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
+    auto& curCommandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame];
+    curCommandBufferVk.Reset();
+    curCommandBufferVk.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
-    m_FinalTextures[m_CurrentFrame].AsyncTransitionLayout(DeviceImageLayout::Texture,
-                                                          DeviceImageLayout::ColorAttachment, curCommandBuffer);
+    curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
+                                           DeviceImageLayout::ColorAttachment);
     m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
     m_RenderGraph->SetCurrentFrame(m_CurrentFrame);
     m_RenderGraph->Execute();
     // render to screen (tonemap)
-    m_FinalTextures[m_CurrentFrame].AsyncTransitionLayout(DeviceImageLayout::ColorAttachment,
-                                                          DeviceImageLayout::Texture, curCommandBuffer);
-    curCommandBuffer.BeginRenderPass(m_TonemapRenderPass.GetVk(), m_TonemapFrameBuffers[imageIndex].GetVk(),
+    curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::ColorAttachment,
+                                           DeviceImageLayout::Texture);
+    curCommandBufferVk.BeginRenderPass(m_TonemapRenderPass.GetVk(), m_TonemapFrameBuffers[imageIndex].GetVk(),
                                      Vec4f(0.0, 0.0, 0.0, 1.0));
     curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
     curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
     m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
-    curCommandBuffer.EndRenderPass();
+    curCommandBufferVk.EndRenderPass();
     // curCommandBuffer.EndRenderPass();
-    curCommandBuffer.End();
+    curCommandBufferVk.End();
     // commit command buffer
     auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetHandle();
     static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
@@ -610,15 +611,15 @@ void Window::CreateRenderGraph()
         finalImageResourceIds[i] = m_ResourceArena->Import(&m_FinalTextures[i]);
     }
     RenderGraph::TextureDesc finalImageDesc;
-    finalImageDesc.usages = PackFlags(DeviceImageUsage::ColorAttachment , DeviceImageUsage::Sample);
+    finalImageDesc.usages = PackFlags(DeviceImageUsage::ColorAttachment, DeviceImageUsage::Sample);
     finalImageDesc.pixelFormat = PixelFormat::RGBA8888;
     finalImageDesc.width = m_FinalTextures[0].GetWidth();
     finalImageDesc.height = m_FinalTextures[0].GetHeight();
     finalImageDesc.layout = DeviceImageLayout::ColorAttachment;
     m_FinalImageAccessId = m_RenderGraph->Import(
-        finalImageDesc, std::span<RenderGraph::ResourceId<DeviceTexture>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
+        finalImageDesc, std::span<const RenderGraph::ResourceId<DeviceTexture>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
     // call each layer's RegisterRenderPasses function
-    for(auto* layer:m_Layers)
+    for (auto* layer : m_Layers)
     {
         layer->RegisterRenderPasses(*m_RenderGraph);
     }

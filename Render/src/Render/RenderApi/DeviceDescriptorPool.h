@@ -4,6 +4,8 @@
 #include <variant>
 #include "../Vulkan/DynamicDescriptorPool.h"
 #include "Render/Config.h"
+#include "DeviceTexture.h"
+#include "DeviceSampler.h"
 namespace Aether
 {
 class DeviceDescriptorSet
@@ -31,6 +33,84 @@ public:
     bool Empty()
     {
         return m_DescriptorSet.index() == 0;
+    }
+    void UpdateSampler(DeviceSampler& sampler,DeviceImageView& texture)
+    {
+        if(std::holds_alternative<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet))
+        {
+            auto& descriptorResource = std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet);
+            if (descriptorResource.samplers.empty())
+            {
+                assert(false && "no sampler in descriptor set");
+                return;
+            }
+            auto& accessor = descriptorResource.samplers[0];
+            if (accessor.set >= descriptorResource.sets.size())
+            {
+                assert(false && "invalid set index");
+                return;
+            }
+            auto& set = descriptorResource.sets[accessor.set];
+            vk::DescriptorSetOperator op(set);
+            op.BindSampler(accessor.binding, sampler.GetVk(), texture.GetVk());
+            op.Apply();
+        }
+        else
+        {
+            assert(false&& "not implemented");
+        }
+    }
+    void UpdateUbo(DeviceBuffer& buffer)
+    {
+        if(std::holds_alternative<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet))
+        {
+            auto& descriptorResource = std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet);
+            if (descriptorResource.ubos.empty())
+            {
+                assert(false && "no ubo in descriptor set");
+                return;
+            }
+            auto& accessor = descriptorResource.ubos[0];
+            if (accessor.set >= descriptorResource.sets.size())
+            {
+                assert(false && "invalid set index");
+                return;
+            }
+            auto& set = descriptorResource.sets[accessor.set];
+            vk::DescriptorSetOperator op(set);
+            op.BindUBO(accessor.binding, buffer.GetVk());
+            op.Apply();
+        }
+        else
+        {
+            assert(false&& "not implemented");
+        }
+    }
+    void UpdateSsbo(DeviceBuffer& buffer)
+    {
+        if(std::holds_alternative<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet))
+        {
+            auto& descriptorResource = std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet);
+            if (descriptorResource.ssbos.empty())
+            {
+                assert(false && "no ssbo in descriptor set");
+                return;
+            }
+            auto& accessor = descriptorResource.ssbos[0];
+            if (accessor.set >= descriptorResource.sets.size())
+            {
+                assert(false && "invalid set index");
+                return;
+            }
+            auto& set = descriptorResource.sets[accessor.set];
+            vk::DescriptorSetOperator op(set);
+            op.BindSSBO(accessor.binding, buffer.GetVk());
+            op.Apply();
+        }
+        else
+        {
+            assert(false&& "not implemented");
+        }
     }
 private:
     std::variant<std::monostate, vk::DynamicDescriptorPool::DescriptorResource> m_DescriptorSet;

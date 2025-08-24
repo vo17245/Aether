@@ -51,7 +51,7 @@ public:
     template <typename ResourceType>
         requires(IsResource<ResourceType>::value)
     AccessId<ResourceType> Import(const typename ResourceDescType<ResourceType>::Type& desc,
-                                  const std::span<ResourceId<ResourceType>>& ids)
+                                  const std::span<const ResourceId<ResourceType>>& ids)
     {
         auto& slot = m_ResourceAccessor->CreateSlot<ResourceType>(desc);
         for (size_t i = 0; i < ids.size(); ++i)
@@ -65,6 +65,17 @@ public:
         m_AccessIdToResourceIndex[slot.id.handle] = static_cast<uint32_t>(m_Resources.size());
         m_Resources.push_back(std::move(virtualResource));
         return slot.id;
+    }
+    template <typename ResourceType>
+        requires(IsResource<ResourceType>::value)
+    AccessId<ResourceType> Import(const typename ResourceDescType<ResourceType>::Type& desc,
+                                  const std::initializer_list<ResourceId<ResourceType>>& ids)
+    {
+        return Import<ResourceType>(desc, std::span<const ResourceId<ResourceType>>(ids.begin(),ids.size()));
+    }
+    ResourceArena& GetResourceArena()
+    {
+        return *m_ResourceArena;
     }
 
 private:
@@ -117,16 +128,16 @@ template <typename ResourceType>
     requires IsResource<ResourceType>::value
 AccessId<ResourceType> RenderTaskBuilder::Read(AccessId<ResourceType> resourceId)
 {
-    auto& resource = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[resourceId]];
+    auto& resource = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[resourceId.handle]];
     m_Task->reads.push_back(resource.get());
-    resource->readers.push_back(m_Task);
+    resource->readers.push_back((TaskBase*)m_Task.Get());
     return resourceId;
 }
 template <typename ResourceType>
     requires IsResource<ResourceType>::value
 AccessId<ResourceType> RenderTaskBuilder::Write(AccessId<ResourceType> resourceId)
 {
-    auto& resource = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[resourceId]];
+    auto& resource = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[resourceId.handle]];
     m_Task->writes.push_back(resource.get());
     resource->writers.push_back(m_Task);
     return resourceId;

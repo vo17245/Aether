@@ -5,7 +5,6 @@
 #include "Render/Vulkan/GlobalRenderContext.h"
 #include <variant>
 #include "Render/Vulkan/Transfer.h"
-#include "DeviceCommandBuffer.h"
 namespace Aether
 {
 class DeviceBuffer
@@ -178,23 +177,7 @@ public:
     {
         return !Empty();
     }
-    static bool AsyncCopy(DeviceCommandBuffer& commandBuffer, DeviceBuffer& src, DeviceBuffer& dst, size_t size,
-                          size_t srcOffset, size_t dstOffset)
-    {
-        switch (Render::Config::RenderApi)
-        {
-        case Render::Api::Vulkan: {
-            auto& vkSrc= src.GetVk();
-            auto& vkDst= dst.GetVk();
-            vk::AsyncCopyBuffer(commandBuffer.GetVk(), vkSrc, vkDst, size, srcOffset, dstOffset);
-        }
-        break;
-        default:
-            assert(false && "Not implemented");
-            return false;
-        }
-        return true;
-    }
+    
 
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
