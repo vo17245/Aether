@@ -17,6 +17,7 @@ target_link_libraries(${MODULE_NAME} Window)
 target_link_libraries(${MODULE_NAME} Render)
 target_link_libraries(${MODULE_NAME} Entry)
 target_link_libraries(${MODULE_NAME} IO)
+target_link_libraries(${MODULE_NAME} Debug)
 
 
 

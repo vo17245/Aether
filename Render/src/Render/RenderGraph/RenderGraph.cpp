@@ -497,6 +497,7 @@ void RenderGraph::Execute()
             auto& transitionTask = static_cast<ImageLayoutTransitionTask&>(task);
             transitionTask.Execute(*m_CommandBuffer, *m_ResourceAccessor);
         }
+        break;
         default:
             assert(false && "Unsupported task type in RenderGraph::Execute");
         }

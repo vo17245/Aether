@@ -36,7 +36,7 @@ enum class DeviceImageUsage : uint32_t
 using DeviceImageUsageFlags = uint32_t;
 inline VkImageUsageFlags DeviceImageUsageFlagsToVk(DeviceImageUsageFlags flags)
 {
-    VkImageUsageFlags res;
+    VkImageUsageFlags res=0;
     if (flags & (uint32_t)DeviceImageUsage::Sample)
     {
         res |= VK_IMAGE_USAGE_SAMPLED_BIT;
