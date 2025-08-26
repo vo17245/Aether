@@ -9,3 +9,4 @@
 #include "Pool.h"
 #include "Cache.h"
 #include "TypeTraits.h"
+#include "Serialization.h"

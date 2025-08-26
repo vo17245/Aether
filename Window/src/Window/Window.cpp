@@ -29,6 +29,7 @@
 #include "EventBaseMethod.h"
 #include "Render/Vulkan/GlobalRenderContext.h"
 #include <ranges>
+#include "ImGui/ImGuiApi.h"
 namespace Aether
 {
 Window::~Window()
@@ -430,6 +431,13 @@ void Window::OnUpdate(float sec)
     {
         CreateRenderGraph();
     }
+    // imgui
+    // Start the Dear ImGui frame
+    ImGuiApi::NewFrame();
+    for( auto& layer : m_Layers)
+    {
+        layer->OnImGuiUpdate();
+    }
 }
 
 void Window::OnRender()
@@ -480,7 +488,7 @@ void Window::OnRender()
     curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
     m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
     curCommandBufferVk.EndRenderPass();
-    // curCommandBuffer.EndRenderPass();
+    
     curCommandBufferVk.End();
     // commit command buffer
     auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetHandle();
@@ -625,5 +633,9 @@ void Window::CreateRenderGraph()
     }
     // compile
     m_RenderGraph->Compile();
+}
+void ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer)
+{
+
 }
 } // namespace Aether

@@ -17,6 +17,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC Core)
 find_package(glfw3 REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC glfw)
 target_link_libraries(${MODULE_NAME} PUBLIC Render)
+target_link_libraries(${MODULE_NAME} PUBLIC ImGui)
 
 
 

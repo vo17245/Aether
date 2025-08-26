@@ -155,6 +155,7 @@ private://render graph
     void CreateRenderGraph();
     RenderGraph::AccessId<DeviceTexture> m_FinalImageAccessId;
 
-
+private:
+    void ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer);
 };
 } // namespace Aether

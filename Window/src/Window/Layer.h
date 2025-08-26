@@ -2,6 +2,7 @@
 #include "Window/Event.h"
 #include <Render/RenderApi.h>
 #include <Render/RenderGraph/RenderGraph.h>
+#include <ImGui/imgui.h>
 namespace Aether {
 class Window;
 class Layer
@@ -33,6 +34,10 @@ public:
     virtual bool NeedRebuildRenderGraph()
     {
         return false;
+    }
+    virtual void OnImGuiUpdate()
+    {
+
     }
    
 };

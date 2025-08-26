@@ -3,15 +3,20 @@ if(MSVC)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-set(MODULE_NAME Scene)
+set(MODULE_NAME ImGui)
 file(GLOB_RECURSE FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" 
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
 
 add_library(${MODULE_NAME} STATIC ${FILES})
-target_link_libraries(${MODULE_NAME} PUBLIC Core)
+
 target_link_libraries(${MODULE_NAME} PUBLIC Render)
+target_link_libraries(${MODULE_NAME} PUBLIC Core)
+target_link_libraries(${MODULE_NAME} PUBLIC Window)
+target_link_libraries(${MODULE_NAME} PUBLIC Resource)
+
+
 
 target_include_directories(${MODULE_NAME} PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
