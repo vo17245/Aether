@@ -14,6 +14,7 @@ add_library(${MODULE_NAME} STATIC ${FILES})
 target_link_libraries(${MODULE_NAME} PUBLIC Render)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
 target_link_libraries(${MODULE_NAME} PUBLIC Window)
+target_link_libraries(${MODULE_NAME} PUBLIC Window_header)
 target_link_libraries(${MODULE_NAME} PUBLIC Resource)
 
 
@@ -23,7 +24,11 @@ target_include_directories(${MODULE_NAME} PUBLIC
     $<INSTALL_INTERFACE:${MODULE_NAME}/include>
 )
 
-
+add_library(${MODULE_NAME}_header INTERFACE)
+target_include_directories(${MODULE_NAME}_header INTERFACE 
+ $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<INSTALL_INTERFACE:${MODULE_NAME}/include>
+)
 
 
 #==================install config=========================
@@ -60,3 +65,34 @@ install(EXPORT ${MODULE_NAME}Targets
     DESTINATION ${MODULE_NAME}
 )
 
+
+
+
+set(MODULE_NAME ImGui_header)
+#============== install imgui_header ==============
+install(TARGETS ${MODULE_NAME}
+    EXPORT ${MODULE_NAME}Targets
+    
+)
+
+include(CMakePackageConfigHelpers)
+
+# 2. 配置并生成 Config 文件
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/${MODULE_NAME}Config.cmake.in"  
+    "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}Config.cmake"
+    INSTALL_DESTINATION ${MODULE_NAME}/
+)
+
+# 3. 安装 Config  文件
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}Config.cmake"
+    DESTINATION ${MODULE_NAME}/
+)
+
+# 4. 安装导出 Targets
+install(EXPORT ${MODULE_NAME}Targets
+    FILE ${MODULE_NAME}Targets.cmake
+    NAMESPACE Aether::
+    DESTINATION ${MODULE_NAME}
+)

@@ -28,6 +28,10 @@ public:
      * @brief get current thread's GraphicsCommandPool
     */
     static GraphicsCommandPool& GetGraphicsCommandPool();
+    static const QueueFamilyIndices& GetQueueFamilyIndicesRef()
+    {
+        return s_Context->m_QueueFamilyIndices;
+    }
 private:
     static RenderContext* s_Context;
     static thread_local std::unique_ptr<GraphicsCommandPool> s_GraphicsCommandPool;

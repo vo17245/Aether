@@ -30,6 +30,7 @@
 #include "Render/Vulkan/GlobalRenderContext.h"
 #include <ranges>
 #include "ImGui/ImGuiApi.h"
+#include <Render/Vulkan/Allocator.h>
 namespace Aether
 {
 Window::~Window()
@@ -434,7 +435,7 @@ void Window::OnUpdate(float sec)
     // imgui
     // Start the Dear ImGui frame
     ImGuiApi::NewFrame();
-    for( auto& layer : m_Layers)
+    for (auto& layer : m_Layers)
     {
         layer->OnImGuiUpdate();
     }
@@ -443,6 +444,7 @@ void Window::OnUpdate(float sec)
 void Window::OnRender()
 {
     // wait for render resource
+    //ImGuiWaitFrameResource();
     m_CommandBufferFences[m_CurrentFrame]->Wait();
     m_CommandBufferFences[m_CurrentFrame]->Reset();
 
@@ -483,12 +485,12 @@ void Window::OnRender()
     curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::ColorAttachment,
                                            DeviceImageLayout::Texture);
     curCommandBufferVk.BeginRenderPass(m_TonemapRenderPass.GetVk(), m_TonemapFrameBuffers[imageIndex].GetVk(),
-                                     Vec4f(0.0, 0.0, 0.0, 1.0));
+                                       Vec4f(0.0, 0.0, 0.0, 1.0));
     curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
     curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
     m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
     curCommandBufferVk.EndRenderPass();
-    
+    ImGuiRecordCommandBuffer(curCommandBuffer);
     curCommandBufferVk.End();
     // commit command buffer
     auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetHandle();
@@ -625,7 +627,8 @@ void Window::CreateRenderGraph()
     finalImageDesc.height = m_FinalTextures[0].GetHeight();
     finalImageDesc.layout = DeviceImageLayout::ColorAttachment;
     m_FinalImageAccessId = m_RenderGraph->Import(
-        finalImageDesc, std::span<const RenderGraph::ResourceId<DeviceTexture>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
+        finalImageDesc,
+        std::span<const RenderGraph::ResourceId<DeviceTexture>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
     // call each layer's RegisterRenderPasses function
     for (auto* layer : m_Layers)
     {
@@ -634,8 +637,101 @@ void Window::CreateRenderGraph()
     // compile
     m_RenderGraph->Compile();
 }
-void ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer)
+static void check_vk_result(VkResult err)
 {
-
+    if (err == VK_SUCCESS)
+        return;
+    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    if (err < 0)
+        abort();
 }
+void Window::ImGuiWaitFrameResource()
+{
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    auto* wd = &m_ImGuiContext.window;
+    ImGui_ImplVulkanH_Frame* fd = &wd->Frames[wd->FrameIndex];
+    {
+        auto err = vkWaitForFences(vk::GRC::GetDevice(), 1, &fd->Fence, VK_TRUE,
+                                   UINT64_MAX); // wait indefinitely instead of periodically checking
+        check_vk_result(err);
+
+        err = vkResetFences(vk::GRC::GetDevice(), 1, &fd->Fence);
+        check_vk_result(err);
+    }
+}
+
+void Window::ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer)
+{
+    // Rendering
+    ImGui::Render();
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+    auto* wd = &m_ImGuiContext.window;
+    Vec4f clear_color = m_ImGuiClearColor;
+    if (!is_minimized)
+    {
+        wd->ClearValue.color.float32[0] = clear_color.x() * clear_color.w();
+        wd->ClearValue.color.float32[1] = clear_color.y() * clear_color.w();
+        wd->ClearValue.color.float32[2] = clear_color.z() * clear_color.w();
+        wd->ClearValue.color.float32[3] = clear_color.w();
+        ImGuiFrameRender(commandBuffer);
+    }
+}
+void Window::ImGuiFrameRender( DeviceCommandBuffer& commandBuffer)
+{
+    auto* wd = &m_ImGuiContext.window;
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    ImGui_ImplVulkanH_Frame* fd = &wd->Frames[wd->FrameIndex];
+    VkSemaphore image_acquired_semaphore = wd->FrameSemaphores[wd->SemaphoreIndex].ImageAcquiredSemaphore;
+    VkSemaphore render_complete_semaphore = wd->FrameSemaphores[wd->SemaphoreIndex].RenderCompleteSemaphore;
+    auto& vkCommandBuffer = commandBuffer.GetVk();
+    {
+        VkRenderPassBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        info.renderPass = wd->RenderPass;
+        info.framebuffer = fd->Framebuffer;
+        info.renderArea.extent.width = wd->Width;
+        info.renderArea.extent.height = wd->Height;
+        info.clearValueCount = 1;
+        info.pClearValues = &wd->ClearValue;
+        vkCmdBeginRenderPass(vkCommandBuffer.GetHandle(), &info, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    // Record dear imgui primitives into command buffer
+    ImGui_ImplVulkan_RenderDrawData(draw_data, vkCommandBuffer.GetHandle());
+
+    // Submit command buffer
+    vkCmdEndRenderPass(vkCommandBuffer.GetHandle());
+}
+void Window::ImGuiWindowContextInit()
+{
+    auto* wd = &m_ImGuiContext.window;
+    wd->Surface = m_Surface;
+    wd->ImageCount=m_SwapChainImages.size();
+    Vec2i size = GetSize();
+    wd->Width=size.x();
+    wd->Height=size.y();
+
+
+    // Select Surface Format
+    const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
+    const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+    wd->SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(vk::GRC::GetPhysicalDevice(), wd->Surface, requestSurfaceImageFormat, (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
+
+    // Select Present Mode
+//#ifdef APP_USE_UNLIMITED_FRAME_RATE
+    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
+//#else
+//    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
+//#endif
+    wd->Swapchain=m_SwapChain;
+    wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(vk::GRC::GetPhysicalDevice(), wd->Surface, &present_modes[0], IM_ARRAYSIZE(present_modes));
+    //printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
+
+    // Create SwapChain, RenderPass, Framebuffer, etc.
+    IM_ASSERT(m_SwapChainImages.size() >= 2);
+    ImGui_ImplVulkanH_CreateOrResizeWindow(vk::GRC::GetInstance(), vk::GRC::GetPhysicalDevice(), vk::GRC::GetDevice(), wd, 
+    vk::GRC::GetQueueFamilyIndices().graphicsFamily.value(),nullptr,size.x(),size.y(), m_SwapChainImages.size());
+}
+
 } // namespace Aether

@@ -1560,20 +1560,20 @@ int ImGui_ImplVulkanH_GetMinImageCountFromPresentMode(VkPresentModeKHR present_m
 void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window* wd, const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count)
 {
     VkResult err;
-    VkSwapchainKHR old_swapchain = wd->Swapchain;
-    wd->Swapchain = VK_NULL_HANDLE;
+    //VkSwapchainKHR old_swapchain = wd->Swapchain;
+    //wd->Swapchain = VK_NULL_HANDLE;
     err = vkDeviceWaitIdle(device);
     check_vk_result(err);
 
     // We don't use ImGui_ImplVulkanH_DestroyWindow() because we want to preserve the old swapchain to create the new one.
     // Destroy old Framebuffer
-    for (uint32_t i = 0; i < wd->ImageCount; i++)
-        ImGui_ImplVulkanH_DestroyFrame(device, &wd->Frames[i], allocator);
-    for (uint32_t i = 0; i < wd->SemaphoreCount; i++)
-        ImGui_ImplVulkanH_DestroyFrameSemaphores(device, &wd->FrameSemaphores[i], allocator);
+    //for (uint32_t i = 0; i < wd->ImageCount; i++)
+    //    ImGui_ImplVulkanH_DestroyFrame(device, &wd->Frames[i], allocator);
+    //for (uint32_t i = 0; i < wd->SemaphoreCount; i++)
+    //    ImGui_ImplVulkanH_DestroyFrameSemaphores(device, &wd->FrameSemaphores[i], allocator);
     wd->Frames.clear();
     wd->FrameSemaphores.clear();
-    wd->ImageCount = 0;
+    //wd->ImageCount = 0;
     if (wd->RenderPass)
         vkDestroyRenderPass(device, wd->RenderPass, allocator);
     if (wd->Pipeline)
@@ -1585,48 +1585,46 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
 
     // Create Swapchain
     {
-        VkSurfaceCapabilitiesKHR cap;
-        err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, wd->Surface, &cap);
-        check_vk_result(err);
-
-        VkSwapchainCreateInfoKHR info = {};
-        info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        info.surface = wd->Surface;
-        info.minImageCount = min_image_count;
-        info.imageFormat = wd->SurfaceFormat.format;
-        info.imageColorSpace = wd->SurfaceFormat.colorSpace;
-        info.imageArrayLayers = 1;
-        info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;           // Assume that graphics family == present family
-        info.preTransform = (cap.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) ? VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR : cap.currentTransform;
-        info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        info.presentMode = wd->PresentMode;
-        info.clipped = VK_TRUE;
-        info.oldSwapchain = old_swapchain;
-        if (info.minImageCount < cap.minImageCount)
-            info.minImageCount = cap.minImageCount;
-        else if (cap.maxImageCount != 0 && info.minImageCount > cap.maxImageCount)
-            info.minImageCount = cap.maxImageCount;
-        if (cap.currentExtent.width == 0xffffffff)
-        {
-            info.imageExtent.width = wd->Width = w;
-            info.imageExtent.height = wd->Height = h;
-        }
-        else
-        {
-            info.imageExtent.width = wd->Width = cap.currentExtent.width;
-            info.imageExtent.height = wd->Height = cap.currentExtent.height;
-        }
-        err = vkCreateSwapchainKHR(device, &info, allocator, &wd->Swapchain);
-        check_vk_result(err);
-        err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, nullptr);
-        check_vk_result(err);
+        //VkSurfaceCapabilitiesKHR cap;
+        //err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, wd->Surface, &cap);
+        //check_vk_result(err);
+        //VkSwapchainCreateInfoKHR info = {};
+        //info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        //info.surface = wd->Surface;
+        //info.minImageCount = min_image_count;
+        //info.imageFormat = wd->SurfaceFormat.format;
+        //info.imageColorSpace = wd->SurfaceFormat.colorSpace;
+        //info.imageArrayLayers = 1;
+        //info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        //info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;           // Assume that graphics family == present family
+        //info.preTransform = (cap.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) ? VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR : cap.currentTransform;
+        //info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        //info.presentMode = wd->PresentMode;
+        //info.clipped = VK_TRUE;
+        //info.oldSwapchain = old_swapchain;
+        //if (info.minImageCount < cap.minImageCount)
+        //    info.minImageCount = cap.minImageCount;
+        //else if (cap.maxImageCount != 0 && info.minImageCount > cap.maxImageCount)
+        //    info.minImageCount = cap.maxImageCount;
+        //if (cap.currentExtent.width == 0xffffffff)
+        //{
+        //    info.imageExtent.width = wd->Width = w;
+        //    info.imageExtent.height = wd->Height = h;
+        //}
+        //else
+        //{
+        //    info.imageExtent.width = wd->Width = cap.currentExtent.width;
+        //    info.imageExtent.height = wd->Height = cap.currentExtent.height;
+        //}
+        //err = vkCreateSwapchainKHR(device, &info, allocator, &wd->Swapchain);
+        //check_vk_result(err);
+        //err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, nullptr);
+        //check_vk_result(err);
         VkImage backbuffers[16] = {};
         IM_ASSERT(wd->ImageCount >= min_image_count);
         IM_ASSERT(wd->ImageCount < IM_ARRAYSIZE(backbuffers));
         err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, backbuffers);
         check_vk_result(err);
-
         wd->SemaphoreCount = wd->ImageCount + 1;
         wd->Frames.resize(wd->ImageCount);
         wd->FrameSemaphores.resize(wd->SemaphoreCount);
@@ -1635,8 +1633,8 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
         for (uint32_t i = 0; i < wd->ImageCount; i++)
             wd->Frames[i].Backbuffer = backbuffers[i];
     }
-    if (old_swapchain)
-        vkDestroySwapchainKHR(device, old_swapchain, allocator);
+    //if (old_swapchain)
+    //    vkDestroySwapchainKHR(device, old_swapchain, allocator);
 
     // Create the Render Pass
     if (wd->UseDynamicRendering == false)

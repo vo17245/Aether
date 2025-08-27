@@ -18,6 +18,7 @@
 #include "Input.h"
 #include "GammaFilter.h"
 #include "Render/RenderGraph/RenderGraph.h"
+#include "ImGui/WindowContext.h"
 namespace Aether {
 namespace vk {
 class RenderContext;
@@ -99,6 +100,15 @@ public:
     {
         return *m_RenderGraph;
     }
+    void ImGuiWindowContextInit();
+    ImGuiApi::WindowContext& GetImGuiContext()
+    {
+        return m_ImGuiContext;
+    }
+    size_t SwapChainImageCount() const
+    {
+        return m_SwapChainImages.size();
+    }
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
@@ -155,7 +165,12 @@ private://render graph
     void CreateRenderGraph();
     RenderGraph::AccessId<DeviceTexture> m_FinalImageAccessId;
 
-private:
+private:// imgui
+    
+    ImGuiApi::WindowContext m_ImGuiContext;
+    Vec4f m_ImGuiClearColor=Vec4f(0.5,0.7,1.0,1.0);
     void ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer);
+    void ImGuiWaitFrameResource();
+    void ImGuiFrameRender(DeviceCommandBuffer& commandBuffer);
 };
 } // namespace Aether
