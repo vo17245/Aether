@@ -39,3 +39,4 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
 
 add_subdirectory("Sprite")
 add_subdirectory("ImGui")
+add_subdirectory("AetherEditor")

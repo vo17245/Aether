@@ -108,7 +108,108 @@ namespace Aether
             return json.get<std::string>();
         }
     };
-
+    template<>
+    struct ToJson<Vec4f>
+    {
+        Json operator()(const Vec4f& t) 
+        {
+            float x=t[0];
+            float y=t[1];
+            float z=t[2];
+            float w=t[3];
+            return {{"x", x}, {"y", y}, {"z", z}, {"w", w}};
+        }
+    };
+    template<>
+    struct FromJson<Vec4f>
+    {
+        std::expected<Vec4f,std::string> operator()(const Json& json)
+        {
+            auto& json_x=json["x"];
+            if(!json_x.is_number_float()&&!json_x.is_number_integer())
+            {
+                return std::unexpected<std::string>("x is not a number");
+            }
+            auto& json_y=json["y"];
+            if(!json_y.is_number_float()&&!json_y.is_number_integer())
+            {
+                return std::unexpected<std::string>("y is not a number");
+            }
+            auto& json_z=json["z"];
+            if(!json_z.is_number_float()&&!json_z.is_number_integer())
+            {
+                return std::unexpected<std::string>("z is not a number");
+            }
+            auto& json_w=json["w"];
+            if(!json_w.is_number_float()&&!json_w.is_number_integer())
+            {
+                return std::unexpected<std::string>("w is not a number");
+            }
+            return Vec4f(json_x.get<float>(), json_y.get<float>(), json_z.get<float>(), json_w.get<float>());
+        }
+    };
+    template<>
+    struct ToJson<Vec3f>
+    {
+        Json operator()(const Vec3f& t) 
+        {
+            float x=t[0];
+            float y=t[1];
+            float z=t[2];
+            return {{"x", x}, {"y", y}, {"z", z}};
+        }
+    };
+    template<>
+    struct FromJson<Vec3f>
+    {
+        std::expected<Vec3f,std::string> operator()(const Json& json)
+        {
+            auto& json_x=json["x"];
+            if(!json_x.is_number_float()&&!json_x.is_number_integer())
+            {
+                return std::unexpected<std::string>("x is not a number");
+            }
+            auto& json_y=json["y"];
+            if(!json_y.is_number_float()&&!json_y.is_number_integer())
+            {
+                return std::unexpected<std::string>("y is not a number");
+            }
+            auto& json_z=json["z"];
+            if(!json_z.is_number_float()&&!json_z.is_number_integer())
+            {
+                return std::unexpected<std::string>("z is not a number");
+            }
+            return Vec3f(json_x.get<float>(), json_y.get<float>(), json_z.get<float>());
+        }
+    };
+    template<>
+    struct ToJson<Vec2f>
+    {
+        Json operator()(const Vec2f& t) 
+        {
+            float x=t[0];
+            float y=t[1];
+            return {{"x", x}, {"y", y}};
+        }
+    };
+    template<>
+    struct FromJson<Vec2f>
+    {
+        std::expected<Vec2f,std::string> operator()(const Json& json)
+        {
+            auto& json_x=json["x"];
+            if(!json_x.is_number_float()&&!json_x.is_number_integer())
+            {
+                return std::unexpected<std::string>("x is not a number");
+            }
+            auto& json_y=json["y"];
+            if(!json_y.is_number_float()&&!json_y.is_number_integer())
+            {
+                return std::unexpected<std::string>("y is not a number");
+            }
+            return Vec2f(json_x.get<float>(), json_y.get<float>());
+        }
+    };
     
 
 }
