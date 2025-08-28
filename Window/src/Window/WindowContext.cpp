@@ -73,6 +73,9 @@ void WindowContext::FramebufferResizeCallback(GLFWwindow* window, int width, int
     iter->second->ReleaseRenderObject();
     iter->second->CreateRenderObject();
     iter->second->m_SwapChainExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    auto& w= *iter->second;
+    w.ImGuiWindowContextDestroy();
+    w.ImGuiWindowContextInit();
 }
 void WindowContext::CharacterCallback(GLFWwindow* window, unsigned int codepoint)
 {

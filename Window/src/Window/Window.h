@@ -101,6 +101,7 @@ public:
         return *m_RenderGraph;
     }
     void ImGuiWindowContextInit();
+    void ImGuiWindowContextDestroy();
     ImGuiApi::WindowContext& GetImGuiContext()
     {
         return m_ImGuiContext;

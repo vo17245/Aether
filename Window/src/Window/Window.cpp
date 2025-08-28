@@ -439,12 +439,17 @@ void Window::OnUpdate(float sec)
     {
         layer->OnImGuiUpdate();
     }
+    ImGui::Render();
 }
 
 void Window::OnRender()
 {
+    if (GetSize().x() == 0 || GetSize().y() == 0)
+    {
+        return;
+    }
     // wait for render resource
-    //ImGuiWaitFrameResource();
+    // ImGuiWaitFrameResource();
     m_CommandBufferFences[m_CurrentFrame]->Wait();
     m_CommandBufferFences[m_CurrentFrame]->Reset();
 
@@ -465,10 +470,7 @@ void Window::OnRender()
     {
         layer->OnFrameBegin();
     }
-    if (m_Layers.empty())
-        return;
-    if (GetSize().x() == 0 || GetSize().y() == 0)
-        return;
+    
 
     // record command buffer
     auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
@@ -490,6 +492,7 @@ void Window::OnRender()
     curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
     m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
     curCommandBufferVk.EndRenderPass();
+    m_ImGuiContext.window.FrameIndex=imageIndex;
     ImGuiRecordCommandBuffer(curCommandBuffer);
     curCommandBufferVk.End();
     // commit command buffer
@@ -604,6 +607,8 @@ void Window::OnWindowResize(const Vec2u& size)
     }
     assert(ResizeFinalImage(size) && "failed to resize window final image");
     CreateRenderGraph();
+    m_ImGuiContext.window.Width = size.x();
+    m_ImGuiContext.window.Height = size.y();
 }
 void Window::InitRenderGraphResource()
 {
@@ -663,7 +668,6 @@ void Window::ImGuiWaitFrameResource()
 void Window::ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer)
 {
     // Rendering
-    ImGui::Render();
     ImDrawData* draw_data = ImGui::GetDrawData();
     const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
     auto* wd = &m_ImGuiContext.window;
@@ -677,7 +681,7 @@ void Window::ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer)
         ImGuiFrameRender(commandBuffer);
     }
 }
-void Window::ImGuiFrameRender( DeviceCommandBuffer& commandBuffer)
+void Window::ImGuiFrameRender(DeviceCommandBuffer& commandBuffer)
 {
     auto* wd = &m_ImGuiContext.window;
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -706,32 +710,49 @@ void Window::ImGuiFrameRender( DeviceCommandBuffer& commandBuffer)
 void Window::ImGuiWindowContextInit()
 {
     auto* wd = &m_ImGuiContext.window;
+    wd->SurfaceFormat.format = m_SwapChainImageFormat;
     wd->Surface = m_Surface;
-    wd->ImageCount=m_SwapChainImages.size();
+    wd->ImageCount = m_SwapChainImages.size();
     Vec2i size = GetSize();
-    wd->Width=size.x();
-    wd->Height=size.y();
+    wd->Width = size.x();
+    wd->Height = size.y();
 
+    wd->SemaphoreCount = wd->ImageCount + 1;
+    wd->Frames.resize(wd->ImageCount);
+    wd->FrameSemaphores.resize(wd->SemaphoreCount);
+    memset(wd->Frames.Data, 0, wd->Frames.size_in_bytes());
+    memset(wd->FrameSemaphores.Data, 0, wd->FrameSemaphores.size_in_bytes());
+    for (uint32_t i = 0; i < wd->ImageCount; i++)
+    {
+        wd->Frames[i].Backbuffer = m_SwapChainImages[i];
+    }
 
     // Select Surface Format
-    const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
-    const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-    wd->SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(vk::GRC::GetPhysicalDevice(), wd->Surface, requestSurfaceImageFormat, (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
+    // const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM,
+    // VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM }; const VkColorSpaceKHR requestSurfaceColorSpace =
+    // VK_COLORSPACE_SRGB_NONLINEAR_KHR; wd->SurfaceFormat =
+    // ImGui_ImplVulkanH_SelectSurfaceFormat(vk::GRC::GetPhysicalDevice(), wd->Surface, requestSurfaceImageFormat,
+    // (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
 
     // Select Present Mode
-//#ifdef APP_USE_UNLIMITED_FRAME_RATE
-    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
-//#else
-//    VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
-//#endif
-    wd->Swapchain=m_SwapChain;
-    wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(vk::GRC::GetPhysicalDevice(), wd->Surface, &present_modes[0], IM_ARRAYSIZE(present_modes));
-    //printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
+    // #ifdef APP_USE_UNLIMITED_FRAME_RATE
+    // VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR,
+    // VK_PRESENT_MODE_FIFO_KHR };
+    // #else
+    //     VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
+    // #endif
+    wd->Swapchain = m_SwapChain;
+    // wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(vk::GRC::GetPhysicalDevice(), wd->Surface,
+    // &present_modes[0], IM_ARRAYSIZE(present_modes)); printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
 
     // Create SwapChain, RenderPass, Framebuffer, etc.
     IM_ASSERT(m_SwapChainImages.size() >= 2);
-    ImGui_ImplVulkanH_CreateOrResizeWindow(vk::GRC::GetInstance(), vk::GRC::GetPhysicalDevice(), vk::GRC::GetDevice(), wd, 
-    vk::GRC::GetQueueFamilyIndices().graphicsFamily.value(),nullptr,size.x(),size.y(), m_SwapChainImages.size());
+    ImGui_ImplVulkanH_CreateOrResizeWindow(vk::GRC::GetInstance(), vk::GRC::GetPhysicalDevice(), vk::GRC::GetDevice(),
+                                           wd, vk::GRC::GetQueueFamilyIndices().graphicsFamily.value(), nullptr,
+                                           size.x(), size.y(), m_SwapChainImages.size());
 }
-
+void Window::ImGuiWindowContextDestroy()
+{
+    ImGui_ImplVulkanH_DestroyWindow(vk::GRC::GetInstance(), vk::GRC::GetDevice(), &m_ImGuiContext.window, nullptr);
+}
 } // namespace Aether

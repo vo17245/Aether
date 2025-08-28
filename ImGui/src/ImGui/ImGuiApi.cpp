@@ -5,6 +5,8 @@
 #include <Render/Vulkan/GlobalPipelineCache.h>
 namespace Aether::ImGuiApi
 {
+static VkDescriptorPool g_DescriptorPool = VK_NULL_HANDLE;
+
 void NewFrame()
 {
     ImGui_ImplVulkan_NewFrame();
@@ -16,6 +18,7 @@ void Shutdown()
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+    vkDestroyDescriptorPool(vk::GRC::GetDevice(), g_DescriptorPool, nullptr);
 }
 static void check_vk_result(VkResult err)
 {
@@ -25,7 +28,6 @@ static void check_vk_result(VkResult err)
     if (err < 0)
         abort();
 }
-static VkDescriptorPool g_DescriptorPool = VK_NULL_HANDLE;
 void Init(Window& window)
 {
     // Create Descriptor Pool

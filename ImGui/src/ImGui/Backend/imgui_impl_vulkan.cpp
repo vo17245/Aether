@@ -1571,8 +1571,8 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
     //    ImGui_ImplVulkanH_DestroyFrame(device, &wd->Frames[i], allocator);
     //for (uint32_t i = 0; i < wd->SemaphoreCount; i++)
     //    ImGui_ImplVulkanH_DestroyFrameSemaphores(device, &wd->FrameSemaphores[i], allocator);
-    wd->Frames.clear();
-    wd->FrameSemaphores.clear();
+    //wd->Frames.clear();
+    //wd->FrameSemaphores.clear();
     //wd->ImageCount = 0;
     if (wd->RenderPass)
         vkDestroyRenderPass(device, wd->RenderPass, allocator);
@@ -1620,18 +1620,18 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
         //check_vk_result(err);
         //err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, nullptr);
         //check_vk_result(err);
-        VkImage backbuffers[16] = {};
-        IM_ASSERT(wd->ImageCount >= min_image_count);
-        IM_ASSERT(wd->ImageCount < IM_ARRAYSIZE(backbuffers));
-        err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, backbuffers);
-        check_vk_result(err);
-        wd->SemaphoreCount = wd->ImageCount + 1;
-        wd->Frames.resize(wd->ImageCount);
-        wd->FrameSemaphores.resize(wd->SemaphoreCount);
-        memset(wd->Frames.Data, 0, wd->Frames.size_in_bytes());
-        memset(wd->FrameSemaphores.Data, 0, wd->FrameSemaphores.size_in_bytes());
-        for (uint32_t i = 0; i < wd->ImageCount; i++)
-            wd->Frames[i].Backbuffer = backbuffers[i];
+        //VkImage backbuffers[16] = {};
+        //IM_ASSERT(wd->ImageCount >= min_image_count);
+        //IM_ASSERT(wd->ImageCount < IM_ARRAYSIZE(backbuffers));
+        //err = vkGetSwapchainImagesKHR(device, wd->Swapchain, &wd->ImageCount, backbuffers);
+        //check_vk_result(err);
+        //wd->SemaphoreCount = wd->ImageCount + 1;
+        //wd->Frames.resize(wd->ImageCount);
+        //wd->FrameSemaphores.resize(wd->SemaphoreCount);
+        //memset(wd->Frames.Data, 0, wd->Frames.size_in_bytes());
+        //memset(wd->FrameSemaphores.Data, 0, wd->FrameSemaphores.size_in_bytes());
+        //for (uint32_t i = 0; i < wd->ImageCount; i++)
+        //    wd->Frames[i].Backbuffer = backbuffers[i];
     }
     //if (old_swapchain)
     //    vkDestroySwapchainKHR(device, old_swapchain, allocator);
@@ -1819,9 +1819,8 @@ void ImGui_ImplVulkanH_DestroyWindow(VkInstance instance, VkDevice device, ImGui
     wd->FrameSemaphores.clear();
     vkDestroyPipeline(device, wd->Pipeline, allocator);
     vkDestroyRenderPass(device, wd->RenderPass, allocator);
-    vkDestroySwapchainKHR(device, wd->Swapchain, allocator);
-    vkDestroySurfaceKHR(instance, wd->Surface, allocator);
-
+    //vkDestroySwapchainKHR(device, wd->Swapchain, allocator);
+    //vkDestroySurfaceKHR(instance, wd->Surface, allocator);
     *wd = ImGui_ImplVulkanH_Window();
 }
 

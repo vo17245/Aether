@@ -46,6 +46,7 @@ int main()
         vkDeviceWaitIdle(vk::GRC::GetDevice());
         app->OnShutdown();
         window->ReleaseVulkanObjects();
+        window->ImGuiWindowContextDestroy();
         ImGuiApi::Shutdown();
         vk::GRC::Cleanup();
     }
