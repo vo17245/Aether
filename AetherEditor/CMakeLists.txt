@@ -13,11 +13,11 @@ add_executable(${MODULE_NAME}  ${FILES})
 
 target_include_directories(${MODULE_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-target_link_libraries(${MODULE_NAME} Entry)
-target_link_libraries(${MODULE_NAME} ImGui)
-target_link_libraries(${MODULE_NAME} Debug)
+target_link_libraries(${MODULE_NAME} PUBLIC Entry)
+target_link_libraries(${MODULE_NAME} PUBLIC ImGui)
+target_link_libraries(${MODULE_NAME} PUBLIC Debug)
 
-
+target_link_libraries(${MODULE_NAME} PUBLIC UI)
 
 
 
