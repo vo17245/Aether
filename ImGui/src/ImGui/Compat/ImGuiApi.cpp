@@ -86,4 +86,8 @@ void Init(Window& window)
     init_info.CheckVkResultFn = check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
 }
+void EnableDocking()
+{
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+}
 } // namespace Aether::ImGuiApi

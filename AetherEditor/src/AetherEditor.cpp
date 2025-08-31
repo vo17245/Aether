@@ -11,6 +11,8 @@
 #include <IO/Image.h>
 #include <Debug/Log.h>
 #include "Material.h"
+#include <Imgui/Compat/ImGuiApi.h>
+#include <ImGui/Core/imgui_internal.h>
 using namespace Aether;
 enum class MessageType
 {
@@ -72,12 +74,9 @@ private:
         {
             return;
         }
-        ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
-        ImGui::Begin("Notifications", nullptr,
-                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize
-                         | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove);
-        for (const auto& msg : m_Messages)
+        for (size_t i = 0; i < m_Messages.size(); ++i)
         {
+            auto& msg = m_Messages[i];
             ImVec4 color;
             switch (msg.type)
             {
@@ -95,10 +94,9 @@ private:
                 break;
             }
             ImGui::PushStyleColor(ImGuiCol_Text, color);
-            ImGui::TextUnformatted(msg.content.c_str());
+            ImGui::GetForegroundDrawList()->AddText(ImVec2(10, 10 + 20 * i), ImColor(color), msg.content.c_str());
             ImGui::PopStyleColor();
         }
-        ImGui::End();
     }
     void ErrorImpl(const std::string& content, float ttl = 5.0f)
     {
@@ -207,7 +205,7 @@ public:
             return;
         }
         // get parent window size
-        ImGui::Begin("Add Material Data", &m_Open);
+        ImGui::Begin("Add Material Data", &m_Open, ImGuiWindowFlags_NoDocking);
         if (ImGui::InputText("Name", m_Name, sizeof(m_Name)))
         {
             m_Data->name = m_Name;
@@ -235,6 +233,13 @@ public:
                 assert(false && "unknown type");
                 m_Data = CreateScope<MaterialFloat>();
                 break;
+            }
+        }
+        if (ImGuiWindow* window = ImGui::FindWindowByName("Add Material Data"))
+        {
+            if (!window->Active)
+            {
+                ImGui::BringWindowToDisplayFront(window);
             }
         }
         if (ImGui::Button("Add"))
@@ -287,6 +292,7 @@ class MaterialPanel
 public:
     void Draw()
     {
+        ImGui::Begin("Material Panel");
         for (size_t i = 0; i < m_DataPanels.size(); ++i)
         {
             m_DataPanels[i].Draw((int)i);
@@ -296,6 +302,7 @@ public:
             addPanel.Open();
         }
         addPanel.Draw();
+        ImGui::End();
     }
     MaterialPanel()
     {
@@ -343,9 +350,8 @@ public:
     {
         m_Window = window;
         Notify::Error("This is an error message", 10.0f);
-        Notify::Error("This is an error message", 10.0f);
-        Notify::Error("This is an error message", 10.0f);
-        Notify::Error("This is an error message", 10.0f);
+        Notify::Info("This is an info message", 10.0f);
+        Notify::Warning("This is an warning message", 10.0f);
     }
     virtual void OnUpdate(float sec) override
     {
@@ -365,16 +371,13 @@ public:
         ImGui::SetNextWindowSize(ImVec2((float)size.x(), (float)size.y()));
         // no title bar
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove
-                                        | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing
-                                        | ImGuiWindowFlags_NoNav;
-                    
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav
+                                        | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar;
 
-        ImGui::Begin("Test Window", nullptr, window_flags);
-        ImGui::Text("Hello from ImGuiLayer");
+        ImGui::Begin("Docking", nullptr, window_flags);
         m_MaterialPanel.Draw();
-        ImGui::End();
         Notify::Draw();
+        ImGui::End();
     }
 
 private:
@@ -384,14 +387,15 @@ private:
     float m_Float;
 };
 
-class ImGuiDemo : public Application
+class AetherEditor : public Application
 {
 public:
     virtual void OnInit(Window& window) override
     {
-        auto* testLayer = new ImGuiLayer();
-        m_Layers.push_back(testLayer);
-        window.PushLayer(testLayer);
+        ImGuiApi::EnableDocking();
+        auto* imguiLayer = new ImGuiLayer();
+        m_Layers.push_back(imguiLayer);
+        window.PushLayer(imguiLayer);
     }
     virtual void OnShutdown() override
     {
@@ -412,4 +416,4 @@ private:
     std::vector<Layer*> m_Layers;
     Window* m_MainWindow;
 };
-DEFINE_APPLICATION(ImGuiDemo);
+DEFINE_APPLICATION(AetherEditor);
