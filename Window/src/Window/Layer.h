@@ -8,6 +8,8 @@ class Window;
 class Layer
 {
 public:
+    friend class Window;
+public:
     virtual ~Layer() = default;
     Layer() = default;
     // 挂载的window负责调用OnAttach和OnDetach，并把自己传给Layer
@@ -39,6 +41,5 @@ public:
     {
 
     }
-   
 };
 } // namespace Aether

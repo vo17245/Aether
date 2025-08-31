@@ -6,7 +6,7 @@
 namespace Aether::ImGuiApi
 {
 static VkDescriptorPool g_DescriptorPool = VK_NULL_HANDLE;
-
+static ImGuiContext* g_MainContext = nullptr;
 void NewFrame()
 {
     ImGui_ImplVulkan_NewFrame();
@@ -55,7 +55,7 @@ void Init(Window& window)
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    g_MainContext=ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls

@@ -9,4 +9,5 @@ namespace Aether::ImGuiApi
     void Shutdown();
     void Init(Window& window);
     void EnableDocking();
+    void SwitchToMainContext();
 }
