@@ -2,7 +2,7 @@
 #include "Window/Event.h"
 #include <Render/RenderApi.h>
 #include <Render/RenderGraph/RenderGraph.h>
-#include <ImGui/imgui.h>
+#include <ImGui/Core/imgui.h>
 namespace Aether {
 class Window;
 class Layer

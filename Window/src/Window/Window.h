@@ -18,7 +18,7 @@
 #include "Input.h"
 #include "GammaFilter.h"
 #include "Render/RenderGraph/RenderGraph.h"
-#include "ImGui/WindowContext.h"
+#include "ImGui/Compat/WindowContext.h"
 namespace Aether {
 namespace vk {
 class RenderContext;

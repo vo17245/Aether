@@ -12,6 +12,108 @@
 #include <Debug/Log.h>
 #include "Material.h"
 using namespace Aether;
+enum class MessageType
+{
+    Info,
+    Warning,
+    Error
+};
+struct Message
+{
+    MessageType type;
+    std::string content;
+    float ttl; // time to live in seconds
+};
+class Notify
+{
+public:
+    void Update(float sec)
+    {
+        for (auto it = m_Messages.begin(); it != m_Messages.end();)
+        {
+            it->ttl -= sec;
+            if (it->ttl <= 0.0f)
+            {
+                it = m_Messages.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
+    static Notify& GetSingleton()
+    {
+        static Notify instance;
+        return instance;
+    }
+    static void Error(const std::string& content, float ttl = 5.0f)
+    {
+        GetSingleton().ErrorImpl(content, ttl);
+    }
+    static void Warning(const std::string& content, float ttl = 5.0f)
+    {
+        GetSingleton().WarningImpl(content, ttl);
+    }
+    static void Info(const std::string& content, float ttl = 5.0f)
+    {
+        GetSingleton().InfoImpl(content, ttl);
+    }
+    static void Draw()
+    {
+        GetSingleton().DrawImpl();
+    }
+
+private:
+    void DrawImpl()
+    {
+        if (m_Messages.empty())
+        {
+            return;
+        }
+        ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
+        ImGui::Begin("Notifications", nullptr,
+                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize
+                         | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove);
+        for (const auto& msg : m_Messages)
+        {
+            ImVec4 color;
+            switch (msg.type)
+            {
+            case MessageType::Info:
+                color = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+                break;
+            case MessageType::Warning:
+                color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+                break;
+            case MessageType::Error:
+                color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+                break;
+            default:
+                color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+                break;
+            }
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+            ImGui::TextUnformatted(msg.content.c_str());
+            ImGui::PopStyleColor();
+        }
+        ImGui::End();
+    }
+    void ErrorImpl(const std::string& content, float ttl = 5.0f)
+    {
+        m_Messages.push_back({MessageType::Error, content, ttl});
+    }
+    void WarningImpl(const std::string& content, float ttl = 5.0f)
+    {
+        m_Messages.push_back({MessageType::Warning, content, ttl});
+    }
+    void InfoImpl(const std::string& content, float ttl = 5.0f)
+    {
+        m_Messages.push_back({MessageType::Info, content, ttl});
+    }
+    std::vector<Message> m_Messages;
+};
 class MaterialDataSetLimitPanel
 {
 public:
@@ -221,6 +323,11 @@ public:
     }
 
 private:
+    void OnMaterialDataAdd(MaterialData& data)
+    {
+    }
+
+private:
     AddMaterialDataPanel addPanel;
     Material m_Material;
     std::vector<MaterialDataPanel> m_DataPanels;
@@ -235,6 +342,14 @@ public:
     virtual void OnAttach(Window* window) override
     {
         m_Window = window;
+        Notify::Error("This is an error message", 10.0f);
+        Notify::Error("This is an error message", 10.0f);
+        Notify::Error("This is an error message", 10.0f);
+        Notify::Error("This is an error message", 10.0f);
+    }
+    virtual void OnUpdate(float sec) override
+    {
+        Notify::GetSingleton().Update(sec);
     }
     virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph) override
     {
@@ -253,11 +368,13 @@ public:
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove
                                         | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing
                                         | ImGuiWindowFlags_NoNav;
+                    
 
         ImGui::Begin("Test Window", nullptr, window_flags);
         ImGui::Text("Hello from ImGuiLayer");
         m_MaterialPanel.Draw();
         ImGui::End();
+        Notify::Draw();
     }
 
 private:
