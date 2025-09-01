@@ -1,6 +1,7 @@
 #pragma once
 #include <Render/Render.h>
 #include <Core/Core.h>
+#include "FileWatchListener.h"
 namespace Aether
 {
 enum class MaterialDataType
@@ -71,6 +72,7 @@ struct Keyword
 using KeywordFlags=uint32_t;
 struct Material
 {
+    std::string dir;
     std::string name;
     std::string vertPath;
     std::string fragPath;

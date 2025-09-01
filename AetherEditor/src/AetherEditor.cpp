@@ -14,6 +14,7 @@
 using namespace Aether;
 #include "Notify.h"
 #include "MaterialPanel.h"
+#include "FileWatcher.h"
 
 
 
@@ -52,7 +53,7 @@ public:
         // no title bar
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav
-                                        | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar;
+                                        | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoResize;
 
         ImGui::Begin("Docking", nullptr, window_flags);
         m_MaterialPanel.Draw();
@@ -76,6 +77,7 @@ public:
         auto* imguiLayer = new ImGuiLayer();
         m_Layers.push_back(imguiLayer);
         window.PushLayer(imguiLayer);
+        FileWatcher::Start();
     }
     virtual void OnShutdown() override
     {

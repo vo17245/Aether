@@ -16,6 +16,11 @@ public:
             m_BringToFocused = false;
         }
         ImGui::Begin("Material Panel");
+
+        // shader
+        ImGui::Text("Vertex Shader: %s",m_Material.vertPath.c_str());
+        ImGui::Text("Fragment Shader: %s",m_Material.fragPath.c_str());
+        // material data
         for (size_t i = 0; i < m_DataPanels.size(); ++i)
         {
             m_DataPanels[i].Draw((int)i);
