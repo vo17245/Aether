@@ -30,7 +30,7 @@ int main()
         ImGuiApi::Init(*window);
         app->OnInit(*window);
         std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
-        while (!window->ShouldClose())
+        while (!window->ShouldClose() && app->Running())
         {
             // window->WaitLastFrameComplete();
             app->OnFrameBegin();

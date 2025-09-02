@@ -1,6 +1,9 @@
 #pragma once
 #include "Notify.h"
 #include "AddMaterialDataPanel.h"
+#include "FileWatcher.h"
+#include <UI/FileDialog.h>
+using namespace Aether;
 class MaterialPanel
 {
 public:
@@ -15,11 +18,43 @@ public:
             ImGui::SetNextWindowFocus();
             m_BringToFocused = false;
         }
-        ImGui::Begin("Material Panel");
+        ImGui::Begin("Material Panel",nullptr);
+        // dir
+        {
+            ImGui::PushID(0);
+            if(ImGui::Button("Change"))
+            {
+                auto res=UI::SyncSelectDirectroy();
+                if(res.has_value())
+                {
+                    m_Material.dir=res.value();
+                    Notify::Info("Change material directory to "+m_Material.dir,3.0f);
+                }
+                else
+                {
+                    Notify::Warning("Failed to select directory: "+res.error(),3.0f);
+                }
+            }
+            ImGui::SameLine();
+            ImGui::PopID();
+        }
 
+        ImGui::Text("Directory: %s", m_Material.dir.c_str());
         // shader
-        ImGui::Text("Vertex Shader: %s",m_Material.vertPath.c_str());
-        ImGui::Text("Fragment Shader: %s",m_Material.fragPath.c_str());
+        {
+            ImGui::PushID(1);
+            ImGui::Button("Change");
+            ImGui::SameLine();
+            ImGui::PopID();
+        }
+        ImGui::Text("Vertex Shader: %s", m_Material.vertPath.c_str());
+        {
+            ImGui::PushID(2);
+            ImGui::Button("Change");
+            ImGui::SameLine();
+            ImGui::PopID();
+        }
+        ImGui::Text("Fragment Shader: %s", m_Material.fragPath.c_str());
         // material data
         for (size_t i = 0; i < m_DataPanels.size(); ++i)
         {
@@ -84,6 +119,37 @@ public:
         }
         m_DataToDelete.clear();
     }
+    void WatchShader()
+    {
+        FileWatcher::WatchDirectory(
+            m_Material.dir, true,
+            [this](efsw::WatchID watchId, const std::string& dir, const std::string& filename, efsw::Action action,
+                   std::string oldFilename) { OnFileChanged(watchId, dir, filename, action, oldFilename); });
+    }
+    void DisableWatchShader()
+    {
+        if (m_WatchID.has_value())
+        {
+            FileWatcher::RemoveWatch(m_WatchID.value());
+        }
+    }
+
+private:
+    void OnFileChanged(efsw::WatchID watchId, const std::string& dir, const std::string& filename, efsw::Action action,
+                       std::string oldFilename)
+    {
+        if (watchId == m_WatchID.value() && action == efsw::Action::Modified)
+        {
+            if (filename == m_Material.vertPath || filename == m_Material.fragPath)
+            {
+                OnShaderChanged();
+            }
+        }
+    }
+    void OnShaderChanged()
+    {
+        Notify::Debug("Shader file changed: " + m_Material.vertPath + " or " + m_Material.fragPath, 3.0f);
+    }
 
 private:
     void OnMaterialDataDelete(MaterialDataPanel& panel)
@@ -121,4 +187,7 @@ private:
     bool m_BringToFocused = false;
     bool m_Open = false;
     std::vector<MaterialDataPanel*> m_DataToDelete;
+
+private:
+    std::optional<efsw::WatchID> m_WatchID;
 };

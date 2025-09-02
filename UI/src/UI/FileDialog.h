@@ -6,4 +6,5 @@
 namespace Aether::UI
 {
     std::expected<std::string,std::string> SyncSelectFile();
+    std::expected<std::string,std::string> SyncSelectDirectroy();
 }

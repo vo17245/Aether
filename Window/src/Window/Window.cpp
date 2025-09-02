@@ -306,6 +306,8 @@ GLFWwindow* Window::CreateGlfwHandle(int width, int height, const char* title)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+     // 设置窗口无边框
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
     return glfwCreateWindow(width, height, title, nullptr, nullptr);
 }

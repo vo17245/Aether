@@ -20,6 +20,16 @@ namespace Aether
         {
             return "Aether Application";
         }
+        bool Running() const
+        {
+            return m_Running;
+        }
+        void Quit()
+        {
+            m_Running = false;
+        }
+    private:
+        bool m_Running=true;
     };
 }
 
