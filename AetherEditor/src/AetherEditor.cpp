@@ -43,8 +43,34 @@ public:
     {
         return m_NeedRebuild;
     }
+    void DrawMainWindowEnd()
+    {
+        ImGui::End();
+    }
+    void DrawMainWindowMenuBar()
+    {
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Open", "Ctrl+O")) { /* 打开文件逻辑 */ }
+                if (ImGui::MenuItem("Save", "Ctrl+S")) { /* 保存逻辑 */ }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Exit")) { /* 退出逻辑 */ }
+                ImGui::EndMenu();
+            }
 
-    virtual void OnImGuiUpdate() override
+            if (ImGui::BeginMenu("Edit"))
+            {
+                if (ImGui::MenuItem("Undo", "Ctrl+Z")) {}
+                if (ImGui::MenuItem("Redo", "Ctrl+Y", false, false)) {} // 禁用项
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenuBar();
+        }
+    }
+    void DrawMainWindowBegin()
     {
         Vec2i size = m_Window->GetSize();
         // full screen
@@ -53,22 +79,16 @@ public:
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav
                                         | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize
-                                        | ImGuiWindowFlags_NoCollapse;
+                                        | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
         ImGui::PushStyleColor(ImGuiCol_TitleBg, ImGui::GetStyleColorVec4(ImGuiCol_TitleBgActive));
         ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImGui::GetStyleColorVec4(ImGuiCol_TitleBgActive));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
-        ImGui::Begin("Docking", &m_Open, window_flags);
+        ImGui::Begin("AetherEditor", &m_Open, window_flags);
         ImGui::PopStyleColor(2);
         ImGui::PopStyleVar();
 
-        if (!m_Open)
-        {
-            if (m_OnClose)
-            {
-                m_OnClose();
-            }
-        }
+        DrawMainWindowMenuBar();
 
         if (ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
         {
@@ -88,10 +108,11 @@ public:
             }
         }
 
-        if (m_IsMainWindowDragging) {
-            if(glfwGetMouseButton(m_Window->GetHandle(), GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS)
+        if (m_IsMainWindowDragging)
+        {
+            if (glfwGetMouseButton(m_Window->GetHandle(), GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS)
             {
-                m_IsMainWindowDragging=false;
+                m_IsMainWindowDragging = false;
             }
         }
 
@@ -112,7 +133,7 @@ public:
             delta.x = mousePos.x - m_MainWindowDragMouseStartPos.x;
 
             delta.y = mousePos.y - m_MainWindowDragMouseStartPos.y;
-          
+
             ImVec2 newWindowPos;
             newWindowPos.x = m_MainWindowDragWindowStartPos.x + delta.x;
             newWindowPos.y = m_MainWindowDragWindowStartPos.y + delta.y;
@@ -122,11 +143,22 @@ public:
 
         ImGuiID dockspace_id = ImGui::GetID("Docking");
         ImGui::DockSpace(dockspace_id, ImVec2(0, 0), ImGuiDockNodeFlags_NoDockingInCentralNode);
-        // 子窗口可以 dock 进这里，但不会覆盖标题栏
+    }
+    virtual void OnImGuiUpdate() override
+    {
+        Vec2i size = m_Window->GetSize();
 
+        DrawMainWindowBegin();
+        if (!m_Open)
+        {
+            if (m_OnClose)
+            {
+                m_OnClose();
+            }
+        }
         m_MaterialPanel.Draw();
         Notify::Draw();
-        ImGui::End();
+        DrawMainWindowEnd();
     }
     void SetOnClose(std::function<void()>&& onClose)
     {
