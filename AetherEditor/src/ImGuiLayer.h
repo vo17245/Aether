@@ -20,6 +20,7 @@ using namespace Aether;
 #include <UI/Render/LoadTextureToLinear.h>
 #include "Utils/LoadTexture.h"
 #include "Panel/TerminalPanel.h"
+#include "Panel/MaterialEditorPanel.h"
 class ImGuiLayer : public Layer
 {
 public:
@@ -33,14 +34,13 @@ public:
         // Notify::Error("This is an error message", 10.0f);
         // Notify::Info("This is an info message", 10.0f);
         // Notify::Warning("This is an warning message", 10.0f);
-        m_MaterialPanel.Open();
-        m_DummyScene = Utils::LoadSrgbTexture("Assets/bundle/Images/logo.png").value();
-        m_ScenePanel.SetTexture(m_DummyScene);
+        m_MaterialEditorPanel.Init();
+        
     }
     virtual void OnUpdate(float sec) override
     {
         Notify::Update(sec);
-        m_MaterialPanel.OnUpdate(sec);
+        m_MaterialEditorPanel.OnUpdate(sec);
     }
     virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph) override
     {
@@ -162,9 +162,7 @@ public:
                 m_OnClose();
             }
         }
-        m_MaterialPanel.Draw();
-        m_ScenePanel.Draw();
-        m_TerminalPanel.Draw();
+        m_MaterialEditorPanel.Draw();
         Notify::Draw();
         DrawMainWindowEnd();
     }
@@ -176,8 +174,7 @@ public:
 private:
     bool m_NeedRebuild;
     Window* m_Window = nullptr;
-    MaterialPanel m_MaterialPanel;
-    float m_Float;
+    
     bool m_Open = true;
     std::function<void()> m_OnClose;
 
@@ -185,9 +182,6 @@ private:
     bool m_IsMainWindowDragging = false;
     ImVec2 m_MainWindowDragMouseStartPos;
     ImVec2 m_MainWindowDragWindowStartPos;
+    MaterialEditorPanel m_MaterialEditorPanel;
 
-private:
-    ScenePanel m_ScenePanel;
-    DeviceTexture m_DummyScene;
-    TerminalPanel m_TerminalPanel;
 };
