@@ -34,7 +34,7 @@ public:
         // Notify::Info("This is an info message", 10.0f);
         // Notify::Warning("This is an warning message", 10.0f);
         m_MaterialPanel.Open();
-        m_DummyScene=Utils::LoadSrgbTexture("Assets/bundle/Images/logo.png").value();
+        m_DummyScene = Utils::LoadSrgbTexture("Assets/bundle/Images/logo.png").value();
         m_ScenePanel.SetTexture(m_DummyScene);
     }
     virtual void OnUpdate(float sec) override
@@ -148,7 +148,7 @@ public:
         // 给父窗口创建独立 DockSpace
 
         ImGuiID dockspace_id = ImGui::GetID("Docking");
-        ImGui::DockSpace(dockspace_id, ImVec2(0, 0), ImGuiDockNodeFlags_NoDockingInCentralNode);
+        ImGui::DockSpace(dockspace_id, ImVec2(0, 0));
     }
     virtual void OnImGuiUpdate() override
     {
@@ -185,9 +185,9 @@ private:
     bool m_IsMainWindowDragging = false;
     ImVec2 m_MainWindowDragMouseStartPos;
     ImVec2 m_MainWindowDragWindowStartPos;
+
 private:
     ScenePanel m_ScenePanel;
     DeviceTexture m_DummyScene;
-    TerminalPanel m_TerminalPanel;  
-
+    TerminalPanel m_TerminalPanel;
 };

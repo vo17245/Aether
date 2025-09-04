@@ -11,18 +11,22 @@ public:
     Path(const U8String& path) :
         m_Path(path)
     {
+        Normalize();
     }
     Path(const std::string_view path) :
         m_Path(path)
     {
+        Normalize();
     }
     Path(const char* path) :
         m_Path(path)
     {
+        Normalize();
     }
     Path(const std::string& path) :
         m_Path(path)
     {
+        Normalize();
     }
     Path() = default;
     Path(const Path& other) :
@@ -52,6 +56,10 @@ public:
         auto view=m_Path.GetData();
         return std::string_view((char*)view.data(),view.size());
     }
+    bool operator==(const Path& other) const
+    {
+        return m_Path == other.m_Path;
+    }
     
 
 public:
@@ -72,6 +80,15 @@ public:
         }
         return Path(m_Path.Sub(0, *pos));
     }
+    Path Filename() const
+    {
+        auto pos = m_Path.FindLast(U8String("/"));
+        if (!pos)
+        {
+            return *this;
+        }
+        return Path(m_Path.Sub(*pos + 1, m_Path.CharCount() ));
+    }
     bool Empty() const
     {
         return m_Path.CharCount() == 0;
@@ -79,6 +96,19 @@ public:
 
 private:
     U8String m_Path; // Path is stored as UTF-8
+    void Normalize()
+    {
+        // \ -> /
+        auto view = m_Path.GetData();
+        for (size_t i = 0; i < view.size(); ++i)
+        {
+            if (view[i] == '\\')
+            {
+                view[i] = uint8_t('/');
+            }
+        }
+
+    }
 };
 }
 } // namespace Aether::Filesystem

@@ -149,6 +149,44 @@ public:
                 break;
             }
         }
+        switch(type)
+        {
+            case MaterialDataType::Float:
+            {
+                auto& d = static_cast<MaterialFloat&>(*m_Data);
+                ImGui::InputFloat("Value", &d.value);
+                ImGui::InputFloat("Min", &d.min);
+                ImGui::InputFloat("Max", &d.max);
+            }
+            break;
+            case MaterialDataType::Vec2:
+            {
+                auto& d = static_cast<MaterialVec2&>(*m_Data);
+                ImGui::InputFloat2("Value", d.value.data());
+                ImGui::InputFloat2("Min", d.min.data());
+                ImGui::InputFloat2("Max", d.max.data());
+            }
+            break;
+            case MaterialDataType::Vec3:
+            {
+                auto& d = static_cast<MaterialVec3&>(*m_Data);
+                ImGui::InputFloat3("Value", d.value.data());
+                ImGui::InputFloat3("Min", d.min.data());
+                ImGui::InputFloat3("Max", d.max.data());
+            }
+            break;
+            case MaterialDataType::Vec4:
+            {
+                auto& d = static_cast<MaterialVec4&>(*m_Data);
+                ImGui::InputFloat4("Value", d.value.data());
+                ImGui::InputFloat4("Min", d.min.data());
+                ImGui::InputFloat4("Max", d.max.data());
+            }
+            break;
+            default:
+                assert(false && "unknown type");
+                break;
+        }
         
         if (ImGui::Button("Add"))
         {

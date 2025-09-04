@@ -5,6 +5,11 @@
 #include <expected>
 namespace Aether::UI
 {
-    std::expected<std::string,std::string> SyncSelectFile();
-    std::expected<std::string,std::string> SyncSelectDirectroy();
-}
+struct SelectFileParam
+{
+    std::string defaultPath;
+};
+std::expected<std::string, std::string> SyncSelectFileEx(const SelectFileParam& param);
+std::expected<std::string, std::string> SyncSelectFile();
+std::expected<std::string, std::string> SyncSelectDirectroy();
+} // namespace Aether::UI

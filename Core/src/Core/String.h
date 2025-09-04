@@ -218,6 +218,10 @@ public:
     {
         return std::span<const uint8_t>(m_Data.data(), m_Data.size());
     }
+    std::span<uint8_t> GetData() 
+    {
+        return std::span<uint8_t>(m_Data.data(), m_Data.size());
+    }
 
     bool PushUnicode(Unicode unicode);
     /**

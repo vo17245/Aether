@@ -3,6 +3,7 @@
 #include "AddMaterialDataPanel.h"
 #include "FileWatcher.h"
 #include <UI/FileDialog.h>
+#include <Utils/FileIsInDirectory.h>
 using namespace Aether;
 class MaterialPanel
 {
@@ -18,43 +19,69 @@ public:
             ImGui::SetNextWindowFocus();
             m_BringToFocused = false;
         }
-        ImGui::Begin("Material Panel",nullptr);
+        ImGui::Begin("Material Panel", nullptr);
         // dir
         {
             ImGui::PushID(0);
-            if(ImGui::Button("Change"))
+            if (ImGui::Button("Change"))
             {
-                auto res=UI::SyncSelectDirectroy();
-                if(res.has_value())
+                auto res = UI::SyncSelectDirectroy();
+                if (res.has_value())
                 {
-                    m_Material.dir=res.value();
-                    Notify::Info("Change material directory to "+m_Material.dir,3.0f);
+                    m_Material.dir = res.value();
+                    Notify::Info("Change material directory to " + m_Material.dir, 3.0f);
+                    WatchShader();
                 }
                 else
                 {
-                    Notify::Warning("Failed to select directory: "+res.error(),3.0f);
+                    Notify::Warning("Failed to select directory: " + res.error(), 3.0f);
                 }
             }
             ImGui::SameLine();
             ImGui::PopID();
+            ImGui::Text("Directory: %s", m_Material.dir.c_str());
         }
 
-        ImGui::Text("Directory: %s", m_Material.dir.c_str());
         // shader
         {
             ImGui::PushID(1);
-            ImGui::Button("Change");
+            if (ImGui::Button("Change"))
+            {
+                auto res = UI::SyncSelectFileEx({.defaultPath = m_Material.dir  });
+                if (res.has_value())
+                {
+                    
+                    m_Material.vertPath = Aether::Filesystem::Path(res.value()).Filename();
+                    Notify::Info("Change vertext shader to " + m_Material.vertPath, 3.0f);
+                }
+                else
+                {
+                    Notify::Warning("Failed to select file: " + res.error(), 3.0f);
+                }
+            }
             ImGui::SameLine();
             ImGui::PopID();
+            ImGui::Text("Vertex Shader: %s", m_Material.vertPath.c_str());
         }
-        ImGui::Text("Vertex Shader: %s", m_Material.vertPath.c_str());
         {
             ImGui::PushID(2);
-            ImGui::Button("Change");
+            if (ImGui::Button("Change"))
+            {
+                auto res = UI::SyncSelectFileEx({.defaultPath = m_Material.dir  });
+                if (res.has_value())
+                {
+                    m_Material.fragPath = Aether::Filesystem::Path(res.value()).Filename();
+                    Notify::Info("Change fragment shader to " + m_Material.fragPath, 3.0f);
+                }
+                else
+                {
+                    Notify::Warning("Failed to select file: " + res.error(), 3.0f);
+                }
+            }
             ImGui::SameLine();
             ImGui::PopID();
+            ImGui::Text("Fragment Shader: %s", m_Material.fragPath.c_str());
         }
-        ImGui::Text("Fragment Shader: %s", m_Material.fragPath.c_str());
         // material data
         for (size_t i = 0; i < m_DataPanels.size(); ++i)
         {
@@ -121,7 +148,11 @@ public:
     }
     void WatchShader()
     {
-        FileWatcher::WatchDirectory(
+        if (m_WatchID.has_value())
+        {
+            FileWatcher::RemoveWatch(m_WatchID.value());
+        }
+        m_WatchID=FileWatcher::WatchDirectory(
             m_Material.dir, true,
             [this](efsw::WatchID watchId, const std::string& dir, const std::string& filename, efsw::Action action,
                    std::string oldFilename) { OnFileChanged(watchId, dir, filename, action, oldFilename); });
