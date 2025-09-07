@@ -7,7 +7,7 @@ public:
     {
         ImGuiApi::EnableDocking();
         auto* imguiLayer = new ImGuiLayer();
-        imguiLayer->SetOnClose([this]() { this->Quit(); });
+        m_MainWindow = &window;
         m_Layers.push_back(imguiLayer);
         window.PushLayer(imguiLayer);
         FileWatcher::Start();
@@ -24,7 +24,13 @@ public:
     }
     virtual const char* GetName() const override
     {
-        return "ImGuiDemo";
+        return "AetherEditor";
+    }
+    virtual WindowCreateParam MainWindowCreateParam() override
+    {
+        auto param = WindowCreateParam{};
+        param.title="AetherEditor";
+        return param;
     }
 
 private:

@@ -93,10 +93,10 @@ void Window::DispatchEvent()
  * @brief Create a window
  * @return pointer to the window, nullptr if failed
  */
-Window* Window::Create(int width, int height, const char* title)
+Window* Window::Create(const WindowCreateParam& param)
 {
     // create handle
-    auto* handle = CreateGlfwHandle(width, height, title);
+    auto* handle = CreateGlfwHandle(param);
     if (handle == nullptr)
     {
         return nullptr;
@@ -302,14 +302,17 @@ Window::Window(GLFWwindow* window) : m_Handle(window)
 /**
  *@brief Create a glfw window handle
  */
-GLFWwindow* Window::CreateGlfwHandle(int width, int height, const char* title)
+GLFWwindow* Window::CreateGlfwHandle(const WindowCreateParam& param)
 {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-     // 设置窗口无边框
-    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+    if (param.noDecorate)
+    {
+        // 设置窗口无边框
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+    }
 
-    return glfwCreateWindow(width, height, title, nullptr, nullptr);
+    return glfwCreateWindow(param.width, param.height, param.title.c_str(), nullptr, nullptr);
 }
 void Window::SetSize(uint32_t width, uint32_t height)
 {
@@ -414,7 +417,15 @@ Vec2i Window::GetSize() const
     glfwGetFramebufferSize(m_Handle, &width, &height);
     return Vec2i(width, height);
 }
-
+void Window::SetSize(int width, int height)
+{
+    glfwSetWindowSize(m_Handle, width, height);
+    OnWindowResize(Vec2u(width, height));
+}
+void Window::SetPosition(int width, int height)
+{
+    glfwSetWindowPos(m_Handle, width, height);
+}
 void Window::OnUpdate(float sec)
 {
     for (auto& layer : m_Layers)
@@ -472,7 +483,6 @@ void Window::OnRender()
     {
         layer->OnFrameBegin();
     }
-    
 
     // record command buffer
     auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
@@ -494,7 +504,7 @@ void Window::OnRender()
     curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
     m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
     curCommandBufferVk.EndRenderPass();
-    m_ImGuiContext.window.FrameIndex=imageIndex;
+    m_ImGuiContext.window.FrameIndex = imageIndex;
     ImGuiRecordCommandBuffer(curCommandBuffer);
     curCommandBufferVk.End();
     // commit command buffer
@@ -756,5 +766,9 @@ void Window::ImGuiWindowContextInit()
 void Window::ImGuiWindowContextDestroy()
 {
     ImGui_ImplVulkanH_DestroyWindow(vk::GRC::GetInstance(), vk::GRC::GetDevice(), &m_ImGuiContext.window, nullptr);
+}
+void Window::Maximize()
+{
+    glfwMaximizeWindow(m_Handle);
 }
 } // namespace Aether

@@ -24,6 +24,13 @@ namespace vk {
 class RenderContext;
 
 }
+struct WindowCreateParam
+{
+    int width=800;
+    int height=600;
+    std::string title="Default Title";
+    bool noDecorate = false;
+};
 class Window
 {
     friend class WindowContext;
@@ -45,7 +52,7 @@ public:
      * @brief Create a window
      * @return pointer to the window, nullptr if failed
      */
-    static Window* Create(int width, int height, const char* title);
+    static Window* Create(const WindowCreateParam& param);
     /**
      * @note
      *   只是把layer挂在到window，不转移所有权
@@ -65,10 +72,13 @@ public:
     bool ReleaseVulkanObjects();
     VkSurfaceKHR GetSurface() const;
     Vec2i GetSize() const;
+    void SetSize(int width, int height);
+    void SetPosition(int width,int height);
     void OnUpdate(float sec);
     void OnRender();
     void PushEvent(const Event& e);
     Input& GetInput();
+    void Maximize();
 
     void ReleaseFinalImage();
     bool CreateFinalImage();
@@ -142,7 +152,7 @@ private:
     /**
      *@brief Create a glfw window handle
      */
-    static GLFWwindow* CreateGlfwHandle(int width, int height, const char* title);
+    static GLFWwindow* CreateGlfwHandle(const WindowCreateParam& param);
     /**
      *@brief Create swapchain ;swapchain images ; setup SwapChainImageFormat ;setup SwapChainExtent
      */

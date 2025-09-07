@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <unordered_map>
+#include <Core/Core.h>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 namespace Aether {
@@ -32,6 +33,7 @@ public:
     {
         Get().m_Windows.erase(handle);
     }
+    static Vec2i MainMonitorSize();
 
 private:
     static GLFWwindow* CreateGlfwHandle(int width, int height, const char* title)

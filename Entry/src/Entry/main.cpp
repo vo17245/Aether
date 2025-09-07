@@ -21,7 +21,7 @@ int main()
         return -1;
     }
     {
-        auto window = std::unique_ptr<Window>(Window::Create(800, 600, app->GetName()));
+        auto window = std::unique_ptr<Window>(Window::Create(app->MainWindowCreateParam()));
         // 会在window中创建vulkan对象,在销毁vulkan context前必须调用window 的ReleaseVulkanObjects
         // 销毁window中的vulkan对象
         vk::GRC::Init(window.get(), true);

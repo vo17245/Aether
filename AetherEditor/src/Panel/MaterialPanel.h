@@ -99,8 +99,13 @@ public:
             }
         }
         addPanel.Draw();
+        if(ImGui::Button("Test"))
+        {
+            TestReflection();
+        }
         ImGui::End();
     }
+    void TestReflection();
     MaterialPanel()
     {
         addPanel.SetOnAdd([this](MaterialData& data) { OnMaterialDataAdd(data); });

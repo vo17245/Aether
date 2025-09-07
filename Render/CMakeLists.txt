@@ -16,6 +16,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC Filesystem )
 find_package(glslang REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC glslang::glslang )
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
+target_link_libraries(${MODULE_NAME} PUBLIC Debug)
 find_package(glfw3 REQUIRED CONFIG)
 
 
@@ -30,7 +31,14 @@ target_include_directories(${MODULE_NAME} PUBLIC
     $<INSTALL_INTERFACE:${MODULE_NAME}/include>
 )
 
-
+find_package(spirv_cross_core REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC spirv-cross-core)
+find_package(spirv_cross_reflect REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC spirv-cross-reflect)
+find_package(spirv_cross_glsl REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC spirv-cross-glsl)
+find_package(spirv_cross_hlsl REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC spirv-cross-hlsl)
 
 
 #==================install config=========================

@@ -147,4 +147,11 @@ void WindowContext::MouseButtonEventCallback(GLFWwindow* window, int button, int
         assert(false&&"MousePositionCallback: window not found");
     }
 }
+Vec2i WindowContext::MainMonitorSize()
+{
+// 获取主显示器的屏幕分辨率
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* videoMode = glfwGetVideoMode(primaryMonitor);
+    return Vec2i(videoMode->width, videoMode->height);
+}
 } // namespace Aether

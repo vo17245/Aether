@@ -4,8 +4,7 @@
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <format>
 #include "../Config.h"
-namespace Aether {
-namespace Shader {
+namespace Aether::Shader {
 static void InitResources(TBuiltInResource& Resources)
 {
     Resources.maxLights = 32;
@@ -180,6 +179,7 @@ std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char
 
 
     glslang::TShader shader(glslangShaderType);
+    shader.setEnvTarget(glslang::EShTargetSpv,glslang::EShTargetSpv_1_6);
     shader.setPreamble(preamble);
     shader.setStrings(codes, codeCnt);
     // Set the shader to HLSL
@@ -189,7 +189,7 @@ std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char
 
     EShMessages messages = EShMsgDefault;
     if (!shader.parse(&resources, 100, false, messages)) {
-        return std::unexpected<std::string>(std::format("GLSL Parsing Failed: {}",shader.getInfoLog())); 
+        return std::unexpected<std::string>(std::format("HLSL Parsing Failed: {}",shader.getInfoLog())); 
 
     }
 
@@ -202,9 +202,6 @@ std::expected<std::vector<uint32_t>,std::string> Compiler::HLSL2SPIRV(const char
 
     std::vector<uint32_t> spirv;
     glslang::GlslangToSpv(*program.getIntermediate(glslangShaderType), spirv);
-
-    // Finalize glslang process
-    glslang::FinalizeProcess();
     return spirv;
 }
 void Compiler::Init()
@@ -232,5 +229,5 @@ std::expected<std::vector<uint32_t>,std::string> Compiler::Compile(const ShaderS
             return std::unexpected<std::string>("Unsupported Shader Language");
     }
 }
-}
+
 } // namespace Aether::Shader

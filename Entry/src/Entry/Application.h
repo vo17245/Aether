@@ -28,6 +28,11 @@ namespace Aether
         {
             m_Running = false;
         }
+        virtual WindowCreateParam MainWindowCreateParam()
+        {
+            auto param=WindowCreateParam{};
+            return param;
+        }
     private:
         bool m_Running=true;
     };
