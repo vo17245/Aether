@@ -35,7 +35,11 @@ public:
             }
             if (ImGui::BeginMenu("Window"))
             {
-               
+                
+                if (ImGui::MenuItem("MetricsWindow")) 
+                {
+                    m_ImGuiMetricsWindowOpen = !m_ImGuiMetricsWindowOpen;
+                }
                 ImGui::EndMenu();
             }
 
@@ -72,7 +76,10 @@ public:
     void DrawBegin()
     {
         DrawMainWindowBegin();
-        
+        if(m_ImGuiMetricsWindowOpen)
+        {
+            ImGui::ShowMetricsWindow();
+        }
     }
 
     void DrawEnd()
@@ -82,4 +89,5 @@ public:
    
 public:
     Window* m_OsWindow;
+    bool m_ImGuiMetricsWindowOpen=false;
 };

@@ -22,6 +22,7 @@ using namespace Aether;
 #include "Panel/TerminalPanel.h"
 #include "Panel/MaterialEditorPanel.h"
 #include "Panel/MainWindow.h"
+#include "Panel/BlueprintPanel.h"
 class ImGuiLayer : public Layer
 {
 public:
@@ -37,6 +38,7 @@ public:
         // Notify::Warning("This is an warning message", 10.0f);
         m_MaterialEditorPanel.Init();
         m_MainWindow.SetOsWindow(window);
+        m_BlueprintPanel.Init("tmp/blueprint_panel.json");
     }
     virtual void OnUpdate(float sec) override
     {
@@ -54,6 +56,7 @@ public:
     virtual void OnImGuiUpdate() override
     {
         m_MainWindow.DrawBegin();
+        m_BlueprintPanel.Draw();
         m_MaterialEditorPanel.Draw();
         Notify::Draw();
         m_MainWindow.DrawEnd();
@@ -66,4 +69,5 @@ private:
 
     MainWindow m_MainWindow;
     MaterialEditorPanel m_MaterialEditorPanel;
+    BlueprintPanel m_BlueprintPanel;
 };

@@ -1,6 +1,7 @@
 #pragma once
 #include <Imgui/Core/imgui.h>
 #include <Render/Render.h>
+#include <Core/Core.h>
 namespace Aether::ImGuiComponent
 {
     class Image
