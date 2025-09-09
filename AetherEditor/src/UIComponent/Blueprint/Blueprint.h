@@ -4,10 +4,24 @@
 #include <vector>
 #include <functional>
 #include <UIComponent/Image.h>
-
+#include <variant>
 namespace Aether::ImGuiComponent
 {
-
+enum class BlueprintObjectType
+{
+    Texture,
+    Shader,
+};
+class BlueprintObject
+{
+public:
+    virtual ~BlueprintObject()=default;
+    BlueprintObject(BlueprintObjectType type):m_Type(type){}
+    BlueprintObjectType GetType() const { return m_Type; }
+private:
+    BlueprintObjectType m_Type;
+};
+using BlueprintVariant = std::variant<std::monostate,int, float, std::string, bool, BlueprintObject*>;
 class Blueprint
 {
 public:
@@ -42,13 +56,15 @@ public:
     struct Pin
     {
         ImGui::NodeEditor::PinId ID;
-        Node* Node;
+        Node* Node;// node this pin belongs to
         std::string Name;
         PinType Type;
         PinKind Kind;
-
+        BlueprintVariant Value;
         Pin(int id, const char* name, PinType type) :
-            ID(id), Node(nullptr), Name(name), Type(type), Kind(PinKind::Input)
+            ID(id), 
+            Node(nullptr), 
+            Name(name), Type(type), Kind(PinKind::Input)
         {
         }
     };
@@ -70,6 +86,7 @@ public:
         {
         }
         std::function<void(const std::vector<Pin>& inputs, const std::vector<Pin>& outputs)> onExecute;
+        uint32_t inDegree=0;// for topological sort
     };
 
     struct Link
@@ -207,5 +224,9 @@ private:
     float rightPaneWidth = 800.0f;
     char buffer[128] = "Edit Me\nMultiline!";
     bool wasActive = false;
+private:
+    std::vector<Node*> m_TopologicalSortedNodes;
+    bool m_TopologicalSortDirty = true;
+    void TopologicalSort();
 };
 }

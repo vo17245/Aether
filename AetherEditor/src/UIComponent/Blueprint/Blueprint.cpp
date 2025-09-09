@@ -12,6 +12,8 @@
 #include <utility>
 
 #include <Utils/LoadTexture.h>
+#include <queue>
+#include <unordered_set>
 
 static inline ImRect ImGui_GetItemRect()
 {
@@ -495,11 +497,12 @@ void Blueprint::Init()
         CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/Blueprint/ic_save_white_24dp.png").value());
     m_RestoreIconDeviceImage =
         CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/Blueprint/ic_restore_white_24dp.png").value());
-    m_HeaderBackgroundImage =
-        CreateScope<::Aether::ImGuiComponent::Image>(::Aether::ImGuiComponent::Image::Create(*m_HeaderBackgroundDeviceImage).value());
-    m_SaveIconImage = CreateScope<::Aether::ImGuiComponent::Image>(::Aether::ImGuiComponent::Image::Create(*m_SaveIconDeviceImage).value());
-    m_RestoreIconImage =
-        CreateScope<::Aether::ImGuiComponent::Image>(::Aether::ImGuiComponent::Image::Create(*m_RestoreIconDeviceImage).value());
+    m_HeaderBackgroundImage = CreateScope<::Aether::ImGuiComponent::Image>(
+        ::Aether::ImGuiComponent::Image::Create(*m_HeaderBackgroundDeviceImage).value());
+    m_SaveIconImage = CreateScope<::Aether::ImGuiComponent::Image>(
+        ::Aether::ImGuiComponent::Image::Create(*m_SaveIconDeviceImage).value());
+    m_RestoreIconImage = CreateScope<::Aether::ImGuiComponent::Image>(
+        ::Aether::ImGuiComponent::Image::Create(*m_RestoreIconDeviceImage).value());
     m_HeaderBackground = m_HeaderBackgroundImage->GetTextureId();
     m_SaveIcon = m_SaveIconImage->GetTextureId();
     m_RestoreIcon = m_RestoreIconImage->GetTextureId();
@@ -1775,15 +1778,51 @@ void Blueprint::Draw()
 
     // ImGui::ShowTestWindow();
     // ImGui::ShowMetricsWindow();
-    if(ImGui::Button("execute"))
+    if (ImGui::Button("execute"))
     {
         Execute();
     }
 }
 void Blueprint::Execute()
 {
+    if(m_TopologicalSortDirty)
+    {
+        TopologicalSort();
+        m_TopologicalSortDirty = false;
+    }
+    
+}
+void Blueprint::TopologicalSort()
+{
+    // 可能有多个图存在，所以不能假设每个node可达
+    m_TopologicalSortedNodes.clear();
+    std::vector<Node*>& sorted= m_TopologicalSortedNodes;
+    std::unordered_set<Node*> visited;
+    std::function<void(Node*)> visit = [&](Node* node) {
+        if (visited.find(node) != visited.end())
+            return;
+        visited.insert(node);
+
+        for (auto& pin : node->Outputs)
+        {
+            for (auto& link : m_Links)
+            {
+                if (link.StartPinID == pin.ID)
+                {
+                    auto nextPin = FindPin(link.EndPinID);
+                    if (nextPin && nextPin->Node)
+                        visit(nextPin->Node);
+                }
+            }
+        }
+
+        sorted.push_back(node);
+    };
+    for (auto& node : m_Nodes)
+    {
+        visit(&node);
+    }
     
 }
 
-
-} // namespace ImGuiComponent
+} // namespace Aether::ImGuiComponent
