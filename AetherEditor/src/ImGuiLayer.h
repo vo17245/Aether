@@ -38,6 +38,8 @@ public:
         // Notify::Warning("This is an warning message", 10.0f);
         m_MaterialEditorPanel.Init();
         m_MainWindow.SetOsWindow(window);
+        m_MainWindow.SetBlueprintViewToggle([this]() { m_ShowBlueprintPanel = !m_ShowBlueprintPanel; });
+        m_MainWindow.SetMaterialEditorViewToggle([this]() { m_ShowMaterialEditorPanel = !m_ShowMaterialEditorPanel; });
         m_BlueprintPanel.Init("tmp/blueprint_panel.json");
     }
     virtual void OnUpdate(float sec) override
@@ -56,12 +58,17 @@ public:
     virtual void OnImGuiUpdate() override
     {
         m_MainWindow.DrawBegin();
-        m_BlueprintPanel.Draw();
-        m_MaterialEditorPanel.Draw();
+        if (m_ShowBlueprintPanel)
+        {
+            m_BlueprintPanel.Draw();
+        }
+        if (m_ShowMaterialEditorPanel)
+        {
+            m_MaterialEditorPanel.Draw();
+        }
         Notify::Draw();
         m_MainWindow.DrawEnd();
     }
-    
 
 private:
     bool m_NeedRebuild;
@@ -70,4 +77,6 @@ private:
     MainWindow m_MainWindow;
     MaterialEditorPanel m_MaterialEditorPanel;
     BlueprintPanel m_BlueprintPanel;
+    bool m_ShowBlueprintPanel = false;
+    bool m_ShowMaterialEditorPanel = false;
 };

@@ -2,48 +2,23 @@
 #include <string>
 #include <ImGui/NodeEditor/imgui_node_editor.h>
 #include <vector>
+#include <UIComponent/Blueprint/Blueprint.h>
+using namespace Aether;
 class BlueprintPanel
 {
 public:
-    struct LinkInfo
-    {
-        ImGui::NodeEditor::LinkId Id;
-        ImGui::NodeEditor::PinId  InputId;
-        ImGui::NodeEditor::PinId  OutputId;
-    };
-    void Draw();
-    void Init(const std::string& configPath);
-    void Destroy()
-    {
-        ImGui::NodeEditor::DestroyEditor(m_Context);
-    }
-    ~BlueprintPanel()
-    {
-        if (m_Context)
-        {
-            Destroy();
-        }
-    }
     
-private:
-    void ImGuiEx_BeginColumn()
+    void Draw()
     {
-        ImGui::BeginGroup();
+        ImGui::Begin("Blueprint Panel");
+        m_Blueprint.Draw();
+        ImGui::End();
+    }
+    void Init(const std::string& configPath)
+    {
+        m_Blueprint.Init();
     }
 
-    void ImGuiEx_NextColumn()
-    {
-        ImGui::EndGroup();
-        ImGui::SameLine();
-        ImGui::BeginGroup();
-    }
-    void ImGuiEx_EndColumn()
-    {
-        ImGui::EndGroup();
-    }
 private:
-    ImGui::NodeEditor::EditorContext* m_Context = nullptr;
-    std::vector<LinkInfo> m_Links;
-    bool    m_FirstFrame = true;    
-    int     m_NextLinkId = 100;
+    ImGuiComponent::Blueprint m_Blueprint;
 };

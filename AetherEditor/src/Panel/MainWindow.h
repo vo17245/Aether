@@ -8,7 +8,7 @@ class MainWindow
 public:
     void SetOsWindow(Window* window)
     {
-        m_OsWindow=window;
+        m_OsWindow = window;
     }
     void DrawMainWindowEnd()
     {
@@ -35,10 +35,23 @@ public:
             }
             if (ImGui::BeginMenu("Window"))
             {
-                
-                if (ImGui::MenuItem("MetricsWindow")) 
+                if (ImGui::MenuItem("MetricsWindow"))
                 {
                     m_ImGuiMetricsWindowOpen = !m_ImGuiMetricsWindowOpen;
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("View"))
+            {
+                if (ImGui::MenuItem("Blueprint"))
+                {
+                    if (m_BlueprintViewToggle)
+                        m_BlueprintViewToggle();
+                }
+                if (ImGui::MenuItem("Material Editor"))
+                {
+                    if (m_MaterialEditorViewToggle)
+                        m_MaterialEditorViewToggle();
                 }
                 ImGui::EndMenu();
             }
@@ -55,7 +68,8 @@ public:
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav
                                         | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize
-                                        | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoTitleBar;
+                                        | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar
+                                        | ImGuiWindowFlags_NoTitleBar;
         ImGui::PushStyleColor(ImGuiCol_TitleBg, ImGui::GetStyleColorVec4(ImGuiCol_TitleBgActive));
         ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImGui::GetStyleColorVec4(ImGuiCol_TitleBgActive));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -66,8 +80,6 @@ public:
 
         DrawMainWindowMenuBar();
 
-
-        
         // 给父窗口创建独立 DockSpace
 
         ImGuiID dockspace_id = ImGui::GetID("Docking");
@@ -76,7 +88,7 @@ public:
     void DrawBegin()
     {
         DrawMainWindowBegin();
-        if(m_ImGuiMetricsWindowOpen)
+        if (m_ImGuiMetricsWindowOpen)
         {
             ImGui::ShowMetricsWindow();
         }
@@ -86,8 +98,18 @@ public:
     {
         DrawMainWindowEnd();
     }
-   
-public:
+    void SetBlueprintViewToggle(std::function<void()>&& toggle)
+    {
+        m_BlueprintViewToggle = std::move(toggle);
+    }
+    void SetMaterialEditorViewToggle(std::function<void()>&& toggle)
+    {
+        m_MaterialEditorViewToggle = std::move(toggle);
+    }
+
+private:
     Window* m_OsWindow;
-    bool m_ImGuiMetricsWindowOpen=false;
+    bool m_ImGuiMetricsWindowOpen = false;
+    std::function<void()> m_BlueprintViewToggle;
+    std::function<void()> m_MaterialEditorViewToggle;
 };

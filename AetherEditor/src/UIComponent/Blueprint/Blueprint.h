@@ -2,8 +2,12 @@
 #include <ImGui/NodeEditor/imgui_node_editor.h>
 #include <string>
 #include <vector>
+#include <functional>
 #include <UIComponent/Image.h>
-using namespace Aether;
+
+namespace Aether::ImGuiComponent
+{
+
 class Blueprint
 {
 public:
@@ -48,7 +52,6 @@ public:
         {
         }
     };
-
     struct Node
     {
         ImGui::NodeEditor::NodeId ID;
@@ -66,6 +69,7 @@ public:
             ID(id), Name(name), Color(color), Type(NodeType::Blueprint), Size(0, 0)
         {
         }
+        std::function<void(const std::vector<Pin>& inputs, const std::vector<Pin>& outputs)> onExecute;
     };
 
     struct Link
@@ -90,7 +94,11 @@ public:
             return lhs.AsPointer() < rhs.AsPointer();
         }
     };
-
+public:
+    ~Blueprint()
+    {
+        Destroy();
+    }
 public:
     void Init();
 
@@ -161,6 +169,7 @@ private:
     void ShowStyleEditor(bool* show = nullptr);
 
     void ShowLeftPane(float paneWidth);
+    void Execute();
 
     int m_NextId = 1;
     const int m_PinIconSize = 24;
@@ -170,9 +179,9 @@ private:
     ImTextureID m_SaveIcon = 0;
     ImTextureID m_RestoreIcon = 0;
 
-    Scope<ImGuiComponent::Image> m_HeaderBackgroundImage = 0;
-    Scope<ImGuiComponent::Image> m_SaveIconImage = 0;
-    Scope<ImGuiComponent::Image> m_RestoreIconImage = 0;
+    Scope<::Aether::ImGuiComponent::Image> m_HeaderBackgroundImage = 0;
+    Scope<::Aether::ImGuiComponent::Image> m_SaveIconImage = 0;
+    Scope<::Aether::ImGuiComponent::Image> m_RestoreIconImage = 0;
     Scope<DeviceTexture> m_HeaderBackgroundDeviceImage = 0;
     Scope<DeviceTexture> m_SaveIconDeviceImage = 0;
     Scope<DeviceTexture> m_RestoreIconDeviceImage = 0;
@@ -199,3 +208,4 @@ private:
     char buffer[128] = "Edit Me\nMultiline!";
     bool wasActive = false;
 };
+}
