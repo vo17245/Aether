@@ -10,6 +10,6 @@ public:
     }
 
 private:
-    int m_NextId = 0;
+    int m_NextId = 1;
 };
 } // namespace Aether::ImGuiComponent

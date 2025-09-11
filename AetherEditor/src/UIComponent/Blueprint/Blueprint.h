@@ -53,37 +53,6 @@ private:
 
     void BuildNode(BlueprintNode* node);
 
-    // BlueprintNode* SpawnInputActionNode();
-
-    // BlueprintNode* SpawnBranchNode();
-
-    // BlueprintNode* SpawnDoNNode();
-
-    // BlueprintNode* SpawnOutputActionNode();
-
-    // BlueprintNode* SpawnPrintStringNode();
-
-    // BlueprintNode* SpawnMessageNode();
-
-    // BlueprintNode* SpawnSetTimerNode();
-
-    // BlueprintNode* SpawnLessNode();
-
-    // BlueprintNode* SpawnWeirdNode();
-
-    // BlueprintNode* SpawnTraceByChannelNode();
-
-    // BlueprintNode* SpawnTreeSequenceNode();
-
-    // BlueprintNode* SpawnTreeTaskNode();
-
-    // BlueprintNode* SpawnTreeTask2Node();
-
-    // BlueprintNode* SpawnComment();
-
-    // BlueprintNode* SpawnHoudiniTransformNode();
-
-    // BlueprintNode* SpawnHoudiniGroupNode();
 
     void BuildNodes();
 

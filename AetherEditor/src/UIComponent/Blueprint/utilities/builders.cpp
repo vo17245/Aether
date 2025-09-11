@@ -49,6 +49,7 @@ void util::BlueprintNodeBuilder::End()
 
     if (ImGui::IsItemVisible())
     {
+        HeaderMax.x=ContentMax.x;
         auto alpha = static_cast<int>(255 * ImGui::GetStyle().Alpha);
 
         auto drawList = ed::GetNodeBackgroundDrawList(CurrentNodeId);
@@ -61,7 +62,7 @@ void util::BlueprintNodeBuilder::End()
             const auto uv = ImVec2(
                 (HeaderMax.x - HeaderMin.x) / (float)(4.0f * HeaderTextureWidth),
                 (HeaderMax.y - HeaderMin.y) / (float)(4.0f * HeaderTextureHeight));
-
+            
             drawList->AddImageRounded(HeaderTextureId,
                 HeaderMin - ImVec2(8 - halfBorderWidth, 4 - halfBorderWidth),
                 HeaderMax + ImVec2(8 - halfBorderWidth, 0),
@@ -71,6 +72,7 @@ void util::BlueprintNodeBuilder::End()
 #else
                 headerColor, GetStyle().NodeRounding, 1 | 2);
 #endif
+            drawList->AddText(HeaderMin, IM_COL32(255, 255, 255,  alpha ), "Header");//debug
 
             if (ContentMin.y > HeaderMax.y)
             {
