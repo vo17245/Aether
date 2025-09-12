@@ -11,9 +11,9 @@
 
 
 //------------------------------------------------------------------------------
+#include <ImGui/ImGui.h>
 # include <ImGui/NodeEditor/imgui_node_editor.h>
-
-
+#include <string>
 //------------------------------------------------------------------------------
 namespace ImGui {
 namespace NodeEditor {
@@ -25,8 +25,8 @@ struct BlueprintNodeBuilder
 {
     BlueprintNodeBuilder(ImTextureID texture = 0, int textureWidth = 0, int textureHeight = 0);
 
-    void Begin(NodeId id);
-    void End();
+    void Begin(NodeId id,const std::string& title);
+    void End(const ImGuiEx::AABB& contentAabb);
 
     void Header(const ImVec4& color = ImVec4(1, 1, 1, 1));
     void EndHeader();
@@ -71,6 +71,7 @@ private:
     ImVec2      ContentMin;
     ImVec2      ContentMax;
     bool        HasHeader;
+    std::string Title;
 };
 
 

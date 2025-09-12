@@ -26,14 +26,20 @@ util::BlueprintNodeBuilder::BlueprintNodeBuilder(ImTextureID texture, int textur
 {
 }
 
-void util::BlueprintNodeBuilder::Begin(ed::NodeId id)
+void util::BlueprintNodeBuilder::Begin(ed::NodeId id,const std::string& title)
 {
+    Title=title;
+    auto titleSize=ImGui::CalcTextSize(Title.c_str());
+    float headerHeight=titleSize.y+8;
     HasHeader  = false;
     HeaderMin = HeaderMax = ImVec2();
 
     ed::PushStyleVar(StyleVar_NodePadding, ImVec4(8, 4, 8, 8));
 
     ed::BeginNode(id);
+    ImGui::Dummy(ImVec2(titleSize.x, headerHeight));
+    ImGuiEx::BlockPushLast();
+    HeaderMin=ImGui::GetItemRectMin();
 
     ImGui::PushID(id.AsPointer());
     CurrentNodeId = id;
@@ -41,28 +47,37 @@ void util::BlueprintNodeBuilder::Begin(ed::NodeId id)
     SetStage(Stage::Begin);
 }
 
-void util::BlueprintNodeBuilder::End()
+void util::BlueprintNodeBuilder::End(const ImGuiEx::AABB& contentAabb)
 {
+    ContentMin=contentAabb.Min;
+    ContentMax=contentAabb.Max;
     SetStage(Stage::End);
 
     ed::EndNode();
 
     if (ImGui::IsItemVisible())
     {
+        auto titleSize=ImGui::CalcTextSize(Title.c_str());
+        float headerHeight=titleSize.y+8;
+        //HeaderMin=ContentMin;
         HeaderMax.x=ContentMax.x;
+        HeaderMax.y=HeaderMin.y+headerHeight;
         auto alpha = static_cast<int>(255 * ImGui::GetStyle().Alpha);
 
         auto drawList = ed::GetNodeBackgroundDrawList(CurrentNodeId);
 
         const auto halfBorderWidth = ed::GetStyle().NodeBorderWidth * 0.5f;
 
-        auto headerColor = IM_COL32(0, 0, 0, alpha) | (HeaderColor & IM_COL32(255, 255, 255, 0));
+        //auto headerColor = IM_COL32(0, 0, 0, alpha) | (HeaderColor & IM_COL32(255, 255, 255, 0));
+        uint32_t headerColor=0xffffff00|(alpha&0xff);
         if ((HeaderMax.x > HeaderMin.x) && (HeaderMax.y > HeaderMin.y) && HeaderTextureId)
         {
             const auto uv = ImVec2(
                 (HeaderMax.x - HeaderMin.x) / (float)(4.0f * HeaderTextureWidth),
                 (HeaderMax.y - HeaderMin.y) / (float)(4.0f * HeaderTextureHeight));
-            
+            //drawList->AddImageRounded(HeaderTextureId, 
+            //    HeaderMin - ImVec2(8 - halfBorderWidth, 4 - halfBorderWidth), HeaderMax + ImVec2(8 - halfBorderWidth, 0),
+            //ImVec2(0.0,0.0),ImVec2(1.0,1.0),headerColor,ImDrawFlags_RoundCornersAll);
             drawList->AddImageRounded(HeaderTextureId,
                 HeaderMin - ImVec2(8 - halfBorderWidth, 4 - halfBorderWidth),
                 HeaderMax + ImVec2(8 - halfBorderWidth, 0),
@@ -72,7 +87,7 @@ void util::BlueprintNodeBuilder::End()
 #else
                 headerColor, GetStyle().NodeRounding, 1 | 2);
 #endif
-            drawList->AddText(HeaderMin, IM_COL32(255, 255, 255,  alpha ), "Header");//debug
+            drawList->AddText(HeaderMin, IM_COL32(255, 255, 255,  alpha ), Title.c_str());//debug
 
             if (ContentMin.y > HeaderMax.y)
             {
@@ -281,8 +296,8 @@ bool util::BlueprintNodeBuilder::SetStage(Stage stage)
             //    ImGui::Spring(1, 0);
             //if (oldStage != Stage::Begin)
             //    ImGui::EndHorizontal();
-            ContentMin = ImGui::GetItemRectMin();
-            ContentMax = ImGui::GetItemRectMax();
+            //ContentMin = ImGui::GetItemRectMin();
+            //ContentMax = ImGui::GetItemRectMax();
 
             //ImGui::Spring(0);
             //ImGui::EndVertical();

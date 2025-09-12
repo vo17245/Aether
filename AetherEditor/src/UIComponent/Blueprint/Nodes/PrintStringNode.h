@@ -11,7 +11,9 @@ public:
         Type=BlueprintNodeType::Blueprint;
         Name="PrintString";
         SetNodeId(idAllocator.NextId());
-        AddInputPin(idAllocator.NextId(), "", BlueprintPinType::Flow);
+        AddInputPin(idAllocator.NextId(), "string", BlueprintPinType::Flow);
+        InputColumnWidth=0;
+        LocalVariableColumnWidth=0;
     }
     virtual std::optional<std::string> OnExecute(const std::vector<BlueprintInputPinValue>& inputs,
                                                  std::vector<BlueprintVariant>& outputs) override
@@ -29,6 +31,17 @@ public:
             }
         }
         return std::nullopt;
+    }
+    virtual void DrawOutput(ImGuiComponent::BlueprintPin& pin, ImGuiComponent::BlueprintVariant& value,
+                            int index) override
+    {
+        ImGui::Text("Test Output %d", index);
+        ImGuiEx::BlockPushLast();
+    }
+
+    virtual void DrawLocalVariable(int index)override
+    {
+
     }
 };
 }

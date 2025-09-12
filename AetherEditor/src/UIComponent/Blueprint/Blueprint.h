@@ -21,9 +21,13 @@ public:
     }
 
 public:
-    void RegisterNodeType(const std::string& name,NodeCreator&& creator)
+    template<typename NodeType>
+    void RegisterNodeType(const std::string& name)
     {
-        m_NodeCreators[name] = std::move(creator);
+        m_NodeCreators[name] = [](BlueprintIdAllocator& idAllocator) -> NodeType* {
+            auto* node = new NodeType(idAllocator);
+            return node;
+        };
     }
     void Init();
 

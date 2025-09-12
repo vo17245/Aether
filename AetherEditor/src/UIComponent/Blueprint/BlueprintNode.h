@@ -4,6 +4,7 @@
 #include <vector>
 #include <optional>
 #include "BlueprintIdAllocator.h"
+#include <ImGui/ImGui.h>
 namespace Aether::ImGuiComponent
 {
 struct BlueprintInputPinValue
@@ -89,7 +90,7 @@ public:
     virtual std::optional<std::string> OnExecute(const std::vector<BlueprintInputPinValue>& inputs,
                                                  std::vector<BlueprintVariant>& outputs) = 0;
     virtual void DrawOutput(BlueprintPin& pin,BlueprintVariant& value,int index)=0;
-
+    virtual void DrawLocalVariable(int index)=0;
     ImGui::NodeEditor::NodeId ID;
     std::string Name;
     std::vector<BlueprintPin> Inputs;
@@ -98,10 +99,12 @@ public:
     ImColor Color;
     BlueprintNodeType Type;
     ImVec2 Size;
+    std::vector<BlueprintVariant> localVariables;
 
     std::string State;
     std::string SavedState;
     uint32_t InputColumnWidth=150;
+    uint32_t LocalVariableColumnWidth=0;
     void AddInputPin(int id,const std::string& name,BlueprintPinType type)
     {
         Inputs.emplace_back(id, name.c_str(), type);
