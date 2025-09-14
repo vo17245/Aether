@@ -43,10 +43,10 @@ public:
             }
             if (ImGui::BeginMenu("View"))
             {
-                if (ImGui::MenuItem("Blueprint"))
+                if (ImGui::MenuItem("NodeEditor"))
                 {
-                    if (m_BlueprintViewToggle)
-                        m_BlueprintViewToggle();
+                    if (m_NodeEditorViewToggle)
+                        m_NodeEditorViewToggle();
                 }
                 if (ImGui::MenuItem("Material Editor"))
                 {
@@ -98,9 +98,9 @@ public:
     {
         DrawMainWindowEnd();
     }
-    void SetBlueprintViewToggle(std::function<void()>&& toggle)
+    void SetNodeEditorViewToggle(std::function<void()>&& toggle)
     {
-        m_BlueprintViewToggle = std::move(toggle);
+        m_NodeEditorViewToggle = std::move(toggle);
     }
     void SetMaterialEditorViewToggle(std::function<void()>&& toggle)
     {
@@ -110,6 +110,6 @@ public:
 private:
     Window* m_OsWindow;
     bool m_ImGuiMetricsWindowOpen = false;
-    std::function<void()> m_BlueprintViewToggle;
+    std::function<void()> m_NodeEditorViewToggle;
     std::function<void()> m_MaterialEditorViewToggle;
 };

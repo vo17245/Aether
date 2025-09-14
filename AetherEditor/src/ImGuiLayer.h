@@ -22,7 +22,7 @@ using namespace Aether;
 #include "Panel/TerminalPanel.h"
 #include "Panel/MaterialEditorPanel.h"
 #include "Panel/MainWindow.h"
-#include "Panel/BlueprintPanel.h"
+#include "Panel/NodeEditorPanel.h"
 class ImGuiLayer : public Layer
 {
 public:
@@ -38,9 +38,9 @@ public:
         // Notify::Warning("This is an warning message", 10.0f);
         m_MaterialEditorPanel.Init();
         m_MainWindow.SetOsWindow(window);
-        m_MainWindow.SetBlueprintViewToggle([this]() { m_ShowBlueprintPanel = !m_ShowBlueprintPanel; });
+        m_MainWindow.SetNodeEditorViewToggle([this]() { m_ShowNodeEditorPanel = !m_ShowNodeEditorPanel; });
         m_MainWindow.SetMaterialEditorViewToggle([this]() { m_ShowMaterialEditorPanel = !m_ShowMaterialEditorPanel; });
-        m_BlueprintPanel.Init("tmp/blueprint_panel.json");
+        m_NodeEditorPanel.Init("tmp/node_editor_panel.json");
     }
     virtual void OnUpdate(float sec) override
     {
@@ -58,9 +58,9 @@ public:
     virtual void OnImGuiUpdate() override
     {
         m_MainWindow.DrawBegin();
-        if (m_ShowBlueprintPanel)
+        if (m_ShowNodeEditorPanel)
         {
-            m_BlueprintPanel.Draw();
+            m_NodeEditorPanel.Draw();
         }
         if (m_ShowMaterialEditorPanel)
         {
@@ -76,7 +76,7 @@ private:
 
     MainWindow m_MainWindow;
     MaterialEditorPanel m_MaterialEditorPanel;
-    BlueprintPanel m_BlueprintPanel;
-    bool m_ShowBlueprintPanel = false;
+    NodeEditorPanel m_NodeEditorPanel;
+    bool m_ShowNodeEditorPanel = false;
     bool m_ShowMaterialEditorPanel = false;
 };

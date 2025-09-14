@@ -1,7 +1,7 @@
 #pragma once
 namespace Aether::ImGuiComponent
 {
-class BlueprintIdAllocator
+class NodeEditorIdAllocator
 {
 public:
     int NextId()

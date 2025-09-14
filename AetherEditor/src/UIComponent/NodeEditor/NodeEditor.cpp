@@ -1,4 +1,4 @@
-#include "Blueprint.h"
+#include "NodeEditor.h"
 #include "utilities/builders.h"
 #include "utilities/widgets.h"
 
@@ -14,34 +14,7 @@
 #include <Utils/LoadTexture.h>
 #include <queue>
 #include <unordered_set>
-struct TestNode : ImGuiComponent::BlueprintNode
-{
-    virtual std::optional<std::string> OnExecute(const std::vector<ImGuiComponent::BlueprintInputPinValue>& inputs,
-                                                 std::vector<ImGuiComponent::BlueprintVariant>& outputs) override
-    {
-        return std::nullopt;
-    }
-    virtual void DrawOutput(ImGuiComponent::BlueprintPin& pin, ImGuiComponent::BlueprintVariant& value,
-                            int index) override
-    {
-        ImGui::Text("Test Output %d", index);
-    }
-    TestNode(ImGuiComponent::BlueprintIdAllocator& idAllocator)
-    {
-        Type = ImGuiComponent::BlueprintNodeType::Blueprint;
-        SetNodeId(idAllocator.NextId());
-        Name = "test";
-        AddInputPin(idAllocator.NextId(), "in1", ImGuiComponent::BlueprintPinType::Flow);
-        AddInputPin(idAllocator.NextId(), "in2", ImGuiComponent::BlueprintPinType::Flow);
 
-        AddOutputPin(idAllocator.NextId(), "out1", ImGuiComponent::BlueprintPinType::Flow);
-        AddOutputPin(idAllocator.NextId(), "out2", ImGuiComponent::BlueprintPinType::Flow);
-        AddOutputPin(idAllocator.NextId(), "out3", ImGuiComponent::BlueprintPinType::Flow);
-    }
-    virtual void DrawLocalVariable(ImGuiComponent::BlueprintVariant& value, int index) override
-    {
-    }
-};
 static inline ImRect ImGui_GetItemRect()
 {
     return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
@@ -93,9 +66,9 @@ static bool Splitter(bool split_vertically, float thickness, float* size1, float
 
 namespace Aether::ImGuiComponent
 {
-// class Blueprint
+// class NodeEditor
 //{
-int Blueprint::GetNextId()
+int NodeEditor::GetNextId()
 {
     return m_IdAllocator.NextId();
 }
@@ -105,17 +78,17 @@ int Blueprint::GetNextId()
 //     return ed::NodeId(GetNextId());
 // }
 
-ed::LinkId Blueprint::GetNextLinkId()
+ed::LinkId NodeEditor::GetNextLinkId()
 {
     return ed::LinkId(GetNextId());
 }
 
-void Blueprint::TouchNode(ed::NodeId id)
+void NodeEditor::TouchNode(ed::NodeId id)
 {
     m_NodeTouchTime[id] = m_TouchTime;
 }
 
-float Blueprint::GetTouchProgress(ed::NodeId id)
+float NodeEditor::GetTouchProgress(ed::NodeId id)
 {
     auto it = m_NodeTouchTime.find(id);
     if (it != m_NodeTouchTime.end() && it->second > 0.0f)
@@ -124,7 +97,7 @@ float Blueprint::GetTouchProgress(ed::NodeId id)
         return 0.0f;
 }
 
-void Blueprint::UpdateTouch()
+void NodeEditor::UpdateTouch()
 {
     const auto deltaTime = ImGui::GetIO().DeltaTime;
     for (auto& entry : m_NodeTouchTime)
@@ -134,7 +107,7 @@ void Blueprint::UpdateTouch()
     }
 }
 
-BlueprintNode* Blueprint::FindNode(ed::NodeId id)
+NodeEditorNode* NodeEditor::FindNode(ed::NodeId id)
 {
     for (auto& node : m_Nodes)
         if (node->ID == id)
@@ -143,7 +116,7 @@ BlueprintNode* Blueprint::FindNode(ed::NodeId id)
     return nullptr;
 }
 
-BlueprintLink* Blueprint::FindLink(ed::LinkId id)
+NodeEditorLink* NodeEditor::FindLink(ed::LinkId id)
 {
     for (auto& link : m_Links)
         if (link.ID == id)
@@ -152,7 +125,7 @@ BlueprintLink* Blueprint::FindLink(ed::LinkId id)
     return nullptr;
 }
 
-BlueprintPin* Blueprint::FindPin(ed::PinId id)
+NodeEditorPin* NodeEditor::FindPin(ed::PinId id)
 {
     if (!id)
         return nullptr;
@@ -171,7 +144,7 @@ BlueprintPin* Blueprint::FindPin(ed::PinId id)
     return nullptr;
 }
 
-bool Blueprint::IsPinLinked(ed::PinId id)
+bool NodeEditor::IsPinLinked(ed::PinId id)
 {
     if (!id)
         return false;
@@ -183,7 +156,7 @@ bool Blueprint::IsPinLinked(ed::PinId id)
     return false;
 }
 
-bool Blueprint::CanCreateLink(BlueprintPin* a, BlueprintPin* b)
+bool NodeEditor::CanCreateLink(NodeEditorPin* a, NodeEditorPin* b)
 {
     if (!a || !b || a == b || a->Kind == b->Kind || a->Type != b->Type || a->Node == b->Node)
         return false;
@@ -191,37 +164,37 @@ bool Blueprint::CanCreateLink(BlueprintPin* a, BlueprintPin* b)
     return true;
 }
 
-void Blueprint::BuildNode(BlueprintNode* node)
+void NodeEditor::BuildNode(NodeEditorNode* node)
 {
     for (auto& input : node->Inputs)
     {
         input.Node = node;
-        input.Kind = BlueprintPinKind::Input;
+        input.Kind = NodeEditorPinKind::Input;
     }
 
     for (auto& output : node->Outputs)
     {
         output.Node = node;
-        output.Kind = BlueprintPinKind::Output;
+        output.Kind = NodeEditorPinKind::Output;
     }
 }
 
-void Blueprint::BuildNodes()
+void NodeEditor::BuildNodes()
 {
     for (auto& node : m_Nodes)
         BuildNode(node.get());
 }
 
-void Blueprint::Init()
+void NodeEditor::Init()
 {
     ed::Config config;
 
-    config.SettingsFile = "tmp/Blueprint.json";
+    config.SettingsFile = "tmp/NodeEditor.json";
 
     config.UserPointer = this;
 
     config.LoadNodeSettings = [](ed::NodeId nodeId, char* data, void* userPointer) -> size_t {
-        auto self = static_cast<Blueprint*>(userPointer);
+        auto self = static_cast<NodeEditor*>(userPointer);
 
         auto node = self->FindNode(nodeId);
         if (!node)
@@ -234,7 +207,7 @@ void Blueprint::Init()
 
     config.SaveNodeSettings = [](ed::NodeId nodeId, const char* data, size_t size, ed::SaveReasonFlags reason,
                                  void* userPointer) -> bool {
-        auto self = static_cast<Blueprint*>(userPointer);
+        auto self = static_cast<NodeEditor*>(userPointer);
 
         auto node = self->FindNode(nodeId);
         if (!node)
@@ -253,11 +226,11 @@ void Blueprint::Init()
     ed::NavigateToContent();
 
     m_HeaderBackgroundDeviceImage =
-        CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/Blueprint/BlueprintBackground.png").value());
+        CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/NodeEditor/NodeEditorBackground.png").value());
     m_SaveIconDeviceImage =
-        CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/Blueprint/ic_save_white_24dp.png").value());
+        CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/NodeEditor/ic_save_white_24dp.png").value());
     m_RestoreIconDeviceImage =
-        CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/Blueprint/ic_restore_white_24dp.png").value());
+        CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/NodeEditor/ic_restore_white_24dp.png").value());
     m_HeaderBackgroundImage = CreateScope<::Aether::ImGuiComponent::Image>(
         ::Aether::ImGuiComponent::Image::Create(*m_HeaderBackgroundDeviceImage).value());
     m_SaveIconImage = CreateScope<::Aether::ImGuiComponent::Image>(
@@ -269,7 +242,7 @@ void Blueprint::Init()
     m_RestoreIcon = m_RestoreIconImage->GetTextureId();
 }
 
-void Blueprint::Destroy()
+void NodeEditor::Destroy()
 {
     if (m_Editor)
     {
@@ -278,63 +251,82 @@ void Blueprint::Destroy()
     }
 }
 
-ImColor Blueprint::GetIconColor(BlueprintPinType type)
+ImColor NodeEditor::GetIconColor(NodeEditorVariantType type)
 {
     switch (type)
     {
+    case NodeEditorVariantType::Null:
+        return ImColor(128, 128, 128);
+    case NodeEditorVariantType::String:
+        return ImColor(255, 128, 128);
+    case NodeEditorVariantType::Object:
+        return ImColor(255, 128, 255);
+    case NodeEditorVariantType::Scalarf:
+        return ImColor(128, 255, 128);
+    case NodeEditorVariantType::Vec2f:
+        return ImColor(128, 255, 255);
+    case NodeEditorVariantType::Vec3f:
+        return ImColor(128, 128, 255);
+    case NodeEditorVariantType::Vec4f:
+        return ImColor(255, 255, 128);
+    case NodeEditorVariantType::Mat2f:
+        return ImColor(255, 128, 0);
+    case NodeEditorVariantType::Mat3f:
+        return ImColor(128, 255, 0);
+    case NodeEditorVariantType::Mat4f:
+        return ImColor(0, 255, 128);
+    case NodeEditorVariantType::Quatf:
+        return ImColor(0, 128, 255);
     default:
-    case BlueprintPinType::Flow:
+        assert(false && "Unknown NodeEditorVariantType");
         return ImColor(255, 255, 255);
-    case BlueprintPinType::Bool:
-        return ImColor(220, 48, 48);
-    case BlueprintPinType::Int:
-        return ImColor(68, 201, 156);
-    case BlueprintPinType::Float:
-        return ImColor(147, 226, 74);
-    case BlueprintPinType::String:
-        return ImColor(124, 21, 153);
-    case BlueprintPinType::Object:
-        return ImColor(51, 150, 215);
-    case BlueprintPinType::Function:
-        return ImColor(218, 0, 183);
-    case BlueprintPinType::Delegate:
-        return ImColor(255, 48, 48);
     }
 };
 
-void Blueprint::DrawPinIcon(const BlueprintPin& pin, bool connected, int alpha)
+void NodeEditor::DrawPinIcon(const NodeEditorPin& pin, bool connected, int alpha)
 {
     IconType iconType;
     ImColor color = GetIconColor(pin.Type);
     color.Value.w = alpha / 255.0f;
     switch (pin.Type)
     {
-    case BlueprintPinType::Flow:
+    case NodeEditorVariantType::Null:
+        iconType = IconType::Circle;
+        break;
+    case NodeEditorVariantType::String:
         iconType = IconType::Flow;
         break;
-    case BlueprintPinType::Bool:
-        iconType = IconType::Circle;
-        break;
-    case BlueprintPinType::Int:
-        iconType = IconType::Circle;
-        break;
-    case BlueprintPinType::Float:
-        iconType = IconType::Circle;
-        break;
-    case BlueprintPinType::String:
-        iconType = IconType::Circle;
-        break;
-    case BlueprintPinType::Object:
-        iconType = IconType::Circle;
-        break;
-    case BlueprintPinType::Function:
-        iconType = IconType::Circle;
-        break;
-    case BlueprintPinType::Delegate:
+    case NodeEditorVariantType::Object:
         iconType = IconType::Square;
         break;
+    case NodeEditorVariantType::Scalarf:
+        iconType = IconType::Circle;
+        break;
+    case NodeEditorVariantType::Vec2f:
+        iconType = IconType::Square;
+        break;
+    case NodeEditorVariantType::Vec3f:
+        iconType = IconType::Grid;
+        break;
+    case NodeEditorVariantType::Vec4f:
+        iconType = IconType::RoundSquare;
+        break;
+    case NodeEditorVariantType::Mat2f:
+        iconType = IconType::Grid;
+        break;
+    case NodeEditorVariantType::Mat3f:
+        iconType = IconType::Diamond;
+        break;
+    case NodeEditorVariantType::Mat4f:
+        iconType = IconType::Diamond;
+        break;
+    case NodeEditorVariantType::Quatf:
+        iconType = IconType::Grid;
+        break;
     default:
-        return;
+        assert(false && "Unknown NodeEditorVariantType");
+        iconType = IconType::Circle;
+        break;
     }
 
     ImGui::Widgets::Icon(ImVec2(static_cast<float>(m_PinIconSize), static_cast<float>(m_PinIconSize)), iconType,
@@ -342,7 +334,7 @@ void Blueprint::DrawPinIcon(const BlueprintPin& pin, bool connected, int alpha)
     ImGuiEx::BlockPushLast();
 };
 
-void Blueprint::ShowStyleEditor(bool* show)
+void NodeEditor::ShowStyleEditor(bool* show)
 {
     if (!ImGui::Begin("Style", show))
     {
@@ -416,7 +408,7 @@ void Blueprint::ShowStyleEditor(bool* show)
     ImGui::End();
 }
 
-void Blueprint::ShowLeftPane(float paneWidth)
+void NodeEditor::ShowLeftPane(float paneWidth)
 {
     auto& io = ImGui::GetIO();
 
@@ -611,7 +603,7 @@ void Blueprint::ShowLeftPane(float paneWidth)
     ImGui::EndChild();
 }
 
-void Blueprint::Draw()
+void NodeEditor::Draw()
 {
     UpdateTouch();
 
@@ -643,23 +635,22 @@ void Blueprint::Draw()
     {
         auto cursorTopLeft = ImGui::GetCursorScreenPos();
 
-        util::BlueprintNodeBuilder builder(m_HeaderBackground, m_HeaderBackgroundImage->GetSize().x,
+        util::NodeEditorNodeBuilder builder(m_HeaderBackground, m_HeaderBackgroundImage->GetSize().x,
                                            m_HeaderBackgroundImage->GetSize().y);
 
         for (auto& node : m_Nodes)
         {
-            const auto isSimple = node->Type == BlueprintNodeType::Simple;
+            const auto isSimple = node->Type == NodeEditorNodeType::Simple;
 
-            bool hasOutputDelegates = false;
-            for (auto& output : node->Outputs)
-                if (output.Type == BlueprintPinType::Delegate)
-                    hasOutputDelegates = true;
             ImGuiEx::BeginBlock();
             builder.Begin(node->ID, node->Name);
-            
-            size_t rowCount = std::max(node->Inputs.size(), node->Outputs.size());
+
+            size_t rowCount =
+                std::max(std::max(node->Inputs.size(), node->Outputs.size()), node->LocalVariableViews.size());
+
             for (size_t row = 0; row < rowCount; ++row)
             {
+                // node input pin
                 if (row < node->Inputs.size())
                 {
                     auto& input = node->Inputs[row];
@@ -669,45 +660,56 @@ void Blueprint::Draw()
                     builder.Input(input.ID);
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
                     DrawPinIcon(input, IsPinLinked(input.ID), (int)(alpha * 255));
-                    // ImGui::Spring(0);
+                    builder.EndInput();
                     if (!input.Name.empty())
                     {
+                        ImGui::SameLine();
                         ImGui::TextUnformatted(input.Name.c_str());
-                        // ImGui::Spring(0);
                         ImGuiEx::BlockPushLast();
                     }
-                  
+
                     ImGui::PopStyleVar();
-                    builder.EndInput();
+                    
                 }
                 else
                 {
                     ImGui::Dummy(ImVec2(0, 0));
                     ImGuiEx::BlockPushLast();
                 }
+                // node local variable vies
                 ImGui::SameLine(node->InputColumnWidth);
+                if (row < node->LocalVariableViews.size())
+                {
+                    auto& view = *node->LocalVariableViews[row];
+                    view.OnDraw();
+                }
+                else
+                {
+                    ImGui::Dummy(ImVec2(0, 0));
+                    ImGuiEx::BlockPushLast();
+                }
+                // node output pin
+                ImGui::SameLine(node->LocalVariableColumnWidth);
                 if (row < node->Outputs.size())
                 {
-                    
                     auto& output = node->Outputs[row];
-                    if (!isSimple && output.Type == BlueprintPinType::Delegate)
-                        continue;
 
                     auto alpha = ImGui::GetStyle().Alpha;
                     if (newLinkPin && !CanCreateLink(newLinkPin, &output) && &output != newLinkPin)
                         alpha = alpha * (48.0f / 255.0f);
-
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
-                    builder.Output(output.ID);
-                    node->DrawOutput(output, node->OutputValues[row], row);
                     if (!output.Name.empty())
                     {
+                        
                         ImGui::TextUnformatted(output.Name.c_str());
                         ImGuiEx::BlockPushLast();
+                        ImGui::SameLine();
                     }
+                    builder.Output(output.ID);
                     DrawPinIcon(output, IsPinLinked(output.ID), (int)(alpha * 255));
-                    ImGui::PopStyleVar();
                     builder.EndOutput();
+                    ImGui::PopStyleVar();
+
                 }
                 else
                 {
@@ -719,8 +721,6 @@ void Blueprint::Draw()
             builder.End(ImGuiEx::EndBlock());
         }
 
-        
-        
         for (auto& link : m_Links)
         {
             ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
@@ -752,10 +752,20 @@ void Blueprint::Draw()
                 {
                     auto startPin = FindPin(startPinId);
                     auto endPin = FindPin(endPinId);
+                    // any pin link to end pin?
+                    bool hasLinkToEndPin = false;
+                    for (auto& link : m_Links)
+                    {
+                        if (link.EndPinID == endPinId)
+                        {
+                            hasLinkToEndPin = true;
+                            break;
+                        }
+                    }
 
                     newLinkPin = startPin ? startPin : endPin;
 
-                    if (startPin->Kind == BlueprintPinKind::Input)
+                    if (startPin->Kind == NodeEditorPinKind::Input)
                     {
                         std::swap(startPin, endPin);
                         std::swap(startPinId, endPinId);
@@ -765,6 +775,11 @@ void Blueprint::Draw()
                     {
                         if (endPin == startPin)
                         {
+                            ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
+                        }
+                        else if (hasLinkToEndPin)
+                        {
+                            showLabel("x Pin already has a connection", ImColor(45, 32, 32, 180));
                             ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
                         }
                         else if (endPin->Kind == startPin->Kind)
@@ -787,7 +802,8 @@ void Blueprint::Draw()
                             showLabel("+ Create Link", ImColor(32, 45, 32, 180));
                             if (ed::AcceptNewItem(ImColor(128, 255, 128), 4.0f))
                             {
-                                m_Links.emplace_back(BlueprintLink(GetNextId(), startPinId, endPinId));
+                                m_Links.emplace_back(NodeEditorLink(GetNextId(), startPinId, endPinId));
+                                m_CompileDirtyFlag=true;
                                 m_Links.back().Color = GetIconColor(startPin->Type);
                             }
                         }
@@ -827,7 +843,10 @@ void Blueprint::Draw()
                         auto id = std::find_if(m_Nodes.begin(), m_Nodes.end(),
                                                [nodeId](auto& node) { return node->ID == nodeId; });
                         if (id != m_Nodes.end())
+                        {
                             m_Nodes.erase(id);
+                            m_CompileDirtyFlag=true;
+                        }
                     }
                 }
 
@@ -839,7 +858,10 @@ void Blueprint::Draw()
                         auto id = std::find_if(m_Links.begin(), m_Links.end(),
                                                [linkId](auto& link) { return link.ID == linkId; });
                         if (id != m_Links.end())
+                        {
                             m_Links.erase(id);
+                            m_CompileDirtyFlag=true;
+                        }
                     }
                 }
             }
@@ -876,9 +898,9 @@ void Blueprint::Draw()
         if (node)
         {
             ImGui::Text("ID: %p", node->ID.AsPointer());
-            ImGui::Text("Type: %s", node->Type == BlueprintNodeType::Blueprint ?
-                                        "Blueprint" :
-                                        (node->Type == BlueprintNodeType::Tree ? "Tree" : "Comment"));
+            ImGui::Text("Type: %s", node->Type == NodeEditorNodeType::NodeEditor ?
+                                        "NodeEditor" :
+                                        (node->Type == NodeEditorNodeType::Tree ? "Tree" : "Comment"));
             ImGui::Text("Inputs: %d", (int)node->Inputs.size());
             ImGui::Text("Outputs: %d", (int)node->Outputs.size());
         }
@@ -938,13 +960,14 @@ void Blueprint::Draw()
         // auto drawList = ImGui::GetWindowDrawList();
         // drawList->AddCircleFilled(ImGui::GetMousePosOnOpeningCurrentPopup(), 10.0f, 0xFFFF00FF);
 
-        BlueprintNode* node = nullptr;
+        NodeEditorNode* node = nullptr;
         for (const auto& [name, creator] : m_NodeCreators)
         {
             if (ImGui::MenuItem(name.c_str()))
             {
                 node = creator(m_IdAllocator);
-                m_Nodes.push_back(Scope<BlueprintNode>(node));
+                m_Nodes.push_back(Scope<NodeEditorNode>(node));
+                m_CompileDirtyFlag=true;
             }
         }
 
@@ -958,17 +981,18 @@ void Blueprint::Draw()
 
             if (auto startPin = newNodeLinkPin)
             {
-                auto& pins = startPin->Kind == BlueprintPinKind::Input ? node->Outputs : node->Inputs;
+                auto& pins = startPin->Kind == NodeEditorPinKind::Input ? node->Outputs : node->Inputs;
 
                 for (auto& pin : pins)
                 {
                     if (CanCreateLink(startPin, &pin))
                     {
                         auto endPin = &pin;
-                        if (startPin->Kind == BlueprintPinKind::Input)
+                        if (startPin->Kind == NodeEditorPinKind::Input)
                             std::swap(startPin, endPin);
 
-                        m_Links.emplace_back(BlueprintLink(GetNextId(), startPin->ID, endPin->ID));
+                        m_Links.emplace_back(NodeEditorLink(GetNextId(), startPin->ID, endPin->ID));
+                        m_CompileDirtyFlag=true;
                         m_Links.back().Color = GetIconColor(startPin->Type);
 
                         break;
@@ -1027,7 +1051,7 @@ void Blueprint::Draw()
         Execute();
     }
 }
-void Blueprint::Execute()
+void NodeEditor::Execute()
 {
     if (m_CompileDirtyFlag)
     {
@@ -1037,29 +1061,29 @@ void Blueprint::Execute()
     for (auto& step : m_Steps)
     {
         auto* node = step.node;
-        auto err = node->OnExecute(step.inputValues, node->OutputValues);
+        auto err = node->OnExecute(step.inputValues);
         if (err)
         {
             // TODO 错误处理
         }
     }
 }
-bool Blueprint::Compile()
+bool NodeEditor::Compile()
 {
     // 可能有多个图存在，所以不能假设每个node可达
     m_Steps.clear();
-    std::unordered_set<BlueprintNode*> visited;
-    std::function<bool(BlueprintNode*)> visit = [&](BlueprintNode* node) -> bool {
+    std::unordered_set<NodeEditorNode*> visited;
+    std::function<bool(NodeEditorNode*)> visit = [&](NodeEditorNode* node) -> bool {
         if (visited.find(node) != visited.end())
         {
             return true;
         }
         visited.insert(node);
-        BlueprintStep step;
+        NodeEditorStep step;
         step.node = node;
         for (auto& pin : node->Inputs)
         {
-            BlueprintInputPinValue inputPinValue;
+            NodeEditorVariant* input=nullptr;
             for (auto& link : m_Links)
             {
                 if (link.EndPinID == pin.ID)
@@ -1071,7 +1095,7 @@ bool Blueprint::Compile()
                         assert(
                             pinIndex < nextPin->Node->Outputs.size()
                             && "Pin index out of range. Did you forget to push a value when pushing the output pin?");
-                        inputPinValue.values.push_back(&nextPin->Node->OutputValues[pinIndex]);
+                        input = (&nextPin->Node->OutputValues[pinIndex]);
                         if (!visit(nextPin->Node))
                         {
                             return false;
@@ -1082,9 +1106,10 @@ bool Blueprint::Compile()
                         assert(false && "link to nowhere");
                         return false;
                     }
+                    break; // only allow one link to input pin
                 }
             }
-            step.inputValues.push_back(inputPinValue);
+            step.inputValues.push_back(input);
         }
         m_Steps.push_back(step);
 

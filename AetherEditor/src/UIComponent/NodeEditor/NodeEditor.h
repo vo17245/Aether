@@ -5,17 +5,17 @@
 #include <functional>
 #include <UIComponent/Image.h>
 #include <variant>
-#include "BlueprintNode.h"
-#include "BlueprintIdAllocator.h"
+#include "NodeEditorNode.h"
+#include "NodeEditorIdAllocator.h"
 namespace Aether::ImGuiComponent
 {
 
-class Blueprint
+class NodeEditor
 {
 public:
-    using NodeCreator = std::function<BlueprintNode*(BlueprintIdAllocator& idAllocator)>;
+    using NodeCreator = std::function<NodeEditorNode*(NodeEditorIdAllocator& idAllocator)>;
 public:
-    ~Blueprint()
+    ~NodeEditor()
     {
         Destroy();
     }
@@ -24,7 +24,7 @@ public:
     template<typename NodeType>
     void RegisterNodeType(const std::string& name)
     {
-        m_NodeCreators[name] = [](BlueprintIdAllocator& idAllocator) -> NodeType* {
+        m_NodeCreators[name] = [](NodeEditorIdAllocator& idAllocator) -> NodeType* {
             auto* node = new NodeType(idAllocator);
             return node;
         };
@@ -45,34 +45,34 @@ private:
 
     void UpdateTouch();
 
-    BlueprintNode* FindNode(ImGui::NodeEditor::NodeId id);
+    NodeEditorNode* FindNode(ImGui::NodeEditor::NodeId id);
 
-    BlueprintLink* FindLink(ImGui::NodeEditor::LinkId id);
+    NodeEditorLink* FindLink(ImGui::NodeEditor::LinkId id);
 
-    BlueprintPin* FindPin(ImGui::NodeEditor::PinId id);
+    NodeEditorPin* FindPin(ImGui::NodeEditor::PinId id);
 
     bool IsPinLinked(ImGui::NodeEditor::PinId id);
 
-    bool CanCreateLink(BlueprintPin* a, BlueprintPin* b);
+    bool CanCreateLink(NodeEditorPin* a, NodeEditorPin* b);
 
-    void BuildNode(BlueprintNode* node);
+    void BuildNode(NodeEditorNode* node);
 
 
     void BuildNodes();
 
-    ImColor GetIconColor(BlueprintPinType type);
+    ImColor GetIconColor(NodeEditorVariantType type);
 
-    void DrawPinIcon(const BlueprintPin& pin, bool connected, int alpha);
+    void DrawPinIcon(const NodeEditorPin& pin, bool connected, int alpha);
 
     void ShowStyleEditor(bool* show = nullptr);
 
     void ShowLeftPane(float paneWidth);
     void Execute();
 
-    BlueprintIdAllocator m_IdAllocator;
+    NodeEditorIdAllocator m_IdAllocator;
     const int m_PinIconSize = 24;
-    std::vector<Scope<BlueprintNode>> m_Nodes;
-    std::vector<BlueprintLink> m_Links;
+    std::vector<Scope<NodeEditorNode>> m_Nodes;
+    std::vector<NodeEditorLink> m_Links;
     ImTextureID m_HeaderBackground = 0;
     ImTextureID m_SaveIcon = 0;
     ImTextureID m_RestoreIcon = 0;
@@ -85,7 +85,7 @@ private:
     Scope<DeviceTexture> m_RestoreIconDeviceImage = 0;
 
     const float m_TouchTime = 1.0f;
-    std::map<ImGui::NodeEditor::NodeId, float, BlueprintNodeIdLess> m_NodeTouchTime;
+    std::map<ImGui::NodeEditor::NodeId, float, NodeEditorNodeIdLess> m_NodeTouchTime;
     bool m_ShowOrdinals = false;
 
     ImGui::NodeEditor::EditorContext* m_Editor = nullptr;
@@ -99,15 +99,15 @@ private:
     ImGui::NodeEditor::LinkId contextLinkId = 0;
     ImGui::NodeEditor::PinId contextPinId = 0;
     bool createNewNode = false;
-    BlueprintPin* newNodeLinkPin = nullptr;
-    BlueprintPin* newLinkPin = nullptr;
+    NodeEditorPin* newNodeLinkPin = nullptr;
+    NodeEditorPin* newLinkPin = nullptr;
     float leftPaneWidth = 400.0f;
     float rightPaneWidth = 800.0f;
     char buffer[128] = "Edit Me\nMultiline!";
     bool wasActive = false;
 
 private:
-    std::vector<BlueprintStep> m_Steps;
+    std::vector<NodeEditorStep> m_Steps;
     bool m_CompileDirtyFlag = true;
     bool Compile();
 private:

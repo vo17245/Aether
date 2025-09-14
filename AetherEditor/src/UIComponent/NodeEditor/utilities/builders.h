@@ -21,9 +21,9 @@ namespace Utilities {
 
 
 //------------------------------------------------------------------------------
-struct BlueprintNodeBuilder
+struct NodeEditorNodeBuilder
 {
-    BlueprintNodeBuilder(ImTextureID texture = 0, int textureWidth = 0, int textureHeight = 0);
+    NodeEditorNodeBuilder(ImTextureID texture = 0, int textureWidth = 0, int textureHeight = 0);
 
     void Begin(NodeId id,const std::string& title);
     void End(const ImGuiEx::AABB& contentAabb);
