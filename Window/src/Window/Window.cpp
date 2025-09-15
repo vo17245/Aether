@@ -497,6 +497,9 @@ void Window::OnRender()
     curCommandBufferVk.Reset();
     curCommandBufferVk.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
+    // record transfer command here
+    
+    // record main render command
     curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
                                            DeviceImageLayout::ColorAttachment);
     m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
@@ -512,6 +515,7 @@ void Window::OnRender()
     m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
     curCommandBufferVk.EndRenderPass();
     m_ImGuiContext.window.FrameIndex = imageIndex;
+    // record imgui command
     ImGuiRecordCommandBuffer(curCommandBuffer);
     curCommandBufferVk.End();
     // commit command buffer
