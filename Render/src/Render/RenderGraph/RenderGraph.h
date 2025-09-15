@@ -62,6 +62,13 @@ public:
         auto virtualResource = CreateScope<VirtualResource<ResourceType>>(desc, slot.id);
         m_AccessIdToResourceIndex[slot.id.handle] = static_cast<uint32_t>(m_Resources.size());
         m_Resources.push_back(std::move(virtualResource));
+        {
+            auto iter=m_TagToAccessId.find(tag);
+            if(iter!=m_TagToAccessId.end())
+            {
+                assert(false&&"Import: tag already exists");
+            }
+        }
         m_TagToAccessId[tag] = slot.id.handle;
         return slot.id;
     }
@@ -132,6 +139,13 @@ AccessId<ResourceType> RenderTaskBuilder::Create(const std::string& tag,
     m_Task->creates.push_back(resource.get());
     m_Graph.m_Resources.push_back(std::move(resource));
     m_Graph.m_AccessIdToResourceIndex[id.handle] = static_cast<uint32_t>(m_Graph.m_Resources.size() - 1);
+    {
+        auto iter=m_Graph.m_TagToAccessId.find(tag);
+        if(iter!=m_Graph.m_TagToAccessId.end())
+        {
+            assert(false&&"Create: tag already exists");
+        }
+    }
     m_Graph.m_TagToAccessId[tag] = id.handle;
     return id;
 }
