@@ -1,4 +1,4 @@
 @PACKAGE_INIT@
 include(CMakeFindDependencyMacro)
 find_dependency(Render REQUIRED CONFIG)
-include("${CMAKE_CURRENT_LIST_DIR}/RenderTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ImGuiTargets.cmake")

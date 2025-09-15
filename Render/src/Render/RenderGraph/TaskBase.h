@@ -29,9 +29,7 @@ struct TaskBase
     std::vector<Borrow<VirtualResourceBase>> creates;
     size_t refCount = 0; // for culling when compile
     bool cullImmune = false;
-#if AETHER_RENDER_GRAPH_ENABLE_TAG
     std::string tag;
-#endif
 };
 
 } // namespace Aether::RenderGraph

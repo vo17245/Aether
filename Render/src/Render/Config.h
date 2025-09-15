@@ -22,6 +22,3 @@ public:
 };
 } // namespace Render
 } // namespace Aether
-#ifndef AETHER_RENDER_GRAPH_ENABLE_TAG
-#define AETHER_RENDER_GRAPH_ENABLE_TAG 1
-#endif

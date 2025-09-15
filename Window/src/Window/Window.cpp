@@ -247,6 +247,13 @@ bool Window::CreateFinalImage()
         return false;
     }
     m_GammaFilter = CreateScope<WindowInternal::GammaFilter>(std::move(filterOpt.value()));
+    // create image view
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        DeviceImageViewDesc desc;
+        m_FinalImageViews[i] = m_FinalTextures[i].CreateImageView(desc);
+    }
+    return true;
 }
 void Window::ReleaseFinalImage()
 {
@@ -644,8 +651,21 @@ void Window::CreateRenderGraph()
     finalImageDesc.height = m_FinalTextures[0].GetHeight();
     finalImageDesc.layout = DeviceImageLayout::ColorAttachment;
     m_FinalImageAccessId = m_RenderGraph->Import(
-        finalImageDesc,
+        "FinalImage", finalImageDesc,
         std::span<const RenderGraph::ResourceId<DeviceTexture>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
+    // import final image view
+    RenderGraph::ResourceId<DeviceImageView> finalImageViewResourceIds[MAX_FRAMES_IN_FLIGHT];
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        finalImageViewResourceIds[i] = m_ResourceArena->Import(&m_FinalImageViews[i]);
+    }
+    RenderGraph::ImageViewDesc finalImageViewDesc;
+    finalImageViewDesc.texture = m_FinalImageAccessId;
+    finalImageViewDesc.desc = DeviceImageViewDesc();
+    m_RenderGraph->Import(
+        "FinalImageView", finalImageViewDesc,
+        std::span<const RenderGraph::ResourceId<DeviceImageView>>(finalImageViewResourceIds, MAX_FRAMES_IN_FLIGHT));
+
     // call each layer's RegisterRenderPasses function
     for (auto* layer : m_Layers)
     {

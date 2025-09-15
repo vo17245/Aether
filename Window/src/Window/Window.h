@@ -136,6 +136,7 @@ private:
     DeviceCommandBuffer m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
     //=========== final image
     DeviceTexture m_FinalTextures[MAX_FRAMES_IN_FLIGHT];
+    DeviceImageView m_FinalImageViews[MAX_FRAMES_IN_FLIGHT];
     DeviceFrameBuffer m_TonemapFrameBuffers[MAX_FRAMES_IN_FLIGHT];
     DeviceRenderPass m_TonemapRenderPass; 
     Scope<WindowInternal::GammaFilter> m_GammaFilter;

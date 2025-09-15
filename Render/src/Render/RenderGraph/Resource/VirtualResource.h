@@ -21,9 +21,7 @@ struct VirtualResourceBase
     {
         return creator != nullptr;
     }
-#if AETHER_RENDER_GRAPH_ENABLE_TAG
     std::string tag;
-#endif
 };
 
 template <typename R>

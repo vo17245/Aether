@@ -13,9 +13,7 @@ add_library(${MODULE_NAME} STATIC ${FILES})
 
 target_link_libraries(${MODULE_NAME} PUBLIC Render)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
-target_link_libraries(${MODULE_NAME} PUBLIC Window)
 target_link_libraries(${MODULE_NAME} PUBLIC Window_header)
-target_link_libraries(${MODULE_NAME} PUBLIC Resource)
 
 
 

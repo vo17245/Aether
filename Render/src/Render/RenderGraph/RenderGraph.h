@@ -24,9 +24,7 @@ public:
                                std::function<void(DeviceCommandBuffer&, ResourceAccessor&, TaskDataType&)>&& execute)
     {
         auto task = CreateScope<RenderTask<TaskDataType>>();
-#if AETHER_RENDER_GRAPH_ENABLE_TAG
         task->tag = tag;
-#endif
         task->execute = std::move(execute);
         RenderTaskBuilder builder(static_cast<RenderTaskBase*>(task.get()), *this);
         setup(builder, task->data);
@@ -50,7 +48,7 @@ public:
     }
     template <typename ResourceType>
         requires(IsResource<ResourceType>::value)
-    AccessId<ResourceType> Import(const typename ResourceDescType<ResourceType>::Type& desc,
+    AccessId<ResourceType> Import(const std::string& tag,const typename ResourceDescType<ResourceType>::Type& desc,
                                   const std::span<const ResourceId<ResourceType>>& ids)
     {
         auto& slot = m_ResourceAccessor->CreateSlot<ResourceType>(desc);
@@ -64,18 +62,31 @@ public:
         auto virtualResource = CreateScope<VirtualResource<ResourceType>>(desc, slot.id);
         m_AccessIdToResourceIndex[slot.id.handle] = static_cast<uint32_t>(m_Resources.size());
         m_Resources.push_back(std::move(virtualResource));
+        m_TagToAccessId[tag] = slot.id.handle;
         return slot.id;
     }
     template <typename ResourceType>
         requires(IsResource<ResourceType>::value)
-    AccessId<ResourceType> Import(const typename ResourceDescType<ResourceType>::Type& desc,
+    AccessId<ResourceType> Import(const std::string& tag,const typename ResourceDescType<ResourceType>::Type& desc,
                                   const std::initializer_list<ResourceId<ResourceType>>& ids)
     {
-        return Import<ResourceType>(desc, std::span<const ResourceId<ResourceType>>(ids.begin(),ids.size()));
+        return Import<ResourceType>(tag, std::span<const ResourceId<ResourceType>>(ids.begin(),ids.size()));
     }
     ResourceArena& GetResourceArena()
     {
         return *m_ResourceArena;
+    }
+    template<typename ResourceType>
+        requires(IsResource<ResourceType>::value)
+    AccessId<ResourceType> GetResourceIdByTag(const std::string& tag)
+    {
+        auto iter = m_TagToAccessId.find(tag);
+        if(iter==m_TagToAccessId.end())
+        {
+            return AccessId<ResourceType>{.handle=Handle::CreateInvalid()};
+        }
+        //TODO: check resource type
+        return AccessId<ResourceType>{.handle=iter->second};
     }
 
 private:
@@ -106,6 +117,7 @@ private:
     Scope<ResourceAccessor> m_ResourceAccessor;
     std::unordered_map<Handle, uint32_t, Hash<Handle>> m_AccessIdToResourceIndex;
     std::vector<TaskBase*> m_Steps; // compile result
+    std::unordered_map<std::string,Handle> m_TagToAccessId;
 };
 template <typename ResourceType>
     requires IsResource<ResourceType>::value
@@ -115,13 +127,12 @@ AccessId<ResourceType> RenderTaskBuilder::Create(const std::string& tag,
     auto& slot = m_Graph.m_ResourceAccessor->CreateSlot<ResourceType>(desc);
     auto id = slot.id;
     auto resource = CreateScope<VirtualResource<ResourceType>>(desc, id);
-#if AETHER_RENDER_GRAPH_ENABLE_TAG
     resource->tag = tag;
-#endif
     resource->creator = m_Task;
     m_Task->creates.push_back(resource.get());
     m_Graph.m_Resources.push_back(std::move(resource));
     m_Graph.m_AccessIdToResourceIndex[id.handle] = static_cast<uint32_t>(m_Graph.m_Resources.size() - 1);
+    m_Graph.m_TagToAccessId[tag] = id.handle;
     return id;
 }
 template <typename ResourceType>
