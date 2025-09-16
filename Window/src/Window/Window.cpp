@@ -460,6 +460,8 @@ void Window::OnUpdate(float sec)
         layer->OnImGuiUpdate();
     }
     ImGui::Render();
+    // PendingUploadList update
+    m_PendingUploadList.OnUpdate();
 }
 
 void Window::OnRender()
@@ -498,7 +500,7 @@ void Window::OnRender()
     curCommandBufferVk.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
     // record transfer command here
-    
+    m_PendingUploadList.RecordCommand(curCommandBuffer);
     // record main render command
     curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
                                            DeviceImageLayout::ColorAttachment);
@@ -794,5 +796,12 @@ void Window::ImGuiWindowContextDestroy()
 void Window::Maximize()
 {
     glfwMaximizeWindow(m_Handle);
+}
+void Window::OnUpload()
+{
+    for(auto* layer:m_Layers)
+    {
+        layer->OnUpload(m_PendingUploadList);
+    }
 }
 } // namespace Aether

@@ -6,3 +6,4 @@
 #include "Scene/Camera3D.h"
 #include "Shader/Reflection.h"
 #include "Shader/Compiler.h"
+#include "Transfer/PendingUploadList.h"

@@ -71,9 +71,9 @@ public:
     }
     void SetViewport(float x, float y, float width, float height)
     {
-        if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data)) 
+        if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))
         {
-            auto& cb=GetVk();
+            auto& cb = GetVk();
             cb.SetViewport(x, y, width, height);
         }
         else
@@ -83,9 +83,9 @@ public:
     }
     void SetScissor(float x, float y, float width, float height)
     {
-        if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data)) 
+        if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))
         {
-            auto& cb=GetVk();
+            auto& cb = GetVk();
             cb.SetScissor(x, y, width, height);
         }
         else
@@ -95,14 +95,30 @@ public:
     }
     void BindPipeline(DevicePipeline& pipeline)
     {
-        if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data)) 
+        if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))
         {
-            auto& cb=GetVk();
+            auto& cb = GetVk();
             cb.BindPipeline(pipeline.GetVk());
         }
         else
         {
             assert(false && "unsupported command buffer type");
+        }
+    }
+    /**
+     * @brief record a buffer copy command
+    */
+    void CopyBuffer(DeviceBuffer& src, DeviceBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan: {
+            vk::AsyncCopyBuffer(GetVk(), src.GetVk(), dst.GetVk(), size, srcOffset, dstOffset);
+        }
+        break;
+        default:
+            assert(false && "unsupported api");
+            break;
         }
     }
 
@@ -156,6 +172,7 @@ public:
     {
         return *std::get<vk::GraphicsCommandBuffer*>(m_Data);
     }
+    
 
 private:
     std::variant<std::monostate, vk::GraphicsCommandBuffer*> m_Data;

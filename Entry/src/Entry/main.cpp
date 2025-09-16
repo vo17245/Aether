@@ -41,6 +41,7 @@ int main()
             float sec = std::chrono::duration<float>(currentTime - lastTime).count();
             lastTime = currentTime;
             window->OnUpdate(sec);
+            window->OnUpload();
             window->OnRender();
         }
         vkDeviceWaitIdle(vk::GRC::GetDevice());

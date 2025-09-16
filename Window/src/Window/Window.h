@@ -1,12 +1,6 @@
 #pragma once
-#include "Render/RenderApi/DeviceTexture.h"
-#include "Render/Vulkan/DescriptorPool.h"
-#include "Render/Vulkan/Fence.h"
-#include "Render/Vulkan/GraphicsCommandBuffer.h"
-#include "Render/Vulkan/RenderPass.h"
-#include "Render/Vulkan/Semaphore.h"
-#include "Render/Vulkan/Texture2D.h"
-#include "vulkan/vulkan_core.h"
+#include "Render/Render.h"
+
 #include <memory>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -76,6 +70,7 @@ public:
     void SetPosition(int width,int height);
     void OnUpdate(float sec);
     void OnRender();
+    void OnUpload();
     void PushEvent(const Event& e);
     Input& GetInput();
     void Maximize();
@@ -184,5 +179,7 @@ private:// imgui
     void ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer);
     void ImGuiWaitFrameResource();
     void ImGuiFrameRender(DeviceCommandBuffer& commandBuffer);
+private: //upload
+    PendingUploadList m_PendingUploadList;
 };
 } // namespace Aether

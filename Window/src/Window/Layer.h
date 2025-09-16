@@ -1,7 +1,6 @@
 #pragma once
 #include "Window/Event.h"
-#include <Render/RenderApi.h>
-#include <Render/RenderGraph/RenderGraph.h>
+#include <Render/Render.h>
 #include <ImGui/Core/imgui.h>
 namespace Aether {
 class Window;
@@ -38,6 +37,10 @@ public:
         return false;
     }
     virtual void OnImGuiUpdate()
+    {
+
+    }
+    virtual void OnUpload(PendingUploadList& pendingUploadList)
     {
 
     }
