@@ -33,9 +33,6 @@ public:
     virtual void OnAttach(Window* window) override
     {
         m_Window = window;
-        // Notify::Error("This is an error message", 10.0f);
-        // Notify::Info("This is an info message", 10.0f);
-        // Notify::Warning("This is an warning message", 10.0f);
         m_MaterialEditorPanel.Init();
         m_MainWindow.SetOsWindow(window);
         m_MainWindow.SetNodeEditorViewToggle([this]() { m_ShowNodeEditorPanel = !m_ShowNodeEditorPanel; });

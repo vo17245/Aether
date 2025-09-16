@@ -10,3 +10,4 @@
 #include "RenderApi/DeviceBuffer.h"
 #include "RenderApi/DeviceSampler.h"
 #include "RenderApi/DeviceCommandBufferPool.h"
+#include "RenderApi/DeviceSemaphore.h"

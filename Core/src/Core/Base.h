@@ -65,4 +65,8 @@ inline constexpr void ForEachInTuple(Tuple&& tuple,F&& f)
     using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
     Detail::ForEachInTupleImpl(std::forward<Tuple>(tuple), std::forward<F>(f), Indices{});
 }
+inline size_t HashCombine(size_t lhs, size_t rhs)
+{
+    return lhs ^ (rhs + 0x9e3779b97f4a7c15ULL + (lhs << 6) + (lhs >> 2));
+}
 } // namespace Aether

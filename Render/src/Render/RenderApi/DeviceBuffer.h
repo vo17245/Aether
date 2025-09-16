@@ -5,16 +5,43 @@
 #include "Render/Vulkan/GlobalRenderContext.h"
 #include <variant>
 #include "Render/Vulkan/Transfer.h"
+#include <Render/Id.h>
 namespace Aether
 {
 class DeviceBuffer
 {
 public:
-    DeviceBuffer() = default;
+    DeviceBuffer() =default;
     DeviceBuffer(const DeviceBuffer&) = delete;
-    DeviceBuffer(DeviceBuffer&&) = default;
+    DeviceBuffer(DeviceBuffer&& other) noexcept
+    {
+        m_Buffer = std::move(other.m_Buffer);
+        m_Id = other.m_Id;
+        other.m_Id = Render::Id<DeviceBuffer>();
+    }
     DeviceBuffer& operator=(const DeviceBuffer&) = delete;
-    DeviceBuffer& operator=(DeviceBuffer&&) = default;
+    DeviceBuffer& operator=(DeviceBuffer&& other)
+    {
+        if (this != &other)
+        {
+            if (m_Id.handle.IsValid())
+            {
+                Render::IdAllocator::Free(m_Id);
+            }
+            m_Buffer = std::move(other.m_Buffer);
+            m_Id = other.m_Id;
+            other.m_Id = Render::Id<DeviceBuffer>();
+        }
+        return *this;
+    }
+    ~DeviceBuffer()
+    {
+        if (m_Id.handle.IsValid())
+        {
+            Render::IdAllocator::Free(m_Id);
+        }
+    }
+public:
     bool Empty() const
     {
         return m_Buffer.index() == 0;
@@ -22,6 +49,7 @@ public:
     static DeviceBuffer CreateForUniform(size_t size)
     {
         DeviceBuffer res;
+        
         switch (Render::Config::RenderApi)
         {
         case Render::Api::Vulkan: {
@@ -31,6 +59,7 @@ public:
                 return res;
             }
             res.m_Buffer = std::move(buffer.value());
+            res.m_Id = Render::IdAllocator::Allocate<DeviceBuffer>();
             return res;
         }
         default: {
@@ -51,6 +80,7 @@ public:
                 return res;
             }
             res.m_Buffer = std::move(buffer.value());
+            res.m_Id = Render::IdAllocator::Allocate<DeviceBuffer>();
             return res;
         }
         break;
@@ -72,6 +102,7 @@ public:
                 return res;
             }
             res.m_Buffer = std::move(buffer.value());
+            res.m_Id = Render::IdAllocator::Allocate<DeviceBuffer>();
             return res;
         }
         break;
@@ -93,6 +124,7 @@ public:
                 return res;
             }
             res.m_Buffer = std::move(buffer.value());
+            res.m_Id = Render::IdAllocator::Allocate<DeviceBuffer>();
             return res;
         }
         break;
@@ -177,9 +209,14 @@ public:
     {
         return !Empty();
     }
+    Render::Id<DeviceBuffer>& GetId()
+    {
+        return m_Id;
+    }
     
 
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
+    Render::Id<DeviceBuffer> m_Id;
 };
 } // namespace Aether

@@ -262,6 +262,7 @@ void Window::ReleaseFinalImage()
         m_FinalTextures[i] = DeviceTexture();
         m_TonemapFrameBuffers[i] = DeviceFrameBuffer();
         m_DescriptorPools[i] = DeviceDescriptorPool();
+        m_FinalImageViews[i] = DeviceImageView();
     }
 
     m_TonemapRenderPass = DeviceRenderPass();
@@ -470,8 +471,8 @@ void Window::OnRender()
     {
         return;
     }
-    // if there is pending upload, wait for all frames to complete
-    if(m_PendingUploadList.AnyPending())
+    // if there is  buffer(not in-flight) upload, wait for all frames to complete
+    if(m_PendingUploadList.NeedSync())
     {
         for(size_t i=0;i<MAX_FRAMES_IN_FLIGHT;++i)
         {
@@ -618,6 +619,7 @@ bool Window::ResizeFinalImage(const Vec2u& size)
         texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
 
         m_FinalTextures[i] = std::move(texture);
+        m_FinalImageViews[i] = m_FinalTextures[i].CreateImageView(DeviceImageViewDesc());
     }
 
     // create tonemap framebuffer
@@ -632,7 +634,9 @@ bool Window::ResizeFinalImage(const Vec2u& size)
         auto& framebuffer = *framebufferOpt;
         m_TonemapFrameBuffers[i] = std::move(framebuffer);
     }
+    return true;
 }
+
 void Window::OnWindowResize(const Vec2u& size)
 {
     if (size.x() == 0 || size.y() == 0)

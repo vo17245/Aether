@@ -5,6 +5,7 @@
 #include <chrono>
 #include <Audio/Audio.h>
 #include <ImGui/Compat/ImGuiApi.h>
+#include <Debug/Log.h>
 using namespace Aether;
 namespace Aether
 {

@@ -14,6 +14,7 @@ add_library(${MODULE_NAME} STATIC ${FILES})
 target_link_libraries(${MODULE_NAME} PUBLIC Window)
 target_link_libraries(${MODULE_NAME} PUBLIC Audio)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
+target_link_libraries(${MODULE_NAME} PUBLIC Debug)
 
 
 target_include_directories(${MODULE_NAME} PUBLIC 

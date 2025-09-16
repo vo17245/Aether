@@ -12,6 +12,7 @@
 #include "Render/Vulkan/ImageView.h"
 #include "vulkan/vulkan_core.h"
 #include "DeviceImageView.h"
+#include <Render/Id.h>
 namespace Aether
 {
 
@@ -111,7 +112,43 @@ inline VkImageLayout DeviceImageLayoutToVk(DeviceImageLayout layout)
 class DeviceTexture
 {
 public:
-    DeviceTexture() = default;
+    DeviceTexture() =default;
+
+    ~DeviceTexture()
+    {
+        if(m_Id)
+        {
+            Render::IdAllocator::Free(m_Id);
+        }
+    }
+    DeviceTexture(DeviceTexture&& other)noexcept
+    {
+        m_Texture = std::move(other.m_Texture);
+        m_DefaultImageView = std::move(other.m_DefaultImageView);
+        m_Id = other.m_Id;
+        other.m_Id = Render::Id<DeviceTexture>{};
+    }
+    DeviceTexture& operator=(DeviceTexture&& other)
+    {
+        if (this != &other)
+        {
+            if (m_Id)
+            {
+                Render::IdAllocator::Free(m_Id);
+            }
+            m_Texture = std::move(other.m_Texture);
+            m_DefaultImageView = std::move(other.m_DefaultImageView);
+            m_Id = other.m_Id;
+            other.m_Id = Render::Id<DeviceTexture>{};
+        }
+        return *this;
+    } 
+
+    DeviceTexture(std::monostate) :
+        m_Texture(std::monostate{})
+    {
+    }
+public:
     bool Empty() const
     {
         return m_Texture.index() == 0;
@@ -130,12 +167,7 @@ public:
         m_Texture(std::move(t))
     {
     }
-    DeviceTexture(DeviceTexture&& t) = default;
-    DeviceTexture& operator=(DeviceTexture&&) = default;
-    DeviceTexture(std::monostate) :
-        m_Texture(std::monostate{})
-    {
-    }
+    
     /**
      * @deprecated This function is deprecated.Use Create Instead.
      * @note data should be in rgba_int8 format
@@ -151,7 +183,9 @@ public:
             {
                 return std::unexpected<std::string>("Failed to create texture");
             }
-            return DeviceTexture(std::move(texture.value()));
+            auto res=DeviceTexture(std::move(texture.value()));
+            res.m_Id = Render::IdAllocator::Allocate<DeviceTexture>();
+            return res;
         }
         break;
         default:
@@ -172,7 +206,9 @@ public:
             {
                 return std::nullopt;
             }
-            return DeviceTexture(std::move(texture.value()));
+            auto res=DeviceTexture(std::move(texture.value()));
+            res.m_Id = Render::IdAllocator::Allocate<DeviceTexture>();
+            return res;
         }
         break;
         default:
@@ -193,7 +229,9 @@ public:
             {
                 return std::unexpected<std::string>("Failed to create texture");
             }
-            return DeviceTexture(std::move(texture.value()));
+            auto res=DeviceTexture(std::move(texture.value()));
+            res.m_Id = Render::IdAllocator::Allocate<DeviceTexture>();
+            return res;
         }
         break;
         default:
@@ -214,7 +252,9 @@ public:
             {
                 return std::unexpected<std::string>("Failed to create texture");
             }
-            return DeviceTexture(std::move(texture.value()));
+            auto res=DeviceTexture(std::move(texture.value()));
+            res.m_Id = Render::IdAllocator::Allocate<DeviceTexture>();
+            return res;
         }
         break;
         default:
@@ -235,6 +275,7 @@ public:
                 return std::monostate{};
             }
             res = std::move(texture.value());
+            res.m_Id = Render::IdAllocator::Allocate<DeviceTexture>();
         }
         break;
         default:
@@ -364,7 +405,10 @@ public:
     {
         return std::visit(GetPixelFormatImpl{}, m_Texture);
     }
-
+    Render::Id<DeviceTexture>& GetId()
+    {
+        return m_Id;
+    }
 private:
     struct GetWidthImpl
     {
@@ -417,5 +461,6 @@ private:
 
     std::variant<std::monostate, vk::Texture2D> m_Texture;
     Scope<DeviceImageView> m_DefaultImageView;
+    Render::Id<DeviceTexture> m_Id;
 };
 } // namespace Aether
