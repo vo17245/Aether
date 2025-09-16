@@ -2,7 +2,6 @@ if(MSVC)
     include("${CMAKE_SOURCE_DIR}/CMake/VsConfig.cmake")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
-
 set(MODULE_NAME Core)
 file(GLOB_RECURSE FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" 
@@ -10,7 +9,8 @@ file(GLOB_RECURSE FILES
 )
 
 add_library(${MODULE_NAME} STATIC ${FILES})
-
+find_package(stduuid CONFIG REQUIRED)
+target_link_libraries(${MODULE_NAME} PUBLIC stduuid)
 
 
 target_include_directories(${MODULE_NAME} PUBLIC 
