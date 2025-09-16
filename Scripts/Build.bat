@@ -1,4 +1,4 @@
+cd depot_tools
+python build.py
 cd ..
-cmake --build Build --config Debug
-cd Scripts
 pause

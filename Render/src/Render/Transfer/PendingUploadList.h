@@ -58,6 +58,10 @@ public:
         }
         m_UploadBufferList.clear();
     }
+    bool AnyPending() const
+    {
+        return !m_UploadBufferList.empty();
+    }
 private:
     struct UploadBufferCommand
     {

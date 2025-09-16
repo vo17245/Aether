@@ -470,11 +470,18 @@ void Window::OnRender()
     {
         return;
     }
+    // if there is pending upload, wait for all frames to complete
+    if(m_PendingUploadList.AnyPending())
+    {
+        for(size_t i=0;i<MAX_FRAMES_IN_FLIGHT;++i)
+        {
+            m_CommandBufferFences[i]->Wait();
+        }
+    }
     // wait for render resource
     // ImGuiWaitFrameResource();
     m_CommandBufferFences[m_CurrentFrame]->Wait();
     m_CommandBufferFences[m_CurrentFrame]->Reset();
-
     // acquire next image
     uint32_t imageIndex;
     auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
@@ -500,7 +507,9 @@ void Window::OnRender()
     curCommandBufferVk.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
     // record transfer command here
-    m_PendingUploadList.RecordCommand(curCommandBuffer);
+        m_PendingUploadList.RecordCommand(curCommandBuffer);
+
+    
     // record main render command
     curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
                                            DeviceImageLayout::ColorAttachment);
