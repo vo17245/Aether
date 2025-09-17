@@ -34,7 +34,7 @@ public:
     {
         return m_DescriptorSet.index() == 0;
     }
-    void UpdateSampler(DeviceSampler& sampler,DeviceImageView& texture)
+    void UpdateSampler(DeviceSampler& sampler,DeviceImageView& texture,uint16_t index)
     {
         if(std::holds_alternative<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet))
         {
@@ -44,7 +44,7 @@ public:
                 assert(false && "no sampler in descriptor set");
                 return;
             }
-            auto& accessor = descriptorResource.samplers[0];
+            auto& accessor = descriptorResource.samplers[index];
             if (accessor.set >= descriptorResource.sets.size())
             {
                 assert(false && "invalid set index");
@@ -60,7 +60,7 @@ public:
             assert(false&& "not implemented");
         }
     }
-    void UpdateUbo(DeviceBuffer& buffer)
+    void UpdateUbo(DeviceBuffer& buffer,uint16_t index)
     {
         if(std::holds_alternative<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet))
         {
@@ -70,7 +70,7 @@ public:
                 assert(false && "no ubo in descriptor set");
                 return;
             }
-            auto& accessor = descriptorResource.ubos[0];
+            auto& accessor = descriptorResource.ubos[index];
             if (accessor.set >= descriptorResource.sets.size())
             {
                 assert(false && "invalid set index");
@@ -86,7 +86,7 @@ public:
             assert(false&& "not implemented");
         }
     }
-    void UpdateSsbo(DeviceBuffer& buffer)
+    void UpdateSsbo(DeviceBuffer& buffer,uint16_t index)
     {
         if(std::holds_alternative<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet))
         {
@@ -96,7 +96,7 @@ public:
                 assert(false && "no ssbo in descriptor set");
                 return;
             }
-            auto& accessor = descriptorResource.ssbos[0];
+            auto& accessor = descriptorResource.ssbos[index];
             if (accessor.set >= descriptorResource.sets.size())
             {
                 assert(false && "invalid set index");
