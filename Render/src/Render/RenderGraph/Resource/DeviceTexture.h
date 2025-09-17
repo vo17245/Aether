@@ -14,20 +14,23 @@ struct TextureDesc
     DeviceImageLayout layout = DeviceImageLayout::Undefined;
     bool operator==(const TextureDesc& other) const
     {
-        return usages == other.usages && pixelFormat == other.pixelFormat && width == other.width && height == other.height && layout == other.layout;
+        return usages == other.usages && pixelFormat == other.pixelFormat && width == other.width
+               && height == other.height && layout == other.layout;
     }
 };
-template<>
+template <>
 struct ResourceDescType<DeviceTexture>
 {
     using Type = TextureDesc;
 };
-template<>
+template <>
 struct Realize<DeviceTexture>
 {
     Scope<DeviceTexture> operator()(const TextureDesc& desc)
     {
-        auto deviceTexture = DeviceTexture::Create(desc.width, desc.height, desc.pixelFormat, desc.usages, desc.layout);
+        auto deviceTexture =
+            DeviceTexture::Create(desc.width, desc.height, desc.pixelFormat, desc.usages, DeviceImageLayout::Undefined);
+        deviceTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, desc.layout);
         if (!deviceTexture)
         {
             return nullptr;
@@ -39,16 +42,14 @@ struct Realize<DeviceTexture>
 } // namespace Aether::RenderGraph
 namespace Aether
 {
-    template<>
-    struct Hash<RenderGraph::TextureDesc>
+template <>
+struct Hash<RenderGraph::TextureDesc>
+{
+    std::size_t operator()(const Aether::RenderGraph::TextureDesc& value) const
     {
-        std::size_t operator()(const Aether::RenderGraph::TextureDesc& value) const
-        {
-            return std::hash<uint32_t>()(static_cast<uint32_t>(value.usages)) ^
-                   std::hash<Aether::PixelFormat>()(value.pixelFormat) ^
-                   std::hash<uint32_t>()(value.width) ^
-                   std::hash<uint32_t>()(value.height) ^
-                   std::hash<uint32_t>()(static_cast<uint32_t>(value.layout));
-        }
-    };
-}
+        return std::hash<uint32_t>()(static_cast<uint32_t>(value.usages))
+               ^ std::hash<Aether::PixelFormat>()(value.pixelFormat) ^ std::hash<uint32_t>()(value.width)
+               ^ std::hash<uint32_t>()(value.height) ^ std::hash<uint32_t>()(static_cast<uint32_t>(value.layout));
+    }
+};
+} // namespace Aether

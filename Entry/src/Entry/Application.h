@@ -5,6 +5,7 @@ namespace Aether
     class Application
     {
     public:
+        virtual ~Application() = default;
         virtual void OnInit(Window& window)
         {
             // e.q. push layer

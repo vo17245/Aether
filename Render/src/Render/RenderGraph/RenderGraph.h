@@ -5,6 +5,7 @@
 #include "RenderTask.h"
 #include "Resource/ResourceAccessor.h"
 #include "TransferTask.h"
+#include "Resource/DeviceTexture.h"
 namespace Aether::RenderGraph
 {
 class RenderGraph
@@ -48,9 +49,14 @@ public:
     }
     template <typename ResourceType>
         requires(IsResource<ResourceType>::value)
-    AccessId<ResourceType> Import(const std::string& tag,const typename ResourceDescType<ResourceType>::Type& desc,
+    AccessId<ResourceType> Import(const std::string& tag, const typename ResourceDescType<ResourceType>::Type& desc,
                                   const std::span<const ResourceId<ResourceType>>& ids)
     {
+        if constexpr (std::is_same_v<DeviceTexture, ResourceType>)
+        {
+            const TextureDesc& d = desc;
+            assert(d.layout != DeviceImageLayout::Undefined && "Imported texture must have a valid layout");
+        }
         auto& slot = m_ResourceAccessor->CreateSlot<ResourceType>(desc);
         for (size_t i = 0; i < ids.size(); ++i)
         {
@@ -63,10 +69,10 @@ public:
         m_AccessIdToResourceIndex[slot.id.handle] = static_cast<uint32_t>(m_Resources.size());
         m_Resources.push_back(std::move(virtualResource));
         {
-            auto iter=m_TagToAccessId.find(tag);
-            if(iter!=m_TagToAccessId.end())
+            auto iter = m_TagToAccessId.find(tag);
+            if (iter != m_TagToAccessId.end())
             {
-                assert(false&&"Import: tag already exists");
+                assert(false && "Import: tag already exists");
             }
         }
         m_TagToAccessId[tag] = slot.id.handle;
@@ -74,26 +80,38 @@ public:
     }
     template <typename ResourceType>
         requires(IsResource<ResourceType>::value)
-    AccessId<ResourceType> Import(const std::string& tag,const typename ResourceDescType<ResourceType>::Type& desc,
+    AccessId<ResourceType> Import(const std::string& tag, const typename ResourceDescType<ResourceType>::Type& desc,
                                   const std::initializer_list<ResourceId<ResourceType>>& ids)
     {
-        return Import<ResourceType>(tag, std::span<const ResourceId<ResourceType>>(ids.begin(),ids.size()));
+        return Import<ResourceType>(tag, std::span<const ResourceId<ResourceType>>(ids.begin(), ids.size()));
     }
     ResourceArena& GetResourceArena()
     {
         return *m_ResourceArena;
     }
-    template<typename ResourceType>
+    template <typename ResourceType>
         requires(IsResource<ResourceType>::value)
     AccessId<ResourceType> GetResourceIdByTag(const std::string& tag)
     {
         auto iter = m_TagToAccessId.find(tag);
-        if(iter==m_TagToAccessId.end())
+        if (iter == m_TagToAccessId.end())
         {
-            return AccessId<ResourceType>{.handle=Handle::CreateInvalid()};
+            return AccessId<ResourceType>{.handle = Handle::CreateInvalid()};
         }
-        //TODO: check resource type
-        return AccessId<ResourceType>{.handle=iter->second};
+        // TODO: check resource type
+        return AccessId<ResourceType>{.handle = iter->second};
+    }
+    template <typename ResourceType>
+        requires(IsResource<ResourceType>::value)
+    VirtualResource<ResourceType>* GetVirtualResourceById(AccessId<ResourceType> id)
+    {
+        auto iter = m_AccessIdToResourceIndex.find(id.handle);
+        if (iter == m_AccessIdToResourceIndex.end())
+        {
+            return nullptr;
+        }
+        auto* resource = m_Resources[iter->second].get();
+        return static_cast<VirtualResource<ResourceType>*>(resource);
     }
 
 private:
@@ -124,13 +142,18 @@ private:
     Scope<ResourceAccessor> m_ResourceAccessor;
     std::unordered_map<Handle, uint32_t, Hash<Handle>> m_AccessIdToResourceIndex;
     std::vector<TaskBase*> m_Steps; // compile result
-    std::unordered_map<std::string,Handle> m_TagToAccessId;
+    std::unordered_map<std::string, Handle> m_TagToAccessId;
 };
 template <typename ResourceType>
     requires IsResource<ResourceType>::value
 AccessId<ResourceType> RenderTaskBuilder::Create(const std::string& tag,
                                                  const typename ResourceDescType<ResourceType>::Type& desc)
 {
+    if constexpr (std::is_same_v<DeviceTexture, ResourceType>)
+    {
+        const TextureDesc& d = desc;
+        assert(d.layout != DeviceImageLayout::Undefined && "Created texture must have a valid layout");
+    }
     auto& slot = m_Graph.m_ResourceAccessor->CreateSlot<ResourceType>(desc);
     auto id = slot.id;
     auto resource = CreateScope<VirtualResource<ResourceType>>(desc, id);
@@ -140,10 +163,10 @@ AccessId<ResourceType> RenderTaskBuilder::Create(const std::string& tag,
     m_Graph.m_Resources.push_back(std::move(resource));
     m_Graph.m_AccessIdToResourceIndex[id.handle] = static_cast<uint32_t>(m_Graph.m_Resources.size() - 1);
     {
-        auto iter=m_Graph.m_TagToAccessId.find(tag);
-        if(iter!=m_Graph.m_TagToAccessId.end())
+        auto iter = m_Graph.m_TagToAccessId.find(tag);
+        if (iter != m_Graph.m_TagToAccessId.end())
         {
-            assert(false&&"Create: tag already exists");
+            assert(false && "Create: tag already exists");
         }
     }
     m_Graph.m_TagToAccessId[tag] = id.handle;
@@ -188,6 +211,21 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     if (desc.depthAttachment)
     {
         read(desc.depthAttachment->imageView.handle);
+    }
+    // set image dependence
+    for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
+    {
+        auto& colorAttachment = desc.colorAttachment[i];
+        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(
+            *m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[colorAttachment.imageView.handle]]);
+        write(imageView.desc.texture.handle);
+    }
+    if (desc.depthAttachment)
+    {
+        auto& depthAttachment = *desc.depthAttachment;
+        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(
+            *m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[depthAttachment.imageView.handle]]);
+        write(imageView.desc.texture.handle);
     }
     // allocate render pass
     auto renderPassDesc = m_Graph.RenderPassDescToDeviceRenderPassDesc(desc);

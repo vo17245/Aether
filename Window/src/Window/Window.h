@@ -24,6 +24,7 @@ struct WindowCreateParam
     int height=600;
     std::string title="Default Title";
     bool noDecorate = false;
+    bool imGuiEnableClear=true;
 };
 class Window
 {

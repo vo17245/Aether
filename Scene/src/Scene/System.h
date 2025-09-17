@@ -18,7 +18,7 @@ public:
     {
         return false;
     }
-    virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph)
+    virtual void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph)
     {
     }
     virtual void OnUpload(PendingUploadList& uploadList)

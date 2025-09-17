@@ -90,6 +90,7 @@ public:
             {
                 ResourceSlot<DeviceImageView>& imageViewSlot = slot;
                 // create image view
+                GetResource(imageViewSlot.desc.texture);// 确保texture已经realize
                 auto resource=Realize<DeviceImageView>{*m_ResourceArena,*this,m_FrameIndex}(slot.desc);
                 // add to arena
                 if (!resource)

@@ -1,6 +1,8 @@
 ## attribute location
 
-attribute使用固定的location，如果一个mesh只有texcoord，texcoord的location也是2
+attribute按顺序分配location
+比如,如果一个mesh只有POSITION和TEXCOORD，POSITION的location是0,texcoord的location是1
+
 
 ```cpp
 std::unordered_map<Mesh::Attribute, uint32_t> attributeLocation = {

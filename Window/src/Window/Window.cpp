@@ -105,6 +105,7 @@ Window* Window::Create(const WindowCreateParam& param)
     Window* window = new Window(handle);
     // register
     WindowContext::Register(handle, window);
+    window->m_ImGuiContext.window.ClearEnable=param.imGuiEnableClear;
     return window;
 }
 /**
@@ -684,11 +685,11 @@ void Window::CreateRenderGraph()
     m_RenderGraph->Import(
         "FinalImageView", finalImageViewDesc,
         std::span<const RenderGraph::ResourceId<DeviceImageView>>(finalImageViewResourceIds, MAX_FRAMES_IN_FLIGHT));
-
+   
     // call each layer's RegisterRenderPasses function
     for (auto* layer : m_Layers)
     {
-        layer->RegisterRenderPasses(*m_RenderGraph);
+        layer->OnBuildRenderGraph(*m_RenderGraph);
     }
     // compile
     m_RenderGraph->Compile();

@@ -28,7 +28,7 @@ public:
     virtual void OnFrameBegin()
     {
     }
-    virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph)
+    virtual void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph)
     {
 
     }
@@ -44,5 +44,6 @@ public:
     {
 
     }
+   
 };
 } // namespace Aether

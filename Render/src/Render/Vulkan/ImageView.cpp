@@ -10,7 +10,7 @@ std::optional<ImageView> ImageView::Create(const Texture2D& texture)
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format = texture.GetVkFormat();
     viewInfo.subresourceRange.aspectMask =
-        texture.GetUsage() == Texture2D::Usage::DepthAttachment ?
+        texture.GetVkUsageFlags()&VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT ?
             VK_IMAGE_ASPECT_DEPTH_BIT :
             VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel = 0;

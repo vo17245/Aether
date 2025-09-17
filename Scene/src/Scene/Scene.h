@@ -48,10 +48,9 @@ public:
     void EraseSystem(System* system);
     void OnUpdate(float deltaTime);
     bool NeedRebuildRenderGraph();
-    void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph);
     void OnUpload(PendingUploadList& uploadList);
     void OnEvent(const Event& event);
-
+    void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph);
 private:
     entt::registry m_Registry;
     std::vector<Scope<System>> m_Systems;

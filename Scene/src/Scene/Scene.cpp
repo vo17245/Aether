@@ -21,13 +21,6 @@ bool Scene::NeedRebuildRenderGraph()
     }
     return false;
 }
-void Scene::RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph)
-{
-    for (auto& system : m_Systems)
-    {
-        system->RegisterRenderPasses(renderGraph);
-    }
-}
 void Scene::OnUpload(PendingUploadList& uploadList)
 {
     for (auto& system : m_Systems)
@@ -54,6 +47,13 @@ void Scene::EraseSystem(System* system)
     {
         (*iter)->OnDetach();
         m_Systems.erase(iter);
+    }
+}
+void Scene::OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph)
+{
+    for (auto& system : m_Systems)
+    {
+        system->OnBuildRenderGraph(renderGraph);
     }
 }
 } // namespace Aether

@@ -106,6 +106,7 @@ Texture2D::Texture2D(Texture2D&& other) noexcept
     m_Width = other.m_Width;
     m_Height = other.m_Height;
     m_Format = other.m_Format;
+    m_VkUsageFlags=other.m_VkUsageFlags;
 }
 Texture2D& Texture2D::operator=(Texture2D&& other) noexcept
 {
@@ -124,6 +125,7 @@ Texture2D& Texture2D::operator=(Texture2D&& other) noexcept
         m_Width = other.m_Width;
         m_Height = other.m_Height;
         m_Format = other.m_Format;
+        m_VkUsageFlags=other.m_VkUsageFlags;
     }
     return *this;
 }
@@ -326,9 +328,6 @@ void Texture2D::SyncTransitionLayout(VkImageLayout oldLayout, VkImageLayout newL
 
 void Texture2D::AsyncTransitionLayout(GraphicsCommandBuffer& cb, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
-    auto fenceOpt = Fence::Create();
-    auto fence = std::move(fenceOpt.value());
-
     VkImageMemoryBarrier barrier{};
 
     VkPipelineStageFlags sourceStage = 0;

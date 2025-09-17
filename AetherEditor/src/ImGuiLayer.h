@@ -44,9 +44,6 @@ public:
         Notify::Update(sec);
         m_MaterialEditorPanel.OnUpdate(sec);
     }
-    virtual void RegisterRenderPasses(RenderGraph::RenderGraph& renderGraph) override
-    {
-    }
     virtual bool NeedRebuildRenderGraph() override
     {
         return m_NeedRebuild;

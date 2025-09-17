@@ -49,10 +49,11 @@ int main()
         app->OnShutdown();
         window->ReleaseVulkanObjects();
         window->ImGuiWindowContextDestroy();
+        delete app;
+        window.reset();
         ImGuiApi::Shutdown();
         vk::GRC::Cleanup();
     }
     Audio::Destory();
     WindowContext::Shutdown();
-    delete app;
 }
