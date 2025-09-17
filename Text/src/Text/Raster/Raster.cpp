@@ -775,7 +775,7 @@ bool Raster::RecordCommand(RenderPassParam& param, RenderPassResource& resource)
         auto& set = descriptorSet.sets[i];
         commandBuffer.BindDescriptorSet(set, m_PipelineLayout.GetVk(), i);
     }
-    Render::Utils::DrawMesh(commandBuffer, resource.mesh.GetVk());
+    Render::Utils::VkDrawMesh(commandBuffer, resource.mesh.GetVk());
     return true;
 }
 } // namespace Aether::Text

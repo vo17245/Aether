@@ -7,3 +7,7 @@
 #include "Shader/Reflection.h"
 #include "Shader/Compiler.h"
 #include "Transfer/PendingUploadList.h"
+#include "Mesh/VkMesh.h"
+#include "Mesh/Geometry.h"
+#include "Shader/ShaderSource.h"
+#include "Utils.h"

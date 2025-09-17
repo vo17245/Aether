@@ -1,9 +1,11 @@
 #include "Utils.h"
 
-namespace Aether {
-namespace Render {
+namespace Aether
+{
+namespace Render
+{
 
-void Utils::DrawMesh(vk::GraphicsCommandBuffer& cb, VkMesh& mesh)
+void Utils::VkDrawMesh(vk::GraphicsCommandBuffer& cb, VkMesh& mesh)
 {
     cb.BindVertexBuffers(mesh.PackPrimitiveVertexBufferHandles().data(),
                          mesh.GetPrimitive().vertexResource.buffers.size());
@@ -20,5 +22,16 @@ void Utils::DrawMesh(vk::GraphicsCommandBuffer& cb, VkMesh& mesh)
         cb.Draw(mesh.GetVertexCount());
     }
 }
+void Utils::DrawMesh(DeviceCommandBuffer& cb, DeviceMesh& mesh)
+{
+    if (Render::Config::RenderApi == Render::Api::Vulkan)
+    {
+        VkDrawMesh(cb.GetVk(), mesh.GetVk());
+    }
+    else
+    {
+        assert(false && "Not implemented");
+    }
 }
-} // namespace Aether::Render
+} // namespace Render
+} // namespace Aether

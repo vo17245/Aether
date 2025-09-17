@@ -145,7 +145,7 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
             auto& set = descriptorResource.sets[i];
             commandBuffer.BindDescriptorSet(set, pipelineLayout, 0);
         }
-        Render::Utils::DrawMesh(commandBuffer, mesh);
+        Render::Utils::VkDrawMesh(commandBuffer, mesh);
     }
     // quad with texture
     {
@@ -172,7 +172,7 @@ void Renderer::End(DeviceCommandBufferView _commandBuffer)
                 auto& set = descriptorResource.sets[i];
                 commandBuffer.BindDescriptorSet(set, pipelineLayout, i);
             }
-            Render::Utils::DrawMesh(commandBuffer, mesh);
+            Render::Utils::VkDrawMesh(commandBuffer, mesh);
         }
     }
 }

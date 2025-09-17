@@ -80,7 +80,7 @@ bool GammaFilter::Render(DeviceTexture& _from, DeviceFrameBufferView _to, Device
         commandBuffer.BindDescriptorSet(set, m_PipelineLayout.GetVk(), index);
     }
     // draw mesh
-    Render::Utils::DrawMesh(commandBuffer, mesh);
+    Render::Utils::VkDrawMesh(commandBuffer, mesh);
     return true;
 
 }
