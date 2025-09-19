@@ -75,10 +75,15 @@ void Window::DispatchEvent()
     {
         m_Input.OnEvent(e);
     }
+    for(auto& e:m_Event)
+    {
+        EventHandler.Broadcast(e);
+    }
     for (auto& e : m_Event)
     {
-        for (auto& layer : m_Layers)
+        for(auto iter=m_Layers.rbegin();iter!=m_Layers.rend();++iter)
         {
+            auto* layer = *iter;
             layer->OnEvent(e);
             bool isHandled = EventBaseIsHandled(e);
             if (isHandled)
@@ -105,7 +110,7 @@ Window* Window::Create(const WindowCreateParam& param)
     Window* window = new Window(handle);
     // register
     WindowContext::Register(handle, window);
-    window->m_ImGuiContext.window.ClearEnable=param.imGuiEnableClear;
+    window->m_ImGuiContext.window.ClearEnable = param.imGuiEnableClear;
     return window;
 }
 /**
@@ -127,18 +132,17 @@ void Window::PushLayers(const std::span<Layer*>& layers)
     }
     CreateRenderGraph();
 }
-void Window::PopLayer(Layer* layer)
+bool Window::PopLayer(Layer* layer)
 {
     auto iter = std::find(m_Layers.begin(), m_Layers.end(), layer);
     if (iter != m_Layers.end())
     {
         (*iter)->OnDetach();
         m_Layers.erase(iter);
+        CreateRenderGraph();
+        return true;
     }
-    else
-    {
-        assert(false && "PopLayer: layer not found");
-    }
+    return false;
 }
 VkSwapchainKHR Window::GetSwapchain() const
 {
@@ -473,9 +477,9 @@ void Window::OnRender()
         return;
     }
     // if there is  buffer(not in-flight) upload, wait for all frames to complete
-    if(m_PendingUploadList.NeedSync())
+    if (m_PendingUploadList.NeedSync())
     {
-        for(size_t i=0;i<MAX_FRAMES_IN_FLIGHT;++i)
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
         {
             m_CommandBufferFences[i]->Wait();
         }
@@ -509,9 +513,8 @@ void Window::OnRender()
     curCommandBufferVk.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
     // record transfer command here
-        m_PendingUploadList.RecordCommand(curCommandBuffer);
+    m_PendingUploadList.RecordCommand(curCommandBuffer);
 
-    
     // record main render command
     curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
                                            DeviceImageLayout::ColorAttachment);
@@ -685,7 +688,7 @@ void Window::CreateRenderGraph()
     m_RenderGraph->Import(
         "FinalImageView", finalImageViewDesc,
         std::span<const RenderGraph::ResourceId<DeviceImageView>>(finalImageViewResourceIds, MAX_FRAMES_IN_FLIGHT));
-   
+
     // call each layer's RegisterRenderPasses function
     for (auto* layer : m_Layers)
     {
@@ -813,9 +816,32 @@ void Window::Maximize()
 }
 void Window::OnUpload()
 {
-    for(auto* layer:m_Layers)
+    for (auto* layer : m_Layers)
     {
         layer->OnUpload(m_PendingUploadList);
     }
+}
+void Window::SetCursorPosition(double x, double y)
+{
+    glfwSetCursorPos(m_Handle, x, y);
+}
+void Window::SetCursorMode(CursorMode mode)
+{
+    int glfwMode = GLFW_CURSOR_NORMAL;
+    switch (mode)
+    {
+        case CursorMode::Normal:
+            glfwMode = GLFW_CURSOR_NORMAL;
+            break;
+        case CursorMode::Hidden:
+            glfwMode = GLFW_CURSOR_HIDDEN;
+            break;
+        case CursorMode::Disabled:
+            glfwMode = GLFW_CURSOR_DISABLED;
+            break;
+        default:
+            break;
+    }
+    glfwSetInputMode(m_Handle, GLFW_CURSOR, glfwMode);
 }
 } // namespace Aether

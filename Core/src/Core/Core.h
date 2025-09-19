@@ -10,3 +10,4 @@
 #include "Cache.h"
 #include "TypeTraits.h"
 #include "Serialization.h"
+#include "Delegate.h"

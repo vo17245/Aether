@@ -109,8 +109,6 @@ struct RenderTask : public RenderTaskBase
             {
                 clearValues[i].color = {renderPassDesc.clearColor[i].x(), renderPassDesc.clearColor[i].y(),
                                         renderPassDesc.clearColor[i].z(), renderPassDesc.clearColor[i].w()};
-                clearValues[i].depthStencil.depth = renderPassDesc.clearDepth;
-                clearValues[i].depthStencil.stencil = renderPassDesc.clearStencil;
             }
             if(renderPassDesc.depthAttachment)
             {

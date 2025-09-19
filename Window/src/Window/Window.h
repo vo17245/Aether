@@ -26,6 +26,12 @@ struct WindowCreateParam
     bool noDecorate = false;
     bool imGuiEnableClear=true;
 };
+enum class CursorMode
+{
+    Normal=0,
+    Hidden=1,
+    Disabled=2,
+};
 class Window
 {
     friend class WindowContext;
@@ -54,7 +60,7 @@ public:
      */
     void PushLayer(Layer* layer);
     void PushLayers(const std::span<Layer*>& layers);
-    void PopLayer(Layer* layer);
+    bool PopLayer(Layer* layer);
     VkSwapchainKHR GetSwapchain() const;
     const std::vector<VkImage>& GetImages() const;
     std::vector<VkImage>& GetImages();
@@ -116,6 +122,8 @@ public:
     {
         return m_SwapChainImages.size();
     }
+    void SetCursorPosition(double x,double y);
+    void SetCursorMode(CursorMode mode);
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
@@ -182,5 +190,8 @@ private:// imgui
     void ImGuiFrameRender(DeviceCommandBuffer& commandBuffer);
 private: //upload
     PendingUploadList m_PendingUploadList;
+public:
+    Delegate<void, Event&> EventHandler;
+    
 };
 } // namespace Aether
