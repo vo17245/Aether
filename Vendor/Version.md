@@ -21,11 +21,7 @@ https://github.com/doctest/doctest.git
 commit ae7a13539fb71f270b87eb2e874fbac80bc8dda2 
 
 
-## nlohmann/json
 
-https://github.com/nlohmann/json.git
-
-commit 199dea11b17c533721b26249e2dcaee6ca1d51d3 
 
 
 ## Eigen

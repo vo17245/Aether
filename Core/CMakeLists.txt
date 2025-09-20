@@ -11,6 +11,8 @@ file(GLOB_RECURSE FILES
 add_library(${MODULE_NAME} STATIC ${FILES})
 find_package(stduuid CONFIG REQUIRED)
 target_link_libraries(${MODULE_NAME} PUBLIC stduuid)
+find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(${MODULE_NAME} PUBLIC nlohmann_json)
 
 
 target_include_directories(${MODULE_NAME} PUBLIC 
