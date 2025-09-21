@@ -93,7 +93,15 @@ public:
     {
         return m_Path.CharCount() == 0;
     }
-
+    std::string_view GetExtension() const
+    {
+        auto pos = m_Path.FindLast(U8String("."));
+        if (!pos)
+        {
+            return std::string_view();
+        }
+        return std::string_view((const char*)m_Path.GetData().data() + *pos , m_Path.CharCount() - *pos);
+    }
 private:
     U8String m_Path; // Path is stored as UTF-8
     void Normalize()

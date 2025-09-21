@@ -37,6 +37,8 @@ bool GammaFilter::CreatePipeline(const vk::RenderPass& renderPass)
     // create pipeline
 
     vk::GraphicsPipeline::Builder pipelineBuilder(renderPass, *pipelineLayout);
+    pipelineBuilder.BeginColorAttachment();
+    pipelineBuilder.EndColorAttachment();
     for (auto& layout : vertexLayout)
     {
         pipelineBuilder.PushVertexBufferLayouts(layout);

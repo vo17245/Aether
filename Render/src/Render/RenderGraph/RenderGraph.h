@@ -113,7 +113,10 @@ public:
         auto* resource = m_Resources[iter->second].get();
         return static_cast<VirtualResource<ResourceType>*>(resource);
     }
-
+    std::string CreateUniqueId()
+    {
+        return std::string("#")+std::to_string(m_UniqueId++);
+    }
 private:
     // push m_Tasks into m_Steps and cull tasks that do not affect the imported resources.
     void CullTasks();
@@ -143,6 +146,7 @@ private:
     std::unordered_map<Handle, uint32_t, Hash<Handle>> m_AccessIdToResourceIndex;
     std::vector<TaskBase*> m_Steps; // compile result
     std::unordered_map<std::string, Handle> m_TagToAccessId;
+    uint32_t m_UniqueId=0;
 };
 template <typename ResourceType>
     requires IsResource<ResourceType>::value

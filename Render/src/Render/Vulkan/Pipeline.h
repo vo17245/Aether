@@ -95,7 +95,8 @@ public:
         }
         Builder& EnableBlend()
         {
-            m_EnableBlend = true;
+            assert(m_InColorAttachment && "EnableBlend must be called between BeginColorAttachment and EndColorAttachment");
+            m_ColorAttachmentConfigs.back().enableBlend = true;
             return *this;
         }
         Builder& AddVertexStage(ShaderModule& shaderModule, const char* entryPoint)
@@ -118,6 +119,19 @@ public:
             m_Stages.push_back(stage);
             return *this;
         }
+        Builder& BeginColorAttachment()
+        {
+            assert(!m_InColorAttachment && "Already in color attachment");
+            m_InColorAttachment = true;
+            m_ColorAttachmentConfigs.emplace_back();
+            return *this;
+        }
+        Builder& EndColorAttachment()
+        {
+            assert(m_InColorAttachment && "Not in color attachment");
+            m_InColorAttachment = false;
+            return *this;
+        }
 
     private:
         const RenderPass& renderPass;
@@ -126,8 +140,14 @@ public:
         std::vector<VkVertexInputAttributeDescription> m_AttributeDescriptions;
         bool m_DepthTestEnable = false;
         VkCompareOp m_DepthTestCompareOp = VK_COMPARE_OP_LESS;
-        bool m_EnableBlend = false;
         std::vector<VkPipelineShaderStageCreateInfo> m_Stages;
+    private:
+        struct ColorAttachmentConfig
+        {
+            bool enableBlend=false;
+        };
+        std::vector<ColorAttachmentConfig> m_ColorAttachmentConfigs;
+        bool m_InColorAttachment=false;
     };
 
 public:
