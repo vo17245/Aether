@@ -29,8 +29,8 @@ enum class DeviceImageLayout
 enum class DeviceImageUsage : uint32_t
 {
     Sample = Bit(0),
-    Download = Bit(1),
-    Upload = Bit(2),
+    TransferSrc = Bit(1),
+    TransferDst = Bit(2),
     ColorAttachment = Bit(3),
     DepthAttachment = Bit(4),
 };
@@ -42,11 +42,11 @@ inline VkImageUsageFlags DeviceImageUsageFlagsToVk(DeviceImageUsageFlags flags)
     {
         res |= VK_IMAGE_USAGE_SAMPLED_BIT;
     }
-    if (flags & (uint32_t)DeviceImageUsage::Download)
+    if (flags & (uint32_t)DeviceImageUsage::TransferSrc)
     {
         res |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     }
-    if (flags & (uint32_t)DeviceImageUsage::Upload)
+    if (flags & (uint32_t)DeviceImageUsage::TransferDst)
     {
         res |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
@@ -69,11 +69,11 @@ inline DeviceImageUsageFlags VkImageUsageFlagsToRenderApi(VkImageUsageFlags flag
     }
     if (flags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
     {
-        res |= (uint32_t)DeviceImageUsage::Download;
+        res |= (uint32_t)DeviceImageUsage::TransferSrc;
     }
     if (flags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
     {
-        res |= (uint32_t)DeviceImageUsage::Upload;
+        res |= (uint32_t)DeviceImageUsage::TransferDst;
     }
     if (flags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
     {

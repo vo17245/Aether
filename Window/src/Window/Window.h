@@ -124,6 +124,10 @@ public:
     }
     void SetCursorPosition(double x,double y);
     void SetCursorMode(CursorMode mode);
+    void SetGamma(float gamma)
+    {
+        m_GammaFilter->SetGamma(gamma);
+    }
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;

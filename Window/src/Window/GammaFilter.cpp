@@ -56,7 +56,7 @@ bool GammaFilter::CreatePipeline(const vk::RenderPass& renderPass)
 }
 bool GammaFilter::CreateDescriptor(DeviceDescriptorPool& pool)
 {
-    auto set = pool.CreateSet(0, 0, 1);
+    auto set = pool.CreateSet(1, 0, 1);
     if (!set)
     {
         return false;
@@ -64,13 +64,13 @@ bool GammaFilter::CreateDescriptor(DeviceDescriptorPool& pool)
     m_DescriptorSet = std::move(set);
     return true;
 }
-bool GammaFilter::Render(DeviceTexture& _from, DeviceCommandBufferView _commandBuffer,DeviceDescriptorPool& pool)
+bool GammaFilter::Render(DeviceTexture& _from, DeviceCommandBufferView _commandBuffer, DeviceDescriptorPool& pool)
 {
     auto& from = _from.GetVk();
     auto& commandBuffer = _commandBuffer.GetVk();
     auto& descriptorResource = m_DescriptorSet.GetVk();
     auto& pipeline = m_Pipeline.GetVk();
-    auto& mesh=m_DeviceMesh.GetVk();
+    auto& mesh = m_DeviceMesh.GetVk();
     CreateDescriptor(pool);
     // update uniform buffer
     UpdateDescriptor(_from);
@@ -85,7 +85,6 @@ bool GammaFilter::Render(DeviceTexture& _from, DeviceCommandBufferView _commandB
     // draw mesh
     Render::Utils::VkDrawMesh(commandBuffer, mesh);
     return true;
-
 }
 bool GammaFilter::UpdateDescriptor(DeviceTexture& from)
 {
@@ -97,6 +96,16 @@ bool GammaFilter::UpdateDescriptor(DeviceTexture& from)
         auto binding = accessor.binding;
         vk::DescriptorSetOperator op(set);
         op.BindSampler(binding, m_Sampler.GetVk(), from.GetOrCreateDefaultImageView().GetVk());
+        op.Apply();
+    }
+    // update ubo
+    {
+        auto& accessor = descriptorResource.ubos[0];
+        auto& set = descriptorResource.sets[accessor.set];
+        auto binding = accessor.binding;
+
+        vk::DescriptorSetOperator op(set);
+        op.BindUBO(binding, m_UniformBuffer[m_FrameIndex].GetVk());
         op.Apply();
     }
     return true;
@@ -119,5 +128,99 @@ bool GammaFilter::CreateSampler()
     m_Sampler = std::move(sampler.value());
     return true;
 }
+bool GammaFilter::CreateUbo()
+{
+    for (size_t i = 0; i < Render::Config::MaxFramesInFlight; ++i)
+    {
+        auto buffer = DeviceBuffer::CreateForUniform(sizeof(float));
+        if (!buffer)
+        {
+            return false;
+        }
+        m_UniformBuffer[i] = std::move(buffer);
+    }
+    return true;
+}
+void GammaFilter::OnUpdate(PendingUploadList& uploadList)
+{
+    if (m_UboDirty > 0)
+    {
+        uploadList.UploadInFlightBuffer(std::span<uint8_t>((uint8_t*)&m_Gamma, (uint8_t*)&m_Gamma + sizeof(float)),
+                                        m_UniformBuffer[m_FrameIndex], 0);
+        --m_UboDirty;
+    }
+}
+bool GammaFilter::CreateShader()
+{
+    static const char* frag = R"(
+#version 450
+layout(location=0) in vec2 v_TexCoord;
+layout(location=0) out vec4 FragColor;
 
-} // namespace Aether::UI
+layout(std140,set=0,binding=0)uniform UniformBufferObject
+{
+    float gamma;
+}ubo;
+layout(set=1,binding=0) uniform sampler2D u_Texture;
+
+void main()
+{
+vec4 textureColor=texture(u_Texture,v_TexCoord);
+FragColor=vec4(pow(textureColor.rgb,vec3(ubo.gamma)),textureColor.a);
+}
+)";
+    static const char* vert = R"(
+        #version 450
+        layout(location=0) in vec2 a_Position;
+        layout(location=1) in vec2 a_TexCoord;
+        layout(location=0) out vec2 v_TexCoord;
+        
+        void main()
+        {
+            gl_Position=vec4(a_Position,0.0,1.0);
+            v_TexCoord=a_TexCoord;
+        }
+        )";
+    ShaderSource vertSrc(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert);
+    ShaderSource fragSrc(ShaderStageType::Fragment, ShaderLanguage::GLSL, frag);
+    auto shader = DeviceShader::Create(vertSrc, fragSrc);
+    if (!shader)
+    {
+        return false;
+    }
+    m_Shader = std::move(*shader);
+    return true;
+}
+std::expected<GammaFilter, std::string> GammaFilter::Create(const vk::RenderPass& renderPass,
+                                                            DeviceDescriptorPool& pool)
+{
+    GammaFilter filter;
+    filter.m_UboDirty = Render::Config::MaxFramesInFlight;
+    if(!filter.CreateUbo())
+    {
+        return std::unexpected<std::string>("CreateUbo failed");
+    }
+    if (!filter.CreateSampler())
+    {
+        return std::unexpected<std::string>("CreateSampler failed");
+    }
+    if (!filter.CreateMesh())
+    {
+        return std::unexpected<std::string>("CreateMesh failed");
+    }
+    if (!filter.CreateShader())
+    {
+        return std::unexpected<std::string>("CreateShader failed");
+    }
+    if (!filter.CreateDescriptor(pool))
+    {
+        return std::unexpected<std::string>("CreateDescriptor failed");
+    }
+    if (!filter.CreatePipeline(renderPass))
+    {
+        return std::unexpected<std::string>("CreatePipeline failed");
+    }
+
+    return filter;
+}
+} // namespace Aether::WindowInternal

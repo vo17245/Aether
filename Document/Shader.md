@@ -8,6 +8,8 @@ ssbo 使用set 2
 
 三种descriptor 的binding都从0开始
 
+如果没有uniform buffer 而有sampler 和ssbo，那么 sampler的set为0 ssbo的set为1 以此类推
+
 example
 ```cpp
 #version 450
@@ -25,7 +27,6 @@ FragColor=vec4(pow(textureColor.rgb,vec3(ubo.gamma)),textureColor.a);
 }
 ```
 
-如果没有uniform buffer 而有sampler 和ssbo，那么 sampler的set为0 ssbo的set为1 以此类推
 
 2. 相关代码
 

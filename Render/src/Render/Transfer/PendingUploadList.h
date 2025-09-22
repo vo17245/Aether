@@ -58,6 +58,7 @@ public:
             commandBuffer.CopyBuffer(upload.source->m_Buffer, *upload.destination, upload.size, upload.sourceOffset,
                                      upload.destinationOffset);
         }
+        m_UploadInFlightBufferList.clear();
     }
     bool NeedSync() const
     {
@@ -73,7 +74,7 @@ private:
         size_t destinationOffset=0;
         size_t size=0;
     };
-    UploadBufferCommand CreateUploadBufferCommand(std::span<const uint8_t> data,DeviceBuffer& dstBuffer,size_t dstOffset);
+    UploadBufferCommand CreateUploadBufferCommand(std::span<const uint8_t> data,DeviceBuffer& dstBuffer,size_t dstOffset,uint32_t ttl);
     
     TransientStagingBuffer* AllocateStagingBuffer(size_t size)
     {

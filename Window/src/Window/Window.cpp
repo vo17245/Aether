@@ -816,6 +816,8 @@ void Window::Maximize()
 }
 void Window::OnUpload()
 {
+    m_GammaFilter->SetFrameIndex(m_CurrentFrame);
+    m_GammaFilter->OnUpdate(m_PendingUploadList);
     for (auto* layer : m_Layers)
     {
         layer->OnUpload(m_PendingUploadList);

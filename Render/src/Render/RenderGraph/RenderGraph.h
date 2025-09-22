@@ -183,6 +183,14 @@ AccessId<ResourceType> RenderTaskBuilder::Read(AccessId<ResourceType> resourceId
     auto& resource = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[resourceId.handle]];
     m_Task->reads.push_back(resource.get());
     resource->readers.push_back((TaskBase*)m_Task.Get());
+    if constexpr (std::is_same_v<DeviceImageView,ResourceType>)
+    {
+        // also read the underlying texture
+        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(*resource);
+        auto& texture = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[imageView.desc.texture.handle]];
+        m_Task->reads.push_back(texture.get());
+        texture->readers.push_back((TaskBase*)m_Task.Get());
+    }
     return resourceId;
 }
 template <typename ResourceType>
