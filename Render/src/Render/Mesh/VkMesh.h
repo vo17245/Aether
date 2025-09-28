@@ -164,6 +164,7 @@ private:
                 vk::Buffer::SyncCopy(commandPool, stagingBuffer, bufferOpt.value(), size);
                 m_Buffers.emplace_back(std::move(bufferOpt.value()));
             }
+            m_BufferTargets.push_back(bufferView.target);
         }
         return true;
     }
@@ -380,15 +381,21 @@ public:
     std::vector<VkBuffer> PackPrimitiveVertexBufferHandles()
     {
         std::vector<VkBuffer> buffers;
-        for (uint32_t buffer : m_Primitive.vertexResource.buffers)
+
+        for (size_t i=0;i<m_Buffers.size();i++)
         {
-            buffers.emplace_back(m_Buffers[buffer].GetHandle());
+            if(m_BufferTargets[i]!=Mesh::Target::Vertex)
+            {
+                continue;
+            }
+            buffers.push_back(m_Buffers[i].GetHandle());
         }
         return buffers;
     }
 
 private:
     std::vector<vk::Buffer> m_Buffers;
+    std::vector<Mesh::Target> m_BufferTargets;
     Primitive m_Primitive;
     size_t m_VertexCount = 0;
 };

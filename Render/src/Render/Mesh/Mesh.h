@@ -232,13 +232,11 @@ struct Mesh
         // create layout for each bufferView used in vertex
         std::vector<VertexBufferLayout> layouts;
         std::vector<int> bufferViewToLayout(bufferViews.size(),-1);
-        for(auto&& [attribute,accessorIndex]:primitive.attributes)
+        for(const auto& [index,bufferView]:std::views::enumerate(bufferViews))
         {
-            auto& accessor = accessors[accessorIndex];
-            auto& bufferViewIndex=accessor.bufferView;
-            if(bufferViewToLayout[bufferViewIndex]==-1)
+            if(bufferView.target==Target::Vertex)
             {
-                bufferViewToLayout[bufferViewIndex]=layouts.size();
+                bufferViewToLayout[index]=layouts.size();
                 auto layout=VertexBufferLayout();
                 layout.SetBinding(layouts.size());
                 layouts.push_back(layout);
