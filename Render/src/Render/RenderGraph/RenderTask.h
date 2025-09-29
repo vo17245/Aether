@@ -88,6 +88,14 @@ public:
     template <typename ResourceType>
         requires IsResource<ResourceType>::value
     AccessId<ResourceType> Read(AccessId<ResourceType> resourceId);
+    inline RenderGraph& GetGraph()
+    {
+        return m_Graph;
+    }
+    inline const RenderGraph& GetGraph()const
+    {
+        return m_Graph;
+    }
 
 private:
     Borrow<RenderTaskBase> m_Task;

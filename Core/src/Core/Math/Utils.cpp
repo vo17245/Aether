@@ -203,13 +203,13 @@ Mat4f LookAt(const Vec3f& eye, const Vec3f& target, const Vec3f& up)
     Vec3f upNew = right.cross(forward);           // 重新计算上方向（Y轴正方向）
     
     // 构建视图矩阵
-    // 注意：这里forward取负号，因为在右手坐标系中相机看向Z轴负方向
-    Mat4f viewMatrix;
-    viewMatrix << 
-        right.x(),    upNew.x(),   -forward.x(),  0,
-        right.y(),    upNew.y(),   -forward.y(),  0,
-        right.z(),    upNew.z(),   -forward.z(),  0,
-        -right.dot(eye), -upNew.dot(eye), forward.dot(eye), 1;
+    Mat4f a= Mat4f::Identity();
+    a.block<1,3>(0,0)=right.transpose();
+    a.block<1,3>(1,0)=upNew.transpose();
+    a.block<1,3>(2,0)=-forward.transpose();
+    Mat4f b=Mat4f::Identity();
+    b.block<3,1>(0,3)=-eye;
+    Mat4f viewMatrix=a*b;
     
     return viewMatrix;
 }

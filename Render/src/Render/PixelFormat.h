@@ -5,7 +5,10 @@
 #include "Render/PixelFormat.h"
 #include "vulkan/vulkan_core.h"
 #include <cassert>
-namespace Aether {
+
+namespace Aether
+{
+// clang-format off
 enum class PixelFormat : int32_t
 {
     // 线性颜色空间
@@ -17,20 +20,25 @@ enum class PixelFormat : int32_t
     RGB_FLOAT32 = Bit(5),
     RG_FLOAT32 = Bit(6),
     R_FLOAT32 = Bit(7),
+    RGBA_FLOAT16 = Bit(8),
+    RGB_FLOAT16 = Bit(9),
+    RG_FLOAT16 = Bit(10),
+    R_FLOAT16 = Bit(11),
+    
     // 过了一遍gamma校正的颜色空间
-    RGBA8888_SRGB = Bit(8),
-    RGB888_SRGB = Bit(9),
-    RGBA_FLOAT32_SRGB = Bit(10),
-    RGB_FLOAT32_SRGB = Bit(11),
+    RGBA8888_SRGB = Bit(12),
+    RGB888_SRGB = Bit(13),
+    RGBA_FLOAT32_SRGB = Bit(14),
+    RGB_FLOAT32_SRGB = Bit(15),
     // 不知道有没有gamma校准的颜色空间，为上面两个中的一种
-    RGBA8888_UNKNOWN = Bit(12),
-    RGB888_UNKNOWN = Bit(13),
-    RGBA_FLOAT32_UNKNOWN = Bit(14),
-    RGB_FLOAT32_UNKNOWN = Bit(15),
+    RGBA8888_UNKNOWN = Bit(16),
+    RGB888_UNKNOWN = Bit(17),
+    RGBA_FLOAT32_UNKNOWN = Bit(18),
+    RGB_FLOAT32_UNKNOWN = Bit(19),
     // 给深度缓冲使用
-    R_FLOAT32_DEPTH = Bit(16),
+    R_FLOAT32_DEPTH = Bit(20),
     // shader采样时，获取的类型是uint(一般是32位)
-    RGBA8888_UInt = Bit(17),
+    RGBA8888_UInt = Bit(21),
 };
 inline constexpr const bool PixelFormatIsFloat(PixelFormat format)
 {
@@ -66,6 +74,11 @@ inline constexpr const uint32_t PixelFormatSize(PixelFormat format)
     case PixelFormat::RGB888_UNKNOWN: return 3;
     case PixelFormat::RGBA_FLOAT32_UNKNOWN: return 16;
     case PixelFormat::R_FLOAT32_DEPTH: return 4;
+    case PixelFormat::RGBA8888_UInt: return 4;
+    case PixelFormat::RGBA_FLOAT16: return 8;
+    case PixelFormat::RGB_FLOAT16: return 6;
+    case PixelFormat::RG_FLOAT16: return 4;
+    case PixelFormat::R_FLOAT16: return 2;
 
     default:
         assert(false&&"Unknown PixelFormat");
@@ -93,6 +106,11 @@ inline constexpr const char* PixelFormatToString(PixelFormat format)
     case PixelFormat::RGB888_UNKNOWN: return "RGB888_UNKNOWN";
     case PixelFormat::RGBA_FLOAT32_UNKNOWN: return "RGBA_FLOAT32_UNKNOWN";
     case PixelFormat::R_FLOAT32_DEPTH: return "R_FLOAT32_DEPTH";
+    case PixelFormat::RGBA8888_UInt: return "RGBA8888_UInt";
+    case PixelFormat::RGBA_FLOAT16: return "RGBA_FLOAT16";
+    case PixelFormat::RGB_FLOAT16: return "RGB_FLOAT16";
+    case PixelFormat::RG_FLOAT16: return "RG_FLOAT16";
+    case PixelFormat::R_FLOAT16: return "R_FLOAT16";
     default:
         assert(false&&"Unknown PixelFormat");
         return "Unknown PixelFormat";
@@ -120,9 +138,15 @@ inline constexpr VkFormat PixelFormatToVkFormat(PixelFormat format)
     case PixelFormat::RGBA_FLOAT32_UNKNOWN: return VK_FORMAT_R32G32B32A32_SFLOAT;
     case PixelFormat::R_FLOAT32_DEPTH: return VK_FORMAT_D32_SFLOAT;
     case PixelFormat::RGBA8888_UInt: return VK_FORMAT_R8G8B8A8_UINT;
+    case PixelFormat::RGBA_FLOAT16: return VK_FORMAT_R16G16B16A16_SFLOAT;
+    case PixelFormat::RGB_FLOAT16: return VK_FORMAT_R16G16B16_SFLOAT;
+    case PixelFormat::RG_FLOAT16: return VK_FORMAT_R16G16_SFLOAT;
+    case PixelFormat::R_FLOAT16: return VK_FORMAT_R16_SFLOAT;
+    
     default:
         assert(false&&"Unknown PixelFormat: {}");
         return VK_FORMAT_UNDEFINED;
     }
 }
+// clang-format on
 } // namespace Aether

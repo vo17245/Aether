@@ -28,7 +28,7 @@ void Scene::OnUpload(PendingUploadList& uploadList)
         system->OnUpload(uploadList);
     }
 }
-void Scene::OnEvent(const Event& event)
+void Scene::OnEvent(Event& event)
 {
     for (auto& system : m_Systems)
     {

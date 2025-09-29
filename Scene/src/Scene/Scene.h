@@ -49,7 +49,7 @@ public:
     void OnUpdate(float deltaTime);
     bool NeedRebuildRenderGraph();
     void OnUpload(PendingUploadList& uploadList);
-    void OnEvent(const Event& event);
+    void OnEvent(Event& event);
     void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph);
 private:
     entt::registry m_Registry;
