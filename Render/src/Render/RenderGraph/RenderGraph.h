@@ -66,6 +66,7 @@ public:
         slot.resourceCount = static_cast<uint32_t>(ids.size());
         slot.external = true;
         auto virtualResource = CreateScope<VirtualResource<ResourceType>>(desc, slot.id);
+        virtualResource->tag=tag;
         m_AccessIdToResourceIndex[slot.id.handle] = static_cast<uint32_t>(m_Resources.size());
         m_Resources.push_back(std::move(virtualResource));
         {
@@ -117,6 +118,7 @@ public:
     {
         return std::string("#")+std::to_string(m_UniqueId++);
     }
+    std::string ExportGraphviz()const;
 private:
     // push m_Tasks into m_Steps and cull tasks that do not affect the imported resources.
     void CullTasks();
@@ -244,6 +246,7 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     auto virtualRenderPassPtr = CreateScope<VirtualResource<DeviceRenderPass>>();
     m_Graph.m_Resources.emplace_back(std::move(virtualRenderPassPtr));
     auto& virtualRenderPass = *static_cast<VirtualResource<DeviceRenderPass>*>(m_Graph.m_Resources.back().get());
+    virtualRenderPass.tag="RenderPass"+m_Graph.CreateUniqueId();
     virtualRenderPass.creator = m_Task;
     virtualRenderPass.readers.push_back(m_Task.Get());
     virtualRenderPass.desc = renderPassDesc;
@@ -259,6 +262,7 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     auto virtualFrameBufferPtr = CreateScope<VirtualResource<DeviceFrameBuffer>>();
     m_Graph.m_Resources.emplace_back(std::move(virtualFrameBufferPtr));
     auto& virtualFrameBuffer = *static_cast<VirtualResource<DeviceFrameBuffer>*>(m_Graph.m_Resources.back().get());
+    virtualFrameBuffer.tag="FrameBuffer"+m_Graph.CreateUniqueId();
     virtualFrameBuffer.creator = m_Task;
     virtualFrameBuffer.readers.push_back(m_Task.Get());
     virtualFrameBuffer.desc = frameBufferDesc;

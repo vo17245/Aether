@@ -230,6 +230,8 @@ void RenderGraph::InsertImageLayoutTransition()
                         transitionTask->texture = id;
                         transitionTask->oldLayout = slot.virtualInfo.layout;
                         transitionTask->newLayout = DeviceImageLayout::Texture;
+                        transitionTask->tag="Transition"+CreateUniqueId();
+                        transitionTask->writes.push_back(texture);
                         m_Tasks.push_back(std::move(transitionTask));
                         newSteps.push_back(m_Tasks.back().get());
                         slot.virtualInfo.layout = DeviceImageLayout::Texture;
@@ -241,6 +243,7 @@ void RenderGraph::InsertImageLayoutTransition()
             {
                 auto& colorAttachment = renderTask.renderPassDesc.colorAttachment[i];
                 auto& viewSlot = m_ResourceAccessor->GetSlot(colorAttachment.imageView);
+                auto* virtualResource=m_Resources[m_AccessIdToResourceIndex[viewSlot.desc.texture.handle]].get();
                 auto& texture = m_ResourceAccessor->GetSlot(viewSlot.desc.texture);
                 if (texture.virtualInfo.layout != DeviceImageLayout::ColorAttachment)
                 {
@@ -248,6 +251,8 @@ void RenderGraph::InsertImageLayoutTransition()
                     transitionTask->texture = texture.id;
                     transitionTask->oldLayout = texture.virtualInfo.layout;
                     transitionTask->newLayout = DeviceImageLayout::ColorAttachment;
+                    transitionTask->writes.push_back(virtualResource);
+                    transitionTask->tag="Transition"+CreateUniqueId();
                     m_Tasks.push_back(std::move(transitionTask));
                     newSteps.push_back(m_Tasks.back().get());
                     texture.virtualInfo.layout = DeviceImageLayout::ColorAttachment;
@@ -259,12 +264,15 @@ void RenderGraph::InsertImageLayoutTransition()
                 auto& depthAttachment = *renderTask.renderPassDesc.depthAttachment;
                 auto& viewSlot = m_ResourceAccessor->GetSlot(depthAttachment.imageView);
                 auto& texture = m_ResourceAccessor->GetSlot(viewSlot.desc.texture);
+                auto* virtualResource=m_Resources[m_AccessIdToResourceIndex[viewSlot.desc.texture.handle]].get();
                 if (texture.virtualInfo.layout != DeviceImageLayout::DepthStencilAttachment)
                 {
                     auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                     transitionTask->texture = texture.id;
                     transitionTask->oldLayout = texture.virtualInfo.layout;
                     transitionTask->newLayout = DeviceImageLayout::DepthStencilAttachment;
+                    transitionTask->writes.push_back(virtualResource);
+                    transitionTask->tag="Transition"+CreateUniqueId();
                     m_Tasks.push_back(std::move(transitionTask));
                     newSteps.push_back(m_Tasks.back().get());
                     texture.virtualInfo.layout = DeviceImageLayout::DepthStencilAttachment;
@@ -282,6 +290,8 @@ void RenderGraph::InsertImageLayoutTransition()
                 transitionTask->texture = uploadTask.destination;
                 transitionTask->oldLayout = destinationSlot.virtualInfo.layout;
                 transitionTask->newLayout = DeviceImageLayout::TransferDst;
+                transitionTask->writes.push_back(m_Resources[m_AccessIdToResourceIndex[uploadTask.destination.handle]].get());
+                transitionTask->tag="Transition"+CreateUniqueId();
                 m_Tasks.push_back(std::move(transitionTask));
                 newSteps.push_back(m_Tasks.back().get());
                 destinationSlot.virtualInfo.layout = DeviceImageLayout::TransferDst;
@@ -298,6 +308,8 @@ void RenderGraph::InsertImageLayoutTransition()
                 transitionTask->texture = downloadTask.source;
                 transitionTask->oldLayout = sourceSlot.virtualInfo.layout;
                 transitionTask->newLayout = DeviceImageLayout::TransferSrc;
+                transitionTask->writes.push_back(m_Resources[m_AccessIdToResourceIndex[downloadTask.source.handle]].get());
+                transitionTask->tag="Transition"+CreateUniqueId();
                 m_Tasks.push_back(std::move(transitionTask));
                 newSteps.push_back(m_Tasks.back().get());
                 sourceSlot.virtualInfo.layout = DeviceImageLayout::TransferSrc;
@@ -321,6 +333,8 @@ void RenderGraph::InsertImageLayoutTransition()
             transitionTask->texture = texture.id;
             transitionTask->oldLayout = slot.virtualInfo.layout;
             transitionTask->newLayout = texture.desc.layout;
+            transitionTask->tag="Transition"+CreateUniqueId();
+            transitionTask->writes.push_back(resource.get());
             m_Tasks.push_back(std::move(transitionTask));
             newSteps.push_back(m_Tasks.back().get());
             slot.virtualInfo.layout = texture.desc.layout;
@@ -392,7 +406,7 @@ void RenderGraph::SetResourceSlotSupportsInFlightResources()
         {
             auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(*resource);
             auto textureId = imageView.desc.texture;
-            assert(m_AccessIdToResourceIndex.contains(textureId.handle)&&"Texture resource not found");
+            assert(m_AccessIdToResourceIndex.contains(textureId.handle) && "Texture resource not found");
             auto& virtualResource = *m_Resources[m_AccessIdToResourceIndex[textureId.handle]];
             assert(virtualResource.code == ResourceCode::Texture);
             if (virtualResource.writers.empty())
@@ -503,5 +517,178 @@ void RenderGraph::Execute()
         }
     }
 }
+namespace
+{
+class Graphviz
+{
+public:
+    enum class Color
+    {
+        Blue,
+        Red,
+        Green,
+        Yellow,
+        Black,
+        White
+    };
+    std::string result;
 
+    void BeginGraph(const std::string& tag)
+    {
+        result += "digraph " + tag + " {\n";
+    }
+    void EndGraph()
+    {
+        result += "}\n";
+    }
+
+    std::string ColorToString(Color color)
+    {
+        switch (color)
+        {
+        case Color::Blue:
+            return "blue";
+        case Color::Red:
+            return "red";
+        case Color::Green:
+            return "green";
+        case Color::Yellow:
+            return "yellow";
+        case Color::Black:
+            return "black";
+        case Color::White:
+            return "white";
+        default:
+            assert(false && "unknown color");
+            return "black";
+        }
+    }
+
+    constexpr static Color TextureColor = Color::Green;
+    constexpr static Color ImageViewColor = Color::Blue;
+    constexpr static Color FrameBufferColor = Color::Red;
+    constexpr static Color RenderPassColor = Color::Yellow;
+    constexpr static Color RenderTaskColor = Color::Red;
+    constexpr static Color TransitionTaskColor = Color::Red;
+    constexpr static Color ReadEdgeColor = Color::Blue;
+    constexpr static Color WriteEdgeColor = Color::Red;
+    constexpr static Color CreateEdgeColor = Color::Green;
+    constexpr static Color BorderColor = Color::White;
+
+    void AddTaskNode(TaskBase* task)
+    {
+        switch (task->type)
+        {
+        case TaskType::RenderTask: {
+            auto& t = static_cast<RenderTaskBase&>(*task);
+            AddNode(t.tag, BorderColor, RenderTaskColor);
+        }
+        break;
+        case TaskType::ImageLayoutTransitionTask: {
+            auto& t = static_cast<ImageLayoutTransitionTask&>(*task);
+            AddNode(t.tag, BorderColor, TransitionTaskColor);
+        }
+        break;
+        default:
+            assert(false && "Unsupported task type in Graphviz::AddTaskNode");
+        }
+        AddTaskCreateEdges(task);
+        AddTaskReadEdges(task);
+        AddTaskWriteEdges(task);
+    }
+
+private:
+    void AddEdge(const std::string& from, const std::string& to, Color color,const std::string& label)
+    {
+        result += "  \"" + from + "\" -> \"" + to + "\" [color=" + ColorToString(color)+",label=\""+label+"\"];\n";
+    }
+    void AddNode(const std::string& tag, Color borderColor, Color fillColor)
+    {
+        result += "  \"" + tag + "\" [style=filled,fillcolor=" + ColorToString(fillColor)
+                  + ",color=" + ColorToString(borderColor) + "];\n";
+    }
+    std::unordered_map<std::string, int> m_TimelineAlias;
+    std::string GetTimelineAlias(const std::string& tag)
+    {
+        if (m_TimelineAlias.find(tag) == m_TimelineAlias.end())
+        {
+            m_TimelineAlias[tag] = 0;
+        }
+        return tag + "$" + std::to_string(m_TimelineAlias[tag]);
+    }
+    void IncrementTimelineAlias(const std::string& tag)
+    {
+        if (m_TimelineAlias.find(tag) == m_TimelineAlias.end())
+        {
+            m_TimelineAlias[tag] = 0;
+        }
+        m_TimelineAlias[tag]++;
+    }
+
+private:
+    void AddTaskCreateEdges(TaskBase* task)
+    {
+        for (auto& resource : task->creates)
+        {
+            AddEdge(task->tag, GetTimelineAlias(resource->tag), CreateEdgeColor,"Create");
+            IncrementTimelineAlias(resource->tag);
+        }
+    }
+    void AddTaskReadEdges(TaskBase* task)
+    {
+        for (auto& resource : task->reads)
+        {
+            AddEdge(task->tag, GetTimelineAlias(resource->tag), ReadEdgeColor,"Read");
+        }
+    }
+    void AddTaskWriteEdges(TaskBase* task)
+    {
+        for (auto& resource : task->writes)
+        {
+            AddEdge(task->tag, GetTimelineAlias(resource->tag), WriteEdgeColor,"Write");
+            IncrementTimelineAlias(resource->tag);
+        }
+    }
+    void AddResourceNode(const std::string& tag, VirtualResourceBase* resource)
+    {
+        switch (resource->code)
+        {
+        case ResourceCode::Texture: {
+            auto& r = static_cast<VirtualResource<DeviceTexture>&>(*resource);
+            AddNode(tag, BorderColor, TextureColor);
+        }
+        break;
+        case ResourceCode::ImageView: {
+            auto& r = static_cast<VirtualResource<DeviceImageView>&>(*resource);
+            AddNode(tag, BorderColor, ImageViewColor);
+        }
+        break;
+        case ResourceCode::FrameBuffer: {
+            auto& r = static_cast<VirtualResource<DeviceFrameBuffer>&>(*resource);
+            AddNode(tag, BorderColor, FrameBufferColor);
+        }
+        break;
+        case ResourceCode::RenderPass: {
+            auto& r = static_cast<VirtualResource<DeviceRenderPass>&>(*resource);
+            AddNode(tag, BorderColor, RenderPassColor);
+        }
+        break;
+        default:
+            assert(false && "Unsupported resource code in Graphviz::AddResourceNode");
+        }
+    }
+};
+} // namespace
+std::string RenderGraph::ExportGraphviz() const
+{
+    Graphviz graphviz;
+    graphviz.BeginGraph("RenderGraph");
+
+    for (auto& step : m_Steps) 
+    {
+        graphviz.AddTaskNode(step);
+    }
+    graphviz.EndGraph();
+    return graphviz.result;
+}
 } // namespace Aether::RenderGraph
