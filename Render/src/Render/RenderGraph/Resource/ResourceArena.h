@@ -156,6 +156,14 @@ public:
                 return iter->second->Get();
             }
         }
+        else if constexpr (std::is_same_v<T, DeviceBuffer>)
+        {
+            auto iter = m_BufferMap.find(id);
+            if (iter != m_BufferMap.end())
+            {
+                return iter->second->Get();
+            }
+        }
         else
         {
             static_assert(always_false_v<T>, "Not implemented resource type");
@@ -165,7 +173,49 @@ public:
 
     template<typename T>
     requires IsResource<T>::value
-    void Destroy(ResourceId<T> id);
+    void Destroy(ResourceId<T> id)
+    {
+        if (!IsValid(id))
+        {
+            assert(false && "ResourceId is not valid");
+            return;
+        }
+        if constexpr (std::is_same_v<T, DeviceTexture>)
+        {
+            DestroyTexture(id);
+        }
+        else if constexpr (std::is_same_v<T, DeviceImageView>)
+        {
+            DestroyImageView(id);
+        }
+        else if constexpr (std::is_same_v<T, DeviceFrameBuffer>)
+        {
+            DestroyFrameBuffer(id);
+        }
+        else if constexpr (std::is_same_v<T, DeviceRenderPass>)
+        {
+            auto iter = m_RenderPassMap.find(id);
+            if (iter != m_RenderPassMap.end())
+            {
+                m_RenderPasses.erase(iter->second);
+                m_RenderPassMap.erase(iter);
+            }
+        }
+        else if constexpr (std::is_same_v<T, DeviceBuffer>)
+        {
+            auto iter = m_BufferMap.find(id);
+            if (iter != m_BufferMap.end())
+            {
+                m_Buffers.erase(iter->second);
+                m_BufferMap.erase(iter);
+            }
+        }
+        else
+        {
+            //PrintType<T>();
+            static_assert(always_false_v<T>, "Not implemented resource type");
+        }
+    }
     template<typename T>
     ResourceId<T> Import(T* resource)
     {
@@ -198,6 +248,13 @@ public:
             --iter;
             m_RenderPassMap[id] = iter;
         }
+        else if constexpr (std::is_same_v<T, DeviceBuffer>)
+        {
+            m_Buffers.push_back(ResourceWrapper<T>(resource));
+            auto iter = m_Buffers.end();
+            --iter;
+            m_BufferMap[id] = iter;
+        }
         else
         {
             static_assert(always_false_v<T>, "Not implemented resource type");
@@ -226,6 +283,15 @@ public:
             auto iter = m_RenderPasses.end();
             --iter;
             m_RenderPassMap[id] = iter;
+            return id;
+        }
+        else if constexpr (std::is_same_v<ResourceType, DeviceBuffer>)
+        {
+            auto id = m_ResourceIdAllocator.Allocate<DeviceBuffer>();
+            m_Buffers.push_back(std::move(resource));
+            auto iter = m_Buffers.end();
+            --iter;
+            m_BufferMap[id] = iter;
             return id;
         }
         else
@@ -267,6 +333,8 @@ private:
     ResourceIdAllocator m_ResourceIdAllocator;
     std::list<ResourceWrapper<DeviceRenderPass>> m_RenderPasses;
     std::unordered_map<ResourceId<DeviceRenderPass>, typename std::list<ResourceWrapper<DeviceRenderPass>>::iterator, Hash<ResourceId<DeviceRenderPass>>> m_RenderPassMap;
+    std::list<ResourceWrapper<DeviceBuffer>> m_Buffers;
+    std::unordered_map<ResourceId<DeviceBuffer>, typename std::list<ResourceWrapper<DeviceBuffer>>::iterator, Hash<ResourceId<DeviceBuffer>>> m_BufferMap;
 };
 
 

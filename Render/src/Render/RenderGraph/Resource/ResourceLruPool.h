@@ -13,14 +13,14 @@ private:// resource lru
     struct LruEntry
     {
         ResourceId<ResourceType> id;
-        ResourceDescType<ResourceType> desc;
+        ResourceDescType<ResourceType>::Type desc;
     };
     template<typename ResourceType>
     struct LruPool
     {
         using Id= ResourceId<ResourceType>;
         using List=std::list<LruEntry<ResourceType>>;
-        using Key=ResourceDescType<ResourceType>;
+        using Key=typename ResourceDescType<ResourceType>::Type;
         List resources;
         std::unordered_map<Key, std::vector<typename List::iterator>,Hash<Key>> resourceMap;
         Borrow<ResourceArena> arena;
@@ -135,7 +135,7 @@ private://resource in use
         {
             auto& resourceList = std::get<std::vector<ResourceInUse<U>>>(list.resources);
             auto& pool = std::get<LruPool<U>>(lruPoolList.pools);
-            UpdateResourceInUse<U> {pool}();
+            UpdateResourceInUse<U> {pool}(resourceList);
         }
     };
     template<typename T,typename U,typename... Us>

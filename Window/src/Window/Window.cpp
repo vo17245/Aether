@@ -31,6 +31,7 @@
 #include <ranges>
 #include "ImGui/Compat/ImGuiApi.h"
 #include <Render/Vulkan/Allocator.h>
+#include <Debug/Log.h>
 namespace Aether
 {
 Window::~Window()
@@ -505,6 +506,7 @@ void Window::OnRender()
     {
         layer->OnFrameBegin();
     }
+    m_ResourcePool->OnFrameBegin();
 
     // record command buffer
     auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
@@ -659,6 +661,7 @@ void Window::InitRenderGraphResource()
 }
 void Window::CreateRenderGraph()
 {
+    LogD("Rebuild RenderGraph");
     // create
     m_RenderGraph = CreateScope<RenderGraph::RenderGraph>(m_ResourceArena.get(), m_ResourcePool.get());
     // import final image
