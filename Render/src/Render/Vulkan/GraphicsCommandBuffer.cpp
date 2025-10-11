@@ -125,7 +125,7 @@ void GraphicsCommandBuffer::Draw(uint32_t vertexCnt,uint32_t instanceCnt)
 }
 void GraphicsCommandBuffer::DrawIndexed(uint32_t indexCnt,uint32_t instanceCnt)
 {
-    vkCmdDrawIndexed(m_CommandBuffer, indexCnt, 1, 0, 0, 0);
+    vkCmdDrawIndexed(m_CommandBuffer, indexCnt, instanceCnt, 0, 0, 0);
 }
 void GraphicsCommandBuffer::BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer, const Vec4f& clearValue)
 {
