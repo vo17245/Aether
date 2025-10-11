@@ -40,8 +40,8 @@ using Mat4u = Eigen::Matrix4<uint32_t>;
 
 // Quaterniond
 using Quatd = Eigen::Quaterniond;
-using Quat = Eigen::Quaternionf;
-
+using Quatf = Eigen::Quaternionf;
+using Quat = Quatf;
 
 
 namespace Math {
