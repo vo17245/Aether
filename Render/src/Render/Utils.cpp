@@ -5,7 +5,7 @@ namespace Aether
 namespace Render
 {
 
-void Utils::VkDrawMesh(vk::GraphicsCommandBuffer& cb, VkMesh& mesh)
+void Utils::VkDrawMesh(vk::GraphicsCommandBuffer& cb, VkMesh& mesh,uint32_t instanceCnt)
 {
     cb.BindVertexBuffers(mesh.PackPrimitiveVertexBufferHandles().data(),
                          mesh.GetPrimitive().vertexResource.buffers.size());
@@ -15,18 +15,18 @@ void Utils::VkDrawMesh(vk::GraphicsCommandBuffer& cb, VkMesh& mesh)
         cb.BindIndexBuffer(mesh.GetBuffers()[mesh.GetPrimitive().indexResource->buffer],
                            MeshComponentTypeToVkIndexType(mesh.GetPrimitive().indexResource->type),
                            mesh.GetPrimitive().indexResource->offset);
-        cb.DrawIndexed(mesh.GetPrimitive().indexResource->count);
+        cb.DrawIndexed(mesh.GetPrimitive().indexResource->count,instanceCnt);
     }
     else
     {
-        cb.Draw(mesh.GetVertexCount());
+        cb.Draw(mesh.GetVertexCount(),instanceCnt);
     }
 }
-void Utils::DrawMesh(DeviceCommandBuffer& cb, DeviceMesh& mesh)
+void Utils::DrawMesh(DeviceCommandBuffer& cb, DeviceMesh& mesh,uint32_t instanceCnt)
 {
     if (Render::Config::RenderApi == Render::Api::Vulkan)
     {
-        VkDrawMesh(cb.GetVk(), mesh.GetVk());
+        VkDrawMesh(cb.GetVk(), mesh.GetVk(),instanceCnt);
     }
     else
     {

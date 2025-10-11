@@ -118,8 +118,8 @@ public:
     void BindPipeline(const GraphicsPipeline& pipeline);
 
     VkResult End();
-    void Draw(uint32_t vertexCnt);
-    void DrawIndexed(uint32_t indexCnt);
+    void Draw(uint32_t vertexCnt,uint32_t instanceCnt=1);
+    void DrawIndexed(uint32_t indexCnt,uint32_t instanceCnt=1);
     void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer);
     void BeginRenderPass(const RenderPass& renderPass, const FrameBuffer& framebuffer, const Vec4f& clearColor);
     //template <typename... Ts>

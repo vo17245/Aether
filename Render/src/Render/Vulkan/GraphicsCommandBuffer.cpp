@@ -119,11 +119,11 @@ VkResult GraphicsCommandBuffer::End()
 {
     return (vkEndCommandBuffer(m_CommandBuffer));
 }
-void GraphicsCommandBuffer::Draw(uint32_t vertexCnt)
+void GraphicsCommandBuffer::Draw(uint32_t vertexCnt,uint32_t instanceCnt)
 {
-    vkCmdDraw(m_CommandBuffer, vertexCnt, 1, 0, 0);
+    vkCmdDraw(m_CommandBuffer, vertexCnt, instanceCnt, 0, 0);
 }
-void GraphicsCommandBuffer::DrawIndexed(uint32_t indexCnt)
+void GraphicsCommandBuffer::DrawIndexed(uint32_t indexCnt,uint32_t instanceCnt)
 {
     vkCmdDrawIndexed(m_CommandBuffer, indexCnt, 1, 0, 0, 0);
 }
