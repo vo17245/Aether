@@ -76,13 +76,13 @@ void Window::DispatchEvent()
     {
         m_Input.OnEvent(e);
     }
-    for(auto& e:m_Event)
+    for (auto& e : m_Event)
     {
         EventHandler.Broadcast(e);
     }
     for (auto& e : m_Event)
     {
-        for(auto iter=m_Layers.rbegin();iter!=m_Layers.rend();++iter)
+        for (auto iter = m_Layers.rbegin(); iter != m_Layers.rend(); ++iter)
         {
             auto* layer = *iter;
             layer->OnEvent(e);
@@ -111,7 +111,7 @@ Window* Window::Create(const WindowCreateParam& param)
     Window* window = new Window(handle);
     // register
     WindowContext::Register(handle, window);
-    window->m_ImGuiContext.window.ClearEnable = param.imGuiEnableClear;
+    window->m_ImGuiClearEnable = param.imGuiEnableClear;
     return window;
 }
 /**
@@ -347,6 +347,8 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
 
     VkSurfaceFormatKHR surfaceFormat = vk::chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = vk::chooseSwapPresentMode(swapChainSupport.presentModes);
+    m_PresentMode = presentMode;
+    LogI("[vulkan] choose swapchain present mode: {}", (int)presentMode);
     VkExtent2D extent = vk::chooseSwapExtent(swapChainSupport.capabilities, m_Handle);
 
     uint32_t imageCount = 0;
@@ -468,7 +470,7 @@ void Window::OnUpdate(float sec)
     }
     ImGui::Render();
     // PendingUploadList update
-    m_PendingUploadList.OnUpdate();
+    m_PendingUploadList.OnUpdate(m_Minilized);
 }
 
 void Window::OnRender()
@@ -647,8 +649,10 @@ void Window::OnWindowResize(const Vec2u& size)
 {
     if (size.x() == 0 || size.y() == 0)
     {
+        m_Minilized = true;
         return; // no need to resize
     }
+    m_Minilized = false;
     assert(ResizeFinalImage(size) && "failed to resize window final image");
     CreateRenderGraph();
     m_ImGuiContext.window.Width = size.x();
@@ -768,6 +772,7 @@ void Window::ImGuiFrameRender(DeviceCommandBuffer& commandBuffer)
 void Window::ImGuiWindowContextInit()
 {
     auto* wd = &m_ImGuiContext.window;
+    wd->ClearEnable = m_ImGuiClearEnable;
     wd->SurfaceFormat.format = m_SwapChainImageFormat;
     wd->Surface = m_Surface;
     wd->ImageCount = m_SwapChainImages.size();
@@ -799,6 +804,8 @@ void Window::ImGuiWindowContextInit()
     // #else
     //     VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
     // #endif
+
+    wd->PresentMode = m_PresentMode;
     wd->Swapchain = m_SwapChain;
     // wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(vk::GRC::GetPhysicalDevice(), wd->Surface,
     // &present_modes[0], IM_ARRAYSIZE(present_modes)); printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
@@ -835,17 +842,17 @@ void Window::SetCursorMode(CursorMode mode)
     int glfwMode = GLFW_CURSOR_NORMAL;
     switch (mode)
     {
-        case CursorMode::Normal:
-            glfwMode = GLFW_CURSOR_NORMAL;
-            break;
-        case CursorMode::Hidden:
-            glfwMode = GLFW_CURSOR_HIDDEN;
-            break;
-        case CursorMode::Disabled:
-            glfwMode = GLFW_CURSOR_DISABLED;
-            break;
-        default:
-            break;
+    case CursorMode::Normal:
+        glfwMode = GLFW_CURSOR_NORMAL;
+        break;
+    case CursorMode::Hidden:
+        glfwMode = GLFW_CURSOR_HIDDEN;
+        break;
+    case CursorMode::Disabled:
+        glfwMode = GLFW_CURSOR_DISABLED;
+        break;
+    default:
+        break;
     }
     glfwSetInputMode(m_Handle, GLFW_CURSOR, glfwMode);
 }

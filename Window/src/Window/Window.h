@@ -128,6 +128,10 @@ public:
     {
         m_GammaFilter->SetGamma(gamma);
     }
+    bool IsMinilized() const
+    {
+        return m_Minilized;
+    }
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
@@ -173,6 +177,7 @@ private:
     void CreateCommandBuffer();
     bool ResizeFinalImage(const Vec2u& size);
     void OnWindowResize(const Vec2u& size);
+    
 private:
     Input m_Input;
 private://render graph
@@ -186,7 +191,7 @@ private://render graph
     RenderGraph::AccessId<DeviceTexture> m_FinalImageAccessId;
 
 private:// imgui
-    
+    bool m_ImGuiClearEnable=false;
     ImGuiApi::WindowContext m_ImGuiContext;
     Vec4f m_ImGuiClearColor=Vec4f(0.5,0.7,1.0,1.0);
     void ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer);
@@ -196,6 +201,9 @@ private: //upload
     PendingUploadList m_PendingUploadList;
 public:
     Delegate<void, Event&> EventHandler;
+private:
+    bool m_Minilized=false;
+    VkPresentModeKHR m_PresentMode;
     
 };
 } // namespace Aether
