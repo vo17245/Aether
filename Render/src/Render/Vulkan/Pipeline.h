@@ -22,7 +22,13 @@ public:
             const RenderPass& renderPass,
             const PipelineLayout& layout) :
 
-            renderPass(renderPass),
+            renderPass(&renderPass),
+            layout(layout)
+        {
+        }
+        Builder(const PipelineLayout& layout) :
+
+            renderPass(nullptr),
             layout(layout)
         {
         }
@@ -134,7 +140,7 @@ public:
         }
 
     private:
-        const RenderPass& renderPass;
+        const RenderPass* renderPass=nullptr;
         const PipelineLayout& layout;
         std::vector<VkVertexInputBindingDescription> m_VertexBindingDescriptions;
         std::vector<VkVertexInputAttributeDescription> m_AttributeDescriptions;

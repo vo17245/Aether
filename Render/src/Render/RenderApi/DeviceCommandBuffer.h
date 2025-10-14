@@ -7,6 +7,36 @@
 #include "DeviceDescriptorPool.h"
 namespace Aether
 {
+enum class DeviceCompareOp : uint16_t
+{
+    NEVER = 0,
+    LESS = 1,
+    EQUAL = 2,
+    LESS_OR_EQUAL = 3,
+    GREATER = 4,
+    NOT_EQUAL = 5,
+    GREATER_OR_EQUAL = 6,
+    ALWAYS = 7,
+};
+// clang-format off
+constexpr inline VkCompareOp DeviceCompareOpToVk(DeviceCompareOp op)
+{
+    switch (op) 
+    {
+    case DeviceCompareOp::NEVER: return VK_COMPARE_OP_NEVER;
+    case DeviceCompareOp::LESS: return VK_COMPARE_OP_LESS;
+    case DeviceCompareOp::EQUAL: return VK_COMPARE_OP_EQUAL;
+    case DeviceCompareOp::LESS_OR_EQUAL: return VK_COMPARE_OP_LESS_OR_EQUAL;
+    case DeviceCompareOp::GREATER: return VK_COMPARE_OP_GREATER;
+    case DeviceCompareOp::NOT_EQUAL: return VK_COMPARE_OP_NOT_EQUAL;
+    case DeviceCompareOp::GREATER_OR_EQUAL: return VK_COMPARE_OP_GREATER_OR_EQUAL;
+    case DeviceCompareOp::ALWAYS: return VK_COMPARE_OP_ALWAYS;
+    default:
+        assert(false && "unknown CompareOp");
+        return VK_COMPARE_OP_ALWAYS;
+    }
+}
+// clang-format on
 class DeviceCommandBuffer
 {
 public:
@@ -107,7 +137,7 @@ public:
     }
     /**
      * @brief record a buffer copy command
-    */
+     */
     void CopyBuffer(DeviceBuffer& src, DeviceBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
     {
         switch (Render::Config::RenderApi)
@@ -119,6 +149,18 @@ public:
         default:
             assert(false && "unsupported api");
             break;
+        }
+    }
+    void SetDepthCompareOp(DeviceCompareOp op)
+    {
+        if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))
+        {
+            auto& cb = GetVk();
+            cb.SetDepthCompareOp(DeviceCompareOpToVk(op));
+        }
+        else
+        {
+            assert(false && "unsupported command buffer type");
         }
     }
 
@@ -172,7 +214,6 @@ public:
     {
         return *std::get<vk::GraphicsCommandBuffer*>(m_Data);
     }
-    
 
 private:
     std::variant<std::monostate, vk::GraphicsCommandBuffer*> m_Data;

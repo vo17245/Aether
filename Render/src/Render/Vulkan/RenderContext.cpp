@@ -26,17 +26,17 @@
 #include "Queue.h"
 #include <print>
 #include "../Config.h"
-namespace Aether {
-namespace vk {
-
-void RenderContext::Init(Window* window)
+namespace Aether
 {
-    //InitWindow();
+namespace vk
+{
+
+void RenderContext::Init(Window* window, const Config& config)
+{
+    m_Config=config;
     m_Window = window;
     InitVulkan();
 }
-
-
 
 void RenderContext::InitVulkan()
 {
@@ -56,31 +56,29 @@ void RenderContext::InitVulkan()
     m_QueueFamilyIndices = findQueueFamilies(m_PhysicalDevice, m_Window->GetSurface());
     // CreateCommandPool();
     m_Window->CreateCommandBuffer();
-   
-
 }
 
 void RenderContext::Cleanup()
 {
     // vkDestroyCommandPool(m_Device, m_GraphicsCommandPool, nullptr);
-    //delete m_Window;
+    // delete m_Window;
     vkDestroyDevice(m_Device, nullptr);
 
-    if (enableValidationLayers)
+    if (m_Config.enableValidationLayers)
     {
         DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
     }
 
     vkDestroyInstance(m_Instance, nullptr);
 
-    //WindowContext::Shutdown();
+    // WindowContext::Shutdown();
 }
 
 void RenderContext::CreateInstance()
 {
-    if (enableValidationLayers && !CheckValidationLayerSupport())
+    if (m_Config.enableValidationLayers && !CheckValidationLayerSupport())
     {
-        throw std::runtime_error("validation layers requested, but not available!");
+        assert(false&& "validation layers requested, but not available!");
     }
 
     VkApplicationInfo appInfo{};
@@ -101,7 +99,7 @@ void RenderContext::CreateInstance()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (enableValidationLayers)
+    if (m_Config.enableValidationLayers)
     {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -117,7 +115,8 @@ void RenderContext::CreateInstance()
     VkResult result = vkCreateInstance(&createInfo, nullptr, &m_Instance);
     if (result != VK_SUCCESS)
     {
-        throw std::runtime_error(std::format("failed to create instance! vkCreateInstance return VkResult: {}", int(result)));
+        throw std::runtime_error(
+            std::format("failed to create instance! vkCreateInstance return VkResult: {}", int(result)));
     }
 }
 
@@ -125,14 +124,19 @@ void RenderContext::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreate
 {
     createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+                                 | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+                                 | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                             | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                             | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = DebugCallback;
 }
 
 void RenderContext::SetupDebugMessenger()
 {
-    if (!enableValidationLayers) return;
+    if (!m_Config.enableValidationLayers)
+        return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     PopulateDebugMessengerCreateInfo(createInfo);
@@ -181,6 +185,23 @@ void RenderContext::PickPhysicalDevice()
 
 void RenderContext::CreateLogicalDevice()
 {
+    // 1. Dynamic Rendering feature
+    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeature{};
+    dynamicRenderingFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+    dynamicRenderingFeature.dynamicRendering = VK_TRUE;
+
+    // 2. Device features (sampler anisotropy)
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+    VkPhysicalDeviceFeatures2 deviceFeatures2{};
+    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures2.features = deviceFeatures;
+    if (m_Config.enableDynamicRendering)
+    {
+        deviceFeatures2.pNext = &dynamicRenderingFeature;
+    }
+    //===============
     QueueFamilyIndices indices = findQueueFamilies(m_PhysicalDevice, m_Window->GetSurface());
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -197,21 +218,19 @@ void RenderContext::CreateLogicalDevice()
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
-
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pNext = &deviceFeatures2;
 
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.pEnabledFeatures = nullptr;
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (enableValidationLayers)
+    if (m_Config.enableValidationLayers)
     {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -258,7 +277,7 @@ std::vector<const char*> RenderContext::GetRequiredExtensions()
 
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-    if (enableValidationLayers)
+    if (m_Config.enableValidationLayers)
     {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
@@ -321,7 +340,10 @@ std::vector<char> RenderContext::ReadFile(const std::string& filename)
     return buffer;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL RenderContext::DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+VKAPI_ATTR VkBool32 VKAPI_CALL RenderContext::DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                            VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                            void* pUserData)
 {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     {
@@ -329,7 +351,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL RenderContext::DebugCallback(VkDebugUtilsMessageS
     }
     else
     {
-       std::println("validation layer: {0}", pCallbackData->pMessage);
+        std::println("validation layer: {0}", pCallbackData->pMessage);
     }
     return VK_FALSE;
 }
@@ -378,5 +400,5 @@ VkPhysicalDevice RenderContext::ChoosePhysicalDevice(const std::vector<VkPhysica
 
     return devices[0];
 }
-}
-} // namespace Aether::vk
+} // namespace vk
+} // namespace Aether

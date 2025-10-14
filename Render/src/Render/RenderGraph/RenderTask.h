@@ -88,6 +88,12 @@ public:
     template <typename ResourceType>
         requires IsResource<ResourceType>::value
     AccessId<ResourceType> Read(AccessId<ResourceType> resourceId);
+    template <typename ResourceType>
+        requires IsResource<ResourceType>::value
+    AccessId<ResourceType> Write(const std::string& tag);
+    template <typename ResourceType>
+        requires IsResource<ResourceType>::value
+    AccessId<ResourceType> Read(const std::string& tag);
     inline RenderGraph& GetGraph()
     {
         return m_Graph;

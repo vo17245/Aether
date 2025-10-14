@@ -8,39 +8,41 @@
 #include "VulkanUtils.h"
 #include "Queue.h"
 #include <iostream>
-namespace Aether {
+namespace Aether
+{
 static_assert(std::is_same_v<decltype(nullptr), decltype(VK_NULL_HANDLE)>);
 class Window;
 
-namespace vk {
+namespace vk
+{
 
 class RenderContext
 {
-    public:
-    // clang-format off
-    bool enableValidationLayers = false;
-    // clang-format on
-    // 第一个主窗口的大小
-    // TODO: 从配置文件加载
+public:
+    struct Config
+    {
+        bool enableValidationLayers = false;
+        bool enableDynamicRendering = false;
+    };
 private:
+    Config m_Config;
 
-    // const int MAX_FRAMES_IN_FLIGHT = 2;
-    const std::vector<const char*> validationLayers = {
-        "VK_LAYER_KHRONOS_validation"};
+private:
+    const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 #ifdef __APPLE__
-    const std::vector<const char*> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_MAINTENANCE1_EXTENSION_NAME, "VK_KHR_portability_subset"};
+    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                                                       VK_KHR_MAINTENANCE1_EXTENSION_NAME, "VK_KHR_portability_subset",
+                                                       VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME};
 #else
     const std::vector<const char*> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_MAINTENANCE1_EXTENSION_NAME};
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_MAINTENANCE1_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME};
 #endif
 
 public:
-    void Init(Window* window);
-
+    void Init(Window* window,const Config& config);
 
 public:
-    Window* m_Window=nullptr;
+    Window* m_Window = nullptr;
 
     VkInstance m_Instance;
     VkDebugUtilsMessengerEXT m_DebugMessenger;
@@ -52,7 +54,6 @@ public:
     Queue m_PresentQueue;
     // VkCommandPool m_GraphicsCommandPool;
     QueueFamilyIndices m_QueueFamilyIndices;
-
 
     void InitVulkan();
 
@@ -77,7 +78,9 @@ public:
     static std::vector<char> ReadFile(const std::string& filename);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                        VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                        void* pUserData);
 
     VkPhysicalDevice ChoosePhysicalDevice(const std::vector<VkPhysicalDevice>& devices);
 };

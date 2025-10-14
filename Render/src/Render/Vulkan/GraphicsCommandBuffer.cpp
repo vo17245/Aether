@@ -263,5 +263,9 @@ void GraphicsCommandBuffer::BeginRenderPass(const RenderPass& renderpass,const F
     renderPassInfo.pClearValues = clearValues.data();
     return vkCmdBeginRenderPass(m_CommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
-
+void GraphicsCommandBuffer::SetDepthCompareOp(VkCompareOp op)
+{
+    //vkCmdSetDepthCompareOpEXT(m_CommandBuffer,op);//vulkan 1.2 with extension
+    vkCmdSetDepthCompareOp(m_CommandBuffer,op);//vulkan 1.3
+}
 } // namespace Aether::vk

@@ -66,7 +66,7 @@ public:
         slot.resourceCount = static_cast<uint32_t>(ids.size());
         slot.external = true;
         auto virtualResource = CreateScope<VirtualResource<ResourceType>>(desc, slot.id);
-        virtualResource->tag=tag;
+        virtualResource->tag = tag;
         m_AccessIdToResourceIndex[slot.id.handle] = static_cast<uint32_t>(m_Resources.size());
         m_Resources.push_back(std::move(virtualResource));
         {
@@ -116,9 +116,10 @@ public:
     }
     std::string CreateUniqueId()
     {
-        return std::string("#")+std::to_string(m_UniqueId++);
+        return std::string("#") + std::to_string(m_UniqueId++);
     }
-    std::string ExportGraphviz()const;
+    std::string ExportGraphviz() const;
+
 private:
     // push m_Tasks into m_Steps and cull tasks that do not affect the imported resources.
     void CullTasks();
@@ -148,7 +149,7 @@ private:
     std::unordered_map<Handle, uint32_t, Hash<Handle>> m_AccessIdToResourceIndex;
     std::vector<TaskBase*> m_Steps; // compile result
     std::unordered_map<std::string, Handle> m_TagToAccessId;
-    uint32_t m_UniqueId=0;
+    uint32_t m_UniqueId = 0;
 };
 template <typename ResourceType>
     requires IsResource<ResourceType>::value
@@ -185,7 +186,7 @@ AccessId<ResourceType> RenderTaskBuilder::Read(AccessId<ResourceType> resourceId
     auto& resource = m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[resourceId.handle]];
     m_Task->reads.push_back(resource.get());
     resource->readers.push_back((TaskBase*)m_Task.Get());
-    if constexpr (std::is_same_v<DeviceImageView,ResourceType>)
+    if constexpr (std::is_same_v<DeviceImageView, ResourceType>)
     {
         // also read the underlying texture
         auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(*resource);
@@ -246,7 +247,7 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     auto virtualRenderPassPtr = CreateScope<VirtualResource<DeviceRenderPass>>();
     m_Graph.m_Resources.emplace_back(std::move(virtualRenderPassPtr));
     auto& virtualRenderPass = *static_cast<VirtualResource<DeviceRenderPass>*>(m_Graph.m_Resources.back().get());
-    virtualRenderPass.tag="RenderPass"+m_Graph.CreateUniqueId();
+    virtualRenderPass.tag = "RenderPass" + m_Graph.CreateUniqueId();
     virtualRenderPass.creator = m_Task;
     virtualRenderPass.readers.push_back(m_Task.Get());
     virtualRenderPass.desc = renderPassDesc;
@@ -262,7 +263,7 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     auto virtualFrameBufferPtr = CreateScope<VirtualResource<DeviceFrameBuffer>>();
     m_Graph.m_Resources.emplace_back(std::move(virtualFrameBufferPtr));
     auto& virtualFrameBuffer = *static_cast<VirtualResource<DeviceFrameBuffer>*>(m_Graph.m_Resources.back().get());
-    virtualFrameBuffer.tag="FrameBuffer"+m_Graph.CreateUniqueId();
+    virtualFrameBuffer.tag = "FrameBuffer" + m_Graph.CreateUniqueId();
     virtualFrameBuffer.creator = m_Task;
     virtualFrameBuffer.readers.push_back(m_Task.Get());
     virtualFrameBuffer.desc = frameBufferDesc;
@@ -272,5 +273,21 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     m_Task->frameBuffer = virtualFrameBuffer.id;
 
     return *this;
+}
+template <typename ResourceType>
+    requires IsResource<ResourceType>::value
+AccessId<ResourceType> RenderTaskBuilder::Write(const std::string& tag)
+{
+    auto id = m_Graph.GetResourceIdByTag<ResourceType>(tag);
+    assert(id.handle.IsValid() && "tag not found");
+    return Write<ResourceType>(id);
+}
+template <typename ResourceType>
+    requires IsResource<ResourceType>::value
+AccessId<ResourceType> RenderTaskBuilder::Read(const std::string& tag)
+{
+    auto id = m_Graph.GetResourceIdByTag<ResourceType>(tag);
+    assert(id.handle.IsValid() && "tag not found");
+    return Read<ResourceType>(id);
 }
 } // namespace Aether::RenderGraph

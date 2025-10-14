@@ -10,7 +10,7 @@ namespace vk {
 class GlobalRenderContext
 {
 public:
-    static void Init(Window* window,bool enableValidationLayers=false);
+    static void Init(Window* window,const RenderContext::Config& config);
     static void Set(RenderContext* context);
     static RenderContext& Get();
     static VkInstance GetInstance();

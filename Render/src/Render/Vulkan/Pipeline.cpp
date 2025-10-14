@@ -106,7 +106,10 @@ std::optional<GraphicsPipeline> GraphicsPipeline::Builder::Build()
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = layout.GetHandle();
-    pipelineInfo.renderPass = renderPass.GetHandle();
+    if(renderPass)
+    {
+        pipelineInfo.renderPass = renderPass->GetHandle();
+    }
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.pDepthStencilState = &depthStencil;

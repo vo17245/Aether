@@ -15,7 +15,7 @@ namespace Aether
 struct DeviceFrameBufferDesc
 {
     DeviceImageView* colorAttachments[DeviceRenderPassDesc::MaxColorAttachments];
-    DeviceImageView* depthAttachment=nullptr;
+    DeviceImageView* depthAttachment = nullptr;
     uint32_t width = 0;
     uint32_t height = 0;
     size_t colorAttachmentCount = 0; // number of color attachments
@@ -24,8 +24,7 @@ class DeviceFrameBuffer
 {
 public:
     template <typename T>
-    DeviceFrameBuffer(T&& t) :
-        m_Data(std::forward<T>(t))
+    DeviceFrameBuffer(T&& t) : m_Data(std::forward<T>(t))
     {
     }
     template <typename T>
@@ -50,16 +49,23 @@ public:
     }
     static DeviceFrameBuffer Create(const DeviceRenderPass& renderPass, const DeviceFrameBufferDesc& desc)
     {
+        return Create(desc, &renderPass);
+    }
+    static DeviceFrameBuffer Create(const DeviceFrameBufferDesc& desc, const DeviceRenderPass* renderPass = nullptr)
+    {
         if (Render::Config::RenderApi == Render::Api::Vulkan)
         {
             VkFramebufferCreateInfo frameBufferInfo{};
             frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            frameBufferInfo.renderPass = renderPass.GetVk().GetHandle();
+            if (renderPass)
+            {
+                frameBufferInfo.renderPass = renderPass->GetVk().GetHandle();
+            }
             frameBufferInfo.width = desc.width;
             frameBufferInfo.height = desc.height;
             frameBufferInfo.layers = 1;
             size_t attachmentCount = 0;
-            attachmentCount+=desc.colorAttachmentCount;
+            attachmentCount += desc.colorAttachmentCount;
             if (desc.depthAttachment)
             {
                 attachmentCount++;
@@ -81,7 +87,6 @@ public:
                 return {};
             }
             return DeviceFrameBuffer(std::move(frameBuffer.value()));
-            
         }
         else
         {
@@ -89,64 +94,7 @@ public:
             return {};
         }
     }
-    static DeviceFrameBuffer CreateFromTexture(const DeviceRenderPassView& renderPass,DeviceTexture& texture)
-    {
-        if (Render::Config::RenderApi == Render::Api::Vulkan)
-        {
-            auto& vkTexture=texture.Get<vk::Texture2D>();
-            auto& vkRenderPass=renderPass.Get<vk::RenderPass>();
-            VkExtent2D size={vkTexture.GetWidth(),vkTexture.GetHeight()};
-            auto& imageView=texture.GetOrCreateDefaultImageView().Get<vk::ImageView>();
-            auto frameBuffer=vk::FrameBuffer::Create(vkRenderPass, size,imageView);
-            return DeviceFrameBuffer(std::move(frameBuffer.value()));
-        }
-        else
-        {
-            assert(false && "not implemented");
-            return {};
-        }
-    }
-    static DeviceFrameBuffer CreateFromColorAttachmentAndDepthAttachment(const DeviceRenderPassView& renderPass,
-    DeviceTexture& color,DeviceTexture& depth)
-    {
-        if (Render::Config::RenderApi == Render::Api::Vulkan)
-        {
-            auto& vkColor=color.Get<vk::Texture2D>();
-            auto& vkRenderPass=renderPass.Get<vk::RenderPass>();
-            VkExtent2D size={vkColor.GetWidth(),vkColor.GetHeight()};
-            auto& colorImageView=color.GetOrCreateDefaultImageView().Get<vk::ImageView>();
-            auto& vkDepth=depth.Get<vk::Texture2D>();
-            auto& depthImageView=depth.GetOrCreateDefaultImageView().Get<vk::ImageView>();
 
-            auto frameBuffer=vk::FrameBuffer::Create(vkRenderPass,
-             size,colorImageView,depthImageView);
-            return DeviceFrameBuffer(std::move(frameBuffer.value()));
-        }
-        else
-        {
-            assert(false && "not implemented");
-            return {};
-        }
-    }
-    static DeviceFrameBuffer CreateFromColorAttachment(const DeviceRenderPass& renderPass,DeviceTexture& colorAttachment)
-    {
-        if (Render::Config::RenderApi == Render::Api::Vulkan)
-        {
-            auto& vkColor=colorAttachment.Get<vk::Texture2D>();
-            auto& vkRenderPass=renderPass.GetVk();
-            VkExtent2D size={vkColor.GetWidth(),vkColor.GetHeight()};
-            auto& colorImageView=colorAttachment.GetOrCreateDefaultImageView().Get<vk::ImageView>();
-
-            auto frameBuffer=vk::FrameBuffer::Create(vkRenderPass,
-             size,colorImageView);
-            return DeviceFrameBuffer(std::move(frameBuffer.value()));
-        }
-        else
-        {
-            assert(false && "not implemented");
-            return {};
-        }
-    }
     vk::FrameBuffer& GetVk()
     {
         return std::get<vk::FrameBuffer>(m_Data);
@@ -155,7 +103,7 @@ public:
     {
         return std::get<vk::FrameBuffer>(m_Data);
     }
-    Vec2u GetSize()const
+    Vec2u GetSize() const
     {
         if (std::holds_alternative<vk::FrameBuffer>(m_Data))
         {
@@ -165,7 +113,7 @@ public:
         else
         {
             assert(false && "not implemented");
-            return {0,0};
+            return {0, 0};
         }
     }
 
@@ -184,8 +132,7 @@ public:
     DeviceFrameBufferView()
     {
     }
-    DeviceFrameBufferView(vk::FrameBuffer& t) :
-        m_Data(&t)
+    DeviceFrameBufferView(vk::FrameBuffer& t) : m_Data(&t)
     {
     }
     DeviceFrameBufferView(DeviceFrameBuffer& t)
@@ -200,8 +147,7 @@ public:
             m_Data = std::monostate();
         }
     }
-    DeviceFrameBufferView(std::monostate) :
-        m_Data(std::monostate())
+    DeviceFrameBufferView(std::monostate) : m_Data(std::monostate())
     {
     }
     bool Empty() const
@@ -224,7 +170,7 @@ public:
     {
         return *std::get<vk::FrameBuffer*>(m_Data);
     }
-    Vec2u GetSize()const
+    Vec2u GetSize() const
     {
         if (std::holds_alternative<vk::FrameBuffer*>(m_Data))
         {
@@ -234,9 +180,10 @@ public:
         else
         {
             assert(false && "not implemented");
-            return {0,0};
+            return {0, 0};
         }
     }
+
 private:
     std::variant<std::monostate, vk::FrameBuffer*> m_Data;
 };

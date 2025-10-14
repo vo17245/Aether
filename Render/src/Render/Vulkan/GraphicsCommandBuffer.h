@@ -154,7 +154,7 @@ public:
     void UpdatePushConstants(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout, vk::ShaderStage stage);
     void UpdatePushConstantsOnVertexStage(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout);
     void UpdatePushConstantsOnFragmentStage(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout);
-
+    void SetDepthCompareOp(VkCompareOp op);
 private:
 private:
     GraphicsCommandBuffer(VkCommandBuffer commandBuffer, const GraphicsCommandPool* commandPool);

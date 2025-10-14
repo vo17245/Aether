@@ -63,12 +63,11 @@ QueueFamilyIndices GlobalRenderContext::GetQueueFamilyIndices()
 {
     return s_Context->m_QueueFamilyIndices;
 }
-void GlobalRenderContext::Init(Window* window, bool enableValidationLayers)
+void GlobalRenderContext::Init(Window* window, const RenderContext::Config& config)
 {
     auto* renderContext = new vk::RenderContext();
-    renderContext->enableValidationLayers = enableValidationLayers;
     vk::GlobalRenderContext::Set(renderContext);
-    renderContext->Init(window);
+    renderContext->Init(window,config);
     //vk::GRC::GetMainWindow().CreateSyncObjects();
     vk::Allocator::Init();
     window->CreateFinalImage();
