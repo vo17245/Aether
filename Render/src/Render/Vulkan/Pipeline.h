@@ -138,7 +138,10 @@ public:
             m_InColorAttachment = false;
             return *this;
         }
-
+        void EnableDynamicDepthCompareOp()
+        {
+            m_EnableDynamicDepthCompareOp = true;
+        }
     private:
         const RenderPass* renderPass=nullptr;
         const PipelineLayout& layout;
@@ -147,6 +150,7 @@ public:
         bool m_DepthTestEnable = false;
         VkCompareOp m_DepthTestCompareOp = VK_COMPARE_OP_LESS;
         std::vector<VkPipelineShaderStageCreateInfo> m_Stages;
+        bool m_EnableDynamicDepthCompareOp = false;
     private:
         struct ColorAttachmentConfig
         {
