@@ -2,9 +2,9 @@
 #include <string>
 #include <ImGui/NodeEditor/imgui_node_editor.h>
 #include <vector>
-#include <UIComponent/NodeEditor/NodeEditor.h>
-#include <UIComponent/NodeEditor/Nodes/MessageNode.h>
-#include <UIComponent/NodeEditor/Nodes/PrintStringNode.h>
+#include <AetherEditor/UIComponent/NodeEditor/NodeEditor.h>
+#include <AetherEditor/UIComponent/NodeEditor/Nodes/MessageNode.h>
+#include <AetherEditor/UIComponent/NodeEditor/Nodes/PrintStringNode.h>
 
 using namespace Aether;
 class NodeEditorPanel

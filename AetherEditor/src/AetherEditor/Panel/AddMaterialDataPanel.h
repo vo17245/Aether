@@ -1,6 +1,6 @@
 #pragma once
-#include "Notify.h"
-#include "Material.h"
+#include "AetherEditor/Notify.h"
+#include "AetherEditor/Material.h"
 class MaterialDataSetLimitPanel
 {
 public:

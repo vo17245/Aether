@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <utility>
 
-#include <Utils/LoadTexture.h>
+#include <AetherEditor/Utils/LoadTexture.h>
 #include <queue>
 #include <unordered_set>
 

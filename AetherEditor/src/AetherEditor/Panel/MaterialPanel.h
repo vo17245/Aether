@@ -1,9 +1,9 @@
 #pragma once
-#include "Notify.h"
+#include "AetherEditor/Notify.h"
 #include "AddMaterialDataPanel.h"
-#include "FileWatcher.h"
+#include "AetherEditor/FileWatcher.h"
 #include <UI/FileDialog.h>
-#include <Utils/FileIsInDirectory.h>
+#include <AetherEditor/Utils/FileIsInDirectory.h>
 using namespace Aether;
 class MaterialPanel
 {

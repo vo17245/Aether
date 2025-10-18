@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <functional>
-#include <UIComponent/Image.h>
+#include <AetherEditor/UIComponent/Image.h>
 #include <variant>
 #include "NodeEditorNode.h"
 #include "NodeEditorIdAllocator.h"
