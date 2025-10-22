@@ -33,7 +33,7 @@ Mat4d Homogeneousd(const Mat3d& m);
 /**
  * @return tuple[T,Q,S] ([T,R,S])
  */
-std::tuple<Vec3f, Quat, Vec3f> DecomposeTransform(const Mat4f& matrix);
+std::tuple<Vec3f, Quatf, Vec3f> DecomposeTransform(const Mat4f& matrix);
 Mat3f MergeTranslation(const Mat2f& m,const Vec2f& v);
 Mat4f MergeTranslation(const Mat3f& m,const Vec3f& v);
 Mat4f LookAt(const Vec3f& eye, const Vec3f& target, const Vec3f& up);

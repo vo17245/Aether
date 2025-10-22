@@ -161,7 +161,7 @@ Eigen::Matrix4d Translationd(const Vec3d& v)
     return m;
 }
 
-std::tuple<Vec3f, Quat, Vec3f> DecomposeTransform(const Mat4f& matrix)
+std::tuple<Vec3f, Quatf, Vec3f> DecomposeTransform(const Mat4f& matrix)
 {
     Vec3f T;
     Vec3f S;
