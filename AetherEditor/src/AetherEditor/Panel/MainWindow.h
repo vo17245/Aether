@@ -2,6 +2,7 @@
 #include <Imgui/Core/imgui.h>
 #include <functional>
 #include <Window/Window.h>
+#include "Panel.h"
 using namespace Aether;
 class MainWindow
 {
@@ -13,6 +14,26 @@ public:
     void DrawMainWindowEnd()
     {
         ImGui::End();
+    }
+    void DrawViewMenuItems()
+    {
+        if (ImGui::MenuItem("NodeEditor"))
+        {
+            if (m_NodeEditorViewToggle)
+                m_NodeEditorViewToggle();
+        }
+        if (ImGui::MenuItem("Material Editor"))
+        {
+            if (m_MaterialEditorViewToggle)
+                m_MaterialEditorViewToggle();
+        }
+        for(auto& panel : m_ViewPanels)
+        {
+            if (ImGui::MenuItem(panel->GetTitle().c_str()))
+            {
+                panel->SetVisible(!panel->GetVisible());
+            }
+        }
     }
     void DrawMainWindowMenuBar()
     {
@@ -43,16 +64,8 @@ public:
             }
             if (ImGui::BeginMenu("View"))
             {
-                if (ImGui::MenuItem("NodeEditor"))
-                {
-                    if (m_NodeEditorViewToggle)
-                        m_NodeEditorViewToggle();
-                }
-                if (ImGui::MenuItem("Material Editor"))
-                {
-                    if (m_MaterialEditorViewToggle)
-                        m_MaterialEditorViewToggle();
-                }
+                DrawViewMenuItems();
+
                 ImGui::EndMenu();
             }
 
@@ -92,6 +105,10 @@ public:
         {
             ImGui::ShowMetricsWindow();
         }
+        for(auto& panel : m_ViewPanels)
+        {
+            panel->OnImGuiUpdate();
+        }
     }
 
     void DrawEnd()
@@ -106,10 +123,21 @@ public:
     {
         m_MaterialEditorViewToggle = std::move(toggle);
     }
+    void PushViewPanel(Scope<Panel>&& panel)
+    {
+        m_ViewPanels.push_back(std::move(panel));
+    }
+    void PopViewPanel(Panel* panel)
+    {
+        m_ViewPanels.erase(std::remove_if(m_ViewPanels.begin(), m_ViewPanels.end(),
+                                          [panel](const Scope<Panel>& p) { return p.get() == panel; }),
+                           m_ViewPanels.end());
+    }
 
 private:
     Window* m_OsWindow;
     bool m_ImGuiMetricsWindowOpen = false;
     std::function<void()> m_NodeEditorViewToggle;
     std::function<void()> m_MaterialEditorViewToggle;
+    std::vector<Scope<Panel>> m_ViewPanels;
 };

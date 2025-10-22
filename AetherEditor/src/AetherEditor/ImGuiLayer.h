@@ -22,6 +22,7 @@ using namespace Aether;
 #include "Panel/TerminalPanel.h"
 #include "Panel/MaterialEditorPanel.h"
 #include "Panel/MainWindow.h"
+#include "Panel/ContentBrowser.h"
 #include "Panel/NodeEditorPanel.h"
 class ImGuiLayer : public Layer
 {
@@ -37,6 +38,7 @@ public:
         m_MainWindow.SetOsWindow(window);
         m_MainWindow.SetNodeEditorViewToggle([this]() { m_ShowNodeEditorPanel = !m_ShowNodeEditorPanel; });
         m_MainWindow.SetMaterialEditorViewToggle([this]() { m_ShowMaterialEditorPanel = !m_ShowMaterialEditorPanel; });
+        m_MainWindow.PushViewPanel(CreateScope<ContentBrowser>());
         m_NodeEditorPanel.Init("tmp/node_editor_panel.json");
     }
     virtual void OnUpdate(float sec) override

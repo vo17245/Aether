@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <string>
 namespace Aether::Project
 {
 
@@ -25,8 +26,16 @@ public:
     Folder() : ContentTreeNode(ContentTreeNodeType::Folder)
     {
     }
-
+    std::string& GetName()
+    {
+        return m_Name;
+    }
+    void SetName(const std::string& name)
+    {
+        m_Name = name;
+    }
 private:
     std::vector<ContentTreeNode*> m_Contents;
+    std::string m_Name;
 };
 }
