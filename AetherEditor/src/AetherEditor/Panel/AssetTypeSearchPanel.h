@@ -10,18 +10,7 @@ public:
                         "Animation", "Prefab", "Script",   "Font",   "Scene"};
         m_FilteredAssetTypes = m_AssetTypes;
     }
-    std::string& GetTitle() override
-    {
-        return m_Title;
-    }
-    void SetVisible(bool visible) override
-    {
-        m_Visible = visible;
-    }
-    bool GetVisible() override
-    {
-        return m_Visible;
-    }
+   
     void OnImGuiUpdate() override
     {
         if (!m_Visible)
@@ -61,14 +50,12 @@ public:
         }
         ImGui::End();
     }
-    void SetPosition(float x, float y) override
+    void OnSetPosition(float x, float y) override
     {
-        m_Position = Vec2f(x, y);
         m_SetPositionOnce = true;
     }
-    void SetSize(float width, float height) override
+    void OnSetSize(float width, float height) override
     {
-        m_Size = Vec2f(width, height);
         m_SetSizeOnce = true;
     }
 private:
@@ -76,10 +63,7 @@ private:
     {
     }
 private:
-    std::string m_Title = "Asset Type Search";
-    bool m_Visible = false;
-    Vec2f m_Position;
-    Vec2f m_Size;
+   
     char m_SearchBuffer[256]{0};
     std::vector<std::string> m_AssetTypes;
     std::vector<std::string> m_FilteredAssetTypes;

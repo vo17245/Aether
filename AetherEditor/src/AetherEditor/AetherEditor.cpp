@@ -1,5 +1,5 @@
 #include "ImGuiLayer.h"
-
+#include <Entry/Application.h>
 class AetherEditor : public Application
 {
 public:
@@ -10,7 +10,6 @@ public:
         m_MainWindow = &window;
         m_Layers.push_back(imguiLayer);
         window.PushLayer(imguiLayer);
-        FileWatcher::Start();
     }
     virtual void OnShutdown() override
     {

@@ -17,4 +17,8 @@ bool WriteFile(const Filesystem::Path& path, const std::span<const char> data);
 bool RemoveTree(const std::string_view path);
 bool CreateDirectories(const Path& path);
 std::vector<U8String> ListFiles(const std::string_view path);
+/**
+ * @return error msg if failed,otherwise return nullopt
+*/
+std::optional<std::string> CopyFile(const std::string& srcPath,const std::string& destPath,size_t bufferSize=8192);
 } // namespace Aether::FIlesystem

@@ -1,5 +1,5 @@
 #pragma once
-#include "AetherEditor/Notify.h"
+#include "AetherEditor/UIComponent/Notify.h"
 #include "AddMaterialDataPanel.h"
 #include "AetherEditor/FileWatcher.h"
 #include <UI/FileDialog.h>

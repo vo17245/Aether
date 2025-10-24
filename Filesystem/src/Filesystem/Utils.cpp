@@ -145,4 +145,36 @@ bool ReadFile(uint8_t* buffer,size_t bufferSize,const std::string_view path)
     file.Read(std::span<uint8_t>(buffer,fileSize));
     return true;
 }
+std::optional<std::string> CopyFile(const std::string& srcPath,const std::string& destPath,size_t bufferSize)
+{
+    auto buffer=std::unique_ptr<uint8_t[]>(new uint8_t[bufferSize]);
+    File srcFile(srcPath,Action::Read);
+    if(!srcFile.IsOpened())
+    {
+        return "failed to open source file:"+srcPath;
+    }
+    File destFile(destPath,PackFlags(Action::Create,Action::Overwrite));
+    if(!destFile.IsOpened())
+    {
+        return "failed to open destination file:"+destPath;
+    }
+    size_t fileSize=srcFile.GetSize();
+    size_t totalReadBytes=0;
+    while(totalReadBytes<fileSize)
+    {
+        size_t toReadBytes=std::min(bufferSize,fileSize-totalReadBytes);
+        size_t readBytes=srcFile.Read({buffer.get(),toReadBytes});
+        if(readBytes==0)
+        {
+            return "failed to read from source file:"+srcPath;
+        }
+        totalReadBytes+=readBytes;
+        size_t writtenBytes=destFile.Write({buffer.get(),readBytes});
+        if(writtenBytes!=readBytes)
+        {
+            return "failed to write to destination file:"+destPath;
+        }
+    }
+    return std::nullopt;
+}
 } // namespace Aether::Filesystem

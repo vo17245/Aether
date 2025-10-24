@@ -1,5 +1,5 @@
 #pragma once
-#include "AetherEditor/Notify.h"
+#include "AetherEditor/UIComponent/Notify.h"
 #include "AetherEditor/Material.h"
 class MaterialDataSetLimitPanel
 {

@@ -57,30 +57,9 @@ public:
         return ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
                ImGui::IsMouseClicked(ImGuiMouseButton_Right);
     }
-    std::string& GetTitle() override
-    {
-        return m_Title;
-    }
-    void SetVisible(bool visible) override
-    {
-        m_Visible = visible;
-    }
-    bool GetVisible() override
-    {
-        return m_Visible;
-    }
-    virtual void SetPosition(float x, float y) override
-    {
-
-    }
-    virtual void SetSize(float width, float height)override
-    {
-
-    }
+    
 private:
     FolderView m_RootFolderView;
     Aether::Project::Folder m_RootFolder;
-    std::string m_Title = "Content Browser";
-    bool m_Visible = false;
     Scope<AssetTypeSearchPanel> m_AssetTypeSearchPanel{ CreateScope<AssetTypeSearchPanel>() };
 };
