@@ -1,7 +1,7 @@
 #pragma once
 #include "../NodeEditorNode.h"
 #include <Debug/Log.h>
-namespace Aether::ImGuiComponent::NodeEditorTest
+namespace AetherEditor::ImGuiComponent::NodeEditorTest
 {
 class PrintStringNode:public NodeEditorNode
 {
@@ -20,7 +20,7 @@ public:
         {
             assert(std::holds_alternative<std::string*>(*inputText));
             auto text=std::get<std::string*>(*inputText);
-            Debug::Log::Debug("[NodeEditor] {}", *text);
+            Aether::Debug::Log::Debug("[NodeEditor] {}", *text);
         }
         return std::nullopt;
     }

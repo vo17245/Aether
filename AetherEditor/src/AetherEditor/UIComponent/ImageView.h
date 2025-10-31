@@ -3,7 +3,7 @@
 #include <Render/Render.h>
 #include <expected>
 #include "Image.h"
-namespace Aether::ImGuiComponent
+namespace AetherEditor::ImGuiComponent
 {
 
 class ImageView
@@ -14,7 +14,7 @@ public:
     ImageView(ImageView&&) = delete;
     ImageView& operator=(ImageView&&) = delete;
 
-    ImageView(Borrow<Image> image) : m_Image(image), m_Size(image->GetSize())
+    ImageView(Aether::Borrow<Image> image) : m_Image(image), m_Size(image->GetSize())
     {
     }
     void Draw()
@@ -27,7 +27,7 @@ public:
     }
 
 private:
-    Borrow<Image> m_Image;
+    Aether::Borrow<Image> m_Image;
     ImVec2 m_Size;
 };
 } // namespace Aether::ImGuiComponent

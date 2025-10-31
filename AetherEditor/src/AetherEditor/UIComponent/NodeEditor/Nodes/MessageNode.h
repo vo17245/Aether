@@ -1,7 +1,7 @@
 #pragma once
 #include "../NodeEditorNode.h"
 #include "../View.h"
-namespace Aether::ImGuiComponent::NodeEditorTest
+namespace AetherEditor::ImGuiComponent::NodeEditorTest
 {
 class MessageNode : public NodeEditorNode
 {
@@ -28,7 +28,7 @@ private:
     }
     void CreateInputView()
     {
-        auto view=CreateScope<TextInputView>(m_InputBuffer.data(),m_InputBufferSize);
+        auto view=Aether::CreateScope<TextInputView>(m_InputBuffer.data(),m_InputBufferSize);
         LocalVariableViews.push_back(std::move(view));
     }
     void CreateOutputPin(int id)

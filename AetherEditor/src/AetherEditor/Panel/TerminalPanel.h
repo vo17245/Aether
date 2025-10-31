@@ -1,6 +1,9 @@
 #pragma once
 #include <ImGui/Core/imgui.h>
 #include <string>
+namespace AetherEditor::UI
+{
+
 class TerminalPanel
 {
 public:
@@ -12,3 +15,4 @@ public:
 private:
     std::string m_Title = "Terminal";
 };
+}

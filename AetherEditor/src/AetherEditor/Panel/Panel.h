@@ -3,9 +3,16 @@
 #include <string>
 #include <Core/Core.h>
 using namespace Aether;
+namespace AetherEditor::UI
+{
+
 class Panel
 {
 public:
+    Panel() = default;
+    Panel(const char* title):m_Title(title)
+    {
+    }
     virtual ~Panel() = default;
     virtual void OnImGuiUpdate()
     {
@@ -50,7 +57,8 @@ public:
 
 protected:
     std::string m_Title = "Panel";
-    bool m_Visible = true;
+    bool m_Visible = false;
     Vec2f m_Position = {0.0f, 0.0f};
     Vec2f m_Size = {100.0f, 100.0f};
 };
+}

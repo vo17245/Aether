@@ -1,6 +1,6 @@
 #pragma once
 #include <ImGui/ImGui.h>
-namespace Aether::ImGuiComponent
+namespace AetherEditor::ImGuiComponent
 {
 enum class ViewType
 {

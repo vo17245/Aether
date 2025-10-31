@@ -7,7 +7,7 @@
 #include <ImGui/ImGui.h>
 #include "View.h"
 #include <Core/Core.h>
-namespace Aether::ImGuiComponent
+namespace AetherEditor::ImGuiComponent
 {
 
 enum class NodeEditorPinType
@@ -97,7 +97,7 @@ public:
     ImColor Color;
     NodeEditorNodeType Type;
     ImVec2 Size;
-    std::vector<Scope<View>> LocalVariableViews;
+    std::vector<Aether::Scope<View>> LocalVariableViews;
 
     std::string State;
     std::string SavedState;

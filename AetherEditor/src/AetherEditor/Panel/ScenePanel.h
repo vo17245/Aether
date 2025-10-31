@@ -1,6 +1,9 @@
 #pragma once
 #include <AetherEditor/UIComponent/ImageView.h>
 using namespace Aether;
+namespace AetherEditor::UI
+{
+
 class ScenePanel
 {
 public:
@@ -33,3 +36,4 @@ private:
     Scope<ImGuiComponent::Image> m_Image;
     Scope<ImGuiComponent::ImageView> m_ImageView;
 };
+}

@@ -3,6 +3,9 @@
 #include "FileWatchListener.h"
 #include <memory>
 #include <Core/Core.h>
+namespace AetherEditor
+{
+
 class FileWatcher
 {
 public:
@@ -57,3 +60,4 @@ private:
     std::unordered_map<efsw::WatchID, std::unique_ptr<UpdateListener>> m_Listeners;
     std::unique_ptr<efsw::FileWatcher> m_Watcher;
 };
+}

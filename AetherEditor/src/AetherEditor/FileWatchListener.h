@@ -2,6 +2,9 @@
 #include <efsw/efsw.hpp>
 #include <functional>
 #include <unordered_map>
+namespace AetherEditor
+{
+
 class UpdateListener : public efsw::FileWatchListener
 {
 public:
@@ -41,3 +44,4 @@ public:
 private:
     OnChangeCallback m_OnChange;
 };
+}

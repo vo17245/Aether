@@ -1,5 +1,8 @@
 #include "ImGuiLayer.h"
 #include <Entry/Application.h>
+namespace AetherEditor
+{
+
 class AetherEditor : public Application
 {
 public:
@@ -36,4 +39,6 @@ private:
     std::vector<Layer*> m_Layers;
     Window* m_MainWindow;
 };
-DEFINE_APPLICATION(AetherEditor);
+}
+
+DEFINE_APPLICATION(AetherEditor::AetherEditor);

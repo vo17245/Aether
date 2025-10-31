@@ -32,4 +32,9 @@ bool RemoveFile(const std::string_view path);
 bool RemoveDirectory(const std::string_view path);
 std::optional<FindResult> FindFirst(const std::string_view path);
 std::optional<FindResult> FindNext(FileHandle& handle);
+/**
+ * @return error msg if failed,otherwise return nullopt
+ * @brief copy file by system api
+*/
+std::optional<std::string> CopyFileFast(const std::string_view srcPath,const std::string_view destPath);
 } // namespace Aether::Filesystem

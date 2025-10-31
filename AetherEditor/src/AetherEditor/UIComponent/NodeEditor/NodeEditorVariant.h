@@ -4,7 +4,7 @@
 #include "NodeEditorObject.h"
 #include <span>
 #include <Core/Core.h>
-namespace Aether::ImGuiComponent
+namespace AetherEditor::ImGuiComponent
 {
 template <typename T>
 struct TypedFloatSpan
@@ -20,9 +20,9 @@ using Mat3fSpan = TypedFloatSpan<std::span<float, 9>>;
 using Mat4fSpan = TypedFloatSpan<std::span<float, 16>>;
 using QuatfSpan = TypedFloatSpan<std::span<float, 4>>;
 using NodeEditorVariantTypeArray =
-    TypeArray<std::monostate,  std::string*,  NodeEditorObject*, ScalarfSpan, Vec2fSpan, Vec3fSpan,
+    Aether::TypeArray<std::monostate,  std::string*,  NodeEditorObject*, ScalarfSpan, Vec2fSpan, Vec3fSpan,
               Vec4fSpan, Mat2fSpan, Mat3fSpan, Mat4fSpan, QuatfSpan>;
-using NodeEditorVariant = typename TypeArrayToVariant<NodeEditorVariantTypeArray>::Type;
+using NodeEditorVariant = typename Aether::TypeArrayToVariant<NodeEditorVariantTypeArray>::Type;
 enum class NodeEditorVariantType
 {
     Null,
@@ -63,7 +63,7 @@ inline constexpr NodeEditorVariantType GetNodeEditorVariantTypeEnum()
     else if constexpr (std::is_same_v<T, QuatfSpan>)
         return NodeEditorVariantType::Quatf;
     else
-        static_assert(always_false_v<T>, "Unsupported type");
+        static_assert(Aether::always_false_v<T>, "Unsupported type");
     return NodeEditorVariantType::Null;
 }
 } // namespace Aether::ImGuiComponent

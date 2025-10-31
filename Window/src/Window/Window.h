@@ -13,24 +13,26 @@
 #include "GammaFilter.h"
 #include "Render/RenderGraph/RenderGraph.h"
 #include "ImGui/Compat/WindowContext.h"
-namespace Aether {
-namespace vk {
+namespace Aether
+{
+namespace vk
+{
 class RenderContext;
 
 }
 struct WindowCreateParam
 {
-    int width=800;
-    int height=600;
-    std::string title="Default Title";
+    int width = 800;
+    int height = 600;
+    std::string title = "Default Title";
     bool noDecorate = false;
-    bool imGuiEnableClear=true;
+    bool imGuiEnableClear = true;
 };
 enum class CursorMode
 {
-    Normal=0,
-    Hidden=1,
-    Disabled=2,
+    Normal = 0,
+    Hidden = 1,
+    Disabled = 2,
 };
 class Window
 {
@@ -74,7 +76,7 @@ public:
     VkSurfaceKHR GetSurface() const;
     Vec2i GetSize() const;
     void SetSize(int width, int height);
-    void SetPosition(int width,int height);
+    void SetPosition(int width, int height);
     void OnUpdate(float sec);
     void OnRender();
     void OnUpload();
@@ -122,7 +124,7 @@ public:
     {
         return m_SwapChainImages.size();
     }
-    void SetCursorPosition(double x,double y);
+    void SetCursorPosition(double x, double y);
     void SetCursorMode(CursorMode mode);
     void SetGamma(float gamma)
     {
@@ -132,6 +134,7 @@ public:
     {
         return m_Minilized;
     }
+
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
@@ -141,7 +144,7 @@ private:
     VkFormat m_SwapChainImageFormat{};
     VkExtent2D m_SwapChainExtent{};
     VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
-    GLFWwindow* m_Handle=nullptr;
+    GLFWwindow* m_Handle = nullptr;
     std::unique_ptr<vk::Semaphore> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
     std::unique_ptr<vk::Semaphore> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
     Scope<vk::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
@@ -150,13 +153,13 @@ private:
     DeviceTexture m_FinalTextures[MAX_FRAMES_IN_FLIGHT];
     DeviceImageView m_FinalImageViews[MAX_FRAMES_IN_FLIGHT];
     DeviceFrameBuffer m_TonemapFrameBuffers[MAX_FRAMES_IN_FLIGHT];
-    DeviceRenderPass m_TonemapRenderPass; 
+    DeviceRenderPass m_TonemapRenderPass;
     Scope<WindowInternal::GammaFilter> m_GammaFilter;
     DeviceDescriptorPool m_DescriptorPools[MAX_FRAMES_IN_FLIGHT];
     //================================
-    uint32_t m_CurrentFrame=0;
-private:
+    uint32_t m_CurrentFrame = 0;
 
+private:
     /**
      * @brief create surface
      */
@@ -177,33 +180,36 @@ private:
     void CreateCommandBuffer();
     bool ResizeFinalImage(const Vec2u& size);
     void OnWindowResize(const Vec2u& size);
-    
+
 private:
     Input m_Input;
-private://render graph
+
+private: // render graph
     Scope<RenderGraph::ResourceArena> m_ResourceArena;
     Scope<RenderGraph::ResourceLruPool> m_ResourcePool;
     Scope<RenderGraph::RenderGraph> m_RenderGraph;
-    
+
     // create render graph, register final image
     // and call each layer RegisterRenderPasses function
     void CreateRenderGraph();
     RenderGraph::AccessId<DeviceTexture> m_FinalImageAccessId;
 
-private:// imgui
-    bool m_ImGuiClearEnable=false;
+private: // imgui
+    bool m_ImGuiClearEnable = false;
     ImGuiApi::WindowContext m_ImGuiContext;
-    Vec4f m_ImGuiClearColor=Vec4f(0.5,0.7,1.0,1.0);
+    Vec4f m_ImGuiClearColor = Vec4f(0.5, 0.7, 1.0, 1.0);
     void ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer);
     void ImGuiWaitFrameResource();
     void ImGuiFrameRender(DeviceCommandBuffer& commandBuffer);
-private: //upload
+
+private: // upload
     PendingUploadList m_PendingUploadList;
+
 public:
-    Delegate<void, Event&> EventHandler;
+    Delegate<void(Event&)> EventHandler;
+
 private:
-    bool m_Minilized=false;
+    bool m_Minilized = false;
     VkPresentModeKHR m_PresentMode;
-    
 };
 } // namespace Aether

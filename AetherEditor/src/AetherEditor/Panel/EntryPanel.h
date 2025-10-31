@@ -1,5 +1,8 @@
 #pragma once
 #include "Panel.h"
+namespace AetherEditor::UI
+{
+
 class EntryPanel:public Panel
 {
 public:
@@ -19,3 +22,4 @@ private:
     std::function<void()> m_OnCreateNewProject;
     std::function<void()> m_OnOpenExistingProject;
 };
+}

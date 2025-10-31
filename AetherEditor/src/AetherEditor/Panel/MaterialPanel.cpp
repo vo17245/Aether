@@ -1,5 +1,8 @@
 #include "MaterialPanel.h"
 #include <Debug/Log.h>
+namespace AetherEditor::UI
+{
+
 void MaterialPanel::TestReflection()
 {
     auto code=Filesystem::ReadFileToString("tmp/Material/frag.hlsl");
@@ -13,4 +16,5 @@ void MaterialPanel::TestReflection()
     assert(spirv.has_value());
     auto map=ReflectShaderParameters(spirv.value());
     assert(map.has_value());
+}
 }

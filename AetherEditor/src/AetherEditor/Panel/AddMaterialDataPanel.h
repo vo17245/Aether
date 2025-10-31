@@ -1,6 +1,9 @@
 #pragma once
 #include "AetherEditor/UIComponent/Notify.h"
 #include "AetherEditor/Material.h"
+namespace AetherEditor::UI
+{
+
 class MaterialDataSetLimitPanel
 {
 public:
@@ -242,3 +245,4 @@ private:
     bool m_Open = false;
     bool m_BringToFocused = false;
 };
+}

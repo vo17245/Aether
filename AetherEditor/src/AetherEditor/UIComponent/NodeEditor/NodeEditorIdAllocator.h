@@ -1,5 +1,5 @@
 #pragma once
-namespace Aether::ImGuiComponent
+namespace AetherEditor::ImGuiComponent
 {
 class NodeEditorIdAllocator
 {

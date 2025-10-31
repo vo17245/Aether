@@ -5,10 +5,13 @@
 #include <AetherEditor/Page/Page.h>
 #include <AetherEditor/UIComponent/Notify.h>
 using namespace Aether;
+namespace AetherEditor::UI
+{
+
 class MainWindow
 {
 public:
-    void SetOsWindow(Window* window)
+    void SetOsWindow(::Aether::Window* window)
     {
         m_OsWindow = window;
     }
@@ -73,7 +76,8 @@ public:
 
 
 private:
-    Window* m_OsWindow;
+    ::Aether::Window* m_OsWindow;
     PageRouter m_PageRouter;
     
 };
+}

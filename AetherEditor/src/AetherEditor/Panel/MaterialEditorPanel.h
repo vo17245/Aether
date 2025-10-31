@@ -1,8 +1,11 @@
 #pragma once
-#include "Panel/MaterialPanel.h"
-#include "Panel/ScenePanel.h"
-#include "Panel/TerminalPanel.h"
-#include "Utils/LoadTexture.h"
+#include <AetherEditor/Panel/MaterialPanel.h>
+#include <AetherEditor/Panel/ScenePanel.h>
+#include <AetherEditor/Panel/TerminalPanel.h>
+#include <AetherEditor/Utils/LoadTexture.h>
+namespace AetherEditor::UI
+{
+
 class MaterialEditorPanel
 {
 public:
@@ -38,3 +41,4 @@ private:
     TerminalPanel m_TerminalPanel;
     MaterialPanel m_MaterialPanel;
 };
+}

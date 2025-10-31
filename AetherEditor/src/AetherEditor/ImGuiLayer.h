@@ -5,6 +5,9 @@
 #include <AetherEditor/Page/EntryPage.h>
 #include <AetherEditor/Page/CreateProjectPage.h>
 using namespace Aether;
+namespace AetherEditor
+{
+
 
 class ImGuiLayer : public Layer
 {
@@ -17,9 +20,9 @@ public:
     {
         m_Window = window;
         m_MainWindow.SetOsWindow(window);
-        m_MainWindow.PushPage(CreateScope<EntryPage>());
-        m_MainWindow.PushPage(CreateScope<MainPage>());
-        m_MainWindow.PushPage(CreateScope<CreateProjectPage>());
+        m_MainWindow.PushPage(CreateScope<UI::EntryPage>());
+        m_MainWindow.PushPage(CreateScope<UI::MainPage>());
+        m_MainWindow.PushPage(CreateScope<UI::CreateProjectPage>());
         m_MainWindow.SetCurrentPage("EntryPage");
     }
     virtual void OnUpdate(float sec) override
@@ -37,7 +40,8 @@ public:
     }
 
 private:
-    Window* m_Window = nullptr;
-    MainWindow m_MainWindow;
+    Aether::Window* m_Window = nullptr;
+    UI::MainWindow m_MainWindow;
     
 };
+}

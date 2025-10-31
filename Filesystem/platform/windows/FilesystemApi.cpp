@@ -258,6 +258,24 @@ bool IsFile(const std::string_view path)
 {
     return !IsDirectory(path);
 }
-
+std::optional<std::string> CopyFileFast(const std::string_view srcPath,const std::string_view destPath)
+{
+    std::wstring wsSrcPath;
+    if(!Utf8ToUtf16le(srcPath,wsSrcPath))
+    {
+        return "failed to convert source path to utf16le:"+std::string(srcPath);
+    }
+    std::wstring wsDestPath;
+    if(!Utf8ToUtf16le(destPath,wsDestPath))
+    {
+        return "failed to convert destination path to utf16le:"+std::string(destPath);
+    }
+    if(!::CopyFileW(wsSrcPath.c_str(),wsDestPath.c_str(),FALSE))
+    {
+        DWORD err=::GetLastError();
+        return "failed to copy file from "+std::string(srcPath)+" to "+std::string(destPath)+",error code:"+std::to_string(err);
+    }
+    return std::nullopt;
+}
 }// namespace Filesystem
 } // namespace Aether

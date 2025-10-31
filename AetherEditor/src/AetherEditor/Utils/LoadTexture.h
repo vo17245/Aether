@@ -1,6 +1,9 @@
 #pragma once
 #include <UI/Render/LoadTextureToLinear.h>
 using namespace Aether;
+namespace AetherEditor
+{
+
 namespace Utils
 {
     inline std::expected<DeviceTexture,std::string> LoadSrgbTexture(const std::string& path)
@@ -25,4 +28,5 @@ namespace Utils
         texture->SyncTransitionLayout(DeviceImageLayout::TransferDst, DeviceImageLayout::Texture);
         return texture;
     }
+}
 }

@@ -15,9 +15,13 @@ public:
     {
         return m_ID;
     }
-    std::string GetTag() const
+    const std::string& GetName() const
     {
-        return m_Tag;
+        return m_Name;
+    }
+    void SetName(const std::string& name)
+    {
+        m_Name = name;
     }
     const std::string& GetAddress() const
     {
@@ -32,7 +36,7 @@ public:
      
 private:
     UUID m_ID;
-    std::string m_Tag;
+    std::string m_Name;
     /** Asset File Path Relative to Project Content Directory*/
     std::string m_Address;
 };

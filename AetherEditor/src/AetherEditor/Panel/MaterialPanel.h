@@ -5,6 +5,9 @@
 #include <UI/FileDialog.h>
 #include <AetherEditor/Utils/FileIsInDirectory.h>
 using namespace Aether;
+namespace AetherEditor::UI
+{
+
 class MaterialPanel
 {
 public:
@@ -25,7 +28,7 @@ public:
             ImGui::PushID(0);
             if (ImGui::Button("Change"))
             {
-                auto res = UI::SyncSelectDirectroy();
+                auto res = Aether::UI::SyncSelectDirectroy();
                 if (res.has_value())
                 {
                     m_Material.dir = res.value();
@@ -47,7 +50,7 @@ public:
             ImGui::PushID(1);
             if (ImGui::Button("Change"))
             {
-                auto res = UI::SyncSelectFileEx({.defaultPath = m_Material.dir  });
+                auto res = Aether::UI::SyncSelectFileEx({.defaultPath = m_Material.dir  });
                 if (res.has_value())
                 {
                     
@@ -67,7 +70,7 @@ public:
             ImGui::PushID(2);
             if (ImGui::Button("Change"))
             {
-                auto res = UI::SyncSelectFileEx({.defaultPath = m_Material.dir  });
+                auto res = Aether::UI::SyncSelectFileEx({.defaultPath = m_Material.dir  });
                 if (res.has_value())
                 {
                     m_Material.fragPath = Aether::Filesystem::Path(res.value()).Filename();
@@ -227,3 +230,4 @@ private:
 private:
     std::optional<efsw::WatchID> m_WatchID;
 };
+}

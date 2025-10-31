@@ -7,6 +7,9 @@
 #include <AetherEditor/UIComponent/NodeEditor/Nodes/PrintStringNode.h>
 
 using namespace Aether;
+namespace AetherEditor::UI
+{
+
 class NodeEditorPanel
 {
 public:
@@ -27,3 +30,4 @@ public:
 private:
     ImGuiComponent::NodeEditor m_NodeEditor;
 };
+}

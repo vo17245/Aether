@@ -2,12 +2,12 @@
 #include <Imgui/Core/imgui.h>
 #include <Render/Render.h>
 #include <Core/Core.h>
-namespace Aether::ImGuiComponent
+namespace AetherEditor::ImGuiComponent
 {
     class Image
     {
     public:
-        static std::expected<Image,std::string> Create(DeviceTexture& texture);
+        static std::expected<Image,std::string> Create(Aether::DeviceTexture& texture);
         ImTextureID GetTextureId() const
         {
             return m_TextureId;
@@ -18,7 +18,7 @@ namespace Aether::ImGuiComponent
         }
     private:
         Image()=default;
-        DeviceSampler m_TextureSampler;
+        Aether::DeviceSampler m_TextureSampler;
         ImTextureID m_TextureId;
         ImVec2 m_Size;
     };

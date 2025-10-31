@@ -3,6 +3,9 @@
 #include <functional>
 #include <Window/Window.h>
 using namespace Aether;
+namespace AetherEditor::UI
+{
+
 class MainWindow
 {
 public:
@@ -156,3 +159,4 @@ public:
     Window* m_OsWindow;
     bool m_Open=true;
 };
+}

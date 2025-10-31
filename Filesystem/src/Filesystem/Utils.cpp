@@ -4,7 +4,8 @@
 #include <cstdint>
 #include <span>
 #include <print>
-namespace Aether::Filesystem {
+namespace Aether::Filesystem
+{
 std::optional<std::vector<uint8_t>> ReadFile(const Filesystem::Path& path)
 {
     File file(path, Filesystem::Action::Read);
@@ -23,7 +24,7 @@ std::optional<std::vector<uint8_t>> ReadFile(const Filesystem::Path& path)
 }
 std::optional<std::string> ReadFileToString(const Filesystem::Path& path)
 {
-   File file(path, Filesystem::Action::Read);
+    File file(path, Filesystem::Action::Read);
     if (!file.IsOpened())
     {
         return std::nullopt;
@@ -36,7 +37,7 @@ std::optional<std::string> ReadFileToString(const Filesystem::Path& path)
     {
         return std::nullopt;
     }
-    return buffer; 
+    return buffer;
 }
 bool WriteFile(const Filesystem::Path& path, const std::span<const uint8_t> data)
 {
@@ -58,54 +59,53 @@ bool WriteFile(const Filesystem::Path& path, const std::span<const char> data)
 }
 bool RemoveTree(const std::string_view path)
 {
-    if(!Exists(path))
+    if (!Exists(path))
     {
         return true;
     }
-    if(!IsDirectory(path))
+    if (!IsDirectory(path))
     {
         return RemoveFile(path);
     }
-    std::string searchPath (path);
+    std::string searchPath(path);
     searchPath.append("/*");
-    auto entry=FindFirst(searchPath);
-    while(entry)
+    auto entry = FindFirst(searchPath);
+    while (entry)
     {
-        if(entry->findData.name!="."&&entry->findData.name!="..")
+        if (entry->findData.name != "." && entry->findData.name != "..")
         {
-            std::string fullPath (path);
+            std::string fullPath(path);
             fullPath.append("/");
             fullPath.append(entry->findData.name.ToStdString());
-            if(entry->findData.type==FileType::Directory)
+            if (entry->findData.type == FileType::Directory)
             {
-                if(!RemoveTree(fullPath))
+                if (!RemoveTree(fullPath))
                 {
                     return false;
                 }
             }
             else
             {
-                if(!RemoveFile(fullPath))
+                if (!RemoveFile(fullPath))
                 {
                     return false;
                 }
             }
         }
-        entry=FindNext(entry->handle);
+        entry = FindNext(entry->handle);
     }
     return RemoveDirectory(path);
-
 }
 bool CreateDirectories(const Path& path)
 {
-    if(Exists(path))
+    if (Exists(path))
     {
         return true;
     }
     Path parent = path.Parent();
-    if(!parent.Empty()&&!Exists(parent))
+    if (!parent.Empty() && !Exists(parent))
     {
-        if(!CreateDirectories(parent))
+        if (!CreateDirectories(parent))
         {
             return false;
         }
@@ -115,66 +115,79 @@ bool CreateDirectories(const Path& path)
 std::vector<U8String> ListFiles(const std::string_view path)
 {
     std::vector<U8String> res;
-    std::string searchPath (path);
+    std::string searchPath(path);
     searchPath.append("/*");
 
-    auto entry=FindFirst(searchPath);
-    std::print("entry->findData.name:{}",entry->findData.name.ToStdString());
-    while(entry)
+    auto entry = FindFirst(searchPath);
+    std::print("entry->findData.name:{}", entry->findData.name.ToStdString());
+    while (entry)
     {
-        if(entry->findData.name!="."&&entry->findData.name!="..")
+        if (entry->findData.name != "." && entry->findData.name != "..")
         {
             res.push_back(entry->findData.name);
         }
-        entry=FindNext(entry->handle);
+        entry = FindNext(entry->handle);
     }
     return res;
 }
-bool ReadFile(uint8_t* buffer,size_t bufferSize,const std::string_view path)
+bool ReadFile(uint8_t* buffer, size_t bufferSize, const std::string_view path)
 {
-    File file(path,Action::Read);
-    if(!file.IsOpened())
+    File file(path, Action::Read);
+    if (!file.IsOpened())
     {
         return false;
     }
-    size_t fileSize=file.GetSize();
-    if(fileSize>bufferSize)
+    size_t fileSize = file.GetSize();
+    if (fileSize > bufferSize)
     {
         return false;
     }
-    file.Read(std::span<uint8_t>(buffer,fileSize));
+    file.Read(std::span<uint8_t>(buffer, fileSize));
     return true;
 }
-std::optional<std::string> CopyFile(const std::string& srcPath,const std::string& destPath,size_t bufferSize)
+namespace
 {
-    auto buffer=std::unique_ptr<uint8_t[]>(new uint8_t[bufferSize]);
-    File srcFile(srcPath,Action::Read);
-    if(!srcFile.IsOpened())
+std::optional<std::string> CopyFileSlow(const std::string& srcPath, const std::string& destPath, size_t bufferSize)
+{
+    auto buffer = std::unique_ptr<uint8_t[]>(new uint8_t[bufferSize]);
+    File srcFile(srcPath, Action::Read);
+    if (!srcFile.IsOpened())
     {
-        return "failed to open source file:"+srcPath;
+        return "failed to open source file:" + srcPath;
     }
-    File destFile(destPath,PackFlags(Action::Create,Action::Overwrite));
-    if(!destFile.IsOpened())
+    File destFile(destPath, PackFlags(Action::Create, Action::Overwrite));
+    if (!destFile.IsOpened())
     {
-        return "failed to open destination file:"+destPath;
+        return "failed to open destination file:" + destPath;
     }
-    size_t fileSize=srcFile.GetSize();
-    size_t totalReadBytes=0;
-    while(totalReadBytes<fileSize)
+    size_t fileSize = srcFile.GetSize();
+    size_t totalReadBytes = 0;
+    while (totalReadBytes < fileSize)
     {
-        size_t toReadBytes=std::min(bufferSize,fileSize-totalReadBytes);
-        size_t readBytes=srcFile.Read({buffer.get(),toReadBytes});
-        if(readBytes==0)
+        size_t toReadBytes = std::min(bufferSize, fileSize - totalReadBytes);
+        size_t readBytes = srcFile.Read({buffer.get(), toReadBytes});
+        if (readBytes == 0)
         {
-            return "failed to read from source file:"+srcPath;
+            return "failed to read from source file:" + srcPath;
         }
-        totalReadBytes+=readBytes;
-        size_t writtenBytes=destFile.Write({buffer.get(),readBytes});
-        if(writtenBytes!=readBytes)
+        totalReadBytes += readBytes;
+        size_t writtenBytes = destFile.Write({buffer.get(), readBytes});
+        if (writtenBytes != readBytes)
         {
-            return "failed to write to destination file:"+destPath;
+            return "failed to write to destination file:" + destPath;
         }
     }
     return std::nullopt;
+}
+
+} // namespace
+
+std::optional<std::string> CopyFile(const std::string& srcPath, const std::string& destPath, size_t bufferSize)
+{
+#ifdef _WIN32
+    return CopyFileFast(srcPath, destPath);
+#else
+    return CopyFileSlow(srcPath, destPath, bufferSize);
+#endif
 }
 } // namespace Aether::Filesystem

@@ -3,6 +3,9 @@
 #include <ImGui/ImGui.h>
 #include <Debug/Log.h>
 using namespace Aether;
+namespace AetherEditor::UI
+{
+
 class PageRouter;
 class Page
 {
@@ -75,3 +78,4 @@ private:
     std::unordered_map<std::string, Scope<Page>> m_Pages;
     Page* m_CurrentPage = nullptr;
 };
+}

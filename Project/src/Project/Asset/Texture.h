@@ -13,8 +13,11 @@ namespace Aether::Project
     {
         std::string FilePath;
         std::string Address;
-        std::string Tag;
+        std::string Name;
         bool SRGB=true;      
     };
-    void ImportTexture(Project& project,ImportTextureParams& params);
+    /**
+     * @return error msg if failed,otherwise return nullopt
+    */
+    std::optional<std::string> ImportTexture(Project& project,ImportTextureParams& params);
 }

@@ -1,5 +1,8 @@
 #pragma once
 #include "Page.h"
+namespace AetherEditor::UI
+{
+
 struct CreateProjectParams
 {
     std::string projectName;
@@ -19,3 +22,4 @@ private:
     ImVec2 GetSize();
     ImVec2 GetPos();
 };
+}

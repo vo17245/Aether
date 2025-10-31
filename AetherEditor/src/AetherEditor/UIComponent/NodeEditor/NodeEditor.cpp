@@ -64,7 +64,7 @@ static bool Splitter(bool split_vertically, float thickness, float* size1, float
                             0.0f);
 }
 
-namespace Aether::ImGuiComponent
+namespace AetherEditor::ImGuiComponent
 {
 // class NodeEditor
 //{
@@ -231,12 +231,12 @@ void NodeEditor::Init()
         CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/NodeEditor/ic_save_white_24dp.png").value());
     m_RestoreIconDeviceImage =
         CreateScope<DeviceTexture>(Utils::LoadSrgbTexture("Assets/NodeEditor/ic_restore_white_24dp.png").value());
-    m_HeaderBackgroundImage = CreateScope<::Aether::ImGuiComponent::Image>(
-        ::Aether::ImGuiComponent::Image::Create(*m_HeaderBackgroundDeviceImage).value());
-    m_SaveIconImage = CreateScope<::Aether::ImGuiComponent::Image>(
-        ::Aether::ImGuiComponent::Image::Create(*m_SaveIconDeviceImage).value());
-    m_RestoreIconImage = CreateScope<::Aether::ImGuiComponent::Image>(
-        ::Aether::ImGuiComponent::Image::Create(*m_RestoreIconDeviceImage).value());
+    m_HeaderBackgroundImage = CreateScope<::AetherEditor::ImGuiComponent::Image>(
+        ::AetherEditor::ImGuiComponent::Image::Create(*m_HeaderBackgroundDeviceImage).value());
+    m_SaveIconImage = CreateScope<::AetherEditor::ImGuiComponent::Image>(
+        ::AetherEditor::ImGuiComponent::Image::Create(*m_SaveIconDeviceImage).value());
+    m_RestoreIconImage = CreateScope<::AetherEditor::ImGuiComponent::Image>(
+        ::AetherEditor::ImGuiComponent::Image::Create(*m_RestoreIconDeviceImage).value());
     m_HeaderBackground = m_HeaderBackgroundImage->GetTextureId();
     m_SaveIcon = m_SaveIconImage->GetTextureId();
     m_RestoreIcon = m_RestoreIconImage->GetTextureId();

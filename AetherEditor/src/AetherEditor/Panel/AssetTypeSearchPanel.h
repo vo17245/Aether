@@ -1,5 +1,7 @@
 #pragma once
-#include "Panel.h"
+#include <AetherEditor/Panel/Panel.h>
+namespace AetherEditor::UI
+{
 
 class AssetTypeSearchPanel : public Panel
 {
@@ -7,7 +9,8 @@ public:
     AssetTypeSearchPanel()
     {
         m_AssetTypes = {"Texture",   "Mesh",   "Material", "Shader", "Audio",
-                        "Animation", "Prefab", "Script",   "Font",   "Scene"};
+                        "Animation", "Prefab", "Script",   "Font",   "Scene",
+                    "Folder"};
         m_FilteredAssetTypes = m_AssetTypes;
     }
    
@@ -61,7 +64,10 @@ public:
 private:
     void OnAssetTypeSelected(const std::string& type)
     {
+        AssetTypeSelectedEventHandler.Broadcast(type);
     }
+public:
+    Aether::Delegate<void(const std::string&)> AssetTypeSelectedEventHandler;
 private:
    
     char m_SearchBuffer[256]{0};
@@ -82,3 +88,4 @@ private:
     bool m_SetPositionOnce = false;
     bool m_SetSizeOnce = false;
 };
+}

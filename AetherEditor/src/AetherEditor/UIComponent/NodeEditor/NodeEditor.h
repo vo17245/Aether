@@ -7,7 +7,7 @@
 #include <variant>
 #include "NodeEditorNode.h"
 #include "NodeEditorIdAllocator.h"
-namespace Aether::ImGuiComponent
+namespace AetherEditor::ImGuiComponent
 {
 
 class NodeEditor
@@ -71,18 +71,18 @@ private:
 
     NodeEditorIdAllocator m_IdAllocator;
     const int m_PinIconSize = 24;
-    std::vector<Scope<NodeEditorNode>> m_Nodes;
+    std::vector<Aether::Scope<NodeEditorNode>> m_Nodes;
     std::vector<NodeEditorLink> m_Links;
     ImTextureID m_HeaderBackground = 0;
     ImTextureID m_SaveIcon = 0;
     ImTextureID m_RestoreIcon = 0;
 
-    Scope<::Aether::ImGuiComponent::Image> m_HeaderBackgroundImage = 0;
-    Scope<::Aether::ImGuiComponent::Image> m_SaveIconImage = 0;
-    Scope<::Aether::ImGuiComponent::Image> m_RestoreIconImage = 0;
-    Scope<DeviceTexture> m_HeaderBackgroundDeviceImage = 0;
-    Scope<DeviceTexture> m_SaveIconDeviceImage = 0;
-    Scope<DeviceTexture> m_RestoreIconDeviceImage = 0;
+    Aether::Scope<::AetherEditor::ImGuiComponent::Image> m_HeaderBackgroundImage = 0;
+    Aether::Scope<::AetherEditor::ImGuiComponent::Image> m_SaveIconImage = 0;
+    Aether::Scope<::AetherEditor::ImGuiComponent::Image> m_RestoreIconImage = 0;
+    Aether::Scope<Aether::DeviceTexture> m_HeaderBackgroundDeviceImage = 0;
+    Aether::Scope<Aether::DeviceTexture> m_SaveIconDeviceImage = 0;
+    Aether::Scope<Aether::DeviceTexture> m_RestoreIconDeviceImage = 0;
 
     const float m_TouchTime = 1.0f;
     std::map<ImGui::NodeEditor::NodeId, float, NodeEditorNodeIdLess> m_NodeTouchTime;
