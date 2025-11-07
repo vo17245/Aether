@@ -68,6 +68,11 @@ public:
     {
         return m_CacheMap.find(key) != m_CacheMap.end();
     }
+    void Clear()
+    {
+        m_CacheItems.clear();
+        m_CacheMap.clear();
+    }
 
 private:
     std::list<std::pair<Key, Value>> m_CacheItems;

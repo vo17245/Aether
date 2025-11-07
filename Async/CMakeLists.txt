@@ -3,25 +3,20 @@ if(MSVC)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-set(MODULE_NAME Project)
+set(MODULE_NAME Async)
+
 file(GLOB_RECURSE FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" 
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
-
 add_library(${MODULE_NAME} STATIC ${FILES})
-
-target_link_libraries(${MODULE_NAME} PUBLIC Filesystem)
+find_package(concurrentqueue REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC concurrentqueue::concurrentqueue)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
-target_link_libraries(${MODULE_NAME} PUBLIC Debug)
-
-
 target_include_directories(${MODULE_NAME} PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:${MODULE_NAME}/include>
 )
-
-
 
 
 #==================install config=========================
@@ -57,4 +52,3 @@ install(EXPORT ${MODULE_NAME}Targets
     NAMESPACE Aether::
     DESTINATION ${MODULE_NAME}
 )
-

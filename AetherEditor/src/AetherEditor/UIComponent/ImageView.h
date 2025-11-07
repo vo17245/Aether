@@ -13,21 +13,38 @@ public:
     ImageView& operator=(const ImageView&) = delete;
     ImageView(ImageView&&) = delete;
     ImageView& operator=(ImageView&&) = delete;
-
-    ImageView(Aether::Borrow<Image> image) : m_Image(image), m_Size(image->GetSize())
+    ImageView()
     {
+        m_Size = ImVec2(0, 0);
     }
     void Draw()
     {
+        if (!m_Image)
+        {
+            return;
+        }
         ImGui::Image(m_Image->GetTextureId(), m_Size);
     }
     void SetSize(const ImVec2& size)
     {
         m_Size = size;
     }
+    void SetImage(Image* image)
+    {
+        if (image)
+        {
+            m_Image = image;
+            m_Size = image->GetSize();
+        }
+        else
+        {
+            m_Image = nullptr;
+            m_Size = ImVec2(0, 0);
+        }
+    }
 
 private:
-    Aether::Borrow<Image> m_Image;
+    Image* m_Image;
     ImVec2 m_Size;
 };
-} // namespace Aether::ImGuiComponent
+} // namespace AetherEditor::ImGuiComponent

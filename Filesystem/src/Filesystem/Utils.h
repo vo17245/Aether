@@ -4,6 +4,9 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#ifdef CopyFile
+#undef CopyFile
+#endif
 namespace Aether::Filesystem
 {
 std::optional<std::vector<uint8_t>> ReadFile(const Filesystem::Path& path);

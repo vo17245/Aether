@@ -15,6 +15,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC Window)
 target_link_libraries(${MODULE_NAME} PUBLIC Audio)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
 target_link_libraries(${MODULE_NAME} PUBLIC Debug)
+target_link_libraries(${MODULE_NAME} PUBLIC Async)
 
 
 target_include_directories(${MODULE_NAME} PUBLIC 

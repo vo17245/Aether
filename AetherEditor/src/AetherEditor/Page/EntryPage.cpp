@@ -7,13 +7,12 @@ namespace AetherEditor::UI
 static std::expected<Scope<Aether::Project::Project>, std::string>
 OpenExistingProject(const std::string& projectFilePath)
 {
-    auto project = CreateScope<Aether::Project::Project>();
     auto loadResult = Aether::Project::Project::LoadFromFile(projectFilePath);
     if (!loadResult)
     {
         return std::unexpected<std::string>("Failed to load project file: " + loadResult.error());
     }
-    return project;
+    return std::move(*loadResult);
 }
 void EntryPage::OnImGuiUpdate()
 {

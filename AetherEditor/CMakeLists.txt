@@ -21,6 +21,7 @@ target_link_libraries(${MODULE_NAME} PUBLIC UI)
 find_package(efsw REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC efsw::efsw-static)
 target_link_libraries(${MODULE_NAME} PUBLIC Project)
+target_link_libraries(${MODULE_NAME} PUBLIC Async)
 
 
 

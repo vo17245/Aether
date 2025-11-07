@@ -54,6 +54,7 @@ public:
     {
         m_ProjectName = name;
     }
+    std::optional<ContentTreeNode*> GetContent(const std::string& address);
 private:
     std::string m_ProjectName;
     std::string m_ProjectFilePath;

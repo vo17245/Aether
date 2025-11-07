@@ -1,5 +1,6 @@
 #include "ImGuiLayer.h"
 #include <Entry/Application.h>
+#include <Async/GlobalThreadPool.h>
 namespace AetherEditor
 {
 
@@ -31,7 +32,7 @@ public:
     virtual WindowCreateParam MainWindowCreateParam() override
     {
         auto param = WindowCreateParam{};
-        param.title="AetherEditor";
+        param.title = "AetherEditor";
         return param;
     }
 
@@ -39,6 +40,6 @@ private:
     std::vector<Layer*> m_Layers;
     Window* m_MainWindow;
 };
-}
+} // namespace AetherEditor
 
 DEFINE_APPLICATION(AetherEditor::AetherEditor);

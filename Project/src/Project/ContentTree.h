@@ -21,7 +21,6 @@ public:
     {
         return m_Type;
     }
-    virtual std::string_view GetName() const = 0;
     ContentTreeNode* FindChildByName(const std::string& name)
     {
         for (auto& child : m_Children)
@@ -53,11 +52,35 @@ public:
     {
         m_Parent = parent;
     }
-
+    void SetName(const std::string& name)
+    {
+        m_Name = name;
+    }
+    const std::string& GetName() const
+    {
+        return m_Name;
+    }
+    std::string GetAddress() const
+    {
+        std::string address;
+        const ContentTreeNode* node = this;
+        std::vector<std::string> names;
+        while (node)
+        {
+            names.push_back(node->GetName());
+            node = node->GetParent();
+        }
+        for (auto it = names.rbegin(); it != names.rend(); ++it)
+        {
+            address += "/" + *it;
+        }
+        return address;
+    }
 private:
     ContentTreeNodeType m_Type;
     ContentTreeNode* m_Parent = nullptr;
     std::vector<Scope<ContentTreeNode>> m_Children;
+    std::string m_Name;
 };
 class Folder : public ContentTreeNode
 {
@@ -65,20 +88,12 @@ public:
     Folder() : ContentTreeNode(ContentTreeNodeType::Folder)
     {
     }
-    Folder(const std::string& name) : ContentTreeNode(ContentTreeNodeType::Folder), m_Name(name)
+    Folder(const std::string& name) : ContentTreeNode(ContentTreeNodeType::Folder)
     {
+        SetName(name);
     }
-    std::string_view GetName() const override
-    {
-        return m_Name;
-    }
-    void SetName(const std::string& name)
-    {
-        m_Name = name;
-    }
+   
 
-private:
-    std::string m_Name;
 };
 class AssetContentNode : public ContentTreeNode
 {
@@ -94,14 +109,7 @@ public:
     {
         m_Asset = asset;
     }
-    virtual std::string_view GetName() const override
-    {
-        if (m_Asset)
-        {
-            return m_Asset->GetName();
-        }
-        return "<null asset>";
-    }
+   
     const std::string& GetAssetAddress() const
     {
         return m_AssetAddress;

@@ -1,5 +1,6 @@
 #pragma once
 #include <Window/Window.h>
+#include "InitParams.h"
 namespace Aether
 {
     class Application
@@ -34,6 +35,7 @@ namespace Aether
             auto param=WindowCreateParam{};
             return param;
         }
+        virtual InitParams GetInitParams()const;
     private:
         bool m_Running=true;
     };

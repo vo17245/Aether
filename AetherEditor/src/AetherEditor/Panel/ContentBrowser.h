@@ -5,6 +5,9 @@
 #include <AetherEditor/Panel/Panel.h>
 #include "AssetTypeSearchPanel.h"
 #include "CreateFolderPanel.h"
+#include "Asset/CreateTexturePanel.h"
+#include <AetherEditor/Global/GlobalProject.h>
+#include <AetherEditor/UIComponent/Notify.h>
 namespace AetherEditor::UI
 {
 
@@ -19,7 +22,7 @@ public:
         }
         ImGui::Text("Current Path: %s", m_CurrentPath.c_str());
         ImGui::Separator();
-        if(ImGui::Button( ".."))
+        if (ImGui::Button(".."))
         {
             if (m_Folder->GetParent())
             {
@@ -31,10 +34,31 @@ public:
         {
             if (child->GetType() == Aether::Project::ContentTreeNodeType::Folder)
             {
-                if (ImGui::Selectable(child->GetName().data()))
+                const char* name = child->GetName().data();
+                if (child->GetName().size() == 0)
+                {
+                    name = "<Empty Name Folder>";
+                }
+                if (ImGui::Selectable(name))
                 {
                     OnFolderSelectedEventHandler.Broadcast(static_cast<Aether::Project::Folder*>(child.get()));
                 }
+            }
+            else if(child->GetType() == Aether::Project::ContentTreeNodeType::Asset)
+            {
+                const char* name = child->GetName().data();
+                if (child->GetName().size() == 0)
+                {
+                    name = "<Empty Name Asset>";
+                }
+                if(ImGui::Selectable(name))
+                {
+                    OnAssetSelectedEventHandler.Broadcast(static_cast<Aether::Project::AssetContentNode*>(child.get()));
+                }
+            }
+            else
+            {
+                ImGui::Text("<Unknown Node Type>");
             }
         }
     }
@@ -42,10 +66,16 @@ public:
     {
         m_Folder = folder;
         Aether::Project::ContentTreeNode* node = folder;
+        std::vector<std::string> nodeNames;
         while (node)
         {
-            m_CurrentPath = "/" + std::string(node->GetName()) + m_CurrentPath;
+            nodeNames.push_back(std::string(node->GetName()));
             node = node->GetParent();
+        }
+        m_CurrentPath.clear();
+        for (auto it = nodeNames.rbegin(); it != nodeNames.rend(); ++it)
+        {
+            m_CurrentPath += "/" + *it;
         }
     }
     virtual void SetPosition(float x, float y)
@@ -58,8 +88,10 @@ public:
 private:
     Aether::Project::Folder* m_Folder = nullptr;
     std::string m_CurrentPath;
+
 public:
     Delegate<void(Aether::Project::Folder* folder)> OnFolderSelectedEventHandler;
+    Delegate<void(Aether::Project::AssetContentNode* assetNode)> OnAssetSelectedEventHandler;
 };
 class ContentBrowser : public Panel
 {
@@ -73,11 +105,19 @@ public:
             if (m_CurrentFolder)
             {
                 auto folder = CreateScope<Aether::Project::Folder>(params.FolderName.c_str());
+                folder->SetParent(m_CurrentFolder);
                 m_CurrentFolder->AddChild(std::move(folder));
             }
         };
-        m_FolderView.OnFolderSelectedEventHandler += [this](Aether::Project::Folder* folder) {
-            SetFolder(folder);
+        m_FolderView.OnFolderSelectedEventHandler += [this](Aether::Project::Folder* folder) { SetFolder(folder); };
+        m_CreateTexturePanel->TextureCreateEventHandler += [](Aether::Project::ImportTextureParams& params) {
+            auto* project = GlobalProject::GetProject();
+            if (!project)
+            {
+                Notify::Error("No project opened!");
+                return;
+            }
+            Aether::Project::ImportTexture(*project, params);
         };
     }
     void OnImGuiUpdate() override
@@ -94,6 +134,7 @@ public:
             m_AssetTypeSearchPanel->SetPosition(mousePos.x, mousePos.y);
         }
         m_CreateFolderPanel->OnImGuiUpdate();
+        m_CreateTexturePanel->OnImGuiUpdate();
         ImGui::End();
     }
     bool IsRightClicked()
@@ -122,7 +163,15 @@ private:
             auto mousePos = ImGui::GetMousePos();
             m_CreateFolderPanel->SetPosition(mousePos.x, mousePos.y);
         }
+        else if (type == "Texture")
+        {
+            m_CreateTexturePanel->SetVisible(true);
+            auto mousePos = ImGui::GetMousePos();
+            m_CreateTexturePanel->SetPosition(mousePos.x, mousePos.y);
+            m_CreateTexturePanel->SetFolderAddress(m_CurrentFolder->GetAddress());
+        }
     }
     Scope<CreateFolderPanel> m_CreateFolderPanel{CreateScope<CreateFolderPanel>()};
+    Scope<CreateTexturePanel> m_CreateTexturePanel{CreateScope<CreateTexturePanel>()};
 };
 } // namespace AetherEditor::UI

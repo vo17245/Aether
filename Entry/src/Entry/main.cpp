@@ -6,15 +6,33 @@
 #include <Audio/Audio.h>
 #include <ImGui/Compat/ImGuiApi.h>
 #include <Debug/Log.h>
+#include <Async/GlobalThreadPool.h>
 using namespace Aether;
 namespace Aether
 {
 extern Application* CreateApplication();
 }
-
+namespace
+{
+    void HandleGlobalThreadPoolCompleteTasks()
+    {
+        auto& queue=GlobalThreadPool::GetCompleteQueue();
+        Scope<TaskBase> task;
+        while(queue.try_dequeue(task))
+        {
+            assert(true == static_cast<bool>(task));
+            task->OnComplete();
+        }
+    }
+}
 int main()
 {
     auto* app = CreateApplication();
+    auto initParams=app->GetInitParams();
+    if(initParams.enableGlobalThreadPool)
+    {
+        GlobalThreadPool::Init(initParams.globalThreadPoolThreadCount);
+    }
     WindowContext::Init();
     if (Audio::Init() != 0)
     {
@@ -38,7 +56,10 @@ int main()
         {
             // window->WaitLastFrameComplete();
             app->OnFrameBegin();
-
+            if(initParams.enableGlobalThreadPool)
+            {
+                HandleGlobalThreadPoolCompleteTasks();
+            }
             WindowContext::PollEvents();
             window->DispatchEvent();
             std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();

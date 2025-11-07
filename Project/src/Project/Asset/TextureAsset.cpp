@@ -1,4 +1,4 @@
-#include "Texture.h"
+#include "TextureAsset.h"
 #include <Filesystem/Filesystem.h>
 namespace Aether::Project
 {
@@ -7,6 +7,15 @@ std::optional<std::string> ImportTexture(Project& project, ImportTextureParams& 
     // copy image to address
     {
         std::string destPath = project.GetContentDirPath() + params.Address;
+        std::string destDir=Filesystem::Path(destPath).Parent().GetStr();
+        if(!Filesystem::Exists(destDir))
+        {
+            auto res=Filesystem::CreateDirectories(destDir);
+            if(!res)
+            {
+                return "failed to create directories for texture import";
+            }
+        }
         auto err = Filesystem::CopyFile(params.FilePath, destPath);
         if (err)
         {
@@ -14,7 +23,7 @@ std::optional<std::string> ImportTexture(Project& project, ImportTextureParams& 
         }
     }
     // create texture asset
-    auto textureAsset = CreateScope<Texture>();
+    auto textureAsset = CreateScope<TextureAsset>();
     textureAsset->SetAddress(params.Address);
     textureAsset->SetName(params.Name);
     // add to project asset list
@@ -23,13 +32,13 @@ std::optional<std::string> ImportTexture(Project& project, ImportTextureParams& 
     // search content tree to add asset node
     auto arr=U32String(params.Address).Split("/");
     ContentTreeNode* currentNode=project.GetContentTreeRoot();
-    if(arr.size()<=1)
+    if(arr.size()<=3)
     {
         // do nothing,asset is directly under root
     }
     else
     {
-        for(size_t i=0;i<arr.size()-1;++i)
+        for(size_t i=2;i<arr.size()-1;++i)
         {
             if(currentNode->GetType()!=ContentTreeNodeType::Folder)
             {
@@ -53,6 +62,8 @@ std::optional<std::string> ImportTexture(Project& project, ImportTextureParams& 
     auto& folderNode=static_cast<Folder&>(*currentNode);
     auto assetNode=CreateScope<AssetContentNode>();
     assetNode->SetAsset(asset);
+    assetNode->SetAssetAddress(params.Address);
+    assetNode->SetName(params.Name);
     folderNode.AddChild(std::move(assetNode));
     return std::nullopt;
 }

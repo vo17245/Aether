@@ -2,10 +2,12 @@
 #include "Asset.h"
 namespace Aether::Project
 {
-class Mesh : public Asset
+class MeshAsset : public Asset
 {
 public:
-
+    MeshAsset() : Asset(AssetType::Mesh)
+    {
+    }
 private:
     std::string m_FilePath;
 };

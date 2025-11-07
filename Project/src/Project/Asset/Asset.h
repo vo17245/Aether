@@ -1,13 +1,15 @@
 #pragma once
 #include <Core/Core.h>
+#include "AssetType.h"
 namespace Aether::Project
 {
 class Project;
+
 class Asset
 {
 public:
     virtual ~Asset()=default;
-    Asset()
+    Asset(AssetType type) : m_Type(type)
     {
         m_ID = UUID::Create();
     }
@@ -32,9 +34,13 @@ public:
         m_Address = address;
     }
 
-
+    AssetType GetType() const
+    {
+        return m_Type;
+    }
      
 private:
+    AssetType m_Type;
     UUID m_ID;
     std::string m_Name;
     /** Asset File Path Relative to Project Content Directory*/

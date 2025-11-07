@@ -12,3 +12,4 @@
 #include "Serialization.h"
 #include "Delegate.h"
 #include "UUID.h"
+#include "LocalRef.h"

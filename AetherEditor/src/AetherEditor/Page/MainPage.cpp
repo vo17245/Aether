@@ -1,5 +1,6 @@
 #include "MainPage.h"
 #include <AetherEditor/Global/GlobalProject.h>
+#include <AetherEditor/UIComponent/Notify.h>
 namespace AetherEditor::UI
 {
     MainPage::MainPage():Page("MainPage")
@@ -20,7 +21,14 @@ namespace AetherEditor::UI
             if (ImGui::BeginMenu("File"))
             {
                 if (ImGui::MenuItem("Open", "Ctrl+O")) { /* 打开文件逻辑 */ }
-                if (ImGui::MenuItem("Save", "Ctrl+S")) { /* 保存逻辑 */ }
+                if (ImGui::MenuItem("Save", "Ctrl+S")) 
+                {
+                    auto err=GlobalProject::GetProject()->Save();
+                    if(err)
+                    {
+                        Notify::Error(std::format("Failed to Save Project: {}",*err));
+                    }
+                }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Exit")) { /* 退出逻辑 */ }
                 ImGui::EndMenu();
