@@ -1,5 +1,5 @@
 #pragma once
-#include <Imgui/Core/imgui.h>
+#include <Imgui/ImGui.h>
 #include <Render/Render.h>
 #include <Core/Core.h>
 using namespace Aether;
@@ -9,7 +9,7 @@ class Image
 {
 public:
     template <typename T>
-        requires std::is_same_v<T, Ref<DeviceTexture>>
+        requires std::is_same_v<std::decay_t<T>, Ref<DeviceTexture>>
     static std::expected<Image, std::string> Create(T&& texture)
     {
         Image img;

@@ -20,7 +20,7 @@ namespace AetherEditor::UI
     private:
         std::string m_ImageAddress;
         Scope<ImGuiComponent::Image> m_Image;
-        DeviceTexture m_Texture;
+        Ref<DeviceTexture> m_Texture;
         std::optional<std::string> m_ErrorMessage;
         ImGuiComponent::ImageView m_ImageView;
     };

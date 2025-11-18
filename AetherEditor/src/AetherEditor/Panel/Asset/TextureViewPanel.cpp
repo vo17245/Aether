@@ -54,7 +54,7 @@ std::optional<std::string> TextureViewPanel::SetImageAddress(const std::string& 
                 m_ImageView.SetImage(nullptr);
                 return;
             }
-            m_Texture = std::move(result.value());
+            m_Texture = CreateRef<DeviceTexture>(std::move(result.value()));
             auto imgOpt = ImGuiComponent::Image::Create(m_Texture);
             if (!imgOpt)
             {
