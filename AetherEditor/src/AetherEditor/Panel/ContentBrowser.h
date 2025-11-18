@@ -99,8 +99,10 @@ public:
     ContentBrowser() : Panel("Content Browser")
     {
         m_FolderView.SetFolder(m_CurrentFolder);
+        // 创建asset/folder时的回调
         m_AssetTypeSearchPanel->AssetTypeSelectedEventHandler +=
             [this](const std::string& type) { OnAssetTypeSelected(type); };
+        // 创建文件夹的回调
         m_CreateFolderPanel->OnCreateFolderEventHandler += [this](const CreateFolderParams& params) {
             if (m_CurrentFolder)
             {
@@ -118,6 +120,9 @@ public:
                 return;
             }
             Aether::Project::ImportTexture(*project, params);
+        };
+        m_FolderView.OnAssetSelectedEventHandler+= [this](Aether::Project::AssetContentNode* assetNode) {
+            OnAssetClicked(*assetNode);
         };
     }
     void OnImGuiUpdate() override
@@ -155,6 +160,12 @@ private:
     Scope<AssetTypeSearchPanel> m_AssetTypeSearchPanel{CreateScope<AssetTypeSearchPanel>()};
 
 private:
+    void OnAssetClicked(const Project::AssetContentNode& asset)
+    {
+        Notify::Info("Asset Clicked: " + std::string(asset.GetName()));
+        
+    }
+    
     void OnAssetTypeSelected(const std::string& type)
     {
         if (type == "Folder")

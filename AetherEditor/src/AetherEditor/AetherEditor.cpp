@@ -1,6 +1,7 @@
 #include "ImGuiLayer.h"
 #include <Entry/Application.h>
 #include <Async/GlobalThreadPool.h>
+#include <AetherEditor/Global/GlobalMessageBus.h>
 namespace AetherEditor
 {
 
@@ -14,6 +15,7 @@ public:
         m_MainWindow = &window;
         m_Layers.push_back(imguiLayer);
         window.PushLayer(imguiLayer);
+        GlobalMessageBus::Initialize();
     }
     virtual void OnShutdown() override
     {
@@ -21,9 +23,11 @@ public:
         {
             delete layer;
         }
+        GlobalMessageBus::Shutdown();
     }
     virtual void OnFrameBegin() override
     {
+        GlobalMessageBus::ProcessMessages();
     }
     virtual const char* GetName() const override
     {
