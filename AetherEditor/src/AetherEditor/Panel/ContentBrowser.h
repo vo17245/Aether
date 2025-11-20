@@ -163,7 +163,6 @@ private:
     void OnAssetClicked(const Project::AssetContentNode& asset)
     {
         Notify::Info("Asset Clicked: " + std::string(asset.GetName()));
-        
     }
     
     void OnAssetTypeSelected(const std::string& type)

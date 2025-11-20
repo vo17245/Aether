@@ -12,6 +12,7 @@ namespace AetherEditor::UI
             auto* root = static_cast<Aether::Project::Folder*>(project.GetContentTreeRoot());
             m_ContentBrowser.SetFolder(root);
         };
+        
     }
     void MainPage::OnImGuiUpdate() 
     {

@@ -11,6 +11,8 @@ namespace AetherEditor::UI
 class MainWindow
 {
 public:
+    MainWindow();
+    ~MainWindow();
     void SetOsWindow(::Aether::Window* window)
     {
         m_OsWindow = window;
