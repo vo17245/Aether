@@ -163,6 +163,8 @@ private:
     void OnAssetClicked(const Project::AssetContentNode& asset)
     {
         Notify::Info("Asset Clicked: " + std::string(asset.GetName()));
+        OnAssetClickedEventHandler.Broadcast(asset);
+        OnPageNavigateEventHandler.Broadcast("AssetPage");
     }
     
     void OnAssetTypeSelected(const std::string& type)
@@ -183,5 +185,8 @@ private:
     }
     Scope<CreateFolderPanel> m_CreateFolderPanel{CreateScope<CreateFolderPanel>()};
     Scope<CreateTexturePanel> m_CreateTexturePanel{CreateScope<CreateTexturePanel>()};
+public:
+    Delegate<void(const Project::AssetContentNode& asset)> OnAssetClickedEventHandler;
+    Delegate<void(const std::string& name)> OnPageNavigateEventHandler;
 };
 } // namespace AetherEditor::UI

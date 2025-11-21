@@ -4,12 +4,12 @@
 #include <Render/Render.h>
 #include <AetherEditor/UIComponent/Image.h>
 #include <AetherEditor/UIComponent/ImageView.h>
-
+#include <AetherEditor/Panel/Panel.h>
 using namespace Aether;
 namespace AetherEditor::UI
 {
 
-    class TextureViewPanel
+    class TextureViewPanel:public Panel
     {
     public:
         void OnImGuiUpdate();

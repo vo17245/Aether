@@ -40,10 +40,13 @@ private:
 class PageRouter
 {
 public:
-    void PushPage(Scope<Page>&& page)
+    template<typename T>
+    requires std::is_base_of_v<Page, T>
+    T* PushPage(Scope<T>&& page)
     {
-        page->SetTag(page->GetTag());
+        auto* ptr=page.get();
         m_Pages[page->GetTag()] =  std::move(page);
+        return ptr;
     }
     void PopPage(const std::string& tag)
     {

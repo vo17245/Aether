@@ -70,10 +70,12 @@ public:
     {
         m_PageRouter.NavigateTo(tag);
     }
-    void PushPage(Scope<Page>&& page)
+    template<typename T>
+    requires std::is_base_of_v<Page, T>
+    T* PushPage(Scope<T>&& page)
     {
         page->SetPageRouter(&m_PageRouter);
-        m_PageRouter.PushPage(std::move(page));
+        return m_PageRouter.PushPage(std::move(page));
     }
 
 

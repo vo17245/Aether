@@ -12,6 +12,14 @@ namespace AetherEditor::UI
             auto* root = static_cast<Aether::Project::Folder*>(project.GetContentTreeRoot());
             m_ContentBrowser.SetFolder(root);
         };
+        m_ContentBrowser.OnAssetClickedEventHandler+=[this](const Project::AssetContentNode& asset)
+        {
+            OnAssetClickedEventHandler.Broadcast(asset);
+        };
+        m_ContentBrowser.OnPageNavigateEventHandler+=[this](const std::string& name)
+        {
+            OnPageNavigateEventHandler.Broadcast(name);
+        };
         
     }
     void MainPage::OnImGuiUpdate() 

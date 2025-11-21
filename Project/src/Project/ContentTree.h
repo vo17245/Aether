@@ -105,6 +105,10 @@ public:
     {
         return m_Asset;
     }
+    const Asset* GetAsset()const
+    {
+        return m_Asset;
+    }
     void SetAsset(Asset* asset)
     {
         m_Asset = asset;

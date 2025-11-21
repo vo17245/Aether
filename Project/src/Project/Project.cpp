@@ -1,6 +1,7 @@
 #include "Project.h"
 #include <Filesystem/Filesystem.h>
 #include "Asset/TextureAsset.h"
+#include <queue>
 namespace Aether::Project
 {
 static Json ContentTreeNodeToJson(const ContentTreeNode& node)
@@ -162,6 +163,31 @@ std::expected<Scope<Project>, std::string> Project::LoadFromFile(const std::stri
         project->m_ContentTreeRoot = ContentTreeNodeFromJson(j["ContentTree"]);
     }
     project->m_Assets = AssetArrayFromJson(j["Assets"]);
+    std::queue<Folder*> folderQueue;
+    assert(project->m_ContentTreeRoot->GetType()==ContentTreeNodeType::Folder);
+    folderQueue.push(static_cast<Folder*>(project->m_ContentTreeRoot.get()));
+    while (!folderQueue.empty())
+    {
+        auto* folder=folderQueue.front();
+        folderQueue.pop();
+        for(auto& child:folder->GetChildren())
+        {
+            if(child->GetType()==ContentTreeNodeType::Folder)
+            {
+                folderQueue.push(static_cast<Folder*>(child.get()));
+            }
+            assert(child->GetType()==ContentTreeNodeType::Asset);
+            AssetContentNode* assetNode=static_cast<AssetContentNode*>(child.get());
+            for(auto& asset:project->m_Assets)
+            {
+                if(asset->GetAddress()==assetNode->GetAssetAddress())
+                {
+                    assetNode->SetAsset(asset.get());
+                    break;
+                }
+            }
+        }
+    }
     return project;
 }
 std::optional<ContentTreeNode*> Project::GetContent(const std::string& address)

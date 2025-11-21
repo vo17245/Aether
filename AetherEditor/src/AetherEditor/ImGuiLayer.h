@@ -4,10 +4,10 @@
 #include <AetherEditor/Page/MainPage.h>
 #include <AetherEditor/Page/EntryPage.h>
 #include <AetherEditor/Page/CreateProjectPage.h>
+#include <AetherEditor/Page/AssetPage.h>
 using namespace Aether;
 namespace AetherEditor
 {
-
 
 class ImGuiLayer : public Layer
 {
@@ -21,9 +21,19 @@ public:
         m_Window = window;
         m_MainWindow.SetOsWindow(window);
         m_MainWindow.PushPage(CreateScope<UI::EntryPage>());
-        m_MainWindow.PushPage(CreateScope<UI::MainPage>());
+        auto* mainPage = m_MainWindow.PushPage(CreateScope<UI::MainPage>());
         m_MainWindow.PushPage(CreateScope<UI::CreateProjectPage>());
+        auto* assetPage = m_MainWindow.PushPage(CreateScope<UI::AssetPage>());
         m_MainWindow.SetCurrentPage("EntryPage");
+        mainPage->OnAssetClickedEventHandler += [assetPage](const Project::AssetContentNode& asset) {
+            assetPage->SetAssetToShow(asset);
+        };
+        mainPage->OnPageNavigateEventHandler += [this](const std::string& name) {
+            m_MainWindow.SetCurrentPage(name);
+        };
+        assetPage->OnPageNavigateEventHandler += [this](const std::string& name) {
+            m_MainWindow.SetCurrentPage(name);
+        };
     }
     virtual void OnUpdate(float sec) override
     {
@@ -33,7 +43,7 @@ public:
     {
         return false;
     }
-   
+
     virtual void OnImGuiUpdate() override
     {
         m_MainWindow.Draw();
@@ -42,6 +52,5 @@ public:
 private:
     Aether::Window* m_Window = nullptr;
     UI::MainWindow m_MainWindow;
-    
 };
-}
+} // namespace AetherEditor

@@ -11,5 +11,8 @@ public:
     void OnImGuiUpdate() override;
 private:
     ContentBrowser m_ContentBrowser;
+public:
+    Delegate<void(const Project::AssetContentNode& asset)> OnAssetClickedEventHandler;
+    Delegate<void(const std::string& name)> OnPageNavigateEventHandler;
 };
 }
