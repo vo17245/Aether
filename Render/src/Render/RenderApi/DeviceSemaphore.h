@@ -14,6 +14,11 @@ namespace Aether
         DeviceSemaphore& operator=(const DeviceSemaphore&) = delete;
         DeviceSemaphore& operator=(DeviceSemaphore&& other)=default;
         ~DeviceSemaphore() = default;
+        DeviceSemaphore(vk::Semaphore&& semaphore)
+            : m_Semaphore(std::move(semaphore))
+        {
+        }
+
     public:
         bool Empty() const
         {
@@ -38,6 +43,11 @@ namespace Aether
                 return res;
             }
             return res;
+        }
+        vk::Semaphore& GetVk()
+        {
+            assert(std::holds_alternative<vk::Semaphore>(m_Semaphore));
+            return std::get<vk::Semaphore>(m_Semaphore);
         }
     private:
         std::variant<std::monostate, vk::Semaphore> m_Semaphore;

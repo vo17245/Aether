@@ -20,7 +20,7 @@ public:
     void SetFolderAddress(const std::string& folderAddress)
     {
         m_Folder = folderAddress;
-        m_Address = folderAddress+"/"+std::string(m_NameBuffer);
+        m_Address = folderAddress+std::string(m_NameBuffer);
         m_AddressDisplay = "Address: " + m_Address;
     }
     Aether::Delegate<void(Aether::Project::ImportTextureParams&)> TextureCreateEventHandler;

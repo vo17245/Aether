@@ -13,3 +13,4 @@
 #include "Delegate.h"
 #include "UUID.h"
 #include "LocalRef.h"
+#include "LockFree.h"

@@ -32,6 +32,7 @@
 #include "ImGui/Compat/ImGuiApi.h"
 #include <Render/Vulkan/Allocator.h>
 #include <Debug/Log.h>
+
 namespace Aether
 {
 Window::~Window()
@@ -145,9 +146,9 @@ bool Window::PopLayer(Layer* layer)
     }
     return false;
 }
-VkSwapchainKHR Window::GetSwapchain() const
+DeviceSwapChain* Window::GetSwapChain() const
 {
-    return m_SwapChain;
+    return m_SwapChain.get();
 }
 const std::vector<VkImage>& Window::GetImages() const
 {
@@ -278,11 +279,7 @@ void Window::ReleaseRenderObject()
 {
     m_SwapChainImageViews.clear();
     m_SwapChainImages.clear();
-    if (m_SwapChain != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR(vk::GRC::GetDevice(), m_SwapChain, nullptr);
-        m_SwapChain = VK_NULL_HANDLE;
-    }
+    m_SwapChain.reset();
 
     if (m_Surface != VK_NULL_HANDLE)
     {
@@ -399,14 +396,19 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
 
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
     {
-        assert(false && "failed to create swap chain!");
+        VkSwapchainKHR swapChain;
+        if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
+        {
+            assert(false && "failed to create swap chain!");
+        }
+        m_SwapChain=CreateScope<DeviceSwapChain>(vk::SwapChain(std::move(swapChain)));
     }
+    
 
-    vkGetSwapchainImagesKHR(device, m_SwapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(device, m_SwapChain->GetVk().GetHandle(), &imageCount, nullptr);
     m_SwapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, m_SwapChain, &imageCount, m_SwapChainImages.data());
+    vkGetSwapchainImagesKHR(device, m_SwapChain->GetVk().GetHandle(), &imageCount, m_SwapChainImages.data());
 
     m_SwapChainImageFormat = surfaceFormat.format;
     m_SwapChainExtent = extent;
@@ -484,18 +486,18 @@ void Window::OnRender()
     {
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
         {
-            m_CommandBufferFences[i]->Wait();
+            m_CommandBufferFences[i]->GetVk().Wait();
         }
     }
     // wait for render resource
     // ImGuiWaitFrameResource();
-    m_CommandBufferFences[m_CurrentFrame]->Wait();
-    m_CommandBufferFences[m_CurrentFrame]->Reset();
+    m_CommandBufferFences[m_CurrentFrame]->GetVk().Wait();
+    m_CommandBufferFences[m_CurrentFrame]->GetVk().Reset();
     // acquire next image
     uint32_t imageIndex;
     auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
-    VkResult result = vkAcquireNextImageKHR(vk::GRC::GetDevice(), m_SwapChain, UINT64_MAX,
-                                            imageAvailableSemaphore.GetHandle(), VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(vk::GRC::GetDevice(), m_SwapChain->GetVk().GetHandle(), UINT64_MAX,
+                                            imageAvailableSemaphore.GetVk().GetHandle(), VK_NULL_HANDLE, &imageIndex);
 
     if (result != VK_SUCCESS)
     {
@@ -539,19 +541,29 @@ void Window::OnRender()
     ImGuiRecordCommandBuffer(curCommandBuffer);
     curCommandBufferVk.End();
     // commit command buffer
-    auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetHandle();
+    auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetVk().GetHandle();
     static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-    auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetHandle();
-    m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphoreHandle, &stage, 1,
-                                                           &renderFinishedSemaphore,
-                                                           m_CommandBufferFences[m_CurrentFrame]->GetHandle());
+    auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetVk().GetHandle();
+    {
+        Render::Submit submit;
+        submit.commandBuffer=&m_GraphicsCommandBuffer[m_CurrentFrame];
+        submit.signalFence=m_CommandBufferFences[m_CurrentFrame].get();
+        submit.waitSemaphores.push_back(&imageAvailableSemaphore);
+        submit.waitStages.push_back(DevicePipelineSyncStage::AllGraphics);
+        submit.signalSemaphores.push_back(m_RenderFinishedSemaphore[m_CurrentFrame].get());
+        Render::SubmitThread::PushGraphics(std::move(submit));
+
+    }
+    //m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphoreHandle, &stage, 1,
+    //                                                       &renderFinishedSemaphore,
+    //                                                       m_CommandBufferFences[m_CurrentFrame]->GetVk().GetHandle());
     // async present
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
-    VkSwapchainKHR swapChains[] = {m_SwapChain};
+    VkSwapchainKHR swapChains[] = {m_SwapChain->GetVk().GetHandle()};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
@@ -564,15 +576,15 @@ bool Window::CreateSyncObjects()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_CommandBufferFences[i] = std::make_unique<vk::Fence>(std::move(vk::Fence::Create(true).value()));
+        m_CommandBufferFences[i] = std::make_unique<DeviceFence>(std::move(vk::Fence::Create(true).value()));
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_ImageAvailableSemaphore[i] = std::make_unique<vk::Semaphore>(std::move(vk::Semaphore::Create().value()));
+        m_ImageAvailableSemaphore[i] = std::make_unique<DeviceSemaphore>(std::move(vk::Semaphore::Create().value()));
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_RenderFinishedSemaphore[i] = std::make_unique<vk::Semaphore>(std::move(vk::Semaphore::Create().value()));
+        m_RenderFinishedSemaphore[i] = std::make_unique<DeviceSemaphore>(std::move(vk::Semaphore::Create().value()));
     }
     return true;
 }
@@ -806,7 +818,7 @@ void Window::ImGuiWindowContextInit()
     // #endif
 
     wd->PresentMode = m_PresentMode;
-    wd->Swapchain = m_SwapChain;
+    wd->Swapchain = m_SwapChain->GetVk().GetHandle();
     // wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(vk::GRC::GetPhysicalDevice(), wd->Surface,
     // &present_modes[0], IM_ARRAYSIZE(present_modes)); printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
 

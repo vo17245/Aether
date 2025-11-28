@@ -194,9 +194,15 @@ std::optional<ContentTreeNode*> Project::GetContent(const std::string& address)
 {
     U32String addressU32=U32String(address);
     auto arr=addressU32.Split("/");
-    ContentTreeNode* currentNode=m_ContentTreeRoot.get();
-    for(const auto& part:arr)
+    if(arr.size()==0)
     {
+        return std::nullopt;
+    }
+    ContentTreeNode* currentNode=m_ContentTreeRoot.get();
+
+    for(size_t i=1;i<arr.size();i++)
+    {
+        auto& part=arr[i];
         auto* next=currentNode->FindChildByName(part.ToStdString());
         if(!next)
         {

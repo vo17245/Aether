@@ -11,3 +11,6 @@
 #include "RenderApi/DeviceSampler.h"
 #include "RenderApi/DeviceCommandBufferPool.h"
 #include "RenderApi/DeviceSemaphore.h"
+#include "RenderApi/DeviceFence.h"
+#include "RenderApi/DevicePipelineSyncStage.h"
+#include "RenderApi/DeviceSwapChain.h"

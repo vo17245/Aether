@@ -13,6 +13,8 @@
 #include "GammaFilter.h"
 #include "Render/RenderGraph/RenderGraph.h"
 #include "ImGui/Compat/WindowContext.h"
+
+
 namespace Aether
 {
 namespace vk
@@ -63,7 +65,7 @@ public:
     void PushLayer(Layer* layer);
     void PushLayers(const std::span<Layer*>& layers);
     bool PopLayer(Layer* layer);
-    VkSwapchainKHR GetSwapchain() const;
+    DeviceSwapChain* GetSwapChain() const;
     const std::vector<VkImage>& GetImages() const;
     std::vector<VkImage>& GetImages();
     const std::vector<vk::ImageView>& GetImageViews() const;
@@ -138,16 +140,16 @@ public:
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
-    VkSwapchainKHR m_SwapChain = VK_NULL_HANDLE;
+    Scope<DeviceSwapChain> m_SwapChain;
     std::vector<VkImage> m_SwapChainImages;
     std::vector<vk::ImageView> m_SwapChainImageViews;
     VkFormat m_SwapChainImageFormat{};
     VkExtent2D m_SwapChainExtent{};
     VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
     GLFWwindow* m_Handle = nullptr;
-    std::unique_ptr<vk::Semaphore> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
-    std::unique_ptr<vk::Semaphore> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
-    Scope<vk::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
+    std::unique_ptr<DeviceSemaphore> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
+    std::unique_ptr<DeviceSemaphore> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
+    Scope<DeviceFence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
     DeviceCommandBuffer m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
     //=========== final image
     DeviceTexture m_FinalTextures[MAX_FRAMES_IN_FLIGHT];

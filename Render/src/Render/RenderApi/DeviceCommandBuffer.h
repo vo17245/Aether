@@ -163,6 +163,10 @@ public:
             assert(false && "unsupported command buffer type");
         }
     }
+    operator bool() const
+    {
+        return m_Data.index() != 0;
+    }
 
 private:
     std::variant<std::monostate, vk::GraphicsCommandBuffer> m_Data;

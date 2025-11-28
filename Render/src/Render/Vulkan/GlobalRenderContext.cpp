@@ -57,7 +57,12 @@ Window& GlobalRenderContext::GetMainWindow()
 // }
 VkSwapchainKHR GlobalRenderContext::GetSwapChain()
 {
-    return s_Context->m_Window->GetSwapchain();
+    auto* deviceSwapChain=s_Context->m_Window->GetSwapChain();
+    if(!deviceSwapChain)
+    {
+        return VK_NULL_HANDLE;
+    }
+    return deviceSwapChain->GetVk().GetHandle();
 }
 QueueFamilyIndices GlobalRenderContext::GetQueueFamilyIndices()
 {

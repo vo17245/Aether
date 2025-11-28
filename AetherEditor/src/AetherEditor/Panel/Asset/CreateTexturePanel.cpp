@@ -22,7 +22,7 @@ namespace AetherEditor::UI
         ImGui::Text("%s",m_AddressDisplay.c_str());
         if(ImGui::InputText("Name", m_NameBuffer, sizeof(m_NameBuffer)))
         {
-            m_Address = m_Folder+"/"+std::string(m_NameBuffer);
+            m_Address = m_Folder+std::string(m_NameBuffer);
             m_AddressDisplay = "Address: " + m_Address;
         }
         ImGui::Checkbox("sRGB", &m_SRGB);

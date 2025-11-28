@@ -7,6 +7,7 @@
 #include <ImGui/Compat/ImGuiApi.h>
 #include <Debug/Log.h>
 #include <Async/GlobalThreadPool.h>
+#include <Render/NamedThread/SubmitThread.h>
 using namespace Aether;
 namespace Aether
 {
@@ -27,6 +28,7 @@ namespace
 }
 int main()
 {
+    
     auto* app = CreateApplication();
     auto initParams=app->GetInitParams();
     if(initParams.enableGlobalThreadPool)
@@ -47,6 +49,7 @@ int main()
         config.enableValidationLayers = true;
         config.enableDynamicRendering = false;
         vk::GRC::Init(window.get(), config);
+        Render::SubmitThread::Init();
         WindowContext::Register(window->GetHandle(), window.get());
         window->ImGuiWindowContextInit();
         ImGuiApi::Init(*window);
@@ -76,6 +79,7 @@ int main()
         delete app;
         window.reset();
         ImGuiApi::Shutdown();
+        Render::SubmitThread::Shutdown();
         vk::GRC::Cleanup();
     }
     Audio::Destory();
