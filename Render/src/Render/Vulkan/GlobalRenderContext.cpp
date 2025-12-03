@@ -35,11 +35,11 @@ VkDevice GlobalRenderContext::GetDevice()
 {
     return s_Context->m_Device;
 }
-Queue GlobalRenderContext::GetGraphicsQueue()
+Queue& GlobalRenderContext::GetGraphicsQueue()
 {
     return s_Context->m_GraphicsQueue;
 }
-Queue GlobalRenderContext::GetPresentQueue()
+Queue& GlobalRenderContext::GetPresentQueue()
 {
     return s_Context->m_PresentQueue;
 }

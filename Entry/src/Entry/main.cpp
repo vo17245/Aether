@@ -72,6 +72,7 @@ int main()
             window->OnUpload();
             window->OnRender();
         }
+        Render::SubmitThread::Shutdown();
         vkDeviceWaitIdle(vk::GRC::GetDevice());
         app->OnShutdown();
         window->ReleaseVulkanObjects();
@@ -79,7 +80,6 @@ int main()
         delete app;
         window.reset();
         ImGuiApi::Shutdown();
-        Render::SubmitThread::Shutdown();
         vk::GRC::Cleanup();
     }
     Audio::Destory();

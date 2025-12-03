@@ -213,5 +213,9 @@ public:
 private:
     bool m_Minilized = false;
     VkPresentModeKHR m_PresentMode;
+private:
+    void OnImageAcquired(const Render::ImageAcquireResult& result);
+    Render::ImageAcquireResult m_ImageAcquireResult;
+    std::binary_semaphore m_ImageAcquireSemaphore{0};
 };
 } // namespace Aether

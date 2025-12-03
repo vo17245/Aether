@@ -14,3 +14,5 @@
 #include "RenderApi/DeviceFence.h"
 #include "RenderApi/DevicePipelineSyncStage.h"
 #include "RenderApi/DeviceSwapChain.h"
+#include "RenderApi/DeviceQueue.h"
+

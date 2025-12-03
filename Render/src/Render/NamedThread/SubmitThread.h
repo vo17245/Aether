@@ -1,49 +1,73 @@
 #pragma once
 #include <Core/Core.h>
 #include <Render/RenderApi.h>
+#include <semaphore>
+#include <queue>
 namespace Aether::Render
 {
-
-struct Submit
+enum class SubmitType
 {
+    Command,
+    Present,
+    ImageAcquire,
+};
+struct SubmitBase
+{
+    SubmitType type;
+    SubmitBase(SubmitType t) : type(t) {}
+    virtual ~SubmitBase() = default;
+};
+struct CommandSubmit: SubmitBase
+{
+    CommandSubmit() : SubmitBase(SubmitType::Command) {}
     DeviceCommandBuffer* commandBuffer=nullptr;
     DeviceFence* signalFence=nullptr;
+    DeviceQueueView queue;
     std::vector<DevicePipelineSyncStage> waitStages;
     std::vector<DeviceSemaphore*> waitSemaphores;
     std::vector<DeviceSemaphore*> signalSemaphores;
 };
-struct PresentSubmit
+struct PresentSubmit: SubmitBase
 {
-
+    PresentSubmit() : SubmitBase(SubmitType::Present) {}
+    DeviceSwapChain* swapChain=nullptr;
+    std::vector<DeviceSemaphore*> waitSemaphores;
+    uint32_t imageIndex=0;
 };
+enum class ImageAcquireStatus
+{
+    Success,
+    NotReady,
+    Timeout,
+    Error,
+};
+struct ImageAcquireResult
+{
+    ImageAcquireStatus status;
+    uint32_t imageIndex;
+};
+struct ImageAcquireSubmit:SubmitBase
+{
+    ImageAcquireSubmit() : SubmitBase(SubmitType::ImageAcquire) {}
+    DeviceSwapChain* swapChain=nullptr;
+    DeviceSemaphore* signalSemaphore=nullptr;
+    uint64_t timeoutNs=UINT64_MAX;
+    ImageAcquireResult* result=nullptr;
+    std::binary_semaphore* semaphore=nullptr;
+    uint32_t debugIndex=0;
+};
+
 class SubmitThread
 {
 public:
     static void Init();
     static void Shutdown();
-    template<typename T>
-        requires std::is_convertible_v<T, Submit>
-    static void PushGraphics(T&& commandBuffer)
+
+    static void PushSubmit(Scope<SubmitBase>&& submit)
     {
-        assert(GetSingleton().m_Dispatcher);
-        GetSingleton().m_Dispatcher->PushGraphics(std::forward<T>(commandBuffer));
-        GetSingleton().m_Condition.notify_one();
-    }
-    template<typename T>
-        requires std::is_convertible_v<T, Submit>
-    static void PushTransfer(T&& commandBuffer)
-    {
-        assert(GetSingleton().m_Dispatcher);
-        GetSingleton().m_Dispatcher->PushTransfer(std::forward<T>(commandBuffer));
-        GetSingleton().m_Condition.notify_one();
-    }
-    template<typename T>
-        requires std::is_convertible_v<T, Submit>
-    static void PushCompute(T&& commandBuffer)
-    {
-        assert(GetSingleton().m_Dispatcher);
-        GetSingleton().m_Dispatcher->PushCompute(std::forward<T>(commandBuffer));
-        GetSingleton().m_Condition.notify_one();
+        std::lock_guard lock(GetSingleton().m_SubmitMutex);
+        GetSingleton().m_Queue.push(std::move(submit));
+        GetSingleton().m_SubmitCondition.notify_one();
     }
 private:
     static SubmitThread& GetSingleton();
@@ -52,42 +76,17 @@ private:
     struct Worker
     {
         SubmitThread& thread;
-        LockFree::Queue<Submit>& queue;
         void operator()();
 
     };
 
     std::optional<std::thread> m_Thread;
     std::atomic<bool> m_Running = false;
-    std::mutex m_Mutex;
-    std::condition_variable m_Condition;
+    std::mutex m_SubmitMutex;
+    std::condition_variable m_SubmitCondition;
 
 private:
-    struct Dispatcher
-    {
-        LockFree::Queue<Submit>& graphicsQueue;
-        LockFree::Queue<Submit>& transferQueue;
-        LockFree::Queue<Submit>& computeQueue;
-        template<typename T>
-        requires std::is_convertible_v<T, Submit>
-        void PushGraphics(T&& commandBuffer)
-        {
-            graphicsQueue.enqueue(std::forward<T>(commandBuffer));
-        }
-        template<typename T>
-        requires std::is_convertible_v<T, Submit>
-        void PushTransfer(T&& commandBuffer)
-        {
-            transferQueue.enqueue(std::forward<T>(commandBuffer));
-        }
-        template<typename T>
-        requires std::is_convertible_v<T, Submit>
-        void PushCompute(T&& commandBuffer)
-        {
-            computeQueue.enqueue(std::forward<T>(commandBuffer));
-        }
-    };
-    LockFree::Queue<Submit> m_CommandBufferQueue;
-    std::optional<Dispatcher> m_Dispatcher;
+
+    std::queue<std::unique_ptr<SubmitBase>> m_Queue;
 };
 } // namespace Aether::Render

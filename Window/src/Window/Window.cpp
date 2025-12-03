@@ -402,9 +402,8 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
         {
             assert(false && "failed to create swap chain!");
         }
-        m_SwapChain=CreateScope<DeviceSwapChain>(vk::SwapChain(std::move(swapChain)));
+        m_SwapChain = CreateScope<DeviceSwapChain>(vk::SwapChain(std::move(swapChain)));
     }
-    
 
     vkGetSwapchainImagesKHR(device, m_SwapChain->GetVk().GetHandle(), &imageCount, nullptr);
     m_SwapChainImages.resize(imageCount);
@@ -493,84 +492,21 @@ void Window::OnRender()
     // ImGuiWaitFrameResource();
     m_CommandBufferFences[m_CurrentFrame]->GetVk().Wait();
     m_CommandBufferFences[m_CurrentFrame]->GetVk().Reset();
+    static std::atomic<uint32_t> index;
     // acquire next image
-    uint32_t imageIndex;
-    auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
-    VkResult result = vkAcquireNextImageKHR(vk::GRC::GetDevice(), m_SwapChain->GetVk().GetHandle(), UINT64_MAX,
-                                            imageAvailableSemaphore.GetVk().GetHandle(), VK_NULL_HANDLE, &imageIndex);
-
-    if (result != VK_SUCCESS)
     {
-        assert(false && "unknown error");
-        return;
+        auto imageAcquireSubmit=CreateScope<Render::ImageAcquireSubmit>(); ;
+        imageAcquireSubmit->swapChain = m_SwapChain.get();
+        imageAcquireSubmit->signalSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame].get();
+        imageAcquireSubmit->timeoutNs = std::numeric_limits<uint64_t>::max();
+        imageAcquireSubmit->result = &m_ImageAcquireResult;
+        imageAcquireSubmit->semaphore=&m_ImageAcquireSemaphore;
+        imageAcquireSubmit->debugIndex=index;
+        Render::SubmitThread::PushSubmit(std::move(imageAcquireSubmit));
     }
-    m_DescriptorPools[m_CurrentFrame].Clear();
+    m_ImageAcquireSemaphore.acquire();
+    OnImageAcquired(m_ImageAcquireResult);
 
-    for (auto* layer : m_Layers)
-    {
-        layer->OnFrameBegin();
-    }
-    m_ResourcePool->OnFrameBegin();
-
-    // record command buffer
-    auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
-    auto& curCommandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame];
-    curCommandBufferVk.Reset();
-    curCommandBufferVk.Begin();
-    // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
-    // record transfer command here
-    m_PendingUploadList.RecordCommand(curCommandBuffer);
-
-    // record main render command
-    curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
-                                           DeviceImageLayout::ColorAttachment);
-    m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
-    m_RenderGraph->SetCurrentFrame(m_CurrentFrame);
-    m_RenderGraph->Execute();
-    // render to screen (tonemap)
-    curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::ColorAttachment,
-                                           DeviceImageLayout::Texture);
-    curCommandBufferVk.BeginRenderPass(m_TonemapRenderPass.GetVk(), m_TonemapFrameBuffers[imageIndex].GetVk(),
-                                       Vec4f(0.0, 0.0, 0.0, 1.0));
-    curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
-    curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
-    m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
-    curCommandBufferVk.EndRenderPass();
-    m_ImGuiContext.window.FrameIndex = imageIndex;
-    // record imgui command
-    ImGuiRecordCommandBuffer(curCommandBuffer);
-    curCommandBufferVk.End();
-    // commit command buffer
-    auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetVk().GetHandle();
-    static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-    auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetVk().GetHandle();
-    {
-        Render::Submit submit;
-        submit.commandBuffer=&m_GraphicsCommandBuffer[m_CurrentFrame];
-        submit.signalFence=m_CommandBufferFences[m_CurrentFrame].get();
-        submit.waitSemaphores.push_back(&imageAvailableSemaphore);
-        submit.waitStages.push_back(DevicePipelineSyncStage::AllGraphics);
-        submit.signalSemaphores.push_back(m_RenderFinishedSemaphore[m_CurrentFrame].get());
-        Render::SubmitThread::PushGraphics(std::move(submit));
-
-    }
-    //m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphoreHandle, &stage, 1,
-    //                                                       &renderFinishedSemaphore,
-    //                                                       m_CommandBufferFences[m_CurrentFrame]->GetVk().GetHandle());
-    // async present
-
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
-    VkSwapchainKHR swapChains[] = {m_SwapChain->GetVk().GetHandle()};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
-    vkQueuePresentKHR(vk::GRC::GetPresentQueue().GetHandle(), &presentInfo);
-
-    // forward current frame index
-    m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 bool Window::CreateSyncObjects()
 {
@@ -867,5 +803,89 @@ void Window::SetCursorMode(CursorMode mode)
         break;
     }
     glfwSetInputMode(m_Handle, GLFW_CURSOR, glfwMode);
+}
+void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
+{
+    if (result.status != Render::ImageAcquireStatus::Success && result.status != Render::ImageAcquireStatus::NotReady)
+    {
+        assert(false && "unknown error");
+        return;
+    }
+    uint32_t imageIndex = result.imageIndex;
+    auto& imageAvailableSemaphore= *m_ImageAvailableSemaphore[m_CurrentFrame];
+    m_DescriptorPools[m_CurrentFrame].Clear();
+
+    for (auto* layer : m_Layers)
+    {
+        layer->OnFrameBegin();
+    }
+    m_ResourcePool->OnFrameBegin();
+
+    // record command buffer
+    auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
+    auto& curCommandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame];
+    curCommandBufferVk.Reset();
+    curCommandBufferVk.Begin();
+    // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
+    // record transfer command here
+    m_PendingUploadList.RecordCommand(curCommandBuffer);
+
+    // record main render command
+    curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
+                                           DeviceImageLayout::ColorAttachment);
+    m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
+    m_RenderGraph->SetCurrentFrame(m_CurrentFrame);
+    m_RenderGraph->Execute();
+    // render to screen (tonemap)
+    curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::ColorAttachment,
+                                           DeviceImageLayout::Texture);
+    curCommandBufferVk.BeginRenderPass(m_TonemapRenderPass.GetVk(), m_TonemapFrameBuffers[imageIndex].GetVk(),
+                                       Vec4f(0.0, 0.0, 0.0, 1.0));
+    curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
+    curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
+    m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
+    curCommandBufferVk.EndRenderPass();
+    m_ImGuiContext.window.FrameIndex = imageIndex;
+    // record imgui command
+    ImGuiRecordCommandBuffer(curCommandBuffer);
+    curCommandBufferVk.End();
+    // commit command buffer
+    // auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetVk().GetHandle();
+    static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+    auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetVk().GetHandle();
+    {
+        auto submit = CreateScope<Render::CommandSubmit>();
+        submit->commandBuffer = &m_GraphicsCommandBuffer[m_CurrentFrame];
+        submit->signalFence = m_CommandBufferFences[m_CurrentFrame].get();
+        submit->waitSemaphores.push_back(&imageAvailableSemaphore);
+        submit->waitStages.push_back(DevicePipelineSyncStage::AllGraphics);
+        submit->signalSemaphores.push_back(m_RenderFinishedSemaphore[m_CurrentFrame].get());
+        submit->queue = DeviceQueueView(&vk::GRC::GetGraphicsQueue());
+        Render::SubmitThread::PushSubmit(std::move(submit));
+    }
+    // m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphoreHandle, &stage, 1,
+    //                                                        &renderFinishedSemaphore,
+    //                                                        m_CommandBufferFences[m_CurrentFrame]->GetVk().GetHandle());
+    //  async present
+
+    // VkPresentInfoKHR presentInfo{};
+    // presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    // presentInfo.waitSemaphoreCount = 1;
+    // presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+    // VkSwapchainKHR swapChains[] = {m_SwapChain->GetVk().GetHandle()};
+    // presentInfo.swapchainCount = 1;
+    // presentInfo.pSwapchains = swapChains;
+    // presentInfo.pImageIndices = &imageIndex;
+    // vkQueuePresentKHR(vk::GRC::GetPresentQueue().GetHandle(), &presentInfo);
+    {
+        auto present = CreateScope<Render::PresentSubmit>();
+        present->imageIndex = imageIndex;
+        present->swapChain = m_SwapChain.get();
+        present->waitSemaphores.push_back(m_RenderFinishedSemaphore[m_CurrentFrame].get());
+        Render::SubmitThread::PushSubmit(std::move(present));
+    }
+
+    // forward current frame index
+    m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 } // namespace Aether

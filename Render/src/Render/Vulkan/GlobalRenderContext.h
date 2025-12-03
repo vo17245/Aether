@@ -16,8 +16,8 @@ public:
     static VkInstance GetInstance();
     static VkPhysicalDevice GetPhysicalDevice();
     static VkDevice GetDevice();
-    static Queue GetGraphicsQueue();
-    static Queue GetPresentQueue();
+    static Queue& GetGraphicsQueue();
+    static Queue& GetPresentQueue();
     static VkSurfaceKHR GetMainWindowSurface();
     static Window& GetMainWindow();
     // static VkCommandPool GetGraphicsCommandPool();
