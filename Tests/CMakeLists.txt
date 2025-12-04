@@ -1,5 +1,0 @@
-add_subdirectory("Resource.Tests")
-add_subdirectory("Window.Tests")
-add_subdirectory("Render.Tests")
-add_subdirectory("Filesystem.Tests")
-add_subdirectory("Core.Tests")

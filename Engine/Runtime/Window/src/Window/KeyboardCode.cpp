@@ -1,0 +1,182 @@
+#include "KeyboardCode.h"
+namespace Aether {
+std::optional<uint32_t> KeyboardCodeToUnicode(KeyboardCode code)
+{
+    switch (code)
+    {
+    case KeyboardCode::KEY_SPACE: return 32;
+    case KeyboardCode::KEY_0: return 48;
+    case KeyboardCode::KEY_1: return 49;
+    case KeyboardCode::KEY_2: return 50;
+    case KeyboardCode::KEY_3: return 51;
+    case KeyboardCode::KEY_4: return 52;
+    case KeyboardCode::KEY_5: return 53;
+    case KeyboardCode::KEY_6: return 54;
+    case KeyboardCode::KEY_7: return 55;
+    case KeyboardCode::KEY_8: return 56;
+    case KeyboardCode::KEY_9: return 57;
+    case KeyboardCode::KEY_EQUAL: return 61;
+    case KeyboardCode::KEY_A: return 65;
+    case KeyboardCode::KEY_B: return 66;
+    case KeyboardCode::KEY_C: return 67;
+    case KeyboardCode::KEY_D: return 68;
+    case KeyboardCode::KEY_E: return 69;
+    case KeyboardCode::KEY_F: return 70;
+    case KeyboardCode::KEY_G: return 71;
+    case KeyboardCode::KEY_H: return 72;
+    case KeyboardCode::KEY_I: return 73;
+    case KeyboardCode::KEY_J: return 74;
+    case KeyboardCode::KEY_K: return 75;
+    case KeyboardCode::KEY_L: return 76;
+    case KeyboardCode::KEY_M: return 77;
+    case KeyboardCode::KEY_N: return 78;
+    case KeyboardCode::KEY_O: return 79;
+    case KeyboardCode::KEY_P: return 80;
+    case KeyboardCode::KEY_Q: return 81;
+    case KeyboardCode::KEY_R: return 82;
+    case KeyboardCode::KEY_S: return 83;
+    case KeyboardCode::KEY_T: return 84;
+    case KeyboardCode::KEY_U: return 85;
+    case KeyboardCode::KEY_V: return 86;
+    case KeyboardCode::KEY_W: return 87;
+    case KeyboardCode::KEY_X: return 88;
+    case KeyboardCode::KEY_Y: return 89;
+    case KeyboardCode::KEY_Z: return 90;
+    case KeyboardCode::KEY_LEFT_BRACKET: return 91;
+    case KeyboardCode::KEY_BACKSLASH: return 92;
+    case KeyboardCode::KEY_RIGHT_BRACKET: return 93;
+    case KeyboardCode::KEY_GRAVE_ACCENT: return 96;
+    case KeyboardCode::KEY_ESCAPE: return 256;
+    case KeyboardCode::KEY_ENTER: return 10; // '\n'
+    case KeyboardCode::KEY_TAB: return 258;
+    case KeyboardCode::KEY_BACKSPACE: return 259;
+    default: return std::nullopt; // 或者返回其他你认为合适的默认值
+    }
+}
+std::string KeyboardCodeToString(KeyboardCode code)
+{
+    switch (code)
+    {
+    case KeyboardCode::KEY_UNKNOWN: return "UNKNOWN";
+    case KeyboardCode::KEY_SPACE: return "SPACE";
+    case KeyboardCode::KEY_APOSTROPHE: return "APOSTROPHE";
+    case KeyboardCode::KEY_COMMA: return "COMMA";
+    case KeyboardCode::KEY_MINUS: return "MINUS";
+    case KeyboardCode::KEY_PERIOD: return "PERIOD";
+    case KeyboardCode::KEY_SLASH: return "SLASH";
+    case KeyboardCode::KEY_0: return "0";
+    case KeyboardCode::KEY_1: return "1";
+    case KeyboardCode::KEY_2: return "2";
+    case KeyboardCode::KEY_3: return "3";
+    case KeyboardCode::KEY_4: return "4";
+    case KeyboardCode::KEY_5: return "5";
+    case KeyboardCode::KEY_6: return "6";
+    case KeyboardCode::KEY_7: return "7";
+    case KeyboardCode::KEY_8: return "8";
+    case KeyboardCode::KEY_9: return "9";
+    case KeyboardCode::KEY_SEMICOLON: return "SEMICOLON";
+    case KeyboardCode::KEY_EQUAL: return "EQUAL";
+    case KeyboardCode::KEY_A: return "A";
+    case KeyboardCode::KEY_B: return "B";
+    case KeyboardCode::KEY_C: return "C";
+    case KeyboardCode::KEY_D: return "D";
+    case KeyboardCode::KEY_E: return "E";
+    case KeyboardCode::KEY_F: return "F";
+    case KeyboardCode::KEY_G: return "G";
+    case KeyboardCode::KEY_H: return "H";
+    case KeyboardCode::KEY_I: return "I";
+    case KeyboardCode::KEY_J: return "J";
+    case KeyboardCode::KEY_K: return "K";
+    case KeyboardCode::KEY_L: return "L";
+    case KeyboardCode::KEY_M: return "M";
+    case KeyboardCode::KEY_N: return "N";
+    case KeyboardCode::KEY_O: return "O";
+    case KeyboardCode::KEY_P: return "P";
+    case KeyboardCode::KEY_Q: return "Q";
+    case KeyboardCode::KEY_R: return "R";
+    case KeyboardCode::KEY_S: return "S";
+    case KeyboardCode::KEY_T: return "T";
+    case KeyboardCode::KEY_U: return "U";
+    case KeyboardCode::KEY_V: return "V";
+    case KeyboardCode::KEY_W: return "W";
+    case KeyboardCode::KEY_X: return "X";
+    case KeyboardCode::KEY_Y: return "Y";
+    case KeyboardCode::KEY_Z: return "Z";
+    case KeyboardCode::KEY_LEFT_BRACKET: return "LEFT_BRACKET";
+    case KeyboardCode::KEY_BACKSLASH: return "BACKSLASH";
+    case KeyboardCode::KEY_RIGHT_BRACKET: return "RIGHT_BRACKET";
+    case KeyboardCode::KEY_GRAVE_ACCENT: return "GRAVE_ACCENT";
+    case KeyboardCode::KEY_ESCAPE: return "ESCAPE";
+    case KeyboardCode::KEY_ENTER: return "ENTER";
+    case KeyboardCode::KEY_TAB: return "TAB";
+    case KeyboardCode::KEY_BACKSPACE: return "BACKSPACE";
+    case KeyboardCode::KEY_INSERT: return "INSERT";
+    case KeyboardCode::KEY_DELETE: return "DELETE";
+    case KeyboardCode::KEY_RIGHT: return "RIGHT";
+    case KeyboardCode::KEY_LEFT: return "LEFT";
+    case KeyboardCode::KEY_DOWN: return "DOWN";
+    case KeyboardCode::KEY_UP: return "UP";
+    case KeyboardCode::KEY_PAGE_UP: return "PAGE_UP";
+    case KeyboardCode::KEY_PAGE_DOWN: return "PAGE_DOWN";
+    case KeyboardCode::KEY_HOME: return "HOME";
+    case KeyboardCode::KEY_END: return "END";
+    case KeyboardCode::KEY_CAPS_LOCK: return "CAPS_LOCK";
+    case KeyboardCode::KEY_SCROLL_LOCK: return "SCROLL_LOCK";
+    case KeyboardCode::KEY_NUM_LOCK: return "NUM_LOCK";
+    case KeyboardCode::KEY_PRINT_SCREEN: return "PRINT_SCREEN";
+    case KeyboardCode::KEY_PAUSE: return "PAUSE";
+    case KeyboardCode::KEY_F1: return "F1";
+    case KeyboardCode::KEY_F2: return "F2";
+    case KeyboardCode::KEY_F3: return "F3";
+    case KeyboardCode::KEY_F4: return "F4";
+    case KeyboardCode::KEY_F5: return "F5";
+    case KeyboardCode::KEY_F6: return "F6";
+    case KeyboardCode::KEY_F7: return "F7";
+    case KeyboardCode::KEY_F8: return "F8";
+    case KeyboardCode::KEY_F9: return "F9";
+    case KeyboardCode::KEY_F10: return "F10";
+    case KeyboardCode::KEY_F11: return "F11";
+    case KeyboardCode::KEY_F12: return "F12";
+    case KeyboardCode::KEY_F13: return "F13";
+    case KeyboardCode::KEY_F14: return "F14";
+    case KeyboardCode::KEY_F15: return "F15";
+    case KeyboardCode::KEY_F16: return "F16";
+    case KeyboardCode::KEY_F17: return "F17";
+    case KeyboardCode::KEY_F18: return "F18";
+    case KeyboardCode::KEY_F19: return "F19";
+    case KeyboardCode::KEY_F20: return "F20";
+    case KeyboardCode::KEY_F21: return "F21";
+    case KeyboardCode::KEY_F22: return "F22";
+    case KeyboardCode::KEY_F23: return "F23";
+    case KeyboardCode::KEY_F24: return "F24";
+    case KeyboardCode::KEY_F25: return "F25";
+    case KeyboardCode::KEY_KP_0: return "KP_0";
+    case KeyboardCode::KEY_KP_1: return "KP_1";
+    case KeyboardCode::KEY_KP_2: return "KP_2";
+    case KeyboardCode::KEY_KP_3: return "KP_3";
+    case KeyboardCode::KEY_KP_4: return "KP_4";
+    case KeyboardCode::KEY_KP_5: return "KP_5";
+    case KeyboardCode::KEY_KP_6: return "KP_6";
+    case KeyboardCode::KEY_KP_7: return "KP_7";
+    case KeyboardCode::KEY_KP_8: return "KP_8";
+    case KeyboardCode::KEY_KP_9: return "KP_9";
+    case KeyboardCode::KEY_KP_DECIMAL: return "KP_DECIMAL";
+    case KeyboardCode::KEY_KP_DIVIDE: return "KP_DIVIDE";
+    case KeyboardCode::KEY_KP_MULTIPLY: return "KP_MULTIPLY";
+    case KeyboardCode::KEY_KP_SUBTRACT: return "KP_SUBTRACT";
+    case KeyboardCode::KEY_KP_ADD: return "KP_ADD";
+    case KeyboardCode::KEY_KP_ENTER: return "KP_ENTER";
+    case KeyboardCode::KEY_KP_EQUAL: return "KP_EQUAL";
+    case KeyboardCode::KEY_LEFT_SHIFT: return "LEFT_SHIFT";
+    case KeyboardCode::KEY_LEFT_CONTROL: return "LEFT_CONTROL";
+    case KeyboardCode::KEY_LEFT_ALT: return "LEFT_ALT";
+    case KeyboardCode::KEY_LEFT_SUPER: return "LEFT_SUPER";
+    case KeyboardCode::KEY_RIGHT_SHIFT: return "RIGHT_SHIFT";
+    case KeyboardCode::KEY_RIGHT_CONTROL: return "RIGHT_CONTROL";
+    case KeyboardCode::KEY_RIGHT_ALT: return "RIGHT_ALT";
+    case KeyboardCode::KEY_RIGHT_SUPER: return "RIGHT_SUPER";
+    case KeyboardCode::KEY_MENU: return "MENU";
+    default: return "UNKNOWN"; // 或者返回其他你认为合适的默认值
+    }
+}
+} // namespace Aether

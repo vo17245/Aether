@@ -1,11 +1,5 @@
-/compile_commands.json
-/.cache/
-/Build/
-/DummyBuild/
-/tmp/
-/CMake/Local.cmake
+compile_commands.json
+.cache/
 .vscode/
-/Install
-/Packages
 imgui.ini
 __pycache__/

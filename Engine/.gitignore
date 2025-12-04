@@ -1,0 +1,6 @@
+/Build/
+/DummyBuild/
+/tmp/
+/CMake/Local.cmake
+/Install
+/Packages
