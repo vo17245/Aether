@@ -495,18 +495,18 @@ void Window::OnRender()
     static std::atomic<uint32_t> index;
     // acquire next image
     {
-        auto imageAcquireSubmit=CreateScope<Render::ImageAcquireSubmit>(); ;
+        auto imageAcquireSubmit = CreateScope<Render::ImageAcquireSubmit>();
+        ;
         imageAcquireSubmit->swapChain = m_SwapChain.get();
         imageAcquireSubmit->signalSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame].get();
         imageAcquireSubmit->timeoutNs = std::numeric_limits<uint64_t>::max();
         imageAcquireSubmit->result = &m_ImageAcquireResult;
-        imageAcquireSubmit->semaphore=&m_ImageAcquireSemaphore;
-        imageAcquireSubmit->debugIndex=index;
+        imageAcquireSubmit->semaphore = &m_ImageAcquireSemaphore;
+        imageAcquireSubmit->debugIndex = index;
         Render::SubmitThread::PushSubmit(std::move(imageAcquireSubmit));
     }
     m_ImageAcquireSemaphore.acquire();
     OnImageAcquired(m_ImageAcquireResult);
-
 }
 bool Window::CreateSyncObjects()
 {
@@ -812,7 +812,7 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
         return;
     }
     uint32_t imageIndex = result.imageIndex;
-    auto& imageAvailableSemaphore= *m_ImageAvailableSemaphore[m_CurrentFrame];
+    auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
     m_DescriptorPools[m_CurrentFrame].Clear();
 
     for (auto* layer : m_Layers)
@@ -833,9 +833,13 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     // record main render command
     curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
                                            DeviceImageLayout::ColorAttachment);
-    m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
-    m_RenderGraph->SetCurrentFrame(m_CurrentFrame);
-    m_RenderGraph->Execute();
+    if (m_RenderGraph)
+    {
+        m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
+        m_RenderGraph->SetCurrentFrame(m_CurrentFrame);
+        m_RenderGraph->Execute();
+    }
+
     // render to screen (tonemap)
     curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::ColorAttachment,
                                            DeviceImageLayout::Texture);

@@ -52,5 +52,5 @@ public:
         return param;
     }
 };
-DEFINE_APPLICATION(MotionBlur);
+DEFINE_APPLICATION(HelloWorld);
 ```
