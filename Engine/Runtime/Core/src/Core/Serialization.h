@@ -21,6 +21,12 @@ inline Json ToJsonI(const T& t)
 {
     return ToJson<T>()(t);
 }
+template<typename T>
+inline std::string ToJsonStr(const T& t)
+{
+    Json json = ToJsonI(t);
+    return json.dump();
+}
 template <typename T>
 struct FromJson
 {
