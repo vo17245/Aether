@@ -3,6 +3,7 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 #include <Filesystem/Filesystem.h>
+#include <format>
 
 namespace Aether
 {
