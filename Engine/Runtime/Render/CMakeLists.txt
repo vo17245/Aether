@@ -23,6 +23,9 @@ find_package(glfw3 REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC glfw)
 target_link_libraries(${MODULE_NAME} PUBLIC Window_header)
 target_link_libraries(${MODULE_NAME} PUBLIC ImGui_header)
+if(DEFINED AETHER_RUNTIME_CHECK)
+target_compile_definitions(${MODULE_NAME} PRIVATE AETHER_RUNTIME_CHECK=1)
+endif()
 
 
 

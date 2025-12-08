@@ -1,4 +1,5 @@
 #include "PipelineLayout.h"
+#include "Def.h"
 #include "DescriptorSetLayout.h"
 #include "GlobalRenderContext.h"
 #include <span>
@@ -17,13 +18,12 @@ PipelineLayout::Builder& PipelineLayout::Builder::AddDescriptorSetLayouts(std::s
     }
     return *this;
 }
-PipelineLayout::Builder& PipelineLayout::Builder::AddPushConstantRange(uint32_t size, vk::ShaderStage stages, uint32_t offset)
+PipelineLayout::Builder& PipelineLayout::Builder::AddPushConstantRange(uint32_t size, vk::ShaderStageFlags stages, uint32_t offset)
 {
-#ifdef ENABLE_VALIDATION
+#if AETHER_RUNTIME_CHECK
     if (size > 128)
     {
-        DEBUG_LOG_ERROR("PushConstantRange size should be less than 128 bytes");
-        DEBUG_BREAK_POINT();
+        assert(false && "PushConstantRange size should be less than 128 bytes");
     }
 #endif
     VkPushConstantRange range = {};

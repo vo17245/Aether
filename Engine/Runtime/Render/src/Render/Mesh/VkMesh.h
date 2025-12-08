@@ -11,7 +11,8 @@
 #include <unordered_map>
 #include <vector>
 #include <cassert>
-namespace Aether {
+namespace Aether
+{
 inline constexpr VkIndexType MeshComponentTypeToVkIndexType(Mesh::ComponentType type)
 {
     switch (type)
@@ -23,7 +24,7 @@ inline constexpr VkIndexType MeshComponentTypeToVkIndexType(Mesh::ComponentType 
     case Mesh::ComponentType::UINT32:
         return VK_INDEX_TYPE_UINT32;
     default:
-        assert(false&&"unknown component type");
+        assert(false && "unknown component type");
         return VK_INDEX_TYPE_MAX_ENUM;
     }
 }
@@ -63,7 +64,7 @@ public:
     }
     /**
      * @note caller should delete the pointer
-    */
+     */
     static VkMesh* CreateRaw(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
     {
         VkMesh* vkMesh = new VkMesh();
@@ -116,68 +117,13 @@ private:
         return true;
     }
 
-    bool CreateBuffers(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh)
-    {
-        // create staging buffer
-        uint32_t maxBufferSize = 0;
-        for (const auto& bufferView : Mesh.bufferViews)
-        {
-            maxBufferSize = std::max(maxBufferSize, bufferView.size);
-        }
-        auto stagingBufferOpt = vk::Buffer::CreateForStaging(maxBufferSize);
-        if (!stagingBufferOpt.has_value())
-        {
-            assert(false&&"failed to create staging buffer");
-            return false;
-        }
-        auto stagingBuffer = std::move(stagingBufferOpt.value());
-        // create data for each bufferview and copy data
-        for (const auto& bufferView : Mesh.bufferViews)
-        {
-            const auto& buffer = Mesh.buffers[bufferView.buffer];
-            const size_t size = bufferView.size;
-            const size_t offset = bufferView.offset;
-            if (bufferView.target == Mesh::Target::Index)
-            {
-                auto vkBufferOpt = vk::Buffer::CreateForIndex(size);
-                if (!vkBufferOpt.has_value())
-                {
-                    assert(false&&"failed to create index buffer");
-                    return false;
-                }
-                auto vkBuffer = std::move(vkBufferOpt.value());
-                // copy data
-                stagingBuffer.SetData(buffer.data() + offset, size);
-                vk::Buffer::SyncCopy(commandPool, stagingBuffer, vkBuffer, size);
-                m_Buffers.emplace_back(std::move(vkBuffer));
-            }
-            else
-            {
-                auto bufferOpt = vk::Buffer::CreateForVertex(bufferView.size);
-                if (!bufferOpt.has_value())
-                {
-                    assert(false&&"failed to create vertex buffer");
-                    return false;
-                }
-                // copy data
-                stagingBuffer.SetData(buffer.data() + offset, size);
-                vk::Buffer::SyncCopy(commandPool, stagingBuffer, bufferOpt.value(), size);
-                m_Buffers.emplace_back(std::move(bufferOpt.value()));
-            }
-            m_BufferTargets.push_back(bufferView.target);
-        }
-        return true;
-    }
+    bool CreateBuffers(vk::GraphicsCommandPool& commandPool, const Mesh& Mesh);
 
     bool CreatePrimitive(const Mesh& Mesh)
     {
         std::unordered_map<Mesh::Attribute, uint32_t> attributeLocation = {
-            {Mesh::Attribute::POSITION, 0},
-            {Mesh::Attribute::NORMAL, 1},
-            {Mesh::Attribute::TEXCOORD, 2},
-            {Mesh::Attribute::TANGENT, 3},
-            {Mesh::Attribute::COLOR, 4},
-            {Mesh::Attribute::BITANGENT, 5},
+            {Mesh::Attribute::POSITION, 0}, {Mesh::Attribute::NORMAL, 1}, {Mesh::Attribute::TEXCOORD, 2},
+            {Mesh::Attribute::TANGENT, 3},  {Mesh::Attribute::COLOR, 4},  {Mesh::Attribute::BITANGENT, 5},
         };
         auto& primitive = Mesh.primitive;
         Primitive vkPrimitive;
@@ -201,9 +147,7 @@ private:
         {
             attributes.push_back(attribute);
         }
-        std::sort(attributes.begin(), attributes.end(), [](Mesh::Attribute a, Mesh::Attribute b) {
-            return a < b;
-        });
+        std::sort(attributes.begin(), attributes.end(), [](Mesh::Attribute a, Mesh::Attribute b) { return a < b; });
 
         for (auto attribute : attributes)
         {
@@ -211,7 +155,8 @@ private:
             auto& accessor = Mesh.accessors[accessorIndex];
             // 这个bufferView是否被使用过了
             {
-                auto iter = std::find(vertexResource.buffers.begin(), vertexResource.buffers.end(), accessor.bufferView);
+                auto iter =
+                    std::find(vertexResource.buffers.begin(), vertexResource.buffers.end(), accessor.bufferView);
                 if (iter == vertexResource.buffers.end())
                 {
                     vertexResource.buffers.push_back(accessor.bufferView);
@@ -239,37 +184,32 @@ private:
                 }
                 else
                 {
-                    assert(false&&"unknown format");
+                    assert(false && "unknown format");
                     return false;
                 }
-                layout.PushAttribute(VertexBufferLayout::Attribute({attributeLocation[attribute], accessor.byteOffset, format}));
+                layout.PushAttribute(
+                    VertexBufferLayout::Attribute({attributeLocation[attribute], accessor.byteOffset, format}));
             }
             break;
             case Mesh::Attribute::NORMAL: {
                 if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
-                        {attributeLocation[attribute],
-                         accessor.byteOffset,
-                         BufferElementFormat::Vec3f}));
+                        {attributeLocation[attribute], accessor.byteOffset, BufferElementFormat::Vec3f}));
                 }
                 else if (accessor.type == Mesh::Type::VEC2 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
-                        {attributeLocation[attribute],
-                         accessor.byteOffset,
-                         BufferElementFormat::Vec2f}));
+                        {attributeLocation[attribute], accessor.byteOffset, BufferElementFormat::Vec2f}));
                 }
-                else if(accessor.type==Mesh::Type::SCALAR&&accessor.componentType==Mesh::ComponentType::UINT32)
+                else if (accessor.type == Mesh::Type::SCALAR && accessor.componentType == Mesh::ComponentType::UINT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
-                        {attributeLocation[attribute],
-                         accessor.byteOffset,
-                         BufferElementFormat::UInt32}));
+                        {attributeLocation[attribute], accessor.byteOffset, BufferElementFormat::UInt32}));
                 }
                 else
                 {
-                    assert(false&&"unsupport component type");
+                    assert(false && "unsupport component type");
                     return false;
                 }
             }
@@ -278,13 +218,11 @@ private:
                 if (accessor.type == Mesh::Type::VEC2 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
-                        {attributeLocation[attribute],
-                         accessor.byteOffset,
-                         BufferElementFormat::Vec2f}));
+                        {attributeLocation[attribute], accessor.byteOffset, BufferElementFormat::Vec2f}));
                 }
                 else
                 {
-                    assert(false&&"unsupport component type");
+                    assert(false && "unsupport component type");
                     return false;
                 }
             }
@@ -293,13 +231,11 @@ private:
                 if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
-                        {attributeLocation[attribute],
-                         accessor.byteOffset,
-                         BufferElementFormat::Vec3f}));
+                        {attributeLocation[attribute], accessor.byteOffset, BufferElementFormat::Vec3f}));
                 }
                 else
                 {
-                    assert(false&&"unsupport component type");
+                    assert(false && "unsupport component type");
                     return false;
                 }
             }
@@ -308,20 +244,16 @@ private:
                 if (accessor.type == Mesh::Type::VEC4 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
-                        {attributeLocation[attribute],
-                         accessor.byteOffset,
-                         BufferElementFormat::Vec4f}));
+                        {attributeLocation[attribute], accessor.byteOffset, BufferElementFormat::Vec4f}));
                 }
                 else if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
-                        {attributeLocation[attribute],
-                         accessor.byteOffset,
-                         BufferElementFormat::Vec3f}));
+                        {attributeLocation[attribute], accessor.byteOffset, BufferElementFormat::Vec3f}));
                 }
                 else
                 {
-                    assert(false&&"unsupport component type");
+                    assert(false && "unsupport component type");
                     return false;
                 }
             }
@@ -330,19 +262,17 @@ private:
                 if (accessor.type == Mesh::Type::VEC3 && accessor.componentType == Mesh::ComponentType::FLOAT32)
                 {
                     layout.PushAttribute(VertexBufferLayout::Attribute(
-                        {attributeLocation[attribute],
-                         accessor.byteOffset,
-                         BufferElementFormat::Vec3f}));
+                        {attributeLocation[attribute], accessor.byteOffset, BufferElementFormat::Vec3f}));
                 }
                 else
                 {
-                    assert(false&&"unsupport component type");
+                    assert(false && "unsupport component type");
                     return false;
                 }
             }
             break;
             default:
-                assert(false&&"unknown attribute");
+                assert(false && "unknown attribute");
                 return false;
             }
         }
@@ -351,13 +281,12 @@ private:
         m_VertexCount = Mesh.CalculateVertexCount();
         return true;
     }
-    
 
 public:
     // 把Mesh的buffer数据更新到GPU，如果buffer大小不够，会重新创建buffer
     // 只能使用创建时候使用的Mesh来更新(或者布局相同的Mesh)
     void Update(const Mesh& Mesh);
-    const std::vector<VertexBufferLayout>& GetVertexBufferLayouts()const
+    const std::vector<VertexBufferLayout>& GetVertexBufferLayouts() const
     {
         return m_Primitive.vertexResource.layouts;
     }
@@ -382,9 +311,9 @@ public:
     {
         std::vector<VkBuffer> buffers;
 
-        for (size_t i=0;i<m_Buffers.size();i++)
+        for (size_t i = 0; i < m_Buffers.size(); i++)
         {
-            if(m_BufferTargets[i]!=Mesh::Target::Vertex)
+            if (m_BufferTargets[i] != Mesh::Target::Vertex)
             {
                 continue;
             }
@@ -399,4 +328,4 @@ private:
     Primitive m_Primitive;
     size_t m_VertexCount = 0;
 };
-} // namespace Kamui
+} // namespace Aether
