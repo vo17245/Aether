@@ -10,6 +10,7 @@ enum class SubmitType
     Command,
     Present,
     ImageAcquire,
+    Custom,
 };
 struct SubmitBase
 {
@@ -54,7 +55,12 @@ struct ImageAcquireSubmit:SubmitBase
     uint64_t timeoutNs=UINT64_MAX;
     ImageAcquireResult* result=nullptr;
     std::binary_semaphore* semaphore=nullptr;
-    uint32_t debugIndex=0;
+};
+struct CustomSubmit:SubmitBase
+{
+    CustomSubmit() : SubmitBase(SubmitType::Custom) {}
+    std::function<void()> func;
+    std::binary_semaphore* semaphore=nullptr;
 };
 
 class SubmitThread

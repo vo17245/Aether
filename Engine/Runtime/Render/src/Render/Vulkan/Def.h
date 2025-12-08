@@ -3,7 +3,7 @@
 #include <type_traits>
 namespace Aether {
 namespace vk {
-enum class ShaderStage
+enum class ShaderStage:uint32_t
 {
     None = 0,
     Vertex = VK_SHADER_STAGE_VERTEX_BIT,
@@ -15,6 +15,8 @@ enum class ShaderStage
     AllGraphics = VK_SHADER_STAGE_ALL_GRAPHICS,
     All = VK_SHADER_STAGE_ALL
 };
+using ShaderStageFlags = uint32_t;
+
 // Enable bit operations for ShaderStage
 inline ShaderStage operator|(ShaderStage a, ShaderStage b)
 {

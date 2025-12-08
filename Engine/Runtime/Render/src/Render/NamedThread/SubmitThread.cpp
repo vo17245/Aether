@@ -134,6 +134,18 @@ static void HandleVkSubmit(const SubmitBase& submit)
         HandleVkImageAcquireSubmit(imageAcquireSubmit);
         break;
     }
+    case SubmitType::Custom:{
+        const CustomSubmit& customSubmit = static_cast<const CustomSubmit&>(submit);
+        if(customSubmit.func)
+        {
+            customSubmit.func();
+        }
+        if(customSubmit.semaphore)
+        {
+            customSubmit.semaphore->release();
+        }
+        break;
+    }
     default: {
         assert(false && "Unknown Submit Type");
         break;

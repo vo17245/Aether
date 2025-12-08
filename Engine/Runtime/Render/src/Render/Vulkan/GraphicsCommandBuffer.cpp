@@ -223,7 +223,7 @@ void GraphicsCommandBuffer::BindDescriptorSet(DescriptorSet& descriptorSet, Pipe
                             0,
                             nullptr);
 }
-void GraphicsCommandBuffer::UpdatePushConstants(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout, vk::ShaderStage stage)
+void GraphicsCommandBuffer::UpdatePushConstants(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout, vk::ShaderStageFlags stage)
 {
     vkCmdPushConstants(m_CommandBuffer,
                        pipelineLayout.GetHandle(),
@@ -232,20 +232,7 @@ void GraphicsCommandBuffer::UpdatePushConstants(const void* data, uint32_t size,
                        size,
                        data);
 }
-void GraphicsCommandBuffer::UpdatePushConstantsOnVertexStage(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout)
-{
-    vkCmdPushConstants(m_CommandBuffer,
-                       pipelineLayout.GetHandle(),
-                       VK_SHADER_STAGE_VERTEX_BIT,
-                       offset, size, data);
-}
-void GraphicsCommandBuffer::UpdatePushConstantsOnFragmentStage(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout)
-{
-    vkCmdPushConstants(m_CommandBuffer,
-                       pipelineLayout.GetHandle(),
-                       VK_SHADER_STAGE_FRAGMENT_BIT,
-                       offset, size, data);
-}
+
 
 GraphicsCommandBuffer::GraphicsCommandBuffer(VkCommandBuffer commandBuffer, const GraphicsCommandPool* commandPool) :
     m_CommandBuffer(commandBuffer), m_CommandPool(commandPool)

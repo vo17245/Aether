@@ -151,9 +151,7 @@ public:
 
     void BindIndexBuffer(Buffer& buffer, VkIndexType type, uint32_t offset );
     void BindDescriptorSet(DescriptorSet& descriptorSet, PipelineLayout& pipelineLayout, uint32_t setIndex);
-    void UpdatePushConstants(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout, vk::ShaderStage stage);
-    void UpdatePushConstantsOnVertexStage(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout);
-    void UpdatePushConstantsOnFragmentStage(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout);
+    void UpdatePushConstants(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout, vk::ShaderStageFlags stage);
     void SetDepthCompareOp(VkCompareOp op);
 private:
 private:

@@ -492,7 +492,6 @@ void Window::OnRender()
     // ImGuiWaitFrameResource();
     m_CommandBufferFences[m_CurrentFrame]->GetVk().Wait();
     m_CommandBufferFences[m_CurrentFrame]->GetVk().Reset();
-    static std::atomic<uint32_t> index;
     // acquire next image
     {
         auto imageAcquireSubmit = CreateScope<Render::ImageAcquireSubmit>();
@@ -502,7 +501,6 @@ void Window::OnRender()
         imageAcquireSubmit->timeoutNs = std::numeric_limits<uint64_t>::max();
         imageAcquireSubmit->result = &m_ImageAcquireResult;
         imageAcquireSubmit->semaphore = &m_ImageAcquireSemaphore;
-        imageAcquireSubmit->debugIndex = index;
         Render::SubmitThread::PushSubmit(std::move(imageAcquireSubmit));
     }
     m_ImageAcquireSemaphore.acquire();
