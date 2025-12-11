@@ -80,9 +80,9 @@ private:
     Aether::Scope<::AetherEditor::ImGuiComponent::Image> m_HeaderBackgroundImage = 0;
     Aether::Scope<::AetherEditor::ImGuiComponent::Image> m_SaveIconImage = 0;
     Aether::Scope<::AetherEditor::ImGuiComponent::Image> m_RestoreIconImage = 0;
-    Aether::Scope<Aether::DeviceTexture> m_HeaderBackgroundDeviceImage = 0;
-    Aether::Scope<Aether::DeviceTexture> m_SaveIconDeviceImage = 0;
-    Aether::Scope<Aether::DeviceTexture> m_RestoreIconDeviceImage = 0;
+    Aether::Ref<Aether::DeviceTexture> m_HeaderBackgroundDeviceImage = 0;
+    Aether::Ref<Aether::DeviceTexture> m_SaveIconDeviceImage = 0;
+    Aether::Ref<Aether::DeviceTexture> m_RestoreIconDeviceImage = 0;
 
     const float m_TouchTime = 1.0f;
     std::map<ImGui::NodeEditor::NodeId, float, NodeEditorNodeIdLess> m_NodeTouchTime;
