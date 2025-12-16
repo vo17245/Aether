@@ -17,6 +17,8 @@ find_package(stb_image_write REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC stb_image)
 target_link_libraries(${MODULE_NAME} PUBLIC stb_image_write)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
+find_package(PNG REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC PNG::png_static)
 
 
 

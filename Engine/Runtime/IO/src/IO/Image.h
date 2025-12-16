@@ -19,6 +19,7 @@ public:
     static std::expected<Image, std::string> LoadFromMemory(const uint8_t* data, size_t size);
     static std::expected<Image,std::string> LoadFromFile(const std::string_view path);
     static Image CreateRgba8(uint32_t width,uint32_t height);
+    static Image CreateRgba16(uint32_t width,uint32_t height);
     bool SaveToPngFile(const char* path);
     bool SaveToPngFile(const std::string& path)
     {
@@ -159,8 +160,9 @@ private:
                 default:
                 assert(false&&"Unsupported channel data type");
             }
-            data=new uint8_t[width * height * 4]; // Assuming 4 channels (RGBA
             rowBytes = width * pixelSize; // Bytes in one row
+            data=new uint8_t[rowBytes* height]; // Assuming 4 channels (RGBA
+            
         }
         ~BasicImageData()
         {
