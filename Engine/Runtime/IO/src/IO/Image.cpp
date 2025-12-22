@@ -30,7 +30,8 @@ bool WritePNG_RGBA16(const char* filename, int width, int height,
         fclose(fp);
         return false;
     }
-
+    // little-endian to big-endian
+    png_set_swap(png_ptr);
     png_init_io(png_ptr, fp);
 
     // -------------------------
@@ -41,8 +42,7 @@ bool WritePNG_RGBA16(const char* filename, int width, int height,
                  PNG_COLOR_TYPE_RGBA, // RGBA
                  PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
-    // 如果你的数据是 little-endian（x86），必须 swap
-    png_set_swap(png_ptr);
+    
 
     png_write_info(png_ptr, info_ptr);
 

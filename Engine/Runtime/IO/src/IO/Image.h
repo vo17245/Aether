@@ -44,8 +44,11 @@ public:
     uint8_t* GetData() const
     {
         return std::visit(GetDataImpl{}, m_Data);
-    
-    
+    }
+    template<typename T>
+    T* GetDataAs() const
+    {
+        return reinterpret_cast<T*>(GetData());
     }
     /**
      * @brief means stride in bytes / bytes in one row 
