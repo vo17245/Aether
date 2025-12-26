@@ -51,14 +51,14 @@ public:
     }
 
 public:
-    virtual void OnUpdate(float sec, Scene& scene)
+    virtual void OnUpdate(float sec, World& scene)
     {
     }
     virtual void OnRender(DeviceCommandBufferView commandBuffer,
                           DeviceRenderPassView renderPass,
                           DeviceFrameBufferView frameBuffer,
                           Vec2f screenSize,
-                          Scene& scene)
+                          World& scene)
     {
         assert(m_DescriptorPool && "descriptor pool is null");
         auto view = scene.Select<BaseComponent, TextComponent>();

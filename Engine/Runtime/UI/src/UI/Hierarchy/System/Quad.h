@@ -13,7 +13,7 @@ class QuadSystem : public SystemI
 {
 public:
     ::Aether::UI::Renderer* renderer = nullptr;
-    void OnUpdate(float sec, Scene& scene)
+    void OnUpdate(float sec, World& scene)
     {
         auto view = scene.Select<NodeComponent, BaseComponent, QuadComponent>();
     }
@@ -21,7 +21,7 @@ public:
                   DeviceRenderPassView renderPass,
                   DeviceFrameBufferView frameBuffer,
                   Vec2f screenSize,
-                  Scene& scene)
+                  World& scene)
     {
         assert(m_Camera && "camera is nullptr");
         auto view = scene.Select<NodeComponent, BaseComponent, QuadComponent>();

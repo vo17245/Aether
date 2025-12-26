@@ -10,7 +10,7 @@ namespace Aether::UI
 class VisibilityRequestSystem : public SystemI
 {
 public:
-    virtual void OnUpdate(float sec, Scene& scene)
+    virtual void OnUpdate(float sec, World& scene)
     {
         auto view=scene.Select<VisibilityRequestComponent>();
         for(const auto& [entity,vrc]:view.each())
@@ -22,7 +22,7 @@ public:
         }
     }
 private:
-    void ProcessVisibilityRequest(entt::entity entity, bool visible,Scene& scene)
+    void ProcessVisibilityRequest(entt::entity entity, bool visible,World& scene)
     {
         if(scene.HasComponent<TextComponent>(entity))
         {

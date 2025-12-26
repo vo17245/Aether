@@ -1,6 +1,6 @@
 #pragma once
 #include <Render/Render.h>
-#include <Scene/Scene.h>
+#include <World/World.h>
 #include <Window/Event.h>
 namespace Aether
 {
@@ -8,7 +8,9 @@ namespace Aether
 class System
 {
 public:
-    virtual void OnAttach(Scene* scene)
+    virtual std::string_view GetSignature()const=0;
+    virtual std::vector<std::string_view> GetDependencies()const=0;
+    virtual void OnAttach(World* scene)
     {
     }
     virtual void OnUpdate(float deltaTime)

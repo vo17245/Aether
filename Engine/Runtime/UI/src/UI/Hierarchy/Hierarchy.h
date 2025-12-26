@@ -1,5 +1,5 @@
 #pragma once
-#include <Scene/Scene.h>
+#include <World/World.h>
 #include <memory>
 #include <vector>
 #include "Component/Base.h"
@@ -51,7 +51,7 @@ public:
     {
         return m_Root;
     }
-    Scene& GetScene()
+    World& GetScene()
     {
         return m_Scene;
     }
@@ -62,7 +62,7 @@ public:
     {
         m_Systems.push_back(system);
     }
-    Hierarchy(Borrow<Scene> scene) :
+    Hierarchy(Borrow<World> scene) :
         m_Scene(scene)
     {
         InitCamera(Vec2f(1920, 1080));
@@ -163,7 +163,7 @@ public:
         }
         return nullptr;
     }
-    void SetScene(Borrow<Scene> scene)
+    void SetScene(Borrow<World> scene)
     {
         m_Scene = scene;
     }
@@ -183,7 +183,7 @@ private:
     }
 
 private:
-    Borrow<Scene> m_Scene;
+    Borrow<World> m_Scene;
     Node* m_Root = nullptr;
     std::vector<SystemI*> m_Systems;
     LayoutBuilder m_LayoutBuilder;

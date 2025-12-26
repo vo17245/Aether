@@ -9,7 +9,7 @@
 #include <queue>
 namespace Aether::UI
 {
-inline void BuildLayout(Node* root, Scene& scene, const Vec2f& screenSize, float far, LayoutBuilder& builder)
+inline void BuildLayout(Node* root, World& scene, const Vec2f& screenSize, float far, LayoutBuilder& builder)
 {
     assert(root!=nullptr&&"root is nullptr");
     builder.Begin(screenSize);
@@ -47,7 +47,7 @@ inline void BuildLayout(Node* root, Scene& scene, const Vec2f& screenSize, float
     }
     builder.End();
 }
-inline void BuildLayout(Node* root, Scene& scene, const Vec2f& screenSize, float far)
+inline void BuildLayout(Node* root, World& scene, const Vec2f& screenSize, float far)
 {
     LayoutBuilder builder;
     BuildLayout(root, scene, screenSize, far, builder);

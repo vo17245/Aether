@@ -1,16 +1,16 @@
-#include "Scene.h"
+#include "World.h"
 #include "System.h"
 namespace Aether
 {
 
-void Scene::OnUpdate(float deltaTime)
+void World::OnUpdate(float deltaTime)
 {
     for (auto& system : m_Systems)
     {
         system->OnUpdate(deltaTime);
     }
 }
-bool Scene::NeedRebuildRenderGraph()
+bool World::NeedRebuildRenderGraph()
 {
     for (auto& system : m_Systems)
     {
@@ -21,26 +21,26 @@ bool Scene::NeedRebuildRenderGraph()
     }
     return false;
 }
-void Scene::OnUpload(PendingUploadList& uploadList)
+void World::OnUpload(PendingUploadList& uploadList)
 {
     for (auto& system : m_Systems)
     {
         system->OnUpload(uploadList);
     }
 }
-void Scene::OnEvent(Event& event)
+void World::OnEvent(Event& event)
 {
     for (auto& system : m_Systems)
     {
         system->OnEvent(event);
     }
 }
-void Scene::PushSystem(Scope<System>&& system)
+void World::PushSystem(Scope<System>&& system)
 {
     system->OnAttach(this);
     m_Systems.push_back(std::move(system));
 }
-void Scene::EraseSystem(System* system)
+void World::EraseSystem(System* system)
 {
     auto iter = std::find_if(m_Systems.begin(), m_Systems.end(), [&](const Scope<System>& ptr) { return ptr.get() == system; });
     if (iter != m_Systems.end())
@@ -49,11 +49,15 @@ void Scene::EraseSystem(System* system)
         m_Systems.erase(iter);
     }
 }
-void Scene::OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph)
+void World::OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph)
 {
     for (auto& system : m_Systems)
     {
         system->OnBuildRenderGraph(renderGraph);
     }
+}
+bool BuildExecutionOrder()
+{
+    return false;
 }
 } // namespace Aether

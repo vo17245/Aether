@@ -45,8 +45,17 @@ public:
     {
         return m_KeyCode;
     }
+    const Vec2f& GetPosition() const
+    {
+        return m_Position;
+    }
+    void SetPosition(const Vec2f& pos)
+    {
+        m_Position = pos;
+    }
 private:
     MouseButtonCode m_KeyCode;
+    Vec2f m_Position;
 
 };
 class MouseButtonReleasedEvent : public EventBase<MouseButtonReleasedEvent>
@@ -68,7 +77,16 @@ public:
     {
         return m_KeyCode;
     }
+    const Vec2f& GetPosition() const
+    {
+        return m_Position;
+    }
+    void SetPosition(const Vec2f& pos)
+    {
+        m_Position = pos;
+    }
 private:
     MouseButtonCode m_KeyCode;
+    Vec2f m_Position;
 };
 } // namespace Aether

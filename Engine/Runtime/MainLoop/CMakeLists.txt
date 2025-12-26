@@ -3,15 +3,16 @@ if(MSVC)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-set(MODULE_NAME Scene)
+set(MODULE_NAME MainLoop)
 file(GLOB_RECURSE FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" 
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
 
 add_library(${MODULE_NAME} STATIC ${FILES})
+
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
-target_link_libraries(${MODULE_NAME} PUBLIC Render)
+
 
 target_include_directories(${MODULE_NAME} PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
@@ -37,7 +38,7 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/"
 )
 # 2. 配置并生成 Config 文件
 configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/${MODULE_NAME}Config.cmake.in"  # 需要你自己写
+    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/${MODULE_NAME}Config.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}Config.cmake"
     INSTALL_DESTINATION ${MODULE_NAME}/
 )

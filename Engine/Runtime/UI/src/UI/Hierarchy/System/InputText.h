@@ -10,11 +10,11 @@ namespace Aether::UI
 class InputTextSystem : public SystemI
 {
 public:
-    using View = decltype(std::declval<Scene>().Select<BaseComponent, TextComponent, InputTextComponent>());
+    using View = decltype(std::declval<World>().Select<BaseComponent, TextComponent, InputTextComponent>());
     struct Dispatcher
     {
         InputTextSystem& system;
-        Scene& scene;
+        World& scene;
         View& view;
         template <typename T>
         void operator()(T& event)
@@ -110,7 +110,7 @@ public:
     };
 
 public:
-    virtual void OnEvent(Event& event, Scene& scene)
+    virtual void OnEvent(Event& event, World& scene)
     {
         View view = scene.Select<BaseComponent, TextComponent, InputTextComponent>();
         Dispatcher dispatcher{*this, scene, view};

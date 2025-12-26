@@ -6,7 +6,7 @@ namespace Aether
 {
 class System;
 using EntityId = entt::entity;
-class Scene
+class World
 {
 public:
     EntityId CreateEntity()
@@ -51,6 +51,7 @@ public:
     void OnUpload(PendingUploadList& uploadList);
     void OnEvent(Event& event);
     void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph);
+    bool BuildExecutionOrder();
 private:
     entt::registry m_Registry;
     std::vector<Scope<System>> m_Systems;

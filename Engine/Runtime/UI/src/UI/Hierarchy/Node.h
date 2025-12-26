@@ -1,5 +1,5 @@
 #pragma once
-#include <Scene/Scene.h>
+#include <World/World.h>
 #include <Core/Borrow.h>
 namespace Aether::UI
 {

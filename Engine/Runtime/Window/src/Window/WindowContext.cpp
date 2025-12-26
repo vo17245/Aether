@@ -124,17 +124,21 @@ void WindowContext::MouseButtonEventCallback(GLFWwindow* window, int button, int
 {
     auto& windows = Get().m_Windows;
     auto iter = windows.find(window);
+    double posX, posY;
+    glfwGetCursorPos(window, &posX, &posY);
     if (iter != windows.end())
     {
         auto& window= *iter->second;
         if(action==GLFW_PRESS)
         {
-            Event event= MouseButtonPressedEvent(GlfwButtonToMouseButtonCode(button));
+            auto event=MouseButtonPressedEvent(GlfwButtonToMouseButtonCode(button));
+            event.SetPosition(Vec2f(posX,posY));
             window.PushEvent(event);
         }
         else if(action==GLFW_RELEASE)
         {
-            Event event= MouseButtonReleasedEvent(GlfwButtonToMouseButtonCode(button));
+            auto event= MouseButtonReleasedEvent(GlfwButtonToMouseButtonCode(button));
+            event.SetPosition(Vec2f(posX,posY));
             window.PushEvent(event);
         }
         else 

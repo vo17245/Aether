@@ -11,7 +11,7 @@ namespace Aether::UI
 class MouseSystem : public SystemI
 {
 public:
-    virtual void OnEvent(Event& event, Scene& scene)override
+    virtual void OnEvent(Event& event, World& scene)override
     {
         auto view = scene.Select<BaseComponent, MouseComponent>();
         // hover
