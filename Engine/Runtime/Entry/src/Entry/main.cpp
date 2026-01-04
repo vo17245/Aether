@@ -46,7 +46,7 @@ int main()
     // 销毁window中的vulkan对象
     vk::RenderContext::Config config;
     config.enableValidationLayers = true;
-    config.enableDynamicRendering = false;
+    config.enableDynamicRendering = true;
     vk::GRC::Init(window.get(), config);
     Render::SubmitThread::Init();
     WindowContext::Register(window->GetHandle(), window.get());
@@ -55,7 +55,7 @@ int main()
     app->OnInit(*window);
     std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
     MainLoop::OnFrameBegin += [&]() {
-        if (!window->ShouldClose() && app->Running())
+        if (window->ShouldClose() || !app->Running())
         {
             MainLoop::Quit();
         }

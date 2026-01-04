@@ -2,7 +2,7 @@
 #include <Core/Core.h>
 #include <Render/RenderGraph/RenderGraph.h>
 #include <Window/Event.h>
-namespace Aether
+namespace Aether::UI
 {
 class Widget;
 class WidgetFocusManager

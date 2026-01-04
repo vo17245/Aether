@@ -21,6 +21,7 @@ namespace Aether
 
         while (isRunning)
         {
+            OnFrameBegin.Broadcast();
             OnEvent.Broadcast();
             auto currentTime = std::chrono::high_resolution_clock::now();
             float deltaSec = std::chrono::duration<float>(currentTime - lastTime).count();
@@ -29,6 +30,7 @@ namespace Aether
             OnUpload.Broadcast();
             OnRender.Broadcast();
         }
+        OnCleanup.Broadcast();
         OnQuit.Broadcast();
     }
 

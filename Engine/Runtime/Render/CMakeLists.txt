@@ -17,20 +17,17 @@ find_package(glslang REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC glslang::glslang )
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
 target_link_libraries(${MODULE_NAME} PUBLIC Debug)
-find_package(glfw3 REQUIRED CONFIG)
 
-
-target_link_libraries(${MODULE_NAME} PUBLIC glfw)
-target_link_libraries(${MODULE_NAME} PUBLIC Window_header)
-target_link_libraries(${MODULE_NAME} PUBLIC ImGui_header)
 if(DEFINED AETHER_RUNTIME_CHECK)
 target_compile_definitions(${MODULE_NAME} PRIVATE AETHER_RUNTIME_CHECK=1)
 endif()
 
 
-
+target_include_directories(${MODULE_NAME} PRIVATE 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/Private>
+)
 target_include_directories(${MODULE_NAME} PUBLIC 
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/Public>
     $<INSTALL_INTERFACE:${MODULE_NAME}/include>
 )
 
