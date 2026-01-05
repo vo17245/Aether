@@ -28,7 +28,10 @@ public:
     /**
      * @brief record a buffer copy command
      */
-    void CopyBuffer(StagingBuffer& src, VertexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
+    void UploadVertexBuffer(StagingBuffer& src, VertexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
+    void UploadIndexBuffer(StagingBuffer& src, IndexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
+    void UploadUniformBuffer(StagingBuffer& src, UniformBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
+    void UploadUniformBuffer(StagingBuffer& src, RWStructuredBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
     void SetDepthCompareOp(CompareOp op);
     operator bool() const
     {

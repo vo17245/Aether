@@ -1,6 +1,7 @@
 #include <Render/Mesh/UploadMesh.h>
 #include <Render/Mesh/CreateMeshVertexLayout.h>
 #include <Render/Threads/SubmitThread.h>
+#include <Render/Upload/PendingUploadList.h>
 
 namespace Aether
 {
