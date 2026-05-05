@@ -1,5 +1,5 @@
 #pragma once
-#include <Render/RenderApi.h>
+#include <Render/RHI.h>
 #include "Quad.h"
 #include <unordered_map>
 namespace Aether::Sprite
@@ -10,7 +10,7 @@ inline static constexpr const size_t BufferQuadTextureWidth=768;
 inline static constexpr const size_t BufferQuadTextureHeight=768;
 inline static constexpr const size_t BufferQuadPerLine=BufferQuadTextureWidth/3;
 inline static constexpr const size_t MaxQuadCount=BufferQuadPerLine*BufferQuadTextureHeight;
-DeviceTexture bufferQuadTexture;
+rhi::Texture2D bufferQuadTexture;
 size_t quadCount=0;
 };
 class Renderer
@@ -47,7 +47,7 @@ public:
         // not found, create new instance
         layer.instances.push_back(InstanceDraw{quad.atlas->texture, {quad.ToBufferQuad()}});
     }
-    void End(DeviceCommandBuffer& commandBuffer)
+    void End(rhi::CommandList& commandBuffer)
     {
         for (auto& index : m_ZOrderToLayerIndex)
         {
@@ -71,7 +71,7 @@ private:
 private:
     struct InstanceDraw
     {
-        Borrow<DeviceTexture> atlas;
+        Borrow<rhi::Texture2D> atlas;
         std::vector<BufferQuad> quads;
     };
     struct RenderLayer
@@ -80,10 +80,10 @@ private:
     };
     std::vector<RenderLayer> m_Layers;
     std::vector<uint32_t> m_ZOrderToLayerIndex;
-    DevicePipeline m_Pipeline;
-    DeviceSampler m_Sampler;
+    rhi::Pipeline m_Pipeline;
+    rhi::Sampler m_Sampler;
 
 private:
-    void DrawInstance(const InstanceDraw& instance,DeviceCommandBuffer& commandBuffer);
+    void DrawInstance(const InstanceDraw& instance,rhi::CommandList& commandBuffer);
 };
 } // namespace Aether::Sprite

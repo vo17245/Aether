@@ -24,7 +24,7 @@ void main()
     )";
     return true;
 }
-void Renderer::DrawInstance(const InstanceDraw& instance, DeviceCommandBuffer& commandBuffer)
+void Renderer::DrawInstance(const InstanceDraw& instance, rhi::CommandList& commandBuffer)
 {
 }
 

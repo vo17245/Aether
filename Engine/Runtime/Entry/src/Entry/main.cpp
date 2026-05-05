@@ -46,7 +46,7 @@ int main()
     vk::RenderContext::Config config;
     config.enableValidationLayers = true;
     config.enableDynamicRendering = true;
-    vk::GRC::Init(window.get(), config);
+    vk::GRC::Init({window->GetSurface()}, config);
     Render::SubmitThread::Init();
     WindowContext::Register(window->GetHandle(), window.get());
     window->ImGuiWindowContextInit();

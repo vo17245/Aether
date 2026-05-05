@@ -8,7 +8,6 @@
 #include <optional>
 #include <Eigen/Core>
 #include <nlohmann/json.hpp>
-#include <Render/RenderApi.h>
 #include <ft2build.h>
 #include FT_STROKER_H
 #include <Core/Core.h>

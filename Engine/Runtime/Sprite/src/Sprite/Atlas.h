@@ -1,12 +1,11 @@
 #pragma once
-#include "Render/RenderApi/DeviceTexture.h"
-#include <Render/RenderApi.h>
 #include <expected>
 #include <nlohmann/json.hpp>
 #include <Core/Serialization.h>
 #include <format>
 #include <Resource/Resource.h>
 #include <Core/Core.h>
+#include <Render/RHI.h>
 namespace Aether::Sprite
 {
 
@@ -40,7 +39,7 @@ namespace Aether
 struct Atlas
 {
     AtlasInfo info;
-    Borrow<DeviceTexture> texture;
+    Borrow<rhi::Texture2D> texture;
 };
 } // namespace Aether::Sprite
 namespace Aether
