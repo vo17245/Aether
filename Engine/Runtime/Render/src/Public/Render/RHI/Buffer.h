@@ -6,8 +6,10 @@
 #include <Render/Id.h>
 namespace Aether::rhi
 {
+class CommandList;
 class StagingBuffer
 {
+    friend class CommandList;
 public:
     StagingBuffer() = default;
     StagingBuffer(const StagingBuffer&) = delete;
@@ -70,8 +72,10 @@ public:
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
 };
+
 class VertexBuffer
 {
+    friend class CommandList;
 public:
     VertexBuffer() = default;
     VertexBuffer(const VertexBuffer&) = delete;
@@ -132,6 +136,7 @@ private:
 };
 class IndexBuffer
 {
+    friend class CommandList;
 public:
     IndexBuffer() = default;
     IndexBuffer(const IndexBuffer&) = delete;
@@ -191,6 +196,7 @@ private:
 };
 class UniformBuffer
 {
+    friend class CommandList;
 public:
     UniformBuffer() = default;
     UniformBuffer(const UniformBuffer&) = delete;
@@ -240,6 +246,7 @@ private:
 };
 class RWStructuredBuffer
 {
+    friend class CommandList;
 public:
     RWStructuredBuffer() = default;
     RWStructuredBuffer(const RWStructuredBuffer&) = delete;
@@ -287,4 +294,7 @@ public:
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
 };
+using AllBufferTypes=TypeArray<VertexBuffer,IndexBuffer,UniformBuffer,RWStructuredBuffer>;
+template<typename T>
+concept IsBufferType=IsArrayContainType<T,AllBufferTypes>::value;
 } // namespace Aether::rhi

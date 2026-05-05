@@ -30,59 +30,53 @@ private:
 class PendingUploadList
 {
 public:
-    void UploadVertexBuffer(std::span<const uint8_t> data, rhi::VertexBuffer& dstBuffer, size_t dstOffset);
-public:
-    void OnUpdate(bool minilized)
+    template<typename BufferType>
+    requires rhi::IsBufferType<BufferType>
+    void UploadBuffer(std::span<const uint8_t> data, rhi::VertexBuffer* dstBuffer, size_t dstOffset)
     {
-        if (minilized)
-        {
-            return;
-        }
-        for (auto iter = m_StagingBuffers.begin(); iter != m_StagingBuffers.end();)
-        {
-            auto& buffer = *iter;
-            buffer->m_TTL--;
-            if (buffer->m_TTL <= 0)
-            {
-                iter = m_StagingBuffers.erase(iter);
-            }
-            else
-            {
-                ++iter;
-            }
-        }
-    }
-    void RecordCommand(rhi::CommandList& commandBuffer)
-    {
-        for (auto& upload : m_UploadVertexBufferList)
-        {
-            commandBuffer.CopyBuffer(upload.source->m_Buffer, *upload.destination, upload.size, upload.sourceOffset,
-                                     upload.destinationOffset);
-        }
-        m_UploadVertexBufferList.clear();
+        m_UploadBufferList.push_back(
+        CreateUploadBufferCommand(data, dstBuffer, dstOffset, Render::Config::MaxFramesInFlight));   
     }
 
+public:
+    void OnUpdate(bool minilized);
+    void RecordCommand(rhi::CommandList& commandBuffer);
+
 private:
-    struct UploadVertexBufferCommand
+    using Buffer = std::variant<std::monostate, rhi::VertexBuffer*, rhi::IndexBuffer*>;
+    struct UploadBufferCommand
     {
         TransientStagingBuffer* source = nullptr;
-        rhi::VertexBuffer* destination = nullptr;
+        Buffer destination;
         size_t sourceOffset = 0;
         size_t destinationOffset = 0;
         size_t size = 0;
     };
-    UploadVertexBufferCommand CreateUploadVertexBufferCommand(std::span<const uint8_t> data, rhi::VertexBuffer& dstBuffer,
-                                                  size_t dstOffset, uint32_t ttl);
+    template <typename BufferType>
+    UploadBufferCommand CreateUploadBufferCommand(std::span<const uint8_t> data, BufferType* dstBuffer,
+                                                  size_t dstOffset, uint32_t ttl)
+    {
+        auto stagingBuffer = AllocateStagingBuffer(data.size());
+        stagingBuffer->SetData(0, data);
+        stagingBuffer->m_TTL = ttl;
+        auto command = UploadBufferCommand{};
+        command.source = stagingBuffer;
+        command.destination = dstBuffer;
+        command.sourceOffset = 0;
+        command.destinationOffset = dstOffset;
+        command.size = data.size();
+        return command;
+    }
 
     TransientStagingBuffer* AllocateStagingBuffer(size_t size)
     {
-        m_StagingBuffers.push_back(CreateScope<TransientStagingBuffer>(Render::Config::MaxFramesInFlight,
-                                                                       rhi::StagingBuffer::Create(size)));
+        m_StagingBuffers.push_back(
+            CreateScope<TransientStagingBuffer>(Render::Config::MaxFramesInFlight, rhi::StagingBuffer::Create(size)));
         return m_StagingBuffers.back().get();
     }
 
 private:
     std::vector<Scope<TransientStagingBuffer>> m_StagingBuffers;
-    std::vector<UploadVertexBufferCommand> m_UploadVertexBufferList;
+    std::vector<UploadBufferCommand> m_UploadBufferList;
 };
 } // namespace Aether

@@ -1,23 +1,47 @@
 #include "Render/Upload/PendingUploadList.h"
 namespace Aether
 {
-PendingUploadList::UploadVertexBufferCommand
-PendingUploadList::CreateUploadVertexBufferCommand(std::span<const uint8_t> data, rhi::VertexBuffer& dstBuffer, size_t dstOffset,uint32_t ttl)
+void PendingUploadList::RecordCommand(rhi::CommandList& commandBuffer)
 {
-    auto stagingBuffer = AllocateStagingBuffer(data.size());
-    stagingBuffer->SetData(0, data);
-    stagingBuffer->m_TTL=ttl;
-    auto command = UploadVertexBufferCommand{};
-    command.source = stagingBuffer;
-    command.destination = &dstBuffer;
-    command.sourceOffset = 0;
-    command.destinationOffset = dstOffset;
-    command.size = data.size();
-    return command;
+    for (auto& upload : m_UploadBufferList)
+    {
+        std::visit(
+            [&](auto&& dstBuffer) {
+                using T = std::decay_t<decltype(dstBuffer)>;
+                if constexpr (std::is_same_v<T, rhi::VertexBuffer*>)
+                {
+                    commandBuffer.UploadVertexBuffer(upload.source->m_Buffer, *dstBuffer, upload.size,
+                                                     upload.sourceOffset, upload.destinationOffset);
+                }
+                else if constexpr (std::is_same_v<T, rhi::IndexBuffer*>)
+                {
+                    commandBuffer.UploadIndexBuffer(upload.source->m_Buffer, *dstBuffer, upload.size,
+                                                    upload.sourceOffset, upload.destinationOffset);
+                }
+            },
+            upload.destination);
+    }
+    m_UploadBufferList.clear();
 }
-void PendingUploadList::UploadVertexBuffer(std::span<const uint8_t> data, rhi::VertexBuffer& dstBuffer, size_t dstOffset)
+void PendingUploadList::OnUpdate(bool minilized)
 {
-    m_UploadVertexBufferList.push_back(CreateUploadVertexBufferCommand(data, dstBuffer, dstOffset,2));
+    if (minilized)
+    {
+        return;
+    }
+    for (auto iter = m_StagingBuffers.begin(); iter != m_StagingBuffers.end();)
+    {
+        auto& buffer = *iter;
+        buffer->m_TTL--;
+        if (buffer->m_TTL <= 0)
+        {
+            iter = m_StagingBuffers.erase(iter);
+        }
+        else
+        {
+            ++iter;
+        }
+    }
 }
 
 } // namespace Aether

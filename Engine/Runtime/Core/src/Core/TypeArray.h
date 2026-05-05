@@ -61,6 +61,10 @@ struct TypeIndexInArray<T, TypeArray<Ts...>>
 };
 template <typename T, typename U>
 struct IsArrayContainType;
+/**
+ * @tparam T Type to check
+ * @tparam TypeArray TypeArray to check in
+*/
 template <typename T, typename... Ts>
 struct IsArrayContainType<T, TypeArray<Ts...>>
 {

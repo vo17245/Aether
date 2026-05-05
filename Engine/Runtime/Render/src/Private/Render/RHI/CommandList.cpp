@@ -86,5 +86,4 @@ static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
         }
     }
 
-
-}
+} // namespace Aether::rhi
