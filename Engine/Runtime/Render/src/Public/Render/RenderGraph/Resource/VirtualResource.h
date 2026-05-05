@@ -3,7 +3,7 @@
 #include "ResourceTypeTraits.h"
 #include <Core/Core.h>
 #include "AccessId.h"
-#include "ResourceCode.h"
+#include "Render/RenderGraph/Resource/ResourceCode.h"
 namespace Aether::RenderGraph
 {
 

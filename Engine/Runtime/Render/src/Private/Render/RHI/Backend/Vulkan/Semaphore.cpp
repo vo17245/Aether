@@ -1,5 +1,5 @@
-#include "Semaphore.h"
-#include "GlobalRenderContext.h"
+#include "Render/RHI/Backend/Vulkan/Semaphore.h"
+#include "Render/RHI/Backend/Vulkan/GlobalRenderContext.h"
 #include <iostream>
 namespace Aether {
 namespace vk {

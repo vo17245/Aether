@@ -7,12 +7,12 @@
 #include <vector>
 #include "Event.h"
 #include "Layer.h"
-#include "Render/Vulkan/FrameBuffer.h"
-#include "Render/Vulkan/ImageView.h"
 #include "Input.h"
-#include "GammaFilter.h"
 #include "Render/RenderGraph/RenderGraph.h"
 #include "ImGui/Compat/WindowContext.h"
+#include <Render/RHI.h>
+#include <Render/Threads/SubmitThread.h>
+
 
 
 namespace Aether
@@ -65,7 +65,7 @@ public:
     void PushLayer(Layer* layer);
     void PushLayers(const std::span<Layer*>& layers);
     bool PopLayer(Layer* layer);
-    DeviceSwapChain* GetSwapChain() const;
+    rhi::SwapChain* GetSwapChain() const;
     const std::vector<VkImage>& GetImages() const;
     std::vector<VkImage>& GetImages();
     const std::vector<vk::ImageView>& GetImageViews() const;
@@ -88,19 +88,15 @@ public:
 
     void ReleaseFinalImage();
     bool CreateFinalImage();
-    DeviceTexture& GetFinalTexture(uint32_t index);
+    rhi::Texture& GetFinalTexture(uint32_t index);
     void SetSize(uint32_t width, uint32_t height);
     uint32_t GetCurrentFrameIndex()
     {
         return m_CurrentFrame;
     }
-    RenderGraph::AccessId<DeviceTexture> GetFinalImageAccessId() const
+    RenderGraph::AccessId<rhi::Texture> GetFinalImageAccessId() const
     {
         return m_FinalImageAccessId;
-    }
-    DeviceDescriptorPool& GetCurrentDescriptorPool()
-    {
-        return m_DescriptorPools[m_CurrentFrame];
     }
     // create resource arena and lru pool
     void InitRenderGraphResource();
@@ -128,10 +124,6 @@ public:
     }
     void SetCursorPosition(double x, double y);
     void SetCursorMode(CursorMode mode);
-    void SetGamma(float gamma)
-    {
-        m_GammaFilter->SetGamma(gamma);
-    }
     bool IsMinilized() const
     {
         return m_Minilized;
@@ -140,24 +132,20 @@ public:
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
-    Scope<DeviceSwapChain> m_SwapChain;
+    Scope<rhi::SwapChain> m_SwapChain;
     std::vector<VkImage> m_SwapChainImages;
     std::vector<vk::ImageView> m_SwapChainImageViews;
     VkFormat m_SwapChainImageFormat{};
     VkExtent2D m_SwapChainExtent{};
     VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
     GLFWwindow* m_Handle = nullptr;
-    std::unique_ptr<DeviceSemaphore> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
-    std::unique_ptr<DeviceSemaphore> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
-    Scope<DeviceFence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
-    DeviceCommandBuffer m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
+    std::unique_ptr<rhi::Fence> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
+    std::unique_ptr<rhi::Fence> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
+    Scope<rhi::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
+    rhi::CommandList m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
     //=========== final image
-    DeviceTexture m_FinalTextures[MAX_FRAMES_IN_FLIGHT];
-    DeviceImageView m_FinalImageViews[MAX_FRAMES_IN_FLIGHT];
-    DeviceFrameBuffer m_TonemapFrameBuffers[MAX_FRAMES_IN_FLIGHT];
-    DeviceRenderPass m_TonemapRenderPass;
-    Scope<WindowInternal::GammaFilter> m_GammaFilter;
-    DeviceDescriptorPool m_DescriptorPools[MAX_FRAMES_IN_FLIGHT];
+    rhi::Texture m_FinalTextures[MAX_FRAMES_IN_FLIGHT];
+    rhi::TextureView m_FinalImageViews[MAX_FRAMES_IN_FLIGHT];
     //================================
     uint32_t m_CurrentFrame = 0;
 
@@ -194,15 +182,15 @@ private: // render graph
     // create render graph, register final image
     // and call each layer RegisterRenderPasses function
     void CreateRenderGraph();
-    RenderGraph::AccessId<DeviceTexture> m_FinalImageAccessId;
+    RenderGraph::AccessId<rhi::Texture> m_FinalImageAccessId;
 
 private: // imgui
     bool m_ImGuiClearEnable = false;
     ImGuiApi::WindowContext m_ImGuiContext;
     Vec4f m_ImGuiClearColor = Vec4f(0.5, 0.7, 1.0, 1.0);
-    void ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer);
+    void ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer);
     void ImGuiWaitFrameResource();
-    void ImGuiFrameRender(DeviceCommandBuffer& commandBuffer);
+    void ImGuiFrameRender(rhi::CommandList& commandBuffer);
 
 private: // upload
     PendingUploadList m_PendingUploadList;

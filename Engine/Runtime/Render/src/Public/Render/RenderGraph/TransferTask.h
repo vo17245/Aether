@@ -1,33 +1,75 @@
 #pragma once
 #include "TaskBase.h"
 #include "Resource/AccessId.h"
-#include <Render/RenderApi.h>
+#include <Render/RHI.h>
 namespace Aether::RenderGraph
 {
-struct UploadBufferTask : public TaskBase
-{
-    UploadBufferTask() : TaskBase(TaskType::UploadBufferTask) {}
-    AccessId<DeviceBuffer> source;
-    AccessId<DeviceBuffer> destination;
-};
+// texture
 struct UploadTextureTask : public TaskBase
 {
     UploadTextureTask() : TaskBase(TaskType::UploadTextureTask) {}
-    AccessId<DeviceBuffer> source;
-    AccessId<DeviceTexture> destination;
+    AccessId<rhi::StagingBuffer> source;
+    AccessId<rhi::Texture2D> destination;
     
-};
-struct DownloadBufferTask : public TaskBase
-{
-    DownloadBufferTask() : TaskBase(TaskType::DownloadBufferTask) {}
-    AccessId<DeviceBuffer> source;
-    AccessId<DeviceBuffer> destination;
 };
 struct DownloadTextureTask : public TaskBase
 {
     DownloadTextureTask() : TaskBase(TaskType::DownloadTextureTask) {}
-    AccessId<DeviceTexture> source;
-    AccessId<DeviceBuffer> destination;
+    AccessId<rhi::Texture2D> source;
+    AccessId<rhi::StagingBuffer> destination;
+};
+// vertex buffer
+struct UploadVertexBufferTask : public TaskBase
+{
+    UploadVertexBufferTask() : TaskBase(TaskType::UploadVertexBufferTask) {}
+    AccessId<rhi::StagingBuffer> source;
+    AccessId<rhi::VertexBuffer> destination;
+};
+
+struct DownloadVertexBufferTask : public TaskBase
+{
+    DownloadVertexBufferTask() : TaskBase(TaskType::DownloadVertexBufferTask) {}
+    AccessId<rhi::VertexBuffer> source;
+    AccessId<rhi::StagingBuffer> destination;
+};
+// index buffer
+struct UploadIndexBufferTask : public TaskBase
+{
+    UploadIndexBufferTask() : TaskBase(TaskType::UploadIndexBufferTask) {}
+    AccessId<rhi::StagingBuffer> source;
+    AccessId<rhi::IndexBuffer> destination;
+};
+struct DownloadIndexBufferTask : public TaskBase
+{
+    DownloadIndexBufferTask() : TaskBase(TaskType::DownloadIndexBufferTask) {}
+    AccessId<rhi::IndexBuffer> source;
+    AccessId<rhi::StagingBuffer> destination;
+};
+// uniform buffer
+struct UploadUniformBufferTask : public TaskBase
+{
+    UploadUniformBufferTask() : TaskBase(TaskType::UploadUniformBufferTask) {}
+    AccessId<rhi::StagingBuffer> source;
+    AccessId<rhi::UniformBuffer> destination;
+};
+struct DownloadUniformBufferTask : public TaskBase
+{
+    DownloadUniformBufferTask() : TaskBase(TaskType::DownloadUniformBufferTask) {}
+    AccessId<rhi::UniformBuffer> source;
+    AccessId<rhi::StagingBuffer> destination;
+};
+// RWStructuredBuffer
+struct UploadRWStructuredBufferTask : public TaskBase
+{
+    UploadRWStructuredBufferTask() : TaskBase(TaskType::UploadRWStructuredBufferTask) {}
+    AccessId<rhi::StagingBuffer> source;
+    AccessId<rhi::RWStructuredBuffer> destination;
+};
+struct DownloadRWStructuredBufferTask : public TaskBase
+{
+    DownloadRWStructuredBufferTask() : TaskBase(TaskType::DownloadRWStructuredBufferTask) {}
+    AccessId<rhi::RWStructuredBuffer> source;
+    AccessId<rhi::StagingBuffer> destination;
 };
 
 } // namespace Aether::RenderGraph

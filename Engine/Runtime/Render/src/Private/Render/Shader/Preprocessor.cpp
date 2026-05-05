@@ -1,8 +1,8 @@
-#include "Preprocessor.h"
+#include "Render/Shader/Preprocessor.h"
 #include <string>
 #include "Filesystem/FilesystemApi.h"
 #include "Filesystem/Utils.h"
-#include "Lines.h"
+#include "Render/Shader/Lines.h"
 #include "Filesystem/Filesystem.h"
 #include <format>
 namespace Aether {

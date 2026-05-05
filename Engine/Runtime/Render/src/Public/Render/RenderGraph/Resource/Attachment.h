@@ -1,6 +1,5 @@
 #pragma once
-#include <Render/RenderApi.h>
-#include "DeviceTexture.h"
+#include <Render/RHI.h>
 #include "ResourceId.h"
 #include "AccessId.h"
 namespace Aether::RenderGraph
@@ -8,16 +7,16 @@ namespace Aether::RenderGraph
 
 struct Attachment
 {
-    AccessId<DeviceImageView> imageView;
-    DeviceAttachmentLoadOp loadOp;
-    DeviceAttachmentStoreOp storeOp;
+    AccessId<rhi::TextureView> textureView;
+    rhi::AttachmentLoadOp loadOp;
+    rhi::AttachmentStoreOp storeOp;
     bool operator==(const Attachment& other) const
     {
-        return imageView == other.imageView && loadOp == other.loadOp && storeOp == other.storeOp;
+        return textureView == other.textureView && loadOp == other.loadOp && storeOp == other.storeOp;
     }
     bool operator!=(const Attachment& other) const
     {
         return !(other == *this);
     }
 };
-}
+} // namespace Aether::RenderGraph

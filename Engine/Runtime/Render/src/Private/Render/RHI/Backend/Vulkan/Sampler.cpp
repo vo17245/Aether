@@ -1,5 +1,5 @@
-#include "Sampler.h"
-#include "GlobalRenderContext.h"
+#include "Render/RHI/Backend/Vulkan/Sampler.h"
+#include "Render/RHI/Backend/Vulkan/GlobalRenderContext.h"
 #include "vulkan/vulkan_core.h"
 namespace Aether {
 namespace vk {

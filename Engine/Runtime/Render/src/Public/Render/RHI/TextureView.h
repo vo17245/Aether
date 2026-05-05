@@ -35,7 +35,7 @@ struct Hash<rhi::TextureViewDesc>
 namespace Aether::rhi
 {
 
-class ImageView
+class TextureView
 {
 public:
     bool Empty() const
@@ -52,17 +52,17 @@ public:
     {
         return std::get<T>(m_ImageView);
     }
-    ImageView(std::monostate) : m_ImageView(std::monostate{})
+    TextureView(std::monostate) : m_ImageView(std::monostate{})
     {
     }
-    ImageView(vk::ImageView&& imageView) : m_ImageView(std::move(imageView))
+    TextureView(vk::ImageView&& imageView) : m_ImageView(std::move(imageView))
     {
     }
-    ImageView()
+    TextureView()
     {
     }
-    ImageView(ImageView&&) = default;
-    ImageView& operator=(ImageView&&) = default;
+    TextureView(TextureView&&) = default;
+    TextureView& operator=(TextureView&&) = default;
     vk::ImageView& GetVk()
     {
         return std::get<vk::ImageView>(m_ImageView);

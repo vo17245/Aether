@@ -1,4 +1,5 @@
 #include <Render/RHI/CommandList.h>
+#include <Render/RHI/Backend/Vulkan/Transfer.h>
 namespace Aether::rhi
 {
 // clang-format off
@@ -44,7 +45,7 @@ static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
             assert(false && "unsupported command buffer type");
         }
     }
-    void CommandList::BindPipeline(DevicePipeline& pipeline)
+    void CommandList::BindPipeline(Pipeline& pipeline)
     {
         if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))
         {

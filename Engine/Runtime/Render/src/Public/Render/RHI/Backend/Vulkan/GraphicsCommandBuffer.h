@@ -149,7 +149,7 @@ public:
                            const VkDeviceSize* offsets);
     void BindVertexBuffers(const std::vector<VkBuffer>& buffers, uint32_t firstBinding = 0);
 
-    void BindIndexBuffer(Buffer& buffer, VkIndexType type, uint32_t offset );
+    void BindIndexBuffer(const Buffer& buffer, VkIndexType type, uint32_t offset );
     void BindDescriptorSet(DescriptorSet& descriptorSet, PipelineLayout& pipelineLayout, uint32_t setIndex);
     void UpdatePushConstants(const void* data, uint32_t size, uint32_t offset, PipelineLayout& pipelineLayout, vk::ShaderStageFlags stage);
     void SetDepthCompareOp(VkCompareOp op);

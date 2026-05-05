@@ -5,10 +5,10 @@
 namespace Aether::rhi
 {
 
-class DevicePipeline
+class Pipeline
 {
 public:
-    DevicePipeline() = default;
+    Pipeline() = default;
     bool Empty() const
     {
         return m_Pipeline.index() == 0;

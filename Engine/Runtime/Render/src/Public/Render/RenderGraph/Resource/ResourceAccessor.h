@@ -1,11 +1,15 @@
 #pragma once
 #include "AccessId.h"
 #include "ResourceArena.h"
-#include "DeviceTexture.h"
 #include "ResourceLruPool.h"
-#include "DeviceBuffer.h"
 #include "../Utils.h"
 #include "ResourceCode.h"
+#include "Texture2D.h"
+#include "TextureView.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
+#include "StagingBuffer.h"
+#include "UniformBuffer.h"
 namespace Aether::RenderGraph
 {
 
@@ -14,9 +18,9 @@ struct VirtualResourceInfo
 {
 };
 template <>
-struct VirtualResourceInfo<DeviceTexture>
+struct VirtualResourceInfo<rhi::Texture2D>
 {
-    DeviceImageLayout layout = DeviceImageLayout::Undefined;
+    rhi::TextureLayout layout = rhi::TextureLayout::Undefined;
 };
 template <typename T>
 struct ResourceSlot
@@ -86,12 +90,12 @@ public:
         uint32_t index = m_FrameIndex % slot.resourceCount;
         if (!slot.isRealized[index])
         {
-            if constexpr (std::is_same_v<ResourceType,DeviceImageView> )
+            if constexpr (std::is_same_v<ResourceType,rhi::TextureView> )
             {
-                ResourceSlot<DeviceImageView>& imageViewSlot = slot;
+                ResourceSlot<rhi::TextureView>& imageViewSlot = slot;
                 // create image view
                 GetResource(imageViewSlot.desc.texture);// 确保texture已经realize
-                auto resource=Realize<DeviceImageView>{*m_ResourceArena,*this,m_FrameIndex}(slot.desc);
+                auto resource=Realize<rhi::TextureView>{*m_ResourceArena,*this,m_FrameIndex}(slot.desc);
                 // add to arena
                 if (!resource)
                 {
@@ -103,52 +107,10 @@ public:
                 // set resource dependency
                 {
                     // get texture slot
-                    ResourceSlot<DeviceTexture>& textureSlot = GetSlot(slot.desc.texture);
+                    ResourceSlot<rhi::Texture2D>& textureSlot = GetSlot(slot.desc.texture);
                     uint32_t textureIndex = m_FrameIndex % textureSlot.resourceCount;
                     assert(textureSlot.isRealized[textureIndex]);// 在realize image view时已经检查过
                     m_ResourceArena->AddDependency(resourceId, textureSlot.frameResources[textureIndex]);
-                }
-                // set slot resource id
-                slot.frameResources[index] = resourceId;
-                // set realized flag
-                slot.isRealized[index] = true;
-            }
-            else if constexpr (std::is_same_v<ResourceType,DeviceFrameBuffer>)
-            {
-                // create frame buffer
-                ResourceSlot<DeviceFrameBuffer>& frameBufferSlot = slot;
-                auto resource=Realize<DeviceFrameBuffer>{*m_ResourceArena,*this,m_FrameIndex}(slot.desc);
-                if(!resource)
-                {
-                    assert(false && "Failed to create frame buffer");
-                    return nullptr;
-                }
-                // add to arena
-                auto resourceId=m_ResourceArena->AddResource(std::move(resource));  
-
-
-                // set resource dependency
-                {
-                    // set color attachments
-                    for(size_t i=0;i<frameBufferSlot.desc.colorAttachmentCount;++i)
-                    {
-                        auto& attachment=frameBufferSlot.desc.colorAttachments[i];
-                        ResourceSlot<DeviceImageView>& imageViewSlot = GetSlot(attachment.imageView);
-                        uint32_t imageViewIndex = m_FrameIndex % imageViewSlot.resourceCount;
-                        assert(imageViewSlot.isRealized[imageViewIndex]);// 在realize frame buffer时已经检查过
-                        m_ResourceArena->AddDependency(resourceId, imageViewSlot.frameResources[imageViewIndex]);
-
-                    }
-                    // set depth attachment
-                    if (frameBufferSlot.desc.depthAttachment)
-                    {
-                        auto& attachment = frameBufferSlot.desc.depthAttachment.value();
-                        ResourceSlot<DeviceImageView>& imageViewSlot = GetSlot(attachment.imageView);
-                        uint32_t imageViewIndex = m_FrameIndex % imageViewSlot.resourceCount;
-                        assert(imageViewSlot.isRealized[imageViewIndex]);// 在realize frame buffer时已经检查过
-                        m_ResourceArena->AddDependency(resourceId, imageViewSlot.frameResources[imageViewIndex]);
-                    }
-
                 }
                 // set slot resource id
                 slot.frameResources[index] = resourceId;
@@ -256,8 +218,8 @@ private:
     {
     }
     template <>
-    void SetSlotVirtualInfo<DeviceTexture>(const typename ResourceDescType<DeviceTexture>::Type& desc,
-                                           VirtualResourceInfo<DeviceTexture>& info)
+    void SetSlotVirtualInfo<rhi::Texture2D>(const typename ResourceDescType<rhi::Texture2D>::Type& desc,
+                                           VirtualResourceInfo<rhi::Texture2D>& info)
     {
         info.layout = desc.layout;
     }
@@ -290,19 +252,19 @@ struct BuildResourceAccessor<TypeArray<Ts...>>
 using ResourceAccessor = typename Detail::BuildResourceAccessor<ResourceTypeArray>::Type;
 
 template <>
-struct Realize<DeviceImageView>
+struct Realize<rhi::TextureView>
 {
     ResourceArena& arena;
     ResourceAccessor& accessor;
     uint32_t frameIndex;
-    Scope<DeviceImageView> operator()(const ImageViewDesc& desc)
+    Scope<rhi::TextureView> operator()(const TextureViewDesc& desc)
     {
         auto& textureSlot = accessor.GetSlot(desc.texture);
         uint32_t textureIndex = frameIndex % textureSlot.resourceCount;
         assert(textureSlot.isRealized[textureIndex]);
         auto& textureId = textureSlot.frameResources[textureIndex];
         assert(textureId.handle.IsValid());
-        DeviceTexture* texture = arena.GetResource(textureId);
+        rhi::Texture2D* texture = arena.GetResource(textureId);
         if (!texture || texture->Empty())
         {
             return nullptr;
@@ -312,63 +274,7 @@ struct Realize<DeviceImageView>
         {
             return nullptr;
         }
-        return CreateScope<DeviceImageView>(std::move(imageView));
-    }
-};
-template <>
-struct Realize<DeviceFrameBuffer>
-{
-    ResourceArena& arena;
-    ResourceAccessor& accessor;
-    uint32_t frameIndex;
-    Scope<DeviceFrameBuffer> operator()(const FrameBufferDesc& desc)
-    {
-        DeviceFrameBufferDesc frameBufferDesc;
-        DeviceRenderPass* renderPass = accessor.GetResource(desc.renderPass);
-        if (!renderPass || renderPass->Empty())
-        {
-            return nullptr;
-        }
-        frameBufferDesc.width = desc.width;
-        frameBufferDesc.height = desc.height;
-        frameBufferDesc.colorAttachmentCount = desc.colorAttachmentCount;
-        for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
-        {
-            auto& attachment = desc.colorAttachments[i];
-            auto& imageViewSlot = accessor.GetSlot(attachment.imageView);
-            uint32_t imageViewIndex = frameIndex % imageViewSlot.resourceCount;
-            if(!imageViewSlot.isRealized[imageViewIndex])
-            {
-                accessor.GetResource(attachment.imageView);
-            }
-            assert(imageViewSlot.isRealized[imageViewIndex]);
-            assert(imageViewSlot.frameResources[imageViewIndex].handle.IsValid());
-            ResourceId<DeviceImageView> imageViewId = imageViewSlot.frameResources[imageViewIndex];
-            DeviceImageView* imageView = arena.GetResource(imageViewId);
-
-            frameBufferDesc.colorAttachments[i] = imageView;
-        }
-        if (desc.depthAttachment)
-        {
-            auto& attachment = desc.depthAttachment.value();
-            auto& imageViewSlot = accessor.GetSlot(attachment.imageView);
-            uint32_t imageViewIndex = frameIndex % imageViewSlot.resourceCount;
-            if(!imageViewSlot.isRealized[imageViewIndex])
-            {
-                accessor.GetResource(attachment.imageView);
-            }
-            assert(imageViewSlot.isRealized[imageViewIndex]);
-            assert(imageViewSlot.frameResources[imageViewIndex].handle.IsValid());
-            ResourceId<DeviceImageView> imageViewId = imageViewSlot.frameResources[imageViewIndex];
-            DeviceImageView* imageView = arena.GetResource(imageViewId);
-            frameBufferDesc.depthAttachment = imageView;
-        }
-        auto frameBuffer = DeviceFrameBuffer::Create(*renderPass, frameBufferDesc);
-        if (frameBuffer.Empty())
-        {
-            return nullptr;
-        }
-        return CreateScope<DeviceFrameBuffer>(std::move(frameBuffer));
+        return CreateScope<rhi::TextureView>(std::move(imageView));
     }
 };
 

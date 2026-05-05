@@ -207,7 +207,7 @@ void GraphicsCommandBuffer::BindVertexBuffers(const std::vector<VkBuffer>& buffe
     BindVertexBuffers(buffers.data(), buffers.size(), firstBinding);
 }
 
-void GraphicsCommandBuffer::BindIndexBuffer(Buffer& buffer, VkIndexType type, uint32_t offset)
+void GraphicsCommandBuffer::BindIndexBuffer(const Buffer& buffer, VkIndexType type, uint32_t offset)
 {
     vkCmdBindIndexBuffer(m_CommandBuffer, buffer.GetHandle(), offset, type);
 }

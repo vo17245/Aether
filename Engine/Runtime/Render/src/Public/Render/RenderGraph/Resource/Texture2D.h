@@ -1,17 +1,17 @@
 #pragma once
-#include <Render/RenderApi.h>
 #include "Resource.h"
 #include <Core/Core.h>
+#include <Render/RHI.h>
 namespace Aether::RenderGraph
 {
 struct TextureDesc
 {
-    DeviceImageUsageFlags usages;
+    rhi::TextureUsageFlags usages;
     PixelFormat pixelFormat;
     uint32_t width;
     uint32_t height;
 
-    DeviceImageLayout layout = DeviceImageLayout::Undefined;
+    rhi::TextureLayout layout = rhi::TextureLayout::Undefined;
     bool operator==(const TextureDesc& other) const
     {
         return usages == other.usages && pixelFormat == other.pixelFormat && width == other.width
@@ -19,23 +19,27 @@ struct TextureDesc
     }
 };
 template <>
-struct ResourceDescType<DeviceTexture>
+struct ResourceDescType<rhi::Texture2D>
 {
     using Type = TextureDesc;
 };
 template <>
-struct Realize<DeviceTexture>
+struct Realize<rhi::Texture2D>
 {
-    Scope<DeviceTexture> operator()(const TextureDesc& desc)
+    Scope<rhi::Texture2D> operator()(const TextureDesc& desc)
     {
-        auto deviceTexture =
-            DeviceTexture::Create(desc.width, desc.height, desc.pixelFormat, desc.usages, DeviceImageLayout::Undefined);
-        deviceTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, desc.layout);
+        auto textureDesc = rhi::TextureDesc{.usages = desc.usages,
+                                            .pixelFormat = desc.pixelFormat,
+                                            .width = desc.width,
+                                            .height = desc.height,
+                                            .layout = desc.layout};
+        auto deviceTexture = rhi::Texture2D::Create(textureDesc);
+        deviceTexture.SyncTransitionLayout(rhi::TextureLayout::Undefined, desc.layout);
         if (!deviceTexture)
         {
             return nullptr;
         }
-        return CreateScope<DeviceTexture>(std::move(deviceTexture));
+        return CreateScope<rhi::Texture2D>(std::move(deviceTexture));
     }
 };
 

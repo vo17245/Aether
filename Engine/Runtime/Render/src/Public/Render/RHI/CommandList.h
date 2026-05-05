@@ -5,6 +5,9 @@
 #include "Pipeline.h"
 #include "Buffer.h"
 #include "CompareOp.h"
+#include "RenderPass.h"
+#include "Texture2D.h"
+
 namespace Aether::rhi
 {
 
@@ -24,7 +27,7 @@ public:
 
     void SetViewport(float x, float y, float width, float height);
     void SetScissor(float x, float y, float width, float height);
-    void BindPipeline(DevicePipeline& pipeline);
+    void BindPipeline(Pipeline& pipeline);
     /**
      * @brief record a buffer copy command
      */
@@ -34,7 +37,13 @@ public:
     {
         return m_Data.index() != 0;
     }
-
+    vk::GraphicsCommandBuffer& GetVk()
+    {
+        return std::get<vk::GraphicsCommandBuffer>(m_Data);
+    }
+    void BeginRenderPass(const RenderPass& pass);
+    void EndRenderPass();
+    void TextureLayoutTransition(Texture2D& texture, TextureLayout oldLayout, TextureLayout newLayout);
 private:
     std::variant<std::monostate, vk::GraphicsCommandBuffer> m_Data;
 };

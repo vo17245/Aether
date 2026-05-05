@@ -1,9 +1,13 @@
 #pragma once
+#include "RHI/Config.h"
 #include "RHI/Shader.h"
-#include "RHI/Texture.h"
+#include "RHI/Texture2D.h"
 #include "RHI/Pipeline.h"
 #include "RHI/CommandList.h"
 #include "RHI/Buffer.h"
 #include "RHI/Sampler.h"
 #include "RHI/GpuFence.h"
-
+#include "RHI/TextureView.h"
+#include "RHI/Attachment.h"
+#include "RHI/RenderPass.h"
+#include "RHI/SwapChain.h"

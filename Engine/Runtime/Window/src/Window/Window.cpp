@@ -1,6 +1,5 @@
 #include "Window.h"
 #include "Core/Base.h"
-#include "GammaFilter.h"
 #include "Render/PixelFormat.h"
 #include "Render/RenderApi/DeviceDescriptorPool.h"
 #include "Render/RenderApi/DeviceTexture.h"
@@ -146,7 +145,7 @@ bool Window::PopLayer(Layer* layer)
     }
     return false;
 }
-DeviceSwapChain* Window::GetSwapChain() const
+rhi::SwapChain* Window::GetSwapChain() const
 {
     return m_SwapChain.get();
 }
@@ -172,7 +171,7 @@ void Window::CreateCommandBuffer()
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         m_GraphicsCommandBuffer[i] =
-            DeviceCommandBuffer(vk::GraphicsCommandBuffer::Create(vk::GRC::GetGraphicsCommandPool()).value());
+            rhi::CommandList(vk::GraphicsCommandBuffer::Create(vk::GRC::GetGraphicsCommandPool()).value());
     }
 }
 bool Window::CreateRenderObject()
@@ -205,68 +204,31 @@ bool Window::CreateFinalImage()
         assert(false && "RenderPass::CreateDefault failed");
         return false;
     }
-    m_TonemapRenderPass = DeviceRenderPass(std::move(renderPassOpt.value()));
     // create final image(layer will render to final image)
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        auto textureOpt = DeviceTexture::CreateForColorAttachment(size.x(), size.y(), PixelFormat::RGBA8888);
+        rhi::TextureDesc desc{
+            .usages=PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample),
+            .pixelFormat=PixelFormat::RGBA8888,
+            .width=(uint32_t)size.x(),
+            .height=(uint32_t)size.y(),
+            .layout=rhi::TextureLayout::ShaderReadOnly
+        };
+        auto textureOpt = rhi::Texture::Create(desc);
         if (!textureOpt)
         {
             assert(false && "DeviceTexture::CreateForTexture failed");
             return false;
         }
-        auto& texture = *textureOpt;
-        texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
-
+        auto& texture = textureOpt;
         m_FinalTextures[i] = std::move(texture);
     }
-
-    // create tonemap framebuffer
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        auto framebufferOpt = vk::FrameBuffer::Create(m_TonemapRenderPass.GetVk(), extent, m_SwapChainImageViews[i]);
-        if (!framebufferOpt)
-        {
-            assert(false && "FrameBuffer::Create failed");
-            return false;
-        }
-        auto& framebuffer = *framebufferOpt;
-        m_TonemapFrameBuffers[i] = std::move(framebuffer);
-    }
-    // create descriptor pool
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        auto poolOpt = DeviceDescriptorPool::Create();
-        if (!poolOpt)
-        {
-            assert(false && "DeviceDescriptorPool::Create failed");
-            return false;
-        }
-        auto& pool = *poolOpt;
-        m_DescriptorPools[i] = std::move(pool);
-    }
-    // create gamma filter
-
-    auto filterOpt = WindowInternal::GammaFilter::Create(m_TonemapRenderPass.GetVk(), m_DescriptorPools[0]);
-    if (!filterOpt)
-    {
-        assert(false && "GammaFilter::Create failed");
-        return false;
-    }
-    m_GammaFilter = CreateScope<WindowInternal::GammaFilter>(std::move(filterOpt.value()));
-    // create image view
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        DeviceImageViewDesc desc;
-        m_FinalImageViews[i] = m_FinalTextures[i].CreateImageView(desc);
-    }
-    return true;
 }
 void Window::ReleaseFinalImage()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        m_FinalTextures[i] = DeviceTexture();
+        m_FinalTextures[i] = rhi::Texture();
         m_TonemapFrameBuffers[i] = DeviceFrameBuffer();
         m_DescriptorPools[i] = DeviceDescriptorPool();
         m_FinalImageViews[i] = DeviceImageView();

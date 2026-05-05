@@ -1,11 +1,9 @@
 #pragma once
 #include "TaskBase.h"
-#include "Resource/VirtualResource.h"
-#include <Render/RenderApi.h>
+#include "Render/RenderGraph/Resource/VirtualResource.h"
 #include "RenderTask.h"
 #include "Resource/ResourceAccessor.h"
 #include "TransferTask.h"
-#include "Resource/DeviceTexture.h"
 namespace Aether::RenderGraph
 {
 class RenderGraph
@@ -22,7 +20,7 @@ public:
     template <typename TaskDataType>
     TaskDataType AddRenderTask(const std::string& tag,
                                const std::function<void(RenderTaskBuilder&, TaskDataType&)>& setup,
-                               std::function<void(DeviceCommandBuffer&, ResourceAccessor&, TaskDataType&)>&& execute)
+                               std::function<void(rhi::CommandList&, ResourceAccessor&, TaskDataType&)>&& execute)
     {
         auto task = CreateScope<RenderTask<TaskDataType>>();
         task->tag = tag;
@@ -39,7 +37,7 @@ public:
         m_ResourceAccessor->SetCurrentFrame(frame);
     }
     void Execute();
-    void SetCommandBuffer(DeviceCommandBuffer* commandBuffer)
+    void SetCommandBuffer(rhi::CommandList* commandBuffer)
     {
         m_CommandBuffer = commandBuffer;
     }
@@ -52,10 +50,10 @@ public:
     AccessId<ResourceType> Import(const std::string& tag, const typename ResourceDescType<ResourceType>::Type& desc,
                                   const std::span<const ResourceId<ResourceType>>& ids)
     {
-        if constexpr (std::is_same_v<DeviceTexture, ResourceType>)
+        if constexpr (std::is_same_v<rhi::Texture2D, ResourceType>)
         {
             const TextureDesc& d = desc;
-            assert(d.layout != DeviceImageLayout::Undefined && "Imported texture must have a valid layout");
+            assert(d.layout != rhi::TextureLayout::Undefined && "Imported texture must have a valid layout");
         }
         auto& slot = m_ResourceAccessor->CreateSlot<ResourceType>(desc);
         for (size_t i = 0; i < ids.size(); ++i)
@@ -135,12 +133,9 @@ private:
     // enable resource slot supports in-flight resources for mutable resources
     void SetResourceSlotSupportsInFlightResources();
 
-private:
-    DeviceRenderPassDesc RenderPassDescToDeviceRenderPassDesc(const RenderPassDesc& desc);
-    FrameBufferDesc RenderPassDescToFrameBufferDesc(const RenderPassDesc& desc);
 
 private:
-    DeviceCommandBuffer* m_CommandBuffer = nullptr;
+    rhi::CommandList* m_CommandBuffer = nullptr;
     Borrow<ResourceArena> m_ResourceArena;
     Borrow<ResourceLruPool> m_ResourceLruPool;
     std::vector<Scope<TaskBase>> m_Tasks;
@@ -156,10 +151,10 @@ template <typename ResourceType>
 AccessId<ResourceType> RenderTaskBuilder::Create(const std::string& tag,
                                                  const typename ResourceDescType<ResourceType>::Type& desc)
 {
-    if constexpr (std::is_same_v<DeviceTexture, ResourceType>)
+    if constexpr (std::is_same_v<rhi::Texture2D, ResourceType>)
     {
-        const TextureDesc& d = desc;
-        assert(d.layout != DeviceImageLayout::Undefined && "Created texture must have a valid layout");
+        const rhi::TextureDesc& d = desc;
+        assert(d.layout != rhi::TextureLayout::Undefined && "Created texture must have a valid layout");
     }
     auto& slot = m_Graph.m_ResourceAccessor->CreateSlot<ResourceType>(desc);
     auto id = slot.id;
@@ -221,57 +216,27 @@ inline RenderTaskBuilder& RenderTaskBuilder::SetRenderPassDesc(const RenderPassD
     // set image view dependence
     for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
-        read(desc.colorAttachment[i].imageView.handle);
+        read(desc.colorAttachment[i].textureView.handle);
     }
     if (desc.depthAttachment)
     {
-        read(desc.depthAttachment->imageView.handle);
+        read(desc.depthAttachment->textureView.handle);
     }
     // set image dependence
     for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
     {
         auto& colorAttachment = desc.colorAttachment[i];
-        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(
-            *m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[colorAttachment.imageView.handle]]);
+        auto& imageView = static_cast<VirtualResource<rhi::TextureView>&>(
+            *m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[colorAttachment.textureView.handle]]);
         write(imageView.desc.texture.handle);
     }
     if (desc.depthAttachment)
     {
         auto& depthAttachment = *desc.depthAttachment;
-        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(
-            *m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[depthAttachment.imageView.handle]]);
+        auto& imageView = static_cast<VirtualResource<rhi::TextureView>&>(
+            *m_Graph.m_Resources[m_Graph.m_AccessIdToResourceIndex[depthAttachment.textureView.handle]]);
         write(imageView.desc.texture.handle);
     }
-    // allocate render pass
-    auto renderPassDesc = m_Graph.RenderPassDescToDeviceRenderPassDesc(desc);
-    auto virtualRenderPassPtr = CreateScope<VirtualResource<DeviceRenderPass>>();
-    m_Graph.m_Resources.emplace_back(std::move(virtualRenderPassPtr));
-    auto& virtualRenderPass = *static_cast<VirtualResource<DeviceRenderPass>*>(m_Graph.m_Resources.back().get());
-    virtualRenderPass.tag = "RenderPass" + m_Graph.CreateUniqueId();
-    virtualRenderPass.creator = m_Task;
-    virtualRenderPass.readers.push_back(m_Task.Get());
-    virtualRenderPass.desc = renderPassDesc;
-    virtualRenderPass.id = m_Graph.m_ResourceAccessor->CreateSlot<DeviceRenderPass>(virtualRenderPass.desc).id;
-
-    m_Graph.m_AccessIdToResourceIndex[virtualRenderPass.id.handle] = m_Graph.m_Resources.size() - 1;
-    read(virtualRenderPass.id.handle);
-    m_Task->renderPass = virtualRenderPass.id;
-
-    // allocate frame buffer
-    auto frameBufferDesc = m_Graph.RenderPassDescToFrameBufferDesc(desc);
-    frameBufferDesc.renderPass = virtualRenderPass.id;
-    auto virtualFrameBufferPtr = CreateScope<VirtualResource<DeviceFrameBuffer>>();
-    m_Graph.m_Resources.emplace_back(std::move(virtualFrameBufferPtr));
-    auto& virtualFrameBuffer = *static_cast<VirtualResource<DeviceFrameBuffer>*>(m_Graph.m_Resources.back().get());
-    virtualFrameBuffer.tag = "FrameBuffer" + m_Graph.CreateUniqueId();
-    virtualFrameBuffer.creator = m_Task;
-    virtualFrameBuffer.readers.push_back(m_Task.Get());
-    virtualFrameBuffer.desc = frameBufferDesc;
-    virtualFrameBuffer.id = m_Graph.m_ResourceAccessor->CreateSlot<DeviceFrameBuffer>(virtualFrameBuffer.desc).id;
-    m_Graph.m_AccessIdToResourceIndex[virtualFrameBuffer.id.handle] = m_Graph.m_Resources.size() - 1;
-    read(virtualFrameBuffer.id.handle);
-    m_Task->frameBuffer = virtualFrameBuffer.id;
-
     return *this;
 }
 template <typename ResourceType>

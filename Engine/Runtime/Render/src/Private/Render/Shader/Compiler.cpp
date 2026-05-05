@@ -1,9 +1,9 @@
-#include "Compiler.h"
+#include "Render/Shader/Compiler.h"
 #include <expected>
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 #include <format>
-#include "../Config.h"
+#include "Render/Config.h"
 namespace Aether::Shader {
 static void InitResources(TBuiltInResource& Resources)
 {

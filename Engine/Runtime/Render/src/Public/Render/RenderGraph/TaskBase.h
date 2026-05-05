@@ -12,10 +12,17 @@ enum class TaskType : uint8_t
     ImageLayoutTransitionTask,
 
     // transfer
-    UploadBufferTask,
     UploadTextureTask,
-    DownloadBufferTask,
     DownloadTextureTask,
+
+    DownloadVertexBufferTask,
+    UploadVertexBufferTask,
+    DownloadIndexBufferTask,
+    UploadIndexBufferTask,
+    DownloadUniformBufferTask,
+    UploadUniformBufferTask,
+    DownloadRWStructuredBufferTask,
+    UploadRWStructuredBufferTask,
 };
 struct TaskBase
 {

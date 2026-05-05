@@ -1,5 +1,5 @@
-#include "SwapChain.h"
-#include "Render/Vulkan/GlobalRenderContext.h"
+#include "Render/RHI/Backend/Vulkan/SwapChain.h"
+#include "Render/RHI/Backend/Vulkan/GlobalRenderContext.h"
 namespace Aether::vk
 {
 SwapChain::~SwapChain()

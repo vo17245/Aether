@@ -4,7 +4,7 @@ namespace Aether
 {
     struct GpuMesh
     {
-        std::vector<rhi::VertexBuffer> buffers;
+        std::vector<rhi::VertexBuffer> vertexBuffers;
         struct BufferBinding
         {
             uint32_t bufferIndex;
@@ -19,5 +19,6 @@ namespace Aether
         std::vector<BufferBinding> vertexBufferBindings;
         IndexType indexType = IndexType::None;
         std::optional<rhi::IndexBuffer> indexBuffer;
+        uint32_t vertexCount = 0;
     };
 }

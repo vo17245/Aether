@@ -1,49 +1,23 @@
 #pragma once
-#include <Render/RenderApi.h>
 #include "ResourceId.h"
 #include "ResourceTypeTraits.h"
-#include "DeviceFrameBuffer.h"
-#include "DeviceRenderPass.h"
-#include "DeviceImageView.h"
-#include "DeviceTexture.h"
+#include "Render/RHI.h"
 namespace Aether::RenderGraph
 {
 class ResourceArena
 {
 public:
-    void AddDependency(ResourceId<DeviceImageView> imageView, ResourceId<DeviceTexture> texture)
+    void AddDependency(ResourceId<rhi::TextureView> imageView, ResourceId<rhi::Texture2D> texture)
     {
         if (m_TextureToImageViewMap.find(texture) == m_TextureToImageViewMap.end())
         {
-            m_TextureToImageViewMap[texture] = std::vector<ResourceId<DeviceImageView>>();
+            m_TextureToImageViewMap[texture] = std::vector<ResourceId<rhi::TextureView>>();
         }
         m_TextureToImageViewMap[texture].push_back(imageView);
     }
-    void AddDependency(ResourceId<DeviceFrameBuffer> frameBuffer, ResourceId<DeviceImageView> imageView)
+
+    void DestroyImageView(ResourceId<rhi::TextureView> imageView)
     {
-        if (m_ImageViewToFrameBufferMap.find(imageView) == m_ImageViewToFrameBufferMap.end())
-        {
-            m_ImageViewToFrameBufferMap[imageView] = std::vector<ResourceId<DeviceFrameBuffer>>();
-        }
-        m_ImageViewToFrameBufferMap[imageView].push_back(frameBuffer);
-    }
-    void DestroyImageView(ResourceId<DeviceImageView> imageView)
-    {
-        // destroy frame buffers that depend on this image view
-        auto iter = m_ImageViewToFrameBufferMap.find(imageView);
-        if (iter != m_ImageViewToFrameBufferMap.end())
-        {
-            for (auto frameBuffer : iter->second)
-            {
-                auto fbIter = m_FrameBufferMap.find(frameBuffer);
-                if (fbIter != m_FrameBufferMap.end())
-                {
-                    m_FrameBuffers.erase(fbIter->second);
-                    m_FrameBufferMap.erase(fbIter);
-                }
-            }
-            m_ImageViewToFrameBufferMap.erase(iter);
-        }
         // destroy image view
         auto imageViewIter = m_ImageViewMap.find(imageView);
         if (imageViewIter != m_ImageViewMap.end())
@@ -52,7 +26,7 @@ public:
             m_ImageViewMap.erase(imageViewIter);
         }
     }
-    void DestroyTexture(ResourceId<DeviceTexture> texture)
+    void DestroyTexture(ResourceId<rhi::Texture2D> texture)
     {
         // destroy image views that depend on this texture
         auto iter = m_TextureToImageViewMap.find(texture);
@@ -72,37 +46,10 @@ public:
             m_TextureMap.erase(textureIter);
         }
     }
-    void DestroyFrameBuffer(ResourceId<DeviceFrameBuffer> frameBuffer)
+
+    ResourceId<rhi::Texture2D> AddTexture(Scope<rhi::Texture2D>&& texture)
     {
-        // destroy frame buffer
-        auto iter = m_FrameBufferMap.find(frameBuffer);
-        if (iter != m_FrameBufferMap.end())
-        {
-            m_FrameBuffers.erase(iter->second);
-            m_FrameBufferMap.erase(iter);
-        }
-    }
-    ResourceId<DeviceFrameBuffer> AddFrameBuffer(Scope<DeviceFrameBuffer>&& frameBuffer)
-    {
-        auto id = m_ResourceIdAllocator.Allocate<DeviceFrameBuffer>();
-        m_FrameBuffers.push_back(std::move(frameBuffer));
-        auto iter = m_FrameBuffers.end();
-        --iter;
-        m_FrameBufferMap[id] = iter;
-        return id;
-    }
-    ResourceId<DeviceImageView> AddImageView(Scope<DeviceImageView>&& imageView)
-    {
-        auto id = m_ResourceIdAllocator.Allocate<DeviceImageView>();
-        m_ImageViews.push_back(std::move(imageView));
-        auto iter = m_ImageViews.end();
-        --iter;
-        m_ImageViewMap[id] = iter;
-        return id;
-    }
-    ResourceId<DeviceTexture> AddTexture(Scope<DeviceTexture>&& texture)
-    {
-        auto id = m_ResourceIdAllocator.Allocate<DeviceTexture>();
+        auto id = m_ResourceIdAllocator.Allocate<rhi::Texture2D>();
         m_Textures.push_back(std::move(texture));
         auto iter = m_Textures.end();
         --iter;
@@ -124,7 +71,7 @@ public:
             assert(false && "ResourceId is not valid");
             return nullptr;
         }
-        if constexpr (std::is_same_v<T, DeviceTexture>)
+        if constexpr (std::is_same_v<T, rhi::Texture2D>)
         {
             auto iter = m_TextureMap.find(id);
             if (iter != m_TextureMap.end())
@@ -132,7 +79,7 @@ public:
                 return iter->second->Get();
             }
         }
-        else if constexpr (std::is_same_v<T, DeviceImageView>)
+        else if constexpr (std::is_same_v<T, rhi::TextureView>)
         {
             auto iter = m_ImageViewMap.find(id);
             if (iter != m_ImageViewMap.end())
@@ -140,26 +87,10 @@ public:
                 return iter->second->Get();
             }
         }
-        else if constexpr (std::is_same_v<T, DeviceFrameBuffer>)
+        else if constexpr (std::is_same_v<T, rhi::VertexBuffer>)
         {
-            auto iter = m_FrameBufferMap.find(id);
-            if (iter != m_FrameBufferMap.end())
-            {
-                return iter->second->Get();
-            }
-        }
-        else if constexpr (std::is_same_v<T, DeviceRenderPass>)
-        {
-            auto iter = m_RenderPassMap.find(id);
-            if (iter != m_RenderPassMap.end())
-            {
-                return iter->second->Get();
-            }
-        }
-        else if constexpr (std::is_same_v<T, DeviceBuffer>)
-        {
-            auto iter = m_BufferMap.find(id);
-            if (iter != m_BufferMap.end())
+            auto iter = m_VertexBufferMap.find(id);
+            if (iter != m_VertexBufferMap.end())
             {
                 return iter->second->Get();
             }
@@ -171,8 +102,8 @@ public:
         return nullptr;
     }
 
-    template<typename T>
-    requires IsResource<T>::value
+    template <typename T>
+        requires IsResource<T>::value
     void Destroy(ResourceId<T> id)
     {
         if (!IsValid(id))
@@ -180,80 +111,53 @@ public:
             assert(false && "ResourceId is not valid");
             return;
         }
-        if constexpr (std::is_same_v<T, DeviceTexture>)
+        if constexpr (std::is_same_v<T, rhi::Texture2D>)
         {
             DestroyTexture(id);
         }
-        else if constexpr (std::is_same_v<T, DeviceImageView>)
+        else if constexpr (std::is_same_v<T, rhi::TextureView>)
         {
             DestroyImageView(id);
         }
-        else if constexpr (std::is_same_v<T, DeviceFrameBuffer>)
+        else if constexpr (std::is_same_v<T, rhi::VertexBuffer>)
         {
-            DestroyFrameBuffer(id);
-        }
-        else if constexpr (std::is_same_v<T, DeviceRenderPass>)
-        {
-            auto iter = m_RenderPassMap.find(id);
-            if (iter != m_RenderPassMap.end())
+            auto iter = m_VertexBufferMap.find(id);
+            if (iter != m_VertexBufferMap.end())
             {
-                m_RenderPasses.erase(iter->second);
-                m_RenderPassMap.erase(iter);
-            }
-        }
-        else if constexpr (std::is_same_v<T, DeviceBuffer>)
-        {
-            auto iter = m_BufferMap.find(id);
-            if (iter != m_BufferMap.end())
-            {
-                m_Buffers.erase(iter->second);
-                m_BufferMap.erase(iter);
+                m_VertexBuffers.erase(iter->second);
+                m_VertexBufferMap.erase(iter);
             }
         }
         else
         {
-            //PrintType<T>();
+            // PrintType<T>();
             static_assert(always_false_v<T>, "Not implemented resource type");
         }
     }
-    template<typename T>
+    template <typename T>
     ResourceId<T> Import(T* resource)
     {
         auto id = m_ResourceIdAllocator.Allocate<T>();
-        if constexpr (std::is_same_v<T, DeviceTexture>)
+        if constexpr (std::is_same_v<T, rhi::Texture2D>)
         {
             m_Textures.push_back(ResourceWrapper<T>(resource));
             auto iter = m_Textures.end();
             --iter;
             m_TextureMap[id] = iter;
         }
-        else if constexpr (std::is_same_v<T, DeviceImageView>)
+        else if constexpr (std::is_same_v<T, rhi::TextureView>)
         {
             m_ImageViews.push_back(ResourceWrapper<T>(resource));
             auto iter = m_ImageViews.end();
             --iter;
             m_ImageViewMap[id] = iter;
         }
-        else if constexpr (std::is_same_v<T, DeviceFrameBuffer>)
+        else if constexpr (std::is_same_v<T, rhi::VertexBuffer>)
         {
-            m_FrameBuffers.push_back(ResourceWrapper<T>(resource));
-            auto iter = m_FrameBuffers.end();
+            m_VertexBuffers.push_back(ResourceWrapper<T>(resource));
+            auto iter = m_VertexBuffers.end();
             --iter;
-            m_FrameBufferMap[id] = iter;
-        }
-        else if constexpr (std::is_same_v<T, DeviceRenderPass>)
-        {
-            m_RenderPasses.push_back(ResourceWrapper<T>(resource));
-            auto iter = m_RenderPasses.end();
-            --iter;
-            m_RenderPassMap[id] = iter;
-        }
-        else if constexpr (std::is_same_v<T, DeviceBuffer>)
-        {
-            m_Buffers.push_back(ResourceWrapper<T>(resource));
-            auto iter = m_Buffers.end();
-            --iter;
-            m_BufferMap[id] = iter;
+            m_VertexBufferMap[id] = iter;
         }
         else
         {
@@ -261,50 +165,33 @@ public:
         }
         return id;
     }
-    template<typename ResourceType>
+    template <typename ResourceType>
     ResourceId<ResourceType> AddResource(Scope<ResourceType>&& resource)
     {
-        if constexpr (std::is_same_v<ResourceType, DeviceTexture>)
+        if constexpr (std::is_same_v<ResourceType, rhi::Texture2D>)
         {
             return AddTexture(std::move(resource));
         }
-        else if constexpr (std::is_same_v<ResourceType, DeviceImageView>)
+        else if constexpr (std::is_same_v<ResourceType, rhi::TextureView>)
         {
             return AddImageView(std::move(resource));
         }
-        else if constexpr (std::is_same_v<ResourceType, DeviceFrameBuffer>)
+        else if constexpr (std::is_same_v<ResourceType, rhi::VertexBuffer>)
         {
-            return AddFrameBuffer(std::move(resource));
-        }
-        else if constexpr (std::is_same_v<ResourceType, DeviceRenderPass>)
-        {
-            auto id = m_ResourceIdAllocator.Allocate<DeviceRenderPass>();
-            m_RenderPasses.push_back(std::move(resource));
-            auto iter = m_RenderPasses.end();
-            --iter;
-            m_RenderPassMap[id] = iter;
-            return id;
-        }
-        else if constexpr (std::is_same_v<ResourceType, DeviceBuffer>)
-        {
-            auto id = m_ResourceIdAllocator.Allocate<DeviceBuffer>();
-            m_Buffers.push_back(std::move(resource));
-            auto iter = m_Buffers.end();
-            --iter;
-            m_BufferMap[id] = iter;
-            return id;
+            return AddVertexBuffer(std::move(resource));
         }
         else
         {
             static_assert(always_false_v<ResourceType>, "Not implemented resource type");
         }
     }
+
 private:
-    template<typename T>
+    template <typename T>
     struct ResourceWrapper
     {
         Scope<T> owned;
-        T* imported=nullptr;
+        T* imported = nullptr;
         T* Get()
         {
             if (imported)
@@ -313,31 +200,54 @@ private:
             }
             return owned.get();
         }
-        ResourceWrapper(Scope<T>&& resource) : owned(std::move(resource)) {}
-        ResourceWrapper(T* resource) : imported(resource) {}
+        ResourceWrapper(Scope<T>&& resource) : owned(std::move(resource))
+        {
+        }
+        ResourceWrapper(T* resource) : imported(resource)
+        {
+        }
         ResourceWrapper() = default;
         ResourceWrapper(const ResourceWrapper&) = delete;
         ResourceWrapper(ResourceWrapper&&) = default;
         ResourceWrapper& operator=(const ResourceWrapper&) = delete;
         ResourceWrapper& operator=(ResourceWrapper&&) = default;
     };
-    std::list<ResourceWrapper<DeviceFrameBuffer>> m_FrameBuffers;
-    std::unordered_map<ResourceId<DeviceFrameBuffer>, typename std::list<ResourceWrapper<DeviceFrameBuffer>>::iterator, Hash<ResourceId<DeviceFrameBuffer>>> m_FrameBufferMap;
-    std::list<ResourceWrapper<DeviceImageView>> m_ImageViews;
-    std::unordered_map<ResourceId<DeviceImageView>, typename std::list<ResourceWrapper<DeviceImageView>>::iterator, Hash<ResourceId<DeviceImageView>>> m_ImageViewMap;
+    std::list<ResourceWrapper<rhi::TextureView>> m_ImageViews;
+    std::unordered_map<ResourceId<rhi::TextureView>, typename std::list<ResourceWrapper<rhi::TextureView>>::iterator,
+                       Hash<ResourceId<rhi::TextureView>>>
+        m_ImageViewMap;
 
-    std::unordered_map<ResourceId<DeviceImageView>, std::vector<ResourceId<DeviceFrameBuffer>>, Hash<ResourceId<DeviceImageView>>> m_ImageViewToFrameBufferMap;
-    std::list<ResourceWrapper<DeviceTexture>> m_Textures;
-    std::unordered_map<ResourceId<DeviceTexture>, typename std::list<ResourceWrapper<DeviceTexture>>::iterator, Hash<ResourceId<DeviceTexture>>> m_TextureMap;
-    std::unordered_map<ResourceId<DeviceTexture>, std::vector<ResourceId<DeviceImageView>>, Hash<ResourceId<DeviceTexture>>> m_TextureToImageViewMap;
+    std::list<ResourceWrapper<rhi::Texture2D>> m_Textures;
+    std::unordered_map<ResourceId<rhi::Texture2D>, typename std::list<ResourceWrapper<rhi::Texture2D>>::iterator,
+                       Hash<ResourceId<rhi::Texture2D>>>
+        m_TextureMap;
+    std::unordered_map<ResourceId<rhi::Texture2D>, std::vector<ResourceId<rhi::TextureView>>,
+                       Hash<ResourceId<rhi::Texture2D>>>
+        m_TextureToImageViewMap;
     ResourceIdAllocator m_ResourceIdAllocator;
-    std::list<ResourceWrapper<DeviceRenderPass>> m_RenderPasses;
-    std::unordered_map<ResourceId<DeviceRenderPass>, typename std::list<ResourceWrapper<DeviceRenderPass>>::iterator, Hash<ResourceId<DeviceRenderPass>>> m_RenderPassMap;
-    std::list<ResourceWrapper<DeviceBuffer>> m_Buffers;
-    std::unordered_map<ResourceId<DeviceBuffer>, typename std::list<ResourceWrapper<DeviceBuffer>>::iterator, Hash<ResourceId<DeviceBuffer>>> m_BufferMap;
+    std::list<ResourceWrapper<rhi::VertexBuffer>> m_VertexBuffers;
+    std::unordered_map<ResourceId<rhi::VertexBuffer>, typename std::list<ResourceWrapper<rhi::VertexBuffer>>::iterator,
+                       Hash<ResourceId<rhi::VertexBuffer>>>
+        m_VertexBufferMap;
+    std::list<ResourceWrapper<rhi::IndexBuffer>> m_IndexBuffers;
+    std::unordered_map<ResourceId<rhi::IndexBuffer>, typename std::list<ResourceWrapper<rhi::IndexBuffer>>::iterator,
+                       Hash<ResourceId<rhi::IndexBuffer>>>
+        m_IndexBufferMap;
+    std::list<ResourceWrapper<rhi::UniformBuffer>> m_UniformBuffers;
+    std::unordered_map<ResourceId<rhi::UniformBuffer>,
+                       typename std::list<ResourceWrapper<rhi::UniformBuffer>>::iterator,
+                       Hash<ResourceId<rhi::UniformBuffer>>>
+        m_UniformBufferMap;
+    std::list<ResourceWrapper<rhi::StagingBuffer>> m_StagingBuffers;
+    std::unordered_map<ResourceId<rhi::StagingBuffer>,
+                       typename std::list<ResourceWrapper<rhi::StagingBuffer>>::iterator,
+                       Hash<ResourceId<rhi::StagingBuffer>>>
+        m_StagingBufferMap;
+    std::list<ResourceWrapper<rhi::RWStructuredBuffer>> m_RWStructuredBuffers;
+    std::unordered_map<ResourceId<rhi::RWStructuredBuffer>,
+                       typename std::list<ResourceWrapper<rhi::RWStructuredBuffer>>::iterator,
+                       Hash<ResourceId<rhi::RWStructuredBuffer>>>
+        m_RWStructuredBufferMap;
 };
-
-
-
 
 } // namespace Aether::RenderGraph

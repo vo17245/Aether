@@ -1,6 +1,6 @@
-#include "RenderGraph.h"
+#include "Render/RenderGraph/RenderGraph.h"
 #include <stack>
-#include "ImageLayoutTransitionTask.h"
+#include "Render/RenderGraph/ImageLayoutTransitionTask.h"
 
 namespace Aether::RenderGraph
 {
@@ -221,20 +221,20 @@ void RenderGraph::InsertImageLayoutTransition()
             {
                 if (resource->code == ResourceCode::Texture)
                 {
-                    auto& texture = static_cast<VirtualResource<DeviceTexture>&>(*resource);
-                    AccessId<DeviceTexture> id = texture.id;
+                    auto& texture = static_cast<VirtualResource<rhi::Texture2D>&>(*resource);
+                    AccessId<rhi::Texture2D> id = texture.id;
                     auto& slot = m_ResourceAccessor->GetSlot(id);
-                    if (slot.virtualInfo.layout != DeviceImageLayout::Texture)
+                    if (slot.virtualInfo.layout != rhi::TextureLayout::ShaderReadOnly)
                     {
                         auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                         transitionTask->texture = id;
                         transitionTask->oldLayout = slot.virtualInfo.layout;
-                        transitionTask->newLayout = DeviceImageLayout::Texture;
+                        transitionTask->newLayout = rhi::TextureLayout::ShaderReadOnly;
                         transitionTask->tag="Transition"+CreateUniqueId();
                         transitionTask->writes.push_back(texture);
                         m_Tasks.push_back(std::move(transitionTask));
                         newSteps.push_back(m_Tasks.back().get());
-                        slot.virtualInfo.layout = DeviceImageLayout::Texture;
+                        slot.virtualInfo.layout = rhi::TextureLayout::ShaderReadOnly;
                     }
                 }
             }
@@ -242,40 +242,40 @@ void RenderGraph::InsertImageLayoutTransition()
             for (size_t i = 0; i < renderTask.renderPassDesc.colorAttachmentCount; i++)
             {
                 auto& colorAttachment = renderTask.renderPassDesc.colorAttachment[i];
-                auto& viewSlot = m_ResourceAccessor->GetSlot(colorAttachment.imageView);
+                auto& viewSlot = m_ResourceAccessor->GetSlot(colorAttachment.textureView);
                 auto* virtualResource=m_Resources[m_AccessIdToResourceIndex[viewSlot.desc.texture.handle]].get();
                 auto& texture = m_ResourceAccessor->GetSlot(viewSlot.desc.texture);
-                if (texture.virtualInfo.layout != DeviceImageLayout::ColorAttachment)
+                if (texture.virtualInfo.layout != rhi::TextureLayout::ColorAttachment)
                 {
                     auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                     transitionTask->texture = texture.id;
                     transitionTask->oldLayout = texture.virtualInfo.layout;
-                    transitionTask->newLayout = DeviceImageLayout::ColorAttachment;
+                    transitionTask->newLayout = rhi::TextureLayout::ColorAttachment;
                     transitionTask->writes.push_back(virtualResource);
                     transitionTask->tag="Transition"+CreateUniqueId();
                     m_Tasks.push_back(std::move(transitionTask));
                     newSteps.push_back(m_Tasks.back().get());
-                    texture.virtualInfo.layout = DeviceImageLayout::ColorAttachment;
+                    texture.virtualInfo.layout = rhi::TextureLayout::ColorAttachment;
                 }
             }
             // handle depth attachment
             if (renderTask.renderPassDesc.depthAttachment)
             {
                 auto& depthAttachment = *renderTask.renderPassDesc.depthAttachment;
-                auto& viewSlot = m_ResourceAccessor->GetSlot(depthAttachment.imageView);
+                auto& viewSlot = m_ResourceAccessor->GetSlot(depthAttachment.textureView);
                 auto& texture = m_ResourceAccessor->GetSlot(viewSlot.desc.texture);
                 auto* virtualResource=m_Resources[m_AccessIdToResourceIndex[viewSlot.desc.texture.handle]].get();
-                if (texture.virtualInfo.layout != DeviceImageLayout::DepthStencilAttachment)
+                if (texture.virtualInfo.layout != rhi::TextureLayout::DepthStencilAttachment)
                 {
                     auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                     transitionTask->texture = texture.id;
                     transitionTask->oldLayout = texture.virtualInfo.layout;
-                    transitionTask->newLayout = DeviceImageLayout::DepthStencilAttachment;
+                    transitionTask->newLayout = rhi::TextureLayout::DepthStencilAttachment;
                     transitionTask->writes.push_back(virtualResource);
                     transitionTask->tag="Transition"+CreateUniqueId();
                     m_Tasks.push_back(std::move(transitionTask));
                     newSteps.push_back(m_Tasks.back().get());
-                    texture.virtualInfo.layout = DeviceImageLayout::DepthStencilAttachment;
+                    texture.virtualInfo.layout = rhi::TextureLayout::DepthStencilAttachment;
                 }
             }
         }
@@ -284,17 +284,17 @@ void RenderGraph::InsertImageLayoutTransition()
             auto& uploadTask = static_cast<UploadTextureTask&>(task);
             auto& sourceSlot = m_ResourceAccessor->GetSlot(uploadTask.source);
             auto& destinationSlot = m_ResourceAccessor->GetSlot(uploadTask.destination);
-            if (destinationSlot.virtualInfo.layout != DeviceImageLayout::TransferDst)
+            if (destinationSlot.virtualInfo.layout != rhi::TextureLayout::TransferDst)
             {
                 auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                 transitionTask->texture = uploadTask.destination;
                 transitionTask->oldLayout = destinationSlot.virtualInfo.layout;
-                transitionTask->newLayout = DeviceImageLayout::TransferDst;
+                transitionTask->newLayout = rhi::TextureLayout::TransferDst;
                 transitionTask->writes.push_back(m_Resources[m_AccessIdToResourceIndex[uploadTask.destination.handle]].get());
                 transitionTask->tag="Transition"+CreateUniqueId();
                 m_Tasks.push_back(std::move(transitionTask));
                 newSteps.push_back(m_Tasks.back().get());
-                destinationSlot.virtualInfo.layout = DeviceImageLayout::TransferDst;
+                destinationSlot.virtualInfo.layout = rhi::TextureLayout::TransferDst;
             }
         }
         else if (task.type == TaskType::DownloadTextureTask)
@@ -302,17 +302,17 @@ void RenderGraph::InsertImageLayoutTransition()
             auto& downloadTask = static_cast<DownloadTextureTask&>(task);
             auto& sourceSlot = m_ResourceAccessor->GetSlot(downloadTask.source);
             auto& destinationSlot = m_ResourceAccessor->GetSlot(downloadTask.destination);
-            if (sourceSlot.virtualInfo.layout != DeviceImageLayout::TransferSrc)
+            if (sourceSlot.virtualInfo.layout != rhi::TextureLayout::TransferSrc)
             {
                 auto transitionTask = CreateScope<ImageLayoutTransitionTask>();
                 transitionTask->texture = downloadTask.source;
                 transitionTask->oldLayout = sourceSlot.virtualInfo.layout;
-                transitionTask->newLayout = DeviceImageLayout::TransferSrc;
+                transitionTask->newLayout = rhi::TextureLayout::TransferSrc;
                 transitionTask->writes.push_back(m_Resources[m_AccessIdToResourceIndex[downloadTask.source.handle]].get());
                 transitionTask->tag="Transition"+CreateUniqueId();
                 m_Tasks.push_back(std::move(transitionTask));
                 newSteps.push_back(m_Tasks.back().get());
-                sourceSlot.virtualInfo.layout = DeviceImageLayout::TransferSrc;
+                sourceSlot.virtualInfo.layout = rhi::TextureLayout::TransferSrc;
             }
         }
         // add the task to new steps
@@ -325,7 +325,7 @@ void RenderGraph::InsertImageLayoutTransition()
         {
             continue;
         }
-        auto& texture = static_cast<VirtualResource<DeviceTexture>&>(*resource);
+        auto& texture = static_cast<VirtualResource<rhi::Texture2D>&>(*resource);
         auto& slot = m_ResourceAccessor->GetSlot(texture.id);
         if (slot.virtualInfo.layout != texture.desc.layout)
         {
@@ -402,10 +402,10 @@ void RenderGraph::SetResourceSlotSupportsInFlightResources()
 {
     for (auto& resource : m_Resources)
     {
-        if (resource->code == ResourceCode::ImageView)
+        if (resource->code == ResourceCode::TextureView)
         {
-            auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(*resource);
-            auto textureId = imageView.desc.texture;
+            auto& textureView = static_cast<VirtualResource<rhi::TextureView>&>(*resource);
+            auto textureId = textureView.desc.texture;
             assert(m_AccessIdToResourceIndex.contains(textureId.handle) && "Texture resource not found");
             auto& virtualResource = *m_Resources[m_AccessIdToResourceIndex[textureId.handle]];
             assert(virtualResource.code == ResourceCode::Texture);
@@ -413,21 +413,7 @@ void RenderGraph::SetResourceSlotSupportsInFlightResources()
             {
                 continue;
             }
-            m_ResourceAccessor->SetSlotSupportsInFlightResources(imageView.id);
-        }
-        else if (resource->code == ResourceCode::FrameBuffer)
-        {
-            auto& frameBuffer = static_cast<VirtualResource<DeviceFrameBuffer>&>(*resource);
-            m_ResourceAccessor->SetSlotSupportsInFlightResources(frameBuffer.id);
-            for (size_t i = 0; i < frameBuffer.desc.colorAttachmentCount; ++i)
-            {
-                auto& colorAttachment = frameBuffer.desc.colorAttachments[i];
-                m_ResourceAccessor->SetSlotSupportsInFlightResources(colorAttachment.imageView);
-            }
-            if (frameBuffer.desc.depthAttachment)
-            {
-                m_ResourceAccessor->SetSlotSupportsInFlightResources(frameBuffer.desc.depthAttachment->imageView);
-            }
+            m_ResourceAccessor->SetSlotSupportsInFlightResources(textureView.id);
         }
         else
         {
@@ -439,62 +425,7 @@ void RenderGraph::SetResourceSlotSupportsInFlightResources()
         }
     }
 }
-DeviceRenderPassDesc RenderGraph::RenderPassDescToDeviceRenderPassDesc(const RenderPassDesc& desc)
-{
-    DeviceRenderPassDesc deviceDesc;
-    deviceDesc.colorAttachmentCount = desc.colorAttachmentCount;
-    for (size_t i = 0; i < desc.colorAttachmentCount; ++i)
-    {
-        auto& attachment = desc.colorAttachment[i];
-        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(
-            *m_Resources[m_AccessIdToResourceIndex[attachment.imageView.handle]]);
-        auto& texture = static_cast<VirtualResource<DeviceTexture>&>(
-            *m_Resources[m_AccessIdToResourceIndex[imageView.desc.texture.handle]]);
-        auto& deviceAttachment = deviceDesc.colorAttachments[i];
-        deviceAttachment.format = texture.desc.pixelFormat;
-        deviceAttachment.loadOp = attachment.loadOp;
-        deviceAttachment.storeOp = attachment.storeOp;
-    }
-    if (desc.depthAttachment)
-    {
-        auto& depthAttachment = *desc.depthAttachment;
-        auto& imageView = static_cast<VirtualResource<DeviceImageView>&>(
-            *m_Resources[m_AccessIdToResourceIndex[depthAttachment.imageView.handle]]);
-        auto& texture = static_cast<VirtualResource<DeviceTexture>&>(
-            *m_Resources[m_AccessIdToResourceIndex[imageView.desc.texture.handle]]);
-        DeviceAttachmentDesc attachmentDesc;
-        attachmentDesc.format = texture.desc.pixelFormat;
-        attachmentDesc.loadOp = depthAttachment.loadOp;
-        attachmentDesc.storeOp = depthAttachment.storeOp;
-        deviceDesc.depthAttachment = attachmentDesc;
-    }
-    return deviceDesc;
-}
-FrameBufferDesc RenderGraph::RenderPassDescToFrameBufferDesc(const RenderPassDesc& desc)
-{
-    FrameBufferDesc framebufferDesc;
-    framebufferDesc.colorAttachmentCount = desc.colorAttachmentCount;
-    framebufferDesc.width = desc.width;
-    framebufferDesc.height = desc.height;
-    for (size_t i = 0; i < framebufferDesc.colorAttachmentCount; ++i)
-    {
-        auto& frameBufferAttachment = framebufferDesc.colorAttachments[i];
-        auto& attachment = desc.colorAttachment[i];
-        frameBufferAttachment.imageView = attachment.imageView;
-        frameBufferAttachment.loadOp = attachment.loadOp;
-        frameBufferAttachment.storeOp = attachment.storeOp;
-    }
-    if (desc.depthAttachment)
-    {
-        auto depthAttachment = Attachment();
-        auto& attachment = *desc.depthAttachment;
-        depthAttachment.imageView = attachment.imageView;
-        depthAttachment.loadOp = attachment.loadOp;
-        depthAttachment.storeOp = attachment.storeOp;
-        framebufferDesc.depthAttachment = depthAttachment;
-    }
-    return framebufferDesc;
-}
+
 void RenderGraph::Execute()
 {
     for (auto* _task : m_Steps)
@@ -654,23 +585,13 @@ private:
         switch (resource->code)
         {
         case ResourceCode::Texture: {
-            auto& r = static_cast<VirtualResource<DeviceTexture>&>(*resource);
+            auto& r = static_cast<VirtualResource<rhi::Texture2D>&>(*resource);
             AddNode(tag, BorderColor, TextureColor);
         }
         break;
-        case ResourceCode::ImageView: {
-            auto& r = static_cast<VirtualResource<DeviceImageView>&>(*resource);
+        case ResourceCode::TextureView: {
+            auto& r = static_cast<VirtualResource<rhi::TextureView>&>(*resource);
             AddNode(tag, BorderColor, ImageViewColor);
-        }
-        break;
-        case ResourceCode::FrameBuffer: {
-            auto& r = static_cast<VirtualResource<DeviceFrameBuffer>&>(*resource);
-            AddNode(tag, BorderColor, FrameBufferColor);
-        }
-        break;
-        case ResourceCode::RenderPass: {
-            auto& r = static_cast<VirtualResource<DeviceRenderPass>&>(*resource);
-            AddNode(tag, BorderColor, RenderPassColor);
         }
         break;
         default:

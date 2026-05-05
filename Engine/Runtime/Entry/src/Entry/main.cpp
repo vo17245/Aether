@@ -1,13 +1,12 @@
 #include <Window/Window.h>
 #include <Window/WindowContext.h>
-#include <Render/RenderApi.h>
 #include "Application.h"
 #include <chrono>
 #include <Audio/Audio.h>
 #include <ImGui/Compat/ImGuiApi.h>
 #include <Debug/Log.h>
 #include <Async/GlobalThreadPool.h>
-#include <Render/NamedThread/SubmitThread.h>
+#include <Render/Threads/SubmitThread.h>
 #include <MainLoop/MainLoop.h>
 using namespace Aether;
 namespace Aether
@@ -55,6 +54,10 @@ int main()
     app->OnInit(*window);
     std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
     MainLoop::OnFrameBegin += [&]() {
+        if(Render::Config::RenderApi==Render::Api::Vulkan)
+        {
+            vk::GRC::SetFrameIndex((vk::GRC::GetFrameIndex()+1)%Render::Config::MaxFramesInFlight);
+        }
         if (window->ShouldClose() || !app->Running())
         {
             MainLoop::Quit();

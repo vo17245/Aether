@@ -8,6 +8,7 @@
 #include "../Config.h"
 #include "Backend/Vulkan/Buffer.h"
 #include <Render/Id.h>
+#include "TextureView.h"
 namespace Aether::rhi
 {
 
@@ -20,6 +21,36 @@ enum class TextureUsage : uint32_t
     DepthAttachment = Bit(4),
 };
 using TextureUsageFlags = uint32_t;
+enum class TextureLayout
+{
+    Undefined,
+    ColorAttachment,
+    DepthStencilAttachment,
+    TransferSrc,
+    TransferDst,
+    ShaderReadOnly,
+};
+inline VkImageLayout RHITextureLayoutToVk(TextureLayout layout)
+{
+    switch (layout)
+    {
+    case TextureLayout::Undefined:
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    case TextureLayout::ShaderReadOnly:
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    case TextureLayout::ColorAttachment:
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    case TextureLayout::DepthStencilAttachment:
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    case TextureLayout::TransferSrc:
+        return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    case TextureLayout::TransferDst:
+        return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    default:
+        assert(false && "Not implemented");
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    }
+}
 inline VkImageUsageFlags RHITextureUsageFlagsToVk(TextureUsageFlags flags)
 {
     VkImageUsageFlags res = 0;
@@ -70,21 +101,28 @@ inline TextureUsageFlags VkImageUsageFlagsToRHITextureUsage(VkImageUsageFlags fl
     }
     return res;
 }
-
-class Texture
+struct TextureDesc
+{
+    TextureUsageFlags usages;
+    PixelFormat pixelFormat;
+    uint32_t width;
+    uint32_t height;
+    TextureLayout layout = TextureLayout::Undefined;
+};
+class Texture2D
 {
 public:
-    Texture() = default;
+    Texture2D() = default;
 
-    ~Texture()
+    ~Texture2D()
     {
        
     }
-    Texture(Texture&& other) noexcept
+    Texture2D(Texture2D&& other) noexcept
     {
         m_Texture = std::move(other.m_Texture);
     }
-    Texture& operator=(Texture&& other)
+    Texture2D& operator=(Texture2D&& other)
     {
         if (this != &other)
         {
@@ -93,7 +131,7 @@ public:
         return *this;
     }
 
-    Texture(std::monostate) : m_Texture(std::monostate{})
+    Texture2D(std::monostate) : m_Texture(std::monostate{})
     {
     }
 
@@ -103,11 +141,11 @@ public:
         return m_Texture.index() == 0;
     }
 
-    Texture(vk::Texture2D&& t) : m_Texture(std::move(t))
+    Texture2D(vk::Texture2D&& t) : m_Texture(std::move(t))
     {
     }
 
-    static Texture Create(int width, int height, PixelFormat format, TextureUsageFlags usages);
+    static Texture2D Create(const TextureDesc& desc);
 
     uint32_t GetWidth() const
     {
@@ -171,7 +209,8 @@ public:
             return PixelFormat::Unknown;
         }
     }
-
+    void SyncTransitionLayout(TextureLayout oldLayout, TextureLayout newLayout);
+    TextureView CreateImageView(const TextureViewDesc& desc) const;
 private:
     std::variant<std::monostate, vk::Texture2D> m_Texture;
 };

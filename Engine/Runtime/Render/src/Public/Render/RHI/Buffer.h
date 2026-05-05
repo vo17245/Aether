@@ -54,8 +54,18 @@ public:
     /**
      * @param offset Offset in staging buffer to set data
      * @param data Data to set
-    */
-    void SetData(size_t offset,std::span<const uint8_t> data);
+     */
+    void SetData(size_t offset, std::span<const uint8_t> data);
+    vk::Buffer& GetVk()
+    {
+        assert(std::holds_alternative<vk::Buffer>(m_Buffer) && "Buffer is empty");
+        return std::get<vk::Buffer>(m_Buffer);
+    }
+    const vk::Buffer& GetVk() const
+    {
+        assert(std::holds_alternative<vk::Buffer>(m_Buffer) && "Buffer is empty");
+        return std::get<vk::Buffer>(m_Buffer);
+    }
 
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;
@@ -83,7 +93,7 @@ public:
     }
 
 public:
-static VertexBuffer Create(size_t size);
+    static VertexBuffer Create(size_t size);
     bool Empty() const
     {
         return m_Buffer.index() == 0;
@@ -104,6 +114,17 @@ static VertexBuffer Create(size_t size);
     operator bool() const
     {
         return !Empty();
+    }
+
+    vk::Buffer& GetVk()
+    {
+        assert(std::holds_alternative<vk::Buffer>(m_Buffer) && "Buffer is empty");
+        return std::get<vk::Buffer>(m_Buffer);
+    }
+    const vk::Buffer& GetVk() const
+    {
+        assert(std::holds_alternative<vk::Buffer>(m_Buffer) && "Buffer is empty");
+        return std::get<vk::Buffer>(m_Buffer);
     }
 
 private:
@@ -132,7 +153,7 @@ public:
     }
 
 public:
-static IndexBuffer Create(size_t size);
+    static IndexBuffer Create(size_t size);
     bool Empty() const
     {
         return m_Buffer.index() == 0;
@@ -153,6 +174,16 @@ static IndexBuffer Create(size_t size);
     operator bool() const
     {
         return !Empty();
+    }
+    vk::Buffer& GetVk()
+    {
+        assert(std::holds_alternative<vk::Buffer>(m_Buffer) && "Buffer is empty");
+        return std::get<vk::Buffer>(m_Buffer);
+    }
+    const vk::Buffer& GetVk() const
+    {
+        assert(std::holds_alternative<vk::Buffer>(m_Buffer) && "Buffer is empty");
+        return std::get<vk::Buffer>(m_Buffer);
     }
 
 private:
@@ -181,7 +212,7 @@ public:
     }
 
 public:
-static UniformBuffer Create(size_t size);
+    static UniformBuffer Create(size_t size);
     bool Empty() const
     {
         return m_Buffer.index() == 0;
@@ -230,7 +261,7 @@ public:
     }
 
 public:
-static RWStructuredBuffer Create(size_t size);
+    static RWStructuredBuffer Create(size_t size);
     bool Empty() const
     {
         return m_Buffer.index() == 0;
