@@ -50,9 +50,12 @@ inline constexpr VkPipelineStageFlags DevicePipelineSyncStageToVk(PipelineSyncSt
 
 struct VkCommandSubmit : SubmitBase
 {
+    VkCommandSubmit() : SubmitBase(SubmitType::VkCommand)
+    {
+    }
     vk::GraphicsCommandBuffer* commandBuffer = nullptr;
     vk::Fence* signalFence = nullptr;
-    vk::Queue* queue;
+    vk::Queue* queue=nullptr;
     std::vector<PipelineSyncStage> waitStages;
     std::vector<vk::Semaphore*> waitSemaphores;
     std::vector<vk::Semaphore*> signalSemaphores;

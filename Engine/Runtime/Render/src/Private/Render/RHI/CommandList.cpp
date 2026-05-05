@@ -60,7 +60,7 @@ static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
     /**
      * @brief record a buffer copy command
      */
-    void CommandList::CopyBuffer(StagingBuffer& src, VertexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
+    void CommandList::CopyVertexBuffer(StagingBuffer& src, VertexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
     {
         switch (Render::Config::RenderApi)
         {

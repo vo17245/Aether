@@ -1,14 +1,6 @@
 #include "Window.h"
 #include "Core/Base.h"
 #include "Render/PixelFormat.h"
-#include "Render/RenderApi/DeviceDescriptorPool.h"
-#include "Render/RenderApi/DeviceTexture.h"
-#include "Render/Vulkan/Def.h"
-#include "Render/Vulkan/DescriptorPool.h"
-#include "Render/Vulkan/GraphicsCommandBuffer.h"
-#include "Render/Vulkan/RenderPass.h"
-#include "Render/Vulkan/Semaphore.h"
-#include "Render/Vulkan/Texture2D.h"
 #include "WindowEvent.h"
 #include "vulkan/vulkan_core.h"
 #include <cstdlib>
@@ -21,16 +13,13 @@
 #include "Event.h"
 #include "WindowContext.h"
 #include "Layer.h"
-#include "Render/Vulkan/FrameBuffer.h"
-#include "Render/Vulkan/ImageView.h"
 #include <algorithm>
 #include "WindowContext.h"
 #include "EventBaseMethod.h"
-#include "Render/Vulkan/GlobalRenderContext.h"
 #include <ranges>
 #include "ImGui/Compat/ImGuiApi.h"
-#include <Render/Vulkan/Allocator.h>
 #include <Debug/Log.h>
+#include <Render/Threads/SubmitThread.h>
 
 namespace Aether
 {
@@ -214,7 +203,7 @@ bool Window::CreateFinalImage()
             .height=(uint32_t)size.y(),
             .layout=rhi::TextureLayout::ShaderReadOnly
         };
-        auto textureOpt = rhi::Texture::Create(desc);
+        auto textureOpt = rhi::Texture2D::Create(desc);
         if (!textureOpt)
         {
             assert(false && "DeviceTexture::CreateForTexture failed");
@@ -228,14 +217,9 @@ void Window::ReleaseFinalImage()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        m_FinalTextures[i] = rhi::Texture();
-        m_TonemapFrameBuffers[i] = DeviceFrameBuffer();
-        m_DescriptorPools[i] = DeviceDescriptorPool();
-        m_FinalImageViews[i] = DeviceImageView();
+        m_FinalTextures[i] = rhi::Texture2D();
+        m_FinalImageViews[i] = rhi::TextureView();
     }
-
-    m_TonemapRenderPass = DeviceRenderPass();
-    m_GammaFilter.reset();
 }
 void Window::ReleaseRenderObject()
 {
@@ -250,7 +234,7 @@ void Window::ReleaseRenderObject()
     }
     for (size_t i : std::views::iota(0, MAX_FRAMES_IN_FLIGHT))
     {
-        m_GraphicsCommandBuffer[i] = DeviceCommandBuffer();
+        m_GraphicsCommandBuffer[i] = rhi::CommandList();
     }
     ReleaseFinalImage();
     m_RenderGraph.reset();
@@ -364,7 +348,7 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
         {
             assert(false && "failed to create swap chain!");
         }
-        m_SwapChain = CreateScope<DeviceSwapChain>(vk::SwapChain(std::move(swapChain)));
+        m_SwapChain = CreateScope<rhi::SwapChain>(vk::SwapChain(std::move(swapChain)));
     }
 
     vkGetSwapchainImagesKHR(device, m_SwapChain->GetVk().GetHandle(), &imageCount, nullptr);
@@ -442,24 +426,16 @@ void Window::OnRender()
     {
         return;
     }
-    // if there is  buffer(not in-flight) upload, wait for all frames to complete
-    if (m_PendingUploadList.NeedSync())
-    {
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-        {
-            m_CommandBufferFences[i]->GetVk().Wait();
-        }
-    }
+   
     // wait for render resource
     // ImGuiWaitFrameResource();
-    m_CommandBufferFences[m_CurrentFrame]->GetVk().Wait();
-    m_CommandBufferFences[m_CurrentFrame]->GetVk().Reset();
+    m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Wait();
+    m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset();
     // acquire next image
     {
-        auto imageAcquireSubmit = CreateScope<Render::ImageAcquireSubmit>();
-        ;
-        imageAcquireSubmit->swapChain = m_SwapChain.get();
-        imageAcquireSubmit->signalSemaphore = m_ImageAvailableSemaphore[m_CurrentFrame].get();
+        auto imageAcquireSubmit = CreateScope<Render::VkImageAcquireSubmit>();
+        imageAcquireSubmit->swapChain = &m_SwapChain->GetVk();
+        imageAcquireSubmit->signalSemaphore = &m_ImageAvailableSemaphore[m_CurrentFrame]->GetVkSemaphore();
         imageAcquireSubmit->timeoutNs = std::numeric_limits<uint64_t>::max();
         imageAcquireSubmit->result = &m_ImageAcquireResult;
         imageAcquireSubmit->semaphore = &m_ImageAcquireSemaphore;
@@ -472,15 +448,15 @@ bool Window::CreateSyncObjects()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_CommandBufferFences[i] = std::make_unique<DeviceFence>(std::move(vk::Fence::Create(true).value()));
+        m_CommandBufferFences[i] = std::make_unique<rhi::Fence>(std::move(vk::Fence::Create(true).value()));
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_ImageAvailableSemaphore[i] = std::make_unique<DeviceSemaphore>(std::move(vk::Semaphore::Create().value()));
+        m_ImageAvailableSemaphore[i] = std::make_unique<rhi::Fence>(std::move(vk::Semaphore::Create().value()));
     }
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        m_RenderFinishedSemaphore[i] = std::make_unique<DeviceSemaphore>(std::move(vk::Semaphore::Create().value()));
+        m_RenderFinishedSemaphore[i] = std::make_unique<rhi::Fence>(std::move(vk::Semaphore::Create().value()));
     }
     return true;
 }
@@ -515,7 +491,7 @@ bool Window::ReleaseVulkanObjects()
     ReleaseRenderObject();
     return ReleaseSyncObjects();
 }
-DeviceTexture& Window::GetFinalTexture(uint32_t index)
+rhi::Texture2D& Window::GetFinalTexture(uint32_t index)
 {
     return m_FinalTextures[index];
 }
@@ -525,30 +501,24 @@ bool Window::ResizeFinalImage(const Vec2u& size)
     // create final image(layer will render to final image)
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        auto textureOpt = DeviceTexture::CreateForColorAttachment(size.x(), size.y(), PixelFormat::RGBA8888);
+        rhi::TextureDesc desc{
+            .usages=PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample),
+            .pixelFormat=PixelFormat::RGBA8888,
+            .width=(uint32_t)size.x(),
+            .height=(uint32_t)size.y(),
+            .layout=rhi::TextureLayout::ShaderReadOnly
+        };
+        auto textureOpt = rhi::Texture2D::Create(desc);
         if (!textureOpt)
         {
-            assert(false && "DeviceTexture::CreateForTexture failed");
+            assert(false && "rhi::Texture2D::CreateForColorAttachment failed");
             return false;
         }
-        auto& texture = *textureOpt;
-        texture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
+        auto& texture = textureOpt;
+        texture.SyncTransitionLayout(rhi::TextureLayout::Undefined, rhi::TextureLayout::ShaderReadOnly);
 
         m_FinalTextures[i] = std::move(texture);
-        m_FinalImageViews[i] = m_FinalTextures[i].CreateImageView(DeviceImageViewDesc());
-    }
-
-    // create tonemap framebuffer
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        auto framebufferOpt = vk::FrameBuffer::Create(m_TonemapRenderPass.GetVk(), extent, m_SwapChainImageViews[i]);
-        if (!framebufferOpt)
-        {
-            assert(false && "FrameBuffer::Create failed");
-            return false;
-        }
-        auto& framebuffer = *framebufferOpt;
-        m_TonemapFrameBuffers[i] = std::move(framebuffer);
+        m_FinalImageViews[i] = m_FinalTextures[i].CreateImageView(rhi::TextureViewDesc{});
     }
     return true;
 }
@@ -577,32 +547,32 @@ void Window::CreateRenderGraph()
     // create
     m_RenderGraph = CreateScope<RenderGraph::RenderGraph>(m_ResourceArena.get(), m_ResourcePool.get());
     // import final image
-    RenderGraph::ResourceId<DeviceTexture> finalImageResourceIds[MAX_FRAMES_IN_FLIGHT];
+    RenderGraph::ResourceId<rhi::Texture2D> finalImageResourceIds[MAX_FRAMES_IN_FLIGHT];
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         finalImageResourceIds[i] = m_ResourceArena->Import(&m_FinalTextures[i]);
     }
     RenderGraph::TextureDesc finalImageDesc;
-    finalImageDesc.usages = PackFlags(DeviceImageUsage::ColorAttachment, DeviceImageUsage::Sample);
+    finalImageDesc.usages = PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample);
     finalImageDesc.pixelFormat = PixelFormat::RGBA8888;
     finalImageDesc.width = m_FinalTextures[0].GetWidth();
     finalImageDesc.height = m_FinalTextures[0].GetHeight();
-    finalImageDesc.layout = DeviceImageLayout::ColorAttachment;
+    finalImageDesc.layout = rhi::TextureLayout::ColorAttachment;
     m_FinalImageAccessId = m_RenderGraph->Import(
         "FinalImage", finalImageDesc,
-        std::span<const RenderGraph::ResourceId<DeviceTexture>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
+        std::span<const RenderGraph::ResourceId<rhi::Texture2D>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
     // import final image view
-    RenderGraph::ResourceId<DeviceImageView> finalImageViewResourceIds[MAX_FRAMES_IN_FLIGHT];
+    RenderGraph::ResourceId<rhi::TextureView> finalImageViewResourceIds[MAX_FRAMES_IN_FLIGHT];
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         finalImageViewResourceIds[i] = m_ResourceArena->Import(&m_FinalImageViews[i]);
     }
-    RenderGraph::ImageViewDesc finalImageViewDesc;
+    RenderGraph::TextureViewDesc finalImageViewDesc;
     finalImageViewDesc.texture = m_FinalImageAccessId;
-    finalImageViewDesc.desc = DeviceImageViewDesc();
+    finalImageViewDesc.desc = rhi::TextureViewDesc();
     m_RenderGraph->Import(
         "FinalImageView", finalImageViewDesc,
-        std::span<const RenderGraph::ResourceId<DeviceImageView>>(finalImageViewResourceIds, MAX_FRAMES_IN_FLIGHT));
+        std::span<const RenderGraph::ResourceId<rhi::TextureView>>(finalImageViewResourceIds, MAX_FRAMES_IN_FLIGHT));
 
     // call each layer's RegisterRenderPasses function
     for (auto* layer : m_Layers)
@@ -635,7 +605,7 @@ void Window::ImGuiWaitFrameResource()
     }
 }
 
-void Window::ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer)
+void Window::ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer)
 {
     // Rendering
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -651,7 +621,7 @@ void Window::ImGuiRecordCommandBuffer(DeviceCommandBuffer& commandBuffer)
         ImGuiFrameRender(commandBuffer);
     }
 }
-void Window::ImGuiFrameRender(DeviceCommandBuffer& commandBuffer)
+void Window::ImGuiFrameRender(rhi::CommandList& commandBuffer)
 {
     auto* wd = &m_ImGuiContext.window;
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -734,8 +704,6 @@ void Window::Maximize()
 }
 void Window::OnUpload()
 {
-    m_GammaFilter->SetFrameIndex(m_CurrentFrame);
-    m_GammaFilter->OnUpdate(m_PendingUploadList);
     for (auto* layer : m_Layers)
     {
         layer->OnUpload(m_PendingUploadList);
@@ -773,7 +741,6 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     }
     uint32_t imageIndex = result.imageIndex;
     auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
-    m_DescriptorPools[m_CurrentFrame].Clear();
 
     for (auto* layer : m_Layers)
     {
@@ -791,8 +758,8 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     m_PendingUploadList.RecordCommand(curCommandBuffer);
 
     // record main render command
-    curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::Texture,
-                                           DeviceImageLayout::ColorAttachment);
+    curCommandBuffer.TextureLayoutTransition(m_FinalTextures[m_CurrentFrame], rhi::TextureLayout::ShaderReadOnly,
+                                           rhi::TextureLayout::ColorAttachment);
     if (m_RenderGraph)
     {
         m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
@@ -801,14 +768,9 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     }
 
     // render to screen (tonemap)
-    curCommandBuffer.ImageLayoutTransition(m_FinalTextures[m_CurrentFrame], DeviceImageLayout::ColorAttachment,
-                                           DeviceImageLayout::Texture);
-    curCommandBufferVk.BeginRenderPass(m_TonemapRenderPass.GetVk(), m_TonemapFrameBuffers[imageIndex].GetVk(),
-                                       Vec4f(0.0, 0.0, 0.0, 1.0));
-    curCommandBuffer.SetScissor(0, 0, GetSize().x(), GetSize().y());
-    curCommandBuffer.SetViewport(0, 0, GetSize().x(), GetSize().y());
-    m_GammaFilter->Render(m_FinalTextures[m_CurrentFrame], curCommandBuffer, m_DescriptorPools[m_CurrentFrame]);
-    curCommandBufferVk.EndRenderPass();
+    curCommandBuffer.TextureLayoutTransition(m_FinalTextures[m_CurrentFrame], rhi::TextureLayout::ColorAttachment,
+                                           rhi::TextureLayout::ShaderReadOnly);
+   
     m_ImGuiContext.window.FrameIndex = imageIndex;
     // record imgui command
     ImGuiRecordCommandBuffer(curCommandBuffer);
@@ -816,15 +778,15 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     // commit command buffer
     // auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetVk().GetHandle();
     static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-    auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetVk().GetHandle();
+    auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetVkSemaphore().GetHandle();
     {
-        auto submit = CreateScope<Render::CommandSubmit>();
-        submit->commandBuffer = &m_GraphicsCommandBuffer[m_CurrentFrame];
-        submit->signalFence = m_CommandBufferFences[m_CurrentFrame].get();
-        submit->waitSemaphores.push_back(&imageAvailableSemaphore);
-        submit->waitStages.push_back(DevicePipelineSyncStage::AllGraphics);
-        submit->signalSemaphores.push_back(m_RenderFinishedSemaphore[m_CurrentFrame].get());
-        submit->queue = DeviceQueueView(&vk::GRC::GetGraphicsQueue());
+        auto submit = CreateScope<Render::VkCommandSubmit>();
+        submit->commandBuffer = &m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
+        submit->signalFence = &m_CommandBufferFences[m_CurrentFrame]->GetVkFence();
+        submit->waitSemaphores.push_back(&imageAvailableSemaphore.GetVkSemaphore());
+        submit->waitStages.push_back(Render::PipelineSyncStage::AllGraphics);
+        submit->signalSemaphores.push_back(&m_RenderFinishedSemaphore[m_CurrentFrame]->GetVkSemaphore());
+        submit->queue = &vk::GRC::GetGraphicsQueue();
         Render::SubmitThread::PushSubmit(std::move(submit));
     }
     // m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphoreHandle, &stage, 1,
@@ -842,10 +804,10 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     // presentInfo.pImageIndices = &imageIndex;
     // vkQueuePresentKHR(vk::GRC::GetPresentQueue().GetHandle(), &presentInfo);
     {
-        auto present = CreateScope<Render::PresentSubmit>();
+        auto present = CreateScope<Render::VkPresentSubmit>();
         present->imageIndex = imageIndex;
-        present->swapChain = m_SwapChain.get();
-        present->waitSemaphores.push_back(m_RenderFinishedSemaphore[m_CurrentFrame].get());
+        present->swapChain = &m_SwapChain->GetVk();
+        present->waitSemaphores.push_back(&m_RenderFinishedSemaphore[m_CurrentFrame]->GetVkSemaphore());
         Render::SubmitThread::PushSubmit(std::move(present));
     }
 

@@ -1,9 +1,9 @@
-#include <Render/RHI/Texture.h>
+#include <Render/RHI/Texture2D.h>
 #include <Render/RHI/Backend/Vulkan/GlobalRenderContext.h>
 
 namespace Aether::rhi
 {
-void Texture::SyncTransitionLayout(TextureLayout oldLayout, TextureLayout newLayout)
+void Texture2D::SyncTransitionLayout(TextureLayout oldLayout, TextureLayout newLayout)
 {
     switch (Render::Config::RenderApi)
     {

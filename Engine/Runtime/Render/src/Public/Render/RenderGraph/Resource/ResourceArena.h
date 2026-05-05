@@ -128,6 +128,42 @@ public:
                 m_VertexBufferMap.erase(iter);
             }
         }
+        else if constexpr (std::is_same_v<T, rhi::IndexBuffer>)
+        {
+            auto iter = m_IndexBufferMap.find(id);
+            if (iter != m_IndexBufferMap.end())
+            {
+                m_IndexBuffers.erase(iter->second);
+                m_IndexBufferMap.erase(iter);
+            }
+        }
+        else if constexpr (std::is_same_v<T, rhi::UniformBuffer>)
+        {
+            auto iter = m_UniformBufferMap.find(id);
+            if (iter != m_UniformBufferMap.end())
+            {
+                m_UniformBuffers.erase(iter->second);
+                m_UniformBufferMap.erase(iter);
+            }
+        }
+        else if constexpr (std::is_same_v<T, rhi::StagingBuffer>)
+        {
+            auto iter = m_StagingBufferMap.find(id);
+            if (iter != m_StagingBufferMap.end())
+            {
+                m_StagingBuffers.erase(iter->second);
+                m_StagingBufferMap.erase(iter);
+            }
+        }
+        else if constexpr (std::is_same_v<T, rhi::RWStructuredBuffer>)
+        {
+            auto iter = m_RWStructuredBufferMap.find(id);
+            if (iter != m_RWStructuredBufferMap.end())
+            {
+                m_RWStructuredBuffers.erase(iter->second);
+                m_RWStructuredBufferMap.erase(iter);
+            }
+        }
         else
         {
             // PrintType<T>();

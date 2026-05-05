@@ -47,6 +47,7 @@ public:
     void BeginRenderPass(const RenderPass& pass);
     void EndRenderPass();
     void TextureLayoutTransition(Texture2D& texture, TextureLayout oldLayout, TextureLayout newLayout);
+    void CopyVertexBuffer(StagingBuffer& src, VertexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
 private:
     std::variant<std::monostate, vk::GraphicsCommandBuffer> m_Data;
 };

@@ -88,13 +88,13 @@ public:
 
     void ReleaseFinalImage();
     bool CreateFinalImage();
-    rhi::Texture& GetFinalTexture(uint32_t index);
+    rhi::Texture2D& GetFinalTexture(uint32_t index);
     void SetSize(uint32_t width, uint32_t height);
     uint32_t GetCurrentFrameIndex()
     {
         return m_CurrentFrame;
     }
-    RenderGraph::AccessId<rhi::Texture> GetFinalImageAccessId() const
+    RenderGraph::AccessId<rhi::Texture2D> GetFinalImageAccessId() const
     {
         return m_FinalImageAccessId;
     }
@@ -144,7 +144,7 @@ private:
     Scope<rhi::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
     rhi::CommandList m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
     //=========== final image
-    rhi::Texture m_FinalTextures[MAX_FRAMES_IN_FLIGHT];
+    rhi::Texture2D m_FinalTextures[MAX_FRAMES_IN_FLIGHT];
     rhi::TextureView m_FinalImageViews[MAX_FRAMES_IN_FLIGHT];
     //================================
     uint32_t m_CurrentFrame = 0;
@@ -182,7 +182,7 @@ private: // render graph
     // create render graph, register final image
     // and call each layer RegisterRenderPasses function
     void CreateRenderGraph();
-    RenderGraph::AccessId<rhi::Texture> m_FinalImageAccessId;
+    RenderGraph::AccessId<rhi::Texture2D> m_FinalImageAccessId;
 
 private: // imgui
     bool m_ImGuiClearEnable = false;
