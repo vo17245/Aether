@@ -1,11 +1,11 @@
-#pragma once
-#include "DynamicStagingBuffer.h"
-#include "Render/RenderApi.h"
-namespace Aether::UI
-{
-struct RenderResource
-{
-    Ref<DeviceDescriptorPool> m_DescriptorPool;
-    Ref<DynamicStagingBuffer> m_StagingBuffer;
-};
-}
+#pragma once
+#include "DynamicStagingBuffer.h"
+#include <Render/RHI.h>
+
+namespace Aether::UI
+{
+struct RenderResource
+{
+    Ref<DynamicStagingBuffer> m_StagingBuffer;
+};
+} // namespace Aether::UI

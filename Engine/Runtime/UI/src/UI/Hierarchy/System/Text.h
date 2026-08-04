@@ -1,5 +1,5 @@
 #pragma once
-#include "Render/RenderApi/DeviceDescriptorPool.h"
+#include <Render/RenderGraph/RenderGraph.h>
 #include "Render/Scene/Camera2D.h"
 #include "System.h"
 #include "Text/Font/Font.h"
@@ -54,26 +54,21 @@ public:
     virtual void OnUpdate(float sec, World& scene)
     {
     }
-    virtual void OnRender(DeviceCommandBufferView commandBuffer,
-                          DeviceRenderPassView renderPass,
-                          DeviceFrameBufferView frameBuffer,
-                          Vec2f screenSize,
-                          World& scene)
+    virtual void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph,
+                                    const RenderGraph::RenderPassDesc& renderPassDesc,
+                                    Vec2f screenSize,
+                                    World& scene) override
     {
-        assert(m_DescriptorPool && "descriptor pool is null");
+        (void)screenSize;
         auto view = scene.Select<BaseComponent, TextComponent>();
 
         for (const auto& [entity, base, text] : view.each())
         {
-            if (!text.visible)
+            (void)entity;
+            if (!text.visible || text.content.empty())
             {
-                continue; // skip invisible text
+                continue;
             }
-            if (text.content.empty())
-            {
-                continue; // skip empty text
-            }
-            // ensure font
             if (!text.font)
             {
                 FontSignature sig{
@@ -98,38 +93,29 @@ public:
             }
 
             auto lines = text.font->prepareGlyphsForText(text.content, {});
-            // ensure render resource
             if (!text.renderResource)
             {
                 auto resource = m_Raster->CreateRenderPassResource();
                 text.renderResource = std::make_unique<decltype(resource)>(std::move(resource));
             }
-            // calculate glyph position
-            U32String u32s(text.content);
+
             float width = base.size.x();
-            float height = base.size.y();
             float x = base.position.x();
             float y = base.position.y();
             std::vector<Vec2f> glyphPos;
-            glyphPos.reserve(u32s.Size());
-            float worldSize = text.worldSize;
-            
-            uint32_t prevUnicode = 0;
-
             std::vector<uint32_t> glyphToRender;
+            float worldSize = text.worldSize;
             for (auto& line : lines)
             {
                 for (auto& glyph : line.visualGlyphs)
                 {
-                    
                     auto& info = text.font->bufferGlyphInfo[glyph.indexInBuffer];
-                    float emSize= info.emSize;
+                    float emSize = info.emSize;
                     float scale = worldSize / info.emSize;
                     float curY = y + (emSize - info.bearingY) * scale;
+                    glyphToRender.push_back(glyph.indexInBuffer);
                     glyphPos.emplace_back(Vec2f(x, curY));
-                    // float kerningX=glyph.kerningX;
-
-                    x += (info.advance) * scale;
+                    x += info.advance * scale;
                     if (x > width + base.position.x())
                     {
                         x = base.position.x();
@@ -139,11 +125,13 @@ public:
                 x = base.position.x();
                 y += worldSize;
             }
-           
-            // render glyph
+            if (glyphToRender.empty())
+            {
+                continue;
+            }
             Text::Raster::RenderPassParam param{
-                .commandBuffer = commandBuffer,
-                .descriptorPool = *m_DescriptorPool,
+                .renderGraph = &renderGraph,
+                .renderPassDesc = renderPassDesc,
                 .font = *text.font,
                 .bufferGlyphInfoIndexes = glyphToRender,
                 .glyphPosition = glyphPos,
@@ -152,14 +140,13 @@ public:
                 .z = base.z,
                 .color = text.color};
 
-            m_Raster->Render(param,
-                             *text.renderResource);
+            m_Raster->Render(param, *text.renderResource);
         }
     }
-    static TextSystem* Create(DeviceRenderPassView renderPass, DeviceDescriptorPool& descriptorPool)
+    static TextSystem* Create()
     {
         TextSystem* system = new TextSystem();
-        auto raster = Text::Raster::Create(renderPass, true, descriptorPool, true);
+        auto raster = Text::Raster::Create(true, true);
         if (!raster)
         {
             return nullptr;
@@ -178,10 +165,6 @@ public:
     void AddAssetDir(const std::string& path)
     {
         m_AssetDirs.emplace_back(path);
-    }
-    void SetDescriptorPool(DeviceDescriptorPool* pool)
-    {
-        m_DescriptorPool = pool;
     }
     void SetCamera(Camera2D* camera)
     {
@@ -232,8 +215,7 @@ private:
     std::unordered_map<FontSignature, Font, FontSignatureHash> m_Fonts;
     std::unique_ptr<Text::Raster> m_Raster;
     std::vector<std::string> m_AssetDirs;
-    DeviceDescriptorPool* m_DescriptorPool = nullptr; // not own
-    Camera2D* m_Camera;                               // not own
+    Camera2D* m_Camera = nullptr;                     // not own
     Scope<Text::Library> m_Context;
     std::string m_DefaultFont = "SourceHanSerifCN-Regular-1.otf";
 };

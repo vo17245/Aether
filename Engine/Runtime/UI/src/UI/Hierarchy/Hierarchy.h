@@ -110,9 +110,9 @@ public:
             system->OnUpdate(sec, m_Scene);
         }
     }
-    void OnRender(DeviceCommandBufferView commandBuffer,
-                  DeviceFrameBufferView frameBuffer,
-                  Vec2f screenSize)
+    void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph,
+                            const RenderGraph::RenderPassDesc& renderPassDesc,
+                            Vec2f screenSize)
     {
         m_Camera->screenSize = screenSize;
         m_Camera->target.x() = screenSize.x() / 2;
@@ -120,7 +120,7 @@ public:
         m_Camera->CalculateMatrix();
         for (auto* system : m_Systems)
         {
-            system->OnRender(commandBuffer, frameBuffer, screenSize, m_Scene);
+            system->OnBuildRenderGraph(renderGraph, renderPassDesc, screenSize, m_Scene);
         }
     }
     /**
