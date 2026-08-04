@@ -211,6 +211,14 @@ public:
     }
     void SyncTransitionLayout(TextureLayout oldLayout, TextureLayout newLayout);
     TextureView CreateImageView(const TextureViewDesc& desc) const;
+    vk::Texture2D& GetVk()
+    {
+        return std::get<vk::Texture2D>(m_Texture);
+    }
+    const vk::Texture2D& GetVk() const
+    {
+        return std::get<vk::Texture2D>(m_Texture);
+    }
 private:
     std::variant<std::monostate, vk::Texture2D> m_Texture;
 };

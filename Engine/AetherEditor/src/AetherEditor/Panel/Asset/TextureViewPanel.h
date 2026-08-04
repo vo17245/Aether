@@ -1,7 +1,7 @@
 #pragma once
 #include <Core/Core.h>
 #include <IO/Image.h>
-#include <Render/Render.h>
+#include <Render/RHI.h>
 #include <AetherEditor/UIComponent/Image.h>
 #include <AetherEditor/UIComponent/ImageView.h>
 #include <AetherEditor/Panel/Panel.h>
@@ -20,7 +20,7 @@ namespace AetherEditor::UI
     private:
         std::string m_ImageAddress;
         Scope<ImGuiComponent::Image> m_Image;
-        Ref<DeviceTexture> m_Texture;
+        Ref<rhi::Texture2D> m_Texture;
         std::optional<std::string> m_ErrorMessage;
         ImGuiComponent::ImageView m_ImageView;
     };

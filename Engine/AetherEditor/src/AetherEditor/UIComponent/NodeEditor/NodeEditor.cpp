@@ -226,11 +226,11 @@ void NodeEditor::Init()
     ed::NavigateToContent();
 
     m_HeaderBackgroundDeviceImage =
-        CreateRef<DeviceTexture>(Utils::LoadSrgbTexture("Assets/NodeEditor/NodeEditorBackground.png").value());
+        CreateRef<rhi::Texture2D>(Utils::LoadSrgbTexture("Assets/NodeEditor/NodeEditorBackground.png").value());
     m_SaveIconDeviceImage =
-        CreateRef<DeviceTexture>(Utils::LoadSrgbTexture("Assets/NodeEditor/ic_save_white_24dp.png").value());
+        CreateRef<rhi::Texture2D>(Utils::LoadSrgbTexture("Assets/NodeEditor/ic_save_white_24dp.png").value());
     m_RestoreIconDeviceImage =
-        CreateRef<DeviceTexture>(Utils::LoadSrgbTexture("Assets/NodeEditor/ic_restore_white_24dp.png").value());
+        CreateRef<rhi::Texture2D>(Utils::LoadSrgbTexture("Assets/NodeEditor/ic_restore_white_24dp.png").value());
     m_HeaderBackgroundImage = CreateScope<::AetherEditor::ImGuiComponent::Image>(
         ::AetherEditor::ImGuiComponent::Image::Create(m_HeaderBackgroundDeviceImage).value());
     m_SaveIconImage = CreateScope<::AetherEditor::ImGuiComponent::Image>(

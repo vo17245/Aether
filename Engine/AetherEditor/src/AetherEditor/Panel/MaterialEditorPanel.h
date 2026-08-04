@@ -12,8 +12,12 @@ public:
     void Init()
     {
         m_MaterialPanel.Open();
-        m_DummyScene = Utils::LoadSrgbTexture("Assets/bundle/Images/logo.png").value();
-        m_ScenePanel.SetTexture(m_DummyScene);
+        auto texture = Utils::LoadSrgbTexture("Assets/bundle/Images/logo.png");
+        if (texture)
+        {
+            m_DummyScene = CreateRef<rhi::Texture2D>(std::move(texture.value()));
+            m_ScenePanel.SetTexture(m_DummyScene);
+        }
     }
     void OnUpdate(float sec)
     {
@@ -37,7 +41,7 @@ public:
 private:
     std::string m_Title = "Material Editor";
     ScenePanel m_ScenePanel;
-    DeviceTexture m_DummyScene;
+    Ref<rhi::Texture2D> m_DummyScene;
     TerminalPanel m_TerminalPanel;
     MaterialPanel m_MaterialPanel;
 };

@@ -15,7 +15,7 @@ void GlobalGuiImageCache::GetImageAsync(
         return;
     }
     GlobalTextureCache::GetTextureAsync(
-        path, srgb, [this, path, onComplete](std::expected<Ref<DeviceTexture>, std::string>&& res) -> void {
+        path, srgb, [this, path, onComplete](std::expected<Ref<rhi::Texture2D>, std::string>&& res) -> void {
             if (!res)
             {
                 onComplete(std::unexpected(std::format("failed to load texture: {}", res.error())));

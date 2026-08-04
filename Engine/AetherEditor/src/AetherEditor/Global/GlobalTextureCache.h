@@ -1,6 +1,6 @@
 #pragma once
 #include <Core/Core.h>
-#include <Render/Render.h>
+#include <Render/RHI.h>
 #include <Async/GlobalThreadPool.h>
 using namespace Aether;
 namespace AetherEditor
@@ -14,7 +14,7 @@ public:
     }
 
     static void GetTextureAsync(const std::string& path, bool srgb,
-                                const std::function<void(std::expected<Ref<DeviceTexture>, std::string>&&)>& onComplete)
+                                const std::function<void(std::expected<Ref<rhi::Texture2D>, std::string>&&)>& onComplete)
     {
         GetSingleton().GetTextureAsyncImpl(path, srgb, onComplete);
     }
@@ -28,12 +28,12 @@ private:
     void SetCapacityImpl(size_t capacity);
 
     void GetTextureAsyncImpl(const std::string& path, bool srgb,
-                             const std::function<void(std::expected<Ref<DeviceTexture>, std::string>&&)>& onComplete);
+                             const std::function<void(std::expected<Ref<rhi::Texture2D>, std::string>&&)>& onComplete);
     inline void ClearImpl()
     {
         m_TextureCache.Clear();
     }
-    LRUCache<std::string, Ref<DeviceTexture>> m_TextureCache;
+    LRUCache<std::string, Ref<rhi::Texture2D>> m_TextureCache;
     size_t m_Capacity = 10;
 };
 } // namespace AetherEditor

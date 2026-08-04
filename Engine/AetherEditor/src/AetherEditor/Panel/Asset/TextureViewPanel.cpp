@@ -36,7 +36,7 @@ std::optional<std::string> TextureViewPanel::SetImageAddress(const std::string& 
     auto& textureAsset = static_cast<Project::TextureAsset&>(*asset);
 
     GlobalThreadPool::Enqueue(
-        [path, sRGB = textureAsset.sRGB]() -> std::expected<DeviceTexture, std::string> {
+        [path, sRGB = textureAsset.sRGB]() -> std::expected<rhi::Texture2D, std::string> {
             if (sRGB)
             {
                 return Utils::LoadSrgbTexture(path);
@@ -46,7 +46,7 @@ std::optional<std::string> TextureViewPanel::SetImageAddress(const std::string& 
                 return Utils::LoadLinearTexture(path);
             }
         },
-        [this](std::expected<DeviceTexture, std::string>&& result) {
+        [this](std::expected<rhi::Texture2D, std::string>&& result) {
             if (!result)
             {
                 m_ErrorMessage = result.error();
@@ -54,7 +54,7 @@ std::optional<std::string> TextureViewPanel::SetImageAddress(const std::string& 
                 m_ImageView.SetImage(nullptr);
                 return;
             }
-            m_Texture = CreateRef<DeviceTexture>(std::move(result.value()));
+            m_Texture = CreateRef<rhi::Texture2D>(std::move(result.value()));
             auto imgOpt = ImGuiComponent::Image::Create(m_Texture);
             if (!imgOpt)
             {

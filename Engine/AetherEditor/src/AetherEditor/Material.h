@@ -1,5 +1,6 @@
 #pragma once
-#include <Render/Render.h>
+#include <Render/RHI.h>
+#include <Render/RenderGraph/Resource/ResourceId.h>
 #include <Core/Core.h>
 #include "FileWatchListener.h"
 namespace Aether
@@ -26,7 +27,7 @@ struct MaterialTexture2D : public MaterialData
     {
     }
     std::string path;
-    RenderGraph::ResourceId<DeviceTexture> texture;
+    RenderGraph::ResourceId<rhi::Texture2D> texture = RenderGraph::ResourceId<rhi::Texture2D>::CreateInvalid();
 };
 struct MaterialFloat : public MaterialData
 {
@@ -80,3 +81,4 @@ struct Material
     std::vector<Keyword> keywords;
 };
 } // namespace Aether
+

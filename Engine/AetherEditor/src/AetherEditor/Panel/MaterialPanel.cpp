@@ -1,5 +1,6 @@
 #include "MaterialPanel.h"
 #include <Debug/Log.h>
+#include <Render/Shader/Reflection.h>
 namespace AetherEditor::UI
 {
 
@@ -14,7 +15,7 @@ void MaterialPanel::TestReflection()
         Debug::Log::Error("Failed to compile shader: {}",spirv.error());
     }
     assert(spirv.has_value());
-    auto map=ReflectShaderParameters(spirv.value());
+    auto map=Aether::ReflectShaderParameters(spirv.value());
     assert(map.has_value());
 }
 }

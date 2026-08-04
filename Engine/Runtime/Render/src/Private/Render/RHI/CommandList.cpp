@@ -73,6 +73,34 @@ static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
             break;
         }
     }
+    void CommandList::UploadVertexBuffer(StagingBuffer& src, VertexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
+    {
+        CopyVertexBuffer(src, dst, size, srcOffset, dstOffset);
+    }
+    void CommandList::UploadIndexBuffer(StagingBuffer& src, IndexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan:
+            vk::AsyncCopyBuffer(std::get<vk::GraphicsCommandBuffer>(m_Data), src.GetVk(), dst.GetVk(), size, srcOffset, dstOffset);
+            break;
+        default:
+            assert(false && "unsupported api");
+            break;
+        }
+    }
+    void CommandList::TextureLayoutTransition(Texture2D& texture, TextureLayout oldLayout, TextureLayout newLayout)
+    {
+        switch (Render::Config::RenderApi)
+        {
+        case Render::Api::Vulkan:
+            texture.GetVk().AsyncTransitionLayout(std::get<vk::GraphicsCommandBuffer>(m_Data), RHITextureLayoutToVk(oldLayout), RHITextureLayoutToVk(newLayout));
+            break;
+        default:
+            assert(false && "unsupported api");
+            break;
+        }
+    }
     void CommandList::SetDepthCompareOp(CompareOp op)
     {
         if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))
@@ -87,3 +115,4 @@ static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
     }
 
 } // namespace Aether::rhi
+

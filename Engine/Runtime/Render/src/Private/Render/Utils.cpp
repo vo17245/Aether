@@ -14,7 +14,7 @@ static VkIndexType MeshComponentTypeToVkIndexType(GpuMesh::IndexType type)
         return VK_INDEX_TYPE_UINT32;
     default:
         assert(false && "Unsupported index type");
-        return VK_INDEX_TYPE_UINT16; // Default to UINT16 to avoid compilation error
+        return VK_INDEX_TYPE_UINT16;
     }
 }
 static uint32_t GetIndexTypeByteSize(GpuMesh::IndexType type)
@@ -30,7 +30,7 @@ static uint32_t GetIndexTypeByteSize(GpuMesh::IndexType type)
         return 0;
     }
 }
-void Utils::VkDrawMesh(vk::GraphicsCommandBuffer& cb, const GpuMesh& mesh,uint32_t instanceCnt)
+void Utils::VkDrawMesh(vk::GraphicsCommandBuffer& cb, const GpuMesh& mesh, uint32_t instanceCnt)
 {
     std::vector<VkBuffer> vertexBuffers(mesh.vertexBuffers.size());
     for (size_t i = 0; i < mesh.vertexBuffers.size(); i++)
@@ -42,21 +42,30 @@ void Utils::VkDrawMesh(vk::GraphicsCommandBuffer& cb, const GpuMesh& mesh,uint32
     if (mesh.indexBuffer.has_value())
     {
         uint32_t indexCount = mesh.indexBuffer->GetSize() / GetIndexTypeByteSize(mesh.indexType);
-        cb.BindIndexBuffer(mesh.indexBuffer->GetVk(),
-                           MeshComponentTypeToVkIndexType(mesh.indexType),
-                           0);
-        cb.DrawIndexed(indexCount,instanceCnt);
+        cb.BindIndexBuffer(mesh.indexBuffer->GetVk(), MeshComponentTypeToVkIndexType(mesh.indexType), 0);
+        cb.DrawIndexed(indexCount, instanceCnt);
     }
     else
     {
-        cb.Draw(mesh.vertexCount,instanceCnt);
+        cb.Draw(mesh.vertexCount, instanceCnt);
     }
 }
-void Utils::DrawMesh(rhi::CommandList& cb, const GpuMesh& mesh,uint32_t instanceCnt)
+void Utils::DrawMesh(rhi::CommandList& cb, const GpuMesh& mesh, uint32_t instanceCnt)
 {
     if (Render::Config::RenderApi == Render::Api::Vulkan)
     {
-        VkDrawMesh(cb.GetVk(), mesh,instanceCnt);
+        VkDrawMesh(cb.GetVk(), mesh, instanceCnt);
+    }
+    else
+    {
+        assert(false && "Not implemented");
+    }
+}
+void Utils::SyncUploadTexture2D(const rhi::StagingBuffer& src, rhi::Texture2D& dst)
+{
+    if (Render::Config::RenderApi == Render::Api::Vulkan)
+    {
+        dst.GetVk().SyncCopyBuffer(src.GetVk());
     }
     else
     {
