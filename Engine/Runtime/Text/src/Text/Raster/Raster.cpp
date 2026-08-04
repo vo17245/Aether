@@ -8,8 +8,14 @@ namespace Aether::Text
 {
 bool Raster::Render(RenderPassParam& param, RenderPassResource& resource)
 {
+    if (!param.renderGraph)
+    {
+        assert(false && "renderGraph must not be null");
+        return false;
+    }
+
     bool res;
-    // update mesh  and uniform
+    // update mesh and uniform before recording the graph task
     res = UpdateMesh(param, resource);
     if (!res)
     {
@@ -30,11 +36,25 @@ bool Raster::Render(RenderPassParam& param, RenderPassResource& resource)
     {
         return false;
     }
-    res = RecordCommand(param, resource);
-    if (!res)
+
+    struct TaskData
     {
-        return false;
-    }
+        Raster* raster = nullptr;
+        RenderPassResource* resource = nullptr;
+    };
+
+    auto taskTag = std::string("TextRaster") + param.renderGraph->CreateUniqueId();
+    param.renderGraph->AddRenderTask<TaskData>(
+        taskTag,
+        [&](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
+            builder.SetRenderPassDesc(param.renderPassDesc);
+            data.raster = this;
+            data.resource = &resource;
+        },
+        [](rhi::CommandList& commandBuffer, RenderGraph::ResourceAccessor& accessor, TaskData& data) {
+            (void)accessor;
+            data.raster->RecordCommand(commandBuffer, *data.resource);
+        });
 
     return true;
 }
@@ -713,9 +733,9 @@ bool Raster::UpdateDescriptorSet(RenderPassResource& resource, RenderPassParam& 
     (void)param;
     return true;
 }
-bool Raster::RecordCommand(RenderPassParam& param, RenderPassResource& resource)
+bool Raster::RecordCommand(rhi::CommandList& commandBuffer, RenderPassResource& resource)
 {
-    (void)param;
+    (void)commandBuffer;
     (void)resource;
     return true;
 }

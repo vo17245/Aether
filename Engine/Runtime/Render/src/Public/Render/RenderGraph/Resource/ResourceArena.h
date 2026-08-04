@@ -57,6 +57,62 @@ public:
         return id;
     }
 
+
+    ResourceId<rhi::TextureView> AddImageView(Scope<rhi::TextureView>&& imageView)
+    {
+        auto id = m_ResourceIdAllocator.Allocate<rhi::TextureView>();
+        m_ImageViews.push_back(std::move(imageView));
+        auto iter = m_ImageViews.end();
+        --iter;
+        m_ImageViewMap[id] = iter;
+        return id;
+    }
+    ResourceId<rhi::VertexBuffer> AddVertexBuffer(Scope<rhi::VertexBuffer>&& buffer)
+    {
+        auto id = m_ResourceIdAllocator.Allocate<rhi::VertexBuffer>();
+        m_VertexBuffers.push_back(std::move(buffer));
+        auto iter = m_VertexBuffers.end();
+        --iter;
+        m_VertexBufferMap[id] = iter;
+        return id;
+    }
+    ResourceId<rhi::IndexBuffer> AddIndexBuffer(Scope<rhi::IndexBuffer>&& buffer)
+    {
+        auto id = m_ResourceIdAllocator.Allocate<rhi::IndexBuffer>();
+        m_IndexBuffers.push_back(std::move(buffer));
+        auto iter = m_IndexBuffers.end();
+        --iter;
+        m_IndexBufferMap[id] = iter;
+        return id;
+    }
+    ResourceId<rhi::UniformBuffer> AddUniformBuffer(Scope<rhi::UniformBuffer>&& buffer)
+    {
+        auto id = m_ResourceIdAllocator.Allocate<rhi::UniformBuffer>();
+        m_UniformBuffers.push_back(std::move(buffer));
+        auto iter = m_UniformBuffers.end();
+        --iter;
+        m_UniformBufferMap[id] = iter;
+        return id;
+    }
+    ResourceId<rhi::StagingBuffer> AddStagingBuffer(Scope<rhi::StagingBuffer>&& buffer)
+    {
+        auto id = m_ResourceIdAllocator.Allocate<rhi::StagingBuffer>();
+        m_StagingBuffers.push_back(std::move(buffer));
+        auto iter = m_StagingBuffers.end();
+        --iter;
+        m_StagingBufferMap[id] = iter;
+        return id;
+    }
+    ResourceId<rhi::RWStructuredBuffer> AddRWStructuredBuffer(Scope<rhi::RWStructuredBuffer>&& buffer)
+    {
+        auto id = m_ResourceIdAllocator.Allocate<rhi::RWStructuredBuffer>();
+        m_RWStructuredBuffers.push_back(std::move(buffer));
+        auto iter = m_RWStructuredBuffers.end();
+        --iter;
+        m_RWStructuredBufferMap[id] = iter;
+        return id;
+    }
+
     template <typename T>
     bool IsValid(ResourceId<T> id)
     {
@@ -215,6 +271,22 @@ public:
         else if constexpr (std::is_same_v<ResourceType, rhi::VertexBuffer>)
         {
             return AddVertexBuffer(std::move(resource));
+        }
+        else if constexpr (std::is_same_v<ResourceType, rhi::IndexBuffer>)
+        {
+            return AddIndexBuffer(std::move(resource));
+        }
+        else if constexpr (std::is_same_v<ResourceType, rhi::UniformBuffer>)
+        {
+            return AddUniformBuffer(std::move(resource));
+        }
+        else if constexpr (std::is_same_v<ResourceType, rhi::StagingBuffer>)
+        {
+            return AddStagingBuffer(std::move(resource));
+        }
+        else if constexpr (std::is_same_v<ResourceType, rhi::RWStructuredBuffer>)
+        {
+            return AddRWStructuredBuffer(std::move(resource));
         }
         else
         {

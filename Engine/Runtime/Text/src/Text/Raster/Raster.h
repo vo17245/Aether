@@ -4,6 +4,7 @@
 #include <Render/RHI.h>
 #include <Render/Scene/Camera2D.h>
 #include <Render/Mesh/GpuMesh.h>
+#include <Render/RenderGraph/RenderGraph.h>
 namespace Aether::Text
 {
 class Raster
@@ -12,7 +13,8 @@ public:
     struct RenderPassParam
     {
         // render resource
-        rhi::CommandList* commandBuffer;
+        RenderGraph::RenderGraph* renderGraph = nullptr;
+        RenderGraph::RenderPassDesc renderPassDesc;
         // text
         Font& font;
         std::vector<uint32_t>& bufferGlyphInfoIndexes;//glyph indexes in font
@@ -76,7 +78,7 @@ private:
     bool UpdateMesh(RenderPassParam& param, RenderPassResource& resource);          // per draw
     bool UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& resource); // per draw
     bool UpdateDescriptorSet(RenderPassResource& resource, RenderPassParam& param); // per draw
-    bool RecordCommand(RenderPassParam& param, RenderPassResource& resource);       // per draw
+    bool RecordCommand(rhi::CommandList& commandBuffer, RenderPassResource& resource); // per graph task
 private:
     struct HostUniformBuffer
     {
