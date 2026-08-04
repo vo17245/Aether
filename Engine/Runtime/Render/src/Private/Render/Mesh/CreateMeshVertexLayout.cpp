@@ -94,7 +94,7 @@ namespace Aether
                 }
             }
 
-            vertexAttribute.bufferIndex=gpuBufferViewIndex;
+            vertexAttribute.bufferViewIndex=gpuBufferViewIndex;
             vertexAttribute.offset=accessor.byteOffset;
             auto format=MeshFormatToVertexAttributeFormat(accessor.type,accessor.componentType);
             if(format==VertexAttributeFormat::None)
@@ -111,15 +111,15 @@ namespace Aether
             size_t attributeEnd=accessor.byteOffset+attributeSize;
             if(attributeEnd>bufferViewStrides[accessor.bufferView])
             {
-                bufferViewStrides[accessor.bufferView]=attributeEnd;
+                bufferViewStrides[accessor.bufferView]=static_cast<uint32_t>(attributeEnd);
             }
         }
         // set strides
-        layout.buffers.resize(bufferViewStrides.size());
+        layout.bufferViews.resize(bufferViewStrides.size());
         for(const auto& [meshBufferViewIndex,stride]:bufferViewStrides)
         {
             uint32_t gpuBufferViewIndex=bufferViewMap[meshBufferViewIndex];
-            layout.buffers[gpuBufferViewIndex].stride=static_cast<uint32_t>(stride);
+            layout.bufferViews[gpuBufferViewIndex].stride=stride;
         }
         for(auto& [meshBufferIndex,gpuBufferIndex]:bufferMap)
         {
