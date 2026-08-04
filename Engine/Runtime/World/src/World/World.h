@@ -1,6 +1,7 @@
 #pragma once
 #include <entt/entt.hpp>
 #include <Render/Render.h>
+#include <Window/Event.h>
 namespace Aether
 {
 class System;

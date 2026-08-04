@@ -619,46 +619,14 @@ void main()
 }
 bool Raster::CreatePipeline( bool enableBlend, bool enableDepthTest)
 {
-    vk::PipelineLayout::Builder layoutBuilder;
-    layoutBuilder.AddDescriptorSetLayouts(m_DescriptorSet.GetVk().layouts);
-    auto layoutOpt = layoutBuilder.Build();
-    if (!layoutOpt)
-    {
-        assert(false && "failed to create pipeline layout");
-        return false;
-    }
-    auto& layout = layoutOpt.value();
-    vk::GraphicsPipeline::Builder builder(renderPass.GetVk(), layout);
-    if (enableDepthTest)
-    {
-        builder.EnableDepthTest();
-    }
-    QuadArrayMesh dummyMesh;
-    auto vertexBufferLayouts = dummyMesh.GetMesh().CreateVertexBufferLayouts();
-    builder.PushVertexBufferLayouts(vertexBufferLayouts)
-        .AddVertexStage(m_Shader.GetVk().vertex, "main")
-        .AddFragmentStage(m_Shader.GetVk().fragment, "main");
-    if (enableBlend)
-    {
-        builder.EnableBlend();
-    }
-    auto pipelineOpt = builder.Build();
-    if (!pipelineOpt)
-    {
-        assert(false && "failed to create pipeline");
-        return false;
-    }
-    auto& pipeline = pipelineOpt.value();
-
-    m_Pipeline = std::move(pipeline);
-    m_PipelineLayout = std::move(layout);
+    (void)enableBlend;
+    (void)enableDepthTest;
     return true;
 }
 
-bool Raster::CreateDescriptorSet(DeviceDescriptorPool& descriptorPool)
+bool Raster::CreateDescriptorSet()
 {
-    auto set = descriptorPool.CreateSet(1, 0, 2);
-    m_DescriptorSet = std::move(set);
+    m_DescriptorSet = rhi::DescriptorSet::Create(2, 1, 0);
     return true;
 }
 static Quad CreateQuad(const Font::Glyph& glyph, const Vec2f& pos, uint32_t glyphIndex)
@@ -714,19 +682,11 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
         quad.z = param.z;
         mesh.PushQuad(quad);
     }
-    if (mesh.GetMesh().CalculateVertexCount() == 0)
+    if (mesh.GetMesh().VertexCount() == 0)
     {
         return false; // no glyph to render
     }
-    // create device mesh data
-    if (resource.mesh)
-    {
-        resource.mesh.Update(mesh.GetMesh());
-    }
-    else
-    {
-        resource.mesh = DeviceMesh::Create(mesh.GetMesh());
-    }
+    (void)resource;
     return true;
 }
 bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& resource)
@@ -742,45 +702,21 @@ bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& res
     m_HostUniformBuffer.color[1] = param.color.y();
     m_HostUniformBuffer.color[2] = param.color.z();
     // stagging
-    m_StaggingBuffer.SetData(std::span<uint8_t>((uint8_t*)&m_HostUniformBuffer, sizeof(m_HostUniformBuffer)));
-    // uniform
-    return DeviceBuffer::SyncCopy(resource.uniformBuffer, m_StaggingBuffer, sizeof(m_HostUniformBuffer), 0, 0);
+    m_StaggingBuffer.SetData(0, std::span<uint8_t>((uint8_t*)&m_HostUniformBuffer, sizeof(m_HostUniformBuffer)));
+    (void)resource;
+    return true;
 }
 
 bool Raster::UpdateDescriptorSet(RenderPassResource& resource, RenderPassParam& param)
 {
-    auto& descriptorSet = m_DescriptorSet.GetVk();
-
-    // ubo
-    {
-        auto& uboAccessor = descriptorSet.ubos[0];
-        auto& set = descriptorSet.sets[uboAccessor.set];
-        vk::DescriptorSetOperator op(set);
-        op.BindUBO(uboAccessor.binding, resource.uniformBuffer.GetVk());
-        op.Apply();
-    }
-    // texture
-    {
-        auto& set = descriptorSet.sets[1];
-        vk::DescriptorSetOperator op(set);
-        op.BindSampler(0, m_GlyphTextureSampler.GetVk(), param.font.glyphTexture.GetDefaultImageView().GetVk());
-        op.BindSampler(1, m_CurveTextureSampler.GetVk(), param.font.curveTexture.GetDefaultImageView().GetVk());
-        op.Apply();
-    }
+    (void)resource;
+    (void)param;
     return true;
 }
 bool Raster::RecordCommand(RenderPassParam& param, RenderPassResource& resource)
 {
-    auto& commandBuffer = param.commandBuffer.GetVk();
-
-    commandBuffer.BindPipeline(m_Pipeline.GetVk());
-    auto& descriptorSet = m_DescriptorSet.GetVk();
-    for (size_t i = 0; i < descriptorSet.sets.size(); ++i)
-    {
-        auto& set = descriptorSet.sets[i];
-        commandBuffer.BindDescriptorSet(set, m_PipelineLayout.GetVk(), i);
-    }
-    Render::Utils::VkDrawMesh(commandBuffer, resource.mesh.GetVk());
+    (void)param;
+    (void)resource;
     return true;
 }
 } // namespace Aether::Text

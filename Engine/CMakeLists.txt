@@ -27,4 +27,4 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
 
 add_subdirectory("Dependencies")
 add_subdirectory("Runtime")
-add_subdirectory("AetherEditor")
+# add_subdirectory("AetherEditor")

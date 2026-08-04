@@ -5,6 +5,29 @@
 namespace Aether {
 namespace vk {
 
+GraphicsPipeline::Builder& GraphicsPipeline::Builder::PushVertexInputLayout(
+    std::span<const VkVertexInputBindingDescription> bindings,
+    std::span<const VkVertexInputAttributeDescription> attributes)
+{
+    m_VertexBindingDescriptions.insert(m_VertexBindingDescriptions.end(), bindings.begin(), bindings.end());
+    m_AttributeDescriptions.insert(m_AttributeDescriptions.end(), attributes.begin(), attributes.end());
+    return *this;
+}
+GraphicsPipeline::Builder& GraphicsPipeline::Builder::SetDynamicRenderingFormats(
+    std::span<const VkFormat> colorAttachmentFormats,
+    VkFormat depthAttachmentFormat,
+    VkFormat stencilAttachmentFormat)
+{
+    m_DynamicRenderingColorAttachmentFormats.assign(colorAttachmentFormats.begin(), colorAttachmentFormats.end());
+    m_DynamicRenderingCreateInfo = {};
+    m_DynamicRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    m_DynamicRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(m_DynamicRenderingColorAttachmentFormats.size());
+    m_DynamicRenderingCreateInfo.pColorAttachmentFormats = m_DynamicRenderingColorAttachmentFormats.data();
+    m_DynamicRenderingCreateInfo.depthAttachmentFormat = depthAttachmentFormat;
+    m_DynamicRenderingCreateInfo.stencilAttachmentFormat = stencilAttachmentFormat;
+    m_UseDynamicRendering = true;
+    return *this;
+}
 std::optional<GraphicsPipeline> GraphicsPipeline::Builder::Build()
 {
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -100,6 +123,10 @@ std::optional<GraphicsPipeline> GraphicsPipeline::Builder::Build()
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    if (!renderPass && m_UseDynamicRendering)
+    {
+        pipelineInfo.pNext = &m_DynamicRenderingCreateInfo;
+    }
     pipelineInfo.stageCount = m_Stages.size();
     pipelineInfo.pStages = m_Stages.data();
     pipelineInfo.pVertexInputState = &vertexInputInfo;

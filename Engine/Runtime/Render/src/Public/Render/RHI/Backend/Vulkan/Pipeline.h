@@ -102,6 +102,11 @@ public:
             m_InColorAttachment = false;
             return *this;
         }
+        Builder& PushVertexInputLayout(std::span<const VkVertexInputBindingDescription> bindings,
+                                       std::span<const VkVertexInputAttributeDescription> attributes);
+        Builder& SetDynamicRenderingFormats(std::span<const VkFormat> colorAttachmentFormats,
+                                            VkFormat depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+                                            VkFormat stencilAttachmentFormat = VK_FORMAT_UNDEFINED);
         void EnableDynamicDepthCompareOp()
         {
             m_EnableDynamicDepthCompareOp = true;
@@ -115,6 +120,9 @@ public:
         VkCompareOp m_DepthTestCompareOp = VK_COMPARE_OP_LESS;
         std::vector<VkPipelineShaderStageCreateInfo> m_Stages;
         bool m_EnableDynamicDepthCompareOp = false;
+        std::vector<VkFormat> m_DynamicRenderingColorAttachmentFormats;
+        VkPipelineRenderingCreateInfo m_DynamicRenderingCreateInfo{};
+        bool m_UseDynamicRendering = false;
     private:
         struct ColorAttachmentConfig
         {
