@@ -5,6 +5,7 @@
 #include <Text/Layout/Run.h>
 #include <harfbuzz/hb-ft.h>
 #include <freetype/ftbbox.h>
+#include <Render/RHI.h>
 namespace Aether::Text
 {
 
@@ -720,9 +721,9 @@ public:
     std::vector<BufferGlyph> bufferGlyphs;
     std::vector<BufferCurve> bufferCurves;
     
-    DeviceBuffer stagingBuffer;
-    DeviceTexture glyphTexture;
-    DeviceTexture curveTexture;
+    rhi::StagingBuffer stagingBuffer;
+    rhi::Texture2D glyphTexture;
+    rhi::Texture2D curveTexture;
     Library* library; // not own
     HbFont hbFont; // harfbuzz font
 private:// current state

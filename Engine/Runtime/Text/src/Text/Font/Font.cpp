@@ -1,22 +1,23 @@
 #include "Font.h"
+#include <Render/Utils.h>
 namespace Aether::Text
 {
     bool Font::UpdateDeviceData()
     {
         // glyph texture
-        stagingBuffer.SetData(std::span<uint8_t>((uint8_t*)bufferGlyphs.data(),
+        stagingBuffer.SetData(0,std::span<uint8_t>((uint8_t*)bufferGlyphs.data(),
                                                  sizeof(BufferGlyph) * bufferGlyphs.size()));
-		glyphTexture.SyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::TransferDst);
-        glyphTexture.CopyBuffer(stagingBuffer);
-		glyphTexture.SyncTransitionLayout(DeviceImageLayout::TransferDst, DeviceImageLayout::Texture);
+		glyphTexture.SyncTransitionLayout(rhi::TextureLayout::ShaderReadOnly, rhi::TextureLayout::TransferDst);
+		Render::Utils::SyncUploadTexture2D(stagingBuffer, glyphTexture);
+		glyphTexture.SyncTransitionLayout(rhi::TextureLayout::TransferDst, rhi::TextureLayout::ShaderReadOnly);
 		
         // curve texture
 
-        stagingBuffer.SetData(std::span<uint8_t>((uint8_t*)bufferCurves.data(),
+        stagingBuffer.SetData(0,std::span<uint8_t>((uint8_t*)bufferCurves.data(),
                                                  sizeof(BufferCurve) * bufferCurves.size()));
-		curveTexture.SyncTransitionLayout(DeviceImageLayout::Texture, DeviceImageLayout::TransferDst);
-        curveTexture.CopyBuffer(stagingBuffer);
-		curveTexture.SyncTransitionLayout(DeviceImageLayout::TransferDst, DeviceImageLayout::Texture);
+		curveTexture.SyncTransitionLayout(rhi::TextureLayout::ShaderReadOnly, rhi::TextureLayout::TransferDst);
+		Render::Utils::SyncUploadTexture2D(stagingBuffer, curveTexture);
+		curveTexture.SyncTransitionLayout(rhi::TextureLayout::TransferDst, rhi::TextureLayout::ShaderReadOnly);
         return true;
     }
     bool Font::CreateDeviceData()
@@ -33,28 +34,43 @@ namespace Aether::Text
         // per line glyph count: 64
 		//
 		// @note 如果要修改纹理大小，要保证一行上的数据个数是整数个，不能出现一个数据跨越两行
-		stagingBuffer=DeviceBuffer::CreateForStaging(512*512*4*4);
+		stagingBuffer=rhi::StagingBuffer::Create(512*512*4*4);
 		if(!stagingBuffer)
 		{
 			assert(false && "create staging buffer failed");
 			return false;
 		}
-		curveTexture=DeviceTexture::CreateForTexture(512, 512, PixelFormat::RGBA_FLOAT32).value();
+		
+		curveTexture=rhi::Texture2D::Create({
+			.usages=PackFlags(rhi::TextureUsage::TransferDst, rhi::TextureUsage::Sample),
+			.pixelFormat=PixelFormat::RGBA_FLOAT32,
+			.width=512,
+			.height=512,
+			.layout=rhi::TextureLayout::Undefined
+		});
 		if(!curveTexture)
 		{
 			assert(false && "create curve texture failed");
 			return false;
 		}
-		curveTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
-		curveTexture.GetOrCreateDefaultImageView();
-		glyphTexture=DeviceTexture::CreateForTexture(128, 128, PixelFormat::RGBA8888_UInt).value();
+		curveTexture.SyncTransitionLayout(rhi::TextureLayout::Undefined, rhi::TextureLayout::ShaderReadOnly);
+		//curveTexture.GetOrCreateDefaultImageView();
+		glyphTexture=rhi::Texture2D::Create(
+			{
+				.usages=PackFlags(rhi::TextureUsage::TransferDst, rhi::TextureUsage::Sample),
+				.pixelFormat=PixelFormat::RGBA8888,
+				.width=128,
+				.height=128,
+				.layout=rhi::TextureLayout::Undefined
+			}
+		);
 		if(!glyphTexture)
 		{
 			assert(false && "create glyph texture failed");
 			return false;
 		}
-		glyphTexture.SyncTransitionLayout(DeviceImageLayout::Undefined, DeviceImageLayout::Texture);
-		glyphTexture.GetOrCreateDefaultImageView();
+		glyphTexture.SyncTransitionLayout(rhi::TextureLayout::Undefined, rhi::TextureLayout::ShaderReadOnly);
+		//glyphTexture.GetOrCreateDefaultImageView();
         return true;
     }
 }

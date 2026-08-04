@@ -1,12 +1,5 @@
 #include "Raster.h"
 #include "QuadArrayMesh.h"
-#include "Render/RenderApi/DeviceBuffer.h"
-#include "Render/RenderApi/DeviceDescriptorPool.h"
-#include "Render/RenderApi/DeviceMesh.h"
-#include "Render/RenderApi/DeviceRenderPass.h"
-#include "Render/Vulkan/DescriptorSet.h"
-#include "Render/Vulkan/Pipeline.h"
-#include "Render/Vulkan/PipelineLayout.h"
 #include "Quad.h"
 #include "PackGlyph.h"
 #include "Render/Utils.h"
@@ -27,12 +20,12 @@ bool Raster::Render(RenderPassParam& param, RenderPassResource& resource)
     {
         return false;
     }
-    res = CreateDescriptorSet(param.descriptorPool);
+    res = CreateDescriptorSet();
     if (!res)
     {
         return false;
     }
-    res = UpdateDescriptorSet(resource,param);
+    res = UpdateDescriptorSet(resource, param);
     if (!res)
     {
         return false;
@@ -45,9 +38,9 @@ bool Raster::Render(RenderPassParam& param, RenderPassResource& resource)
 
     return true;
 }
-bool Raster::Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,bool enableDepthTest)
+bool Raster::Init(bool enableBlend, bool enableDepthTest)
 {
-    if (!CreateDescriptorSet(descriptorPool))
+    if (!CreateDescriptorSet())
     {
         assert(false && "create descriptor set failed");
         return false;
@@ -57,14 +50,14 @@ bool Raster::Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescr
         assert(false && "create shader failed");
         return false;
     }
-    if (!CreatePipeline(renderPass, enableBlend,enableDepthTest))
+    if (!CreatePipeline(enableBlend, enableDepthTest))
     {
         assert(false && "create pipeline failed");
         return false;
     }
-    m_StaggingBuffer=DeviceBuffer::CreateForStaging(sizeof(HostUniformBuffer));
-    m_CurveTextureSampler=DeviceSampler::CreateDefault();
-    m_GlyphTextureSampler=DeviceSampler::CreateNearest();
+    m_StaggingBuffer = rhi::StagingBuffer::Create(sizeof(HostUniformBuffer));
+    m_CurveTextureSampler = rhi::Sampler::CreateDefault();
+    m_GlyphTextureSampler = rhi::Sampler::CreateNearest();
     return true;
 }
 bool Raster::CreateShader()
@@ -580,35 +573,51 @@ void main()
 }
 )";
     std::stringstream ss;
-    if(IsFlagSet(m_Keywords,Keyword::ColorfulEdge))
+    if (IsFlagSet(m_Keywords, Keyword::ColorfulEdge))
     {
-        ss<< "#define COLORFUL_EDGE\n";
+        ss << "#define COLORFUL_EDGE\n";
     }
-    if(IsFlagSet(m_Keywords,Keyword::Oversampling))
+    if (IsFlagSet(m_Keywords, Keyword::Oversampling))
     {
-        ss<< "#define OVERSAMPLING\n";
+        ss << "#define OVERSAMPLING\n";
     }
-    if(IsFlagSet(m_Keywords,Keyword::Fill))
+    if (IsFlagSet(m_Keywords, Keyword::Fill))
     {
-        ss<< "#define FILL\n";
+        ss << "#define FILL\n";
     }
-    if(IsFlagSet(m_Keywords,Keyword::Sdf))
+    if (IsFlagSet(m_Keywords, Keyword::Sdf))
     {
-        ss<< "#define SDF\n";
+        ss << "#define SDF\n";
     }
-    auto shaderEx = DeviceShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert),
-                                         ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, 
-                                            frag,ss.str()));
-    if (!shaderEx)
+    // auto shaderEx = DeviceShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert),
+    //                                      ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL,
+    //                                         frag,ss.str()));
+    // if (!shaderEx)
+    //{
+    //     Debug::Log::Error("create shader failed:\n{}",shaderEx.error());
+    //     assert(false && "create shader failed");
+    //     return false;
+    // }
+    // m_Shader = std::move(shaderEx.value());
+    auto vertexShaderEx = rhi::VertexShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, vert));
+    if (!vertexShaderEx)
     {
-        Debug::Log::Error("create shader failed:\n{}",shaderEx.error());
-        assert(false && "create shader failed");
+        Debug::Log::Error("create vertex shader failed:\n{}", vertexShaderEx.error());
+        assert(false && "create vertex shader failed");
         return false;
     }
-    m_Shader = std::move(shaderEx.value());
+    m_VertexShader = std::move(vertexShaderEx.value());
+    auto pixelShaderEx = rhi::PixelShader::Create(ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, frag, ss.str()));
+    if (!pixelShaderEx)
+    {
+        Debug::Log::Error("create pixel shader failed:\n{}", pixelShaderEx.error());
+        assert(false && "create pixel shader failed");
+        return false;
+    }
+    m_PixelShader = std::move(pixelShaderEx.value());
     return true;
 }
-bool Raster::CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend,bool enableDepthTest)
+bool Raster::CreatePipeline( bool enableBlend, bool enableDepthTest)
 {
     vk::PipelineLayout::Builder layoutBuilder;
     layoutBuilder.AddDescriptorSetLayouts(m_DescriptorSet.GetVk().layouts);
@@ -620,7 +629,7 @@ bool Raster::CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend,bo
     }
     auto& layout = layoutOpt.value();
     vk::GraphicsPipeline::Builder builder(renderPass.GetVk(), layout);
-    if(enableDepthTest)
+    if (enableDepthTest)
     {
         builder.EnableDepthTest();
     }
@@ -646,7 +655,6 @@ bool Raster::CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend,bo
     return true;
 }
 
-
 bool Raster::CreateDescriptorSet(DeviceDescriptorPool& descriptorPool)
 {
     auto set = descriptorPool.CreateSet(1, 0, 2);
@@ -667,35 +675,35 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
     // create host mesh data
     QuadArrayMesh mesh;
     bool res;
-    
+
     float worldSize = param.worldSize;
-    
-    assert(param.bufferGlyphInfoIndexes.size()==param.glyphPosition.size());
-    for(size_t i=0;i<param.bufferGlyphInfoIndexes.size();++i)
+
+    assert(param.bufferGlyphInfoIndexes.size() == param.glyphPosition.size());
+    for (size_t i = 0; i < param.bufferGlyphInfoIndexes.size(); ++i)
     {
-        auto index=param.bufferGlyphInfoIndexes[i];
-        auto& pos=param.glyphPosition[i];
+        auto index = param.bufferGlyphInfoIndexes[i];
+        auto& pos = param.glyphPosition[i];
         auto& glyph = param.font.bufferGlyphInfo[index];
-        auto& bufferGlyph=param.font.bufferGlyphs[glyph.bufferIndex];
+        auto& bufferGlyph = param.font.bufferGlyphs[glyph.bufferIndex];
         float emSize = glyph.emSize;
-        float scale=worldSize/emSize;
-        if(bufferGlyph.count==0)
+        float scale = worldSize / emSize;
+        if (bufferGlyph.count == 0)
         {
-            //skip empty glyph(like space)
+            // skip empty glyph(like space)
             continue;
         }
-       
-        FT_Pos d = (FT_Pos) (emSize * m_Dilation);
 
-		float u0 = (float)(glyph.bearingX-d) / emSize;
-		float v0 = (float)(glyph.bearingY-glyph.height-d) / emSize;
-		float u1 = (float)(glyph.bearingX+glyph.width+d) / emSize;
-		float v1 = (float)(glyph.bearingY+d) / emSize;
-		
-        float x0=pos.x();
-        float y0 = pos.y(); 
-		float x1 = x0 + glyph.width*scale;
-        float y1 = y0 + glyph.height*scale;
+        FT_Pos d = (FT_Pos)(emSize * m_Dilation);
+
+        float u0 = (float)(glyph.bearingX - d) / emSize;
+        float v0 = (float)(glyph.bearingY - glyph.height - d) / emSize;
+        float u1 = (float)(glyph.bearingX + glyph.width + d) / emSize;
+        float v1 = (float)(glyph.bearingY + d) / emSize;
+
+        float x0 = pos.x();
+        float y0 = pos.y();
+        float x1 = x0 + glyph.width * scale;
+        float y1 = y0 + glyph.height * scale;
         // 创建quad
         Quad quad;
         quad.position = Vec2f(x0, y0);
@@ -703,13 +711,12 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
         quad.uv0 = Vec2f(u0, v0);
         quad.uv1 = Vec2f(u1, v1);
         quad.glyphIndex = glyph.bufferIndex;
-        quad.z=param.z;
+        quad.z = param.z;
         mesh.PushQuad(quad);
-       
     }
-    if(mesh.GetMesh().CalculateVertexCount()==0)
+    if (mesh.GetMesh().CalculateVertexCount() == 0)
     {
-        return false;// no glyph to render
+        return false; // no glyph to render
     }
     // create device mesh data
     if (resource.mesh)
@@ -725,7 +732,7 @@ bool Raster::UpdateMesh(RenderPassParam& param, RenderPassResource& resource)
 bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& resource)
 {
     // host
-    auto& camera=param.camera;
+    auto& camera = param.camera;
     //========
     for (size_t i = 0; i < 16; i++)
     {
@@ -735,17 +742,15 @@ bool Raster::UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& res
     m_HostUniformBuffer.color[1] = param.color.y();
     m_HostUniformBuffer.color[2] = param.color.z();
     // stagging
-    m_StaggingBuffer.SetData(std::span<uint8_t>((uint8_t*)&m_HostUniformBuffer,
-                                                sizeof(m_HostUniformBuffer)));
+    m_StaggingBuffer.SetData(std::span<uint8_t>((uint8_t*)&m_HostUniformBuffer, sizeof(m_HostUniformBuffer)));
     // uniform
-    return DeviceBuffer::SyncCopy(resource.uniformBuffer, m_StaggingBuffer,
-                                  sizeof(m_HostUniformBuffer), 0, 0);
+    return DeviceBuffer::SyncCopy(resource.uniformBuffer, m_StaggingBuffer, sizeof(m_HostUniformBuffer), 0, 0);
 }
 
-bool Raster::UpdateDescriptorSet(RenderPassResource& resource,RenderPassParam& param)
+bool Raster::UpdateDescriptorSet(RenderPassResource& resource, RenderPassParam& param)
 {
     auto& descriptorSet = m_DescriptorSet.GetVk();
-    
+
     // ubo
     {
         auto& uboAccessor = descriptorSet.ubos[0];
@@ -754,7 +759,7 @@ bool Raster::UpdateDescriptorSet(RenderPassResource& resource,RenderPassParam& p
         op.BindUBO(uboAccessor.binding, resource.uniformBuffer.GetVk());
         op.Apply();
     }
-    //texture
+    // texture
     {
         auto& set = descriptorSet.sets[1];
         vk::DescriptorSetOperator op(set);

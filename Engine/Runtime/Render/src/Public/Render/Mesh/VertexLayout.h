@@ -17,17 +17,16 @@ struct VertexAttribute
 {
     VertexAttributeFormat format;
     uint32_t offset;
-    uint32_t bufferIndex;
+    uint32_t bufferViewIndex;
 };
-struct VertexBufferLayout
+struct VertexBufferViewLayout
 {
     uint32_t stride;
-    
 };
 struct VertexLayout
 {
     std::vector<VertexAttribute> attributes;
-    std::vector<VertexBufferLayout> buffers;
+    std::vector<VertexBufferViewLayout> bufferViews;
 };
 
 } // namespace Aether

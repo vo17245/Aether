@@ -13,6 +13,7 @@ public:
      */
     static void VkDrawMesh(vk::GraphicsCommandBuffer& cb, const GpuMesh& mesh,uint32_t instanceCnt=1);
     static void DrawMesh(rhi::CommandList& cb, const GpuMesh& mesh,uint32_t instanceCnt=1);
+    static void SyncUploadTexture2D(const rhi::StagingBuffer& src,rhi::Texture2D& dst);
 };
 }
 } // namespace Aether::Render

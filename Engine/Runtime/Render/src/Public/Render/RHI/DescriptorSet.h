@@ -20,7 +20,10 @@ public:
 
 public:
     static DescriptorSet Create(uint32_t samplerCount, uint32_t uboCount, uint32_t ssboCount);
-
+    vk::DynamicDescriptorPool::DescriptorResource& GetVk()
+    {
+        return std::get<vk::DynamicDescriptorPool::DescriptorResource>(m_DescriptorSet);
+    }
 private:
     std::variant<std::monostate, vk::DynamicDescriptorPool::DescriptorResource> m_DescriptorSet;
 };

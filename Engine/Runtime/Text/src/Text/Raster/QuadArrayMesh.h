@@ -1,6 +1,5 @@
 #pragma once
 #include "Render/Mesh/Mesh.h"
-#include "Render/Mesh/VertexBufferLayout.h"
 #include "Quad.h"
 namespace Aether::Text
 {

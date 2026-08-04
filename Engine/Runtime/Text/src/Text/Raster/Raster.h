@@ -1,14 +1,9 @@
 #pragma once
-#include "Render/RenderApi/DeviceSampler.h"
 #include "Text/Font/Font.h"
 #include "QuadArrayMesh.h"
-#include "Render/RenderApi/DeviceCommandBuffer.h"
-#include "Render/RenderApi/DeviceDescriptorPool.h"
-#include "Render/RenderApi/DeviceFrameBuffer.h"
-#include "Render/RenderApi/DevicePipeline.h"
-#include "Render/RenderApi/DeviceRenderPass.h"
-#include <Render/RenderApi.h>
+#include <Render/RHI.h>
 #include <Render/Scene/Camera2D.h>
+#include <Render/Mesh/GpuMesh.h>
 namespace Aether::Text
 {
 class Raster
@@ -17,8 +12,7 @@ public:
     struct RenderPassParam
     {
         // render resource
-        DeviceCommandBufferView commandBuffer;
-        DeviceDescriptorPool& descriptorPool;
+        rhi::CommandList* commandBuffer;
         // text
         Font& font;
         std::vector<uint32_t>& bufferGlyphInfoIndexes;//glyph indexes in font
@@ -30,8 +24,8 @@ public:
     };
     struct RenderPassResource
     {
-        DeviceBuffer uniformBuffer;
-        DeviceMesh mesh;
+        rhi::UniformBuffer uniformBuffer;
+        GpuMesh mesh;
     };
 
 public:
@@ -43,7 +37,7 @@ public:
     RenderPassResource CreateRenderPassResource()
     {
         RenderPassResource resource;
-        resource.uniformBuffer = DeviceBuffer::CreateForUniform(sizeof(HostUniformBuffer));
+        resource.uniformBuffer = rhi::UniformBuffer::Create(sizeof(HostUniformBuffer));
         return resource;
     }
     enum class Keyword:uint32_t
@@ -57,12 +51,12 @@ public:
         Sdf=Bit(4),
     };
     using KeywordFlags = uint32_t;
-    static std::optional<Raster> Create(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,
+    static std::optional<Raster> Create(bool enableBlend, 
                                         bool enableDepthTest,KeywordFlags keywords= PackFlags(Keyword::Fill))
     {
         Raster raster;
         raster.m_Keywords = keywords;
-        bool res = raster.Init(renderPass, enableBlend, descriptorPool,enableDepthTest);
+        bool res = raster.Init(enableBlend, enableDepthTest);
         if (!res)
         {
             return std::nullopt;
@@ -72,13 +66,13 @@ public:
     Raster(Raster&&) = default;
 
 private:
-    bool Init(DeviceRenderPassView renderPass, bool enableBlend, DeviceDescriptorPool& descriptorPool,bool enableDepthTest);
+    bool Init(bool enableBlend, bool enableDepthTest);
     Raster() = default;
 
 private:
     bool CreateShader();                                                            // on init
-    bool CreatePipeline(DeviceRenderPassView renderPass, bool enableBlend,bool enableDepthTest);         // on init
-    bool CreateDescriptorSet(DeviceDescriptorPool& descriptorPool);                 // per draw
+    bool CreatePipeline(bool enableBlend,bool enableDepthTest);                     // on init
+    bool CreateDescriptorSet();                                                     // per draw
     bool UpdateMesh(RenderPassParam& param, RenderPassResource& resource);          // per draw
     bool UpdateUniformBuffer(RenderPassParam& param, RenderPassResource& resource); // per draw
     bool UpdateDescriptorSet(RenderPassResource& resource, RenderPassParam& param); // per draw
@@ -89,14 +83,14 @@ private:
         float mvp[16];
         float color[4]={1.0,1.0,1.0,1.0}; // RGB ,A is not used,just for alignment
     };
-    DevicePipeline m_Pipeline;
-    DevicePipelineLayout m_PipelineLayout;
-    DeviceShader m_Shader;
-    DeviceBuffer m_StaggingBuffer;
-    DeviceDescriptorSet m_DescriptorSet;
+    rhi::Pipeline m_Pipeline;
+    rhi::StagingBuffer m_StaggingBuffer;
+    rhi::DescriptorSet m_DescriptorSet;
     HostUniformBuffer m_HostUniformBuffer;
-    DeviceSampler m_GlyphTextureSampler;
-    DeviceSampler m_CurveTextureSampler;
+    rhi::Sampler m_GlyphTextureSampler;
+    rhi::Sampler m_CurveTextureSampler;
+    rhi::VertexShader m_VertexShader;
+    rhi::PixelShader m_PixelShader;
 
 private:
     // The glyph quads are expanded by this amount to enable proper

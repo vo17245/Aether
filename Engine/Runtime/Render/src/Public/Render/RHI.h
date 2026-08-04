@@ -11,3 +11,4 @@
 #include "RHI/Attachment.h"
 #include "RHI/RenderPass.h"
 #include "RHI/SwapChain.h"
+#include "RHI/DescriptorSet.h"

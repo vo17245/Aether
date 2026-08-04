@@ -1,5 +1,4 @@
 #pragma once
-#include "Render/RenderApi.h"
 #include "Core/Math.h"
 namespace Aether::Text
 {
