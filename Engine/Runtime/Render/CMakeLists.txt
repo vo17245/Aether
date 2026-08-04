@@ -51,7 +51,7 @@ install(TARGETS ${MODULE_NAME}
 
 include(CMakePackageConfigHelpers)
 # install时拷贝头文件
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/"
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/Public/"
     DESTINATION ${MODULE_NAME}/include
     FILES_MATCHING PATTERN "*.h"
 )
