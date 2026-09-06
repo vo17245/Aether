@@ -101,6 +101,115 @@ static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
             break;
         }
     }
+    namespace
+    {
+    VkAttachmentLoadOp ToVkAttachmentLoadOp(AttachmentLoadOp op)
+    {
+        switch (op)
+        {
+        case AttachmentLoadOp::Load:
+            return VK_ATTACHMENT_LOAD_OP_LOAD;
+        case AttachmentLoadOp::Clear:
+            return VK_ATTACHMENT_LOAD_OP_CLEAR;
+        case AttachmentLoadOp::DontCare:
+            return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        default:
+            assert(false && "unknown attachment load operation");
+            return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        }
+    }
+
+    VkAttachmentStoreOp ToVkAttachmentStoreOp(AttachmentStoreOp op)
+    {
+        switch (op)
+        {
+        case AttachmentStoreOp::Store:
+            return VK_ATTACHMENT_STORE_OP_STORE;
+        case AttachmentStoreOp::DontCare:
+            return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        default:
+            assert(false && "unknown attachment store operation");
+            return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        }
+    }
+    } // namespace
+
+    void CommandList::BeginRenderPass(const RenderPass& pass)
+    {
+        if (!std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))
+        {
+            assert(false && "unsupported command buffer type");
+            return;
+        }
+        if (pass.colorAttachments.empty() && !pass.depthAttachment)
+        {
+            assert(false && "render pass must contain an attachment");
+            return;
+        }
+
+        uint32_t width = 0;
+        uint32_t height = 0;
+        std::vector<VkRenderingAttachmentInfo> colorAttachments;
+        colorAttachments.reserve(pass.colorAttachments.size());
+        for (const auto& attachment : pass.colorAttachments)
+        {
+            auto& view = attachment.view->GetVk();
+            if (width == 0 || height == 0)
+            {
+                width = view.GetWidth();
+                height = view.GetHeight();
+            }
+            VkRenderingAttachmentInfo info{};
+            info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            info.imageView = view.GetHandle();
+            info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            info.loadOp = ToVkAttachmentLoadOp(attachment.loadOp);
+            info.storeOp = ToVkAttachmentStoreOp(attachment.storeOp);
+            info.clearValue.color.float32[0] = attachment.clearColor.x();
+            info.clearValue.color.float32[1] = attachment.clearColor.y();
+            info.clearValue.color.float32[2] = attachment.clearColor.z();
+            info.clearValue.color.float32[3] = attachment.clearColor.w();
+            colorAttachments.push_back(info);
+        }
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        if (pass.depthAttachment)
+        {
+            const auto& attachment = *pass.depthAttachment;
+            auto& view = attachment.view->GetVk();
+            if (width == 0 || height == 0)
+            {
+                width = view.GetWidth();
+                height = view.GetHeight();
+            }
+            depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            depthAttachment.imageView = view.GetHandle();
+            depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depthAttachment.loadOp = ToVkAttachmentLoadOp(attachment.loadOp);
+            depthAttachment.storeOp = ToVkAttachmentStoreOp(attachment.storeOp);
+            depthAttachment.clearValue.depthStencil = {attachment.clearDepth, attachment.clearStencil};
+        }
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea.extent = {width, height};
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size());
+        renderingInfo.pColorAttachments = colorAttachments.data();
+        renderingInfo.pDepthAttachment = pass.depthAttachment ? &depthAttachment : nullptr;
+        vkCmdBeginRendering(std::get<vk::GraphicsCommandBuffer>(m_Data).GetHandle(), &renderingInfo);
+    }
+
+    void CommandList::EndRenderPass()
+    {
+        if (!std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))
+        {
+            assert(false && "unsupported command buffer type");
+            return;
+        }
+        vkCmdEndRendering(std::get<vk::GraphicsCommandBuffer>(m_Data).GetHandle());
+    }
+
     void CommandList::SetDepthCompareOp(CompareOp op)
     {
         if (std::holds_alternative<vk::GraphicsCommandBuffer>(m_Data))

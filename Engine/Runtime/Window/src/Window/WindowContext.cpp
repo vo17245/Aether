@@ -11,7 +11,6 @@ void WindowContext::WindowResizeCallback(GLFWwindow* window, int width, int heig
     auto iter = windows.find(window);
     if (iter != windows.end())
     {
-        iter->second->OnWindowResize(Vec2u((uint32_t)width,(uint32_t)height));
         iter->second->PushEvent(WindowResizeEvent(width, height));
     }
     else
@@ -64,13 +63,15 @@ void WindowContext::FramebufferResizeCallback(GLFWwindow* window, int width, int
     // push event
     iter->second->PushEvent(FrameBufferResizeEvent(width, height));
     // resize swapchain
+    auto& w = *iter->second;
     if (width == 0 || height == 0)
     {
+        w.m_Minilized = true;
         return;
     }
 
-    vkDeviceWaitIdle(vk::GRC::GetDevice());
-    auto& w = *iter->second;
+    w.m_Minilized = false;
+    Render::SubmitThread::WaitIdle();
     w.ImGuiWindowContextDestroy();
     w.ReleaseRenderObject();
     if (!w.CreateRenderObject())
@@ -78,6 +79,7 @@ void WindowContext::FramebufferResizeCallback(GLFWwindow* window, int width, int
         assert(false && "failed to recreate window Vulkan resources");
         return;
     }
+    w.CreateRenderGraph();
     w.ImGuiWindowContextInit();
 }
 void WindowContext::CharacterCallback(GLFWwindow* window, unsigned int codepoint)

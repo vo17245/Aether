@@ -199,7 +199,7 @@ bool Window::CreateFinalImage()
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         rhi::TextureDesc desc{
-            .usages=PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample),
+            .usages=PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample, rhi::TextureUsage::TransferSrc),
             .pixelFormat=PixelFormat::RGBA8888,
             .width=(uint32_t)size.x(),
             .height=(uint32_t)size.y(),
@@ -234,10 +234,11 @@ void Window::ReleaseRenderObject()
     {
         m_GraphicsCommandBuffer[i] = rhi::CommandList();
     }
-    ReleaseFinalImage();
+    // RenderGraph-owned views must be destroyed before their external final images.
     m_RenderGraph.reset();
     m_ResourcePool.reset();
     m_ResourceArena.reset();
+    ReleaseFinalImage();
 }
 VkSurfaceKHR Window::GetSurface() const
 {
@@ -285,7 +286,6 @@ void Window::SetSize(uint32_t width, uint32_t height)
         return;
     }
     glfwSetWindowSize(m_Handle, width, height);
-    OnWindowResize(Vec2u(width, height));
 }
 /**
  *@brief Create swapchain ;swapchain images ; setup SwapChainImageFormat ;setup SwapChainExtent
@@ -325,7 +325,7 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     vk::QueueFamilyIndices indices = vk::findQueueFamilies(physicalDevice, m_Surface);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -389,7 +389,6 @@ Vec2i Window::GetSize() const
 void Window::SetSize(int width, int height)
 {
     glfwSetWindowSize(m_Handle, width, height);
-    OnWindowResize(Vec2u(width, height));
 }
 void Window::SetPosition(int width, int height)
 {
@@ -460,9 +459,17 @@ bool Window::CreateSyncObjects()
     {
         m_ImageAvailableSemaphore[i] = std::make_unique<rhi::Fence>(std::move(vk::Semaphore::Create().value()));
     }
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    m_RenderFinishedSemaphores.clear();
+    m_RenderFinishedSemaphores.reserve(m_SwapChainImages.size());
+    for (size_t i = 0; i < m_SwapChainImages.size(); ++i)
     {
-        m_RenderFinishedSemaphore[i] = std::make_unique<rhi::Fence>(std::move(vk::Semaphore::Create().value()));
+        auto semaphore = vk::Semaphore::Create();
+        if (!semaphore)
+        {
+            return false;
+        }
+        m_RenderFinishedSemaphores.push_back(
+            std::make_unique<rhi::Fence>(std::move(semaphore.value())));
     }
     return true;
 }
@@ -476,10 +483,7 @@ bool Window::ReleaseSyncObjects()
     {
         semaphore.reset();
     }
-    for (auto& semaphore : m_RenderFinishedSemaphore)
-    {
-        semaphore.reset();
-    }
+    m_RenderFinishedSemaphores.clear();
 
     return true;
 }
@@ -514,7 +518,7 @@ bool Window::ResizeFinalImage(const Vec2u& size)
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         rhi::TextureDesc desc{
-            .usages=PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample),
+            .usages=PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample, rhi::TextureUsage::TransferSrc),
             .pixelFormat=PixelFormat::RGBA8888,
             .width=(uint32_t)size.x(),
             .height=(uint32_t)size.y(),
@@ -527,8 +531,6 @@ bool Window::ResizeFinalImage(const Vec2u& size)
             return false;
         }
         auto& texture = textureOpt;
-        texture.SyncTransitionLayout(rhi::TextureLayout::Undefined, rhi::TextureLayout::ShaderReadOnly);
-
         m_FinalTextures[i] = std::move(texture);
         m_FinalImageViews[i] = m_FinalTextures[i].CreateImageView(rhi::TextureViewDesc{});
     }
@@ -565,11 +567,11 @@ void Window::CreateRenderGraph()
         finalImageResourceIds[i] = m_ResourceArena->Import(&m_FinalTextures[i]);
     }
     RenderGraph::TextureDesc finalImageDesc;
-    finalImageDesc.usages = PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample);
+    finalImageDesc.usages = PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample, rhi::TextureUsage::TransferSrc);
     finalImageDesc.pixelFormat = PixelFormat::RGBA8888;
     finalImageDesc.width = m_FinalTextures[0].GetWidth();
     finalImageDesc.height = m_FinalTextures[0].GetHeight();
-    finalImageDesc.layout = rhi::TextureLayout::ColorAttachment;
+    finalImageDesc.layout = rhi::TextureLayout::ShaderReadOnly;
     m_FinalImageAccessId = m_RenderGraph->Import(
         "FinalImage", finalImageDesc,
         std::span<const RenderGraph::ResourceId<rhi::Texture2D>>(finalImageResourceIds, MAX_FRAMES_IN_FLIGHT));
@@ -769,9 +771,7 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     // record transfer command here
     m_PendingUploadList.RecordCommand(curCommandBuffer);
 
-    // record main render command
-    curCommandBuffer.TextureLayoutTransition(m_FinalTextures[m_CurrentFrame], rhi::TextureLayout::ShaderReadOnly,
-                                           rhi::TextureLayout::ColorAttachment);
+    // Record the RenderGraph. It owns the final-image layout transitions.
     if (m_RenderGraph)
     {
         m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
@@ -779,25 +779,68 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
         m_RenderGraph->Execute();
     }
 
-    // render to screen (tonemap)
-    curCommandBuffer.TextureLayoutTransition(m_FinalTextures[m_CurrentFrame], rhi::TextureLayout::ColorAttachment,
-                                           rhi::TextureLayout::ShaderReadOnly);
-   
+    // Composite the RenderGraph final image into the acquired swapchain image.
+    auto& finalImage = m_FinalTextures[m_CurrentFrame].GetVk();
+    VkImageMemoryBarrier beforeBlit[2]{};
+    beforeBlit[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    beforeBlit[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    beforeBlit[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    beforeBlit[0].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    beforeBlit[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    beforeBlit[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    beforeBlit[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    beforeBlit[0].image = finalImage.GetHandle();
+    beforeBlit[0].subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    beforeBlit[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    beforeBlit[1].srcAccessMask = 0;
+    beforeBlit[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    beforeBlit[1].oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    beforeBlit[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    beforeBlit[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    beforeBlit[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    beforeBlit[1].image = m_SwapChainImages[imageIndex];
+    beforeBlit[1].subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    vkCmdPipelineBarrier(curCommandBufferVk.GetHandle(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 2, beforeBlit);
+
+    const auto finalSize = GetSize();
+    VkImageBlit blit{};
+    blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    blit.srcOffsets[1] = {finalSize.x(), finalSize.y(), 1};
+    blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    blit.dstOffsets[1] = {static_cast<int32_t>(m_SwapChainExtent.width),
+                          static_cast<int32_t>(m_SwapChainExtent.height), 1};
+    vkCmdBlitImage(curCommandBufferVk.GetHandle(), finalImage.GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   m_SwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
+                   VK_FILTER_LINEAR);
+
+    VkImageMemoryBarrier afterBlit[2] = {beforeBlit[0], beforeBlit[1]};
+    afterBlit[0].srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    afterBlit[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    afterBlit[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    afterBlit[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    afterBlit[1].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    afterBlit[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    afterBlit[1].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    afterBlit[1].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    vkCmdPipelineBarrier(curCommandBufferVk.GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         0, 0, nullptr, 0, nullptr, 2, afterBlit);
+
     m_ImGuiContext.window.FrameIndex = imageIndex;
     // record imgui command
     ImGuiRecordCommandBuffer(curCommandBuffer);
     curCommandBufferVk.End();
-    // commit command buffer
-    // auto imageAvailableSemaphoreHandle = imageAvailableSemaphore.GetVk().GetHandle();
-    static VkPipelineStageFlags stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-    auto renderFinishedSemaphore = m_RenderFinishedSemaphore[m_CurrentFrame]->GetVkSemaphore().GetHandle();
+    // A presentation semaphore can only be reused after its swapchain image is acquired again.
+    assert(imageIndex < m_RenderFinishedSemaphores.size());
+    auto& renderFinishedSemaphore = *m_RenderFinishedSemaphores[imageIndex];
     {
         auto submit = CreateScope<Render::VkCommandSubmit>();
         submit->commandBuffer = &m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
         submit->signalFence = &m_CommandBufferFences[m_CurrentFrame]->GetVkFence();
         submit->waitSemaphores.push_back(&imageAvailableSemaphore.GetVkSemaphore());
-        submit->waitStages.push_back(Render::PipelineSyncStage::AllGraphics);
-        submit->signalSemaphores.push_back(&m_RenderFinishedSemaphore[m_CurrentFrame]->GetVkSemaphore());
+        submit->waitStages.push_back(Render::PipelineSyncStage::AllCommands);
+        submit->signalSemaphores.push_back(&renderFinishedSemaphore.GetVkSemaphore());
         submit->queue = &vk::GRC::GetGraphicsQueue();
         Render::SubmitThread::PushSubmit(std::move(submit));
     }
@@ -819,7 +862,7 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
         auto present = CreateScope<Render::VkPresentSubmit>();
         present->imageIndex = imageIndex;
         present->swapChain = &m_SwapChain->GetVk();
-        present->waitSemaphores.push_back(&m_RenderFinishedSemaphore[m_CurrentFrame]->GetVkSemaphore());
+        present->waitSemaphores.push_back(&renderFinishedSemaphore.GetVkSemaphore());
         Render::SubmitThread::PushSubmit(std::move(present));
     }
 

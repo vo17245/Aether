@@ -12,6 +12,15 @@ void SubmitThread::Shutdown()
 {
     GetSingleton().ShutdownImpl();
 }
+void SubmitThread::WaitIdle()
+{
+    std::binary_semaphore completed{0};
+    auto submit = CreateScope<CustomSubmit>();
+    submit->func = []() { vkDeviceWaitIdle(vk::GRC::GetDevice()); };
+    submit->semaphore = &completed;
+    PushSubmit(std::move(submit));
+    completed.acquire();
+}
 SubmitThread& SubmitThread::GetSingleton()
 {
     static SubmitThread instance;

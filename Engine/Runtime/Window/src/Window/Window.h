@@ -145,7 +145,8 @@ private:
     VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
     GLFWwindow* m_Handle = nullptr;
     std::unique_ptr<rhi::Fence> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
-    std::unique_ptr<rhi::Fence> m_RenderFinishedSemaphore[MAX_FRAMES_IN_FLIGHT];
+    // Presentation wait semaphores are tied to swapchain images, not frames in flight.
+    std::vector<std::unique_ptr<rhi::Fence>> m_RenderFinishedSemaphores;
     Scope<rhi::Fence> m_CommandBufferFences[MAX_FRAMES_IN_FLIGHT];
     rhi::CommandList m_GraphicsCommandBuffer[MAX_FRAMES_IN_FLIGHT];
     //=========== final image

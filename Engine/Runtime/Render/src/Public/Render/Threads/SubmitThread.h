@@ -35,6 +35,7 @@ enum class QueueType
 enum class PipelineSyncStage
 {
     AllGraphics,
+    AllCommands,
 };
 inline constexpr VkPipelineStageFlags DevicePipelineSyncStageToVk(PipelineSyncStage stage)
 {
@@ -42,6 +43,8 @@ inline constexpr VkPipelineStageFlags DevicePipelineSyncStageToVk(PipelineSyncSt
     {
     case PipelineSyncStage::AllGraphics:
         return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+    case PipelineSyncStage::AllCommands:
+        return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
     default:
         assert(false && "Not implemented");
         return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
@@ -106,6 +109,8 @@ class SubmitThread
 public:
     static void Init();
     static void Shutdown();
+    // Drain queued submissions and wait until all device queues are idle.
+    static void WaitIdle();
 
     static void PushSubmit(Scope<SubmitBase>&& submit)
     {

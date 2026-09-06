@@ -144,14 +144,16 @@ struct RenderTask : public RenderTaskBase
             auto& colorAttachment = desc.colorAttachment[i];
             auto* imageView = resourceAccessor.GetResource(colorAttachment.textureView);
             assert(imageView && "Failed to get image view resource");
-            renderPass.colorAttachments.emplace_back(imageView, colorAttachment.loadOp, colorAttachment.storeOp);
+            renderPass.colorAttachments.emplace_back(
+                imageView, colorAttachment.loadOp, colorAttachment.storeOp, desc.clearColor[i]);
         }
         if (desc.depthAttachment)
         {
             auto& depthAttachment = *desc.depthAttachment;
             auto* imageView = resourceAccessor.GetResource(depthAttachment.textureView);
             assert(imageView && "Failed to get image view resource");
-            renderPass.depthAttachment = {imageView, depthAttachment.loadOp, depthAttachment.storeOp};
+            renderPass.depthAttachment = {
+                imageView, depthAttachment.loadOp, depthAttachment.storeOp, desc.clearDepth, desc.clearStencil};
         }
         return renderPass;
     }
