@@ -2,6 +2,20 @@
 #include <Render/RHI/Backend/Vulkan/Transfer.h>
 namespace Aether::rhi
 {
+void CommandList::UploadTexture(StagingBuffer& src, Texture2D& dst, const TextureUploadRegion& region)
+{
+    assert(region.width > 0 && region.height > 0);
+    assert(region.x <= dst.GetWidth() && region.width <= dst.GetWidth() - region.x);
+    assert(region.y <= dst.GetHeight() && region.height <= dst.GetHeight() - region.y);
+    assert(src.GetSize() >= static_cast<size_t>(region.width) * region.height * PixelFormatSize(dst.GetFormat()));
+    VkBufferImageCopy copy{};
+    copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copy.imageOffset = {static_cast<int32_t>(region.x), static_cast<int32_t>(region.y), 0};
+    copy.imageExtent = {region.width, region.height, 1};
+    vkCmdCopyBufferToImage(GetVk().GetHandle(), src.GetVk().GetHandle(), dst.GetVk().GetHandle(),
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+}
+
 // clang-format off
 static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
 {

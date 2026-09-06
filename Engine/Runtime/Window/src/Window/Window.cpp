@@ -4,6 +4,7 @@
 #include "WindowEvent.h"
 #include "vulkan/vulkan_core.h"
 #include <cstdlib>
+#include <stdexcept>
 #include <memory>
 #include <variant>
 #include <SDL3/SDL.h>
@@ -18,6 +19,7 @@
 #include "EventBaseMethod.h"
 #include <ranges>
 #include "ImGui/Compat/ImGuiApi.h"
+#include <ImGui/Backend/imgui_impl_rendergraph.h>
 #include <Debug/Log.h>
 #include <Render/Threads/SubmitThread.h>
 
@@ -226,6 +228,7 @@ void Window::ReleaseFinalImage()
 }
 void Window::ReleaseRenderObject()
 {
+    ImGuiWindowContextDestroy();
     m_SwapChainImageViews.clear();
     m_SwapChainImages.clear();
     m_SwapChain.reset();
@@ -447,21 +450,17 @@ void Window::OnUpdate(float sec)
         layer->OnImGuiUpdate();
     }
     ImGui::Render();
-    // PendingUploadList update
-    m_PendingUploadList.OnUpdate(m_Minilized);
 }
 
 void Window::OnRender()
 {
-    if (GetSize().x() == 0 || GetSize().y() == 0)
+    if (m_Minilized || GetSize().x() == 0 || GetSize().y() == 0)
     {
         return;
     }
    
     // wait for render resource
-    // ImGuiWaitFrameResource();
     m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Wait();
-    m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset();
     // acquire next image
     {
         auto imageAcquireSubmit = CreateScope<Render::VkImageAcquireSubmit>();
@@ -473,6 +472,22 @@ void Window::OnRender()
         Render::SubmitThread::PushSubmit(std::move(imageAcquireSubmit));
     }
     m_ImageAcquireSemaphore.acquire();
+    if (m_ImageAcquireResult.status == Render::ImageAcquireStatus::OutOfDate)
+    {
+        Render::SubmitThread::WaitIdle();
+        ReleaseRenderObject();
+        if (!CreateRenderObject())
+            throw std::runtime_error("Failed to recreate out-of-date swapchain");
+        CreateRenderGraph();
+        return;
+    }
+    if (m_ImageAcquireResult.status == Render::ImageAcquireStatus::NotReady ||
+        m_ImageAcquireResult.status == Render::ImageAcquireStatus::Timeout)
+        return;
+    if (m_ImageAcquireResult.status != Render::ImageAcquireStatus::Success)
+        throw std::runtime_error("Failed to acquire swapchain image");
+    // Reset only when a submission will signal this fence.
+    m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset();
     OnImageAcquired(m_ImageAcquireResult);
 }
 bool Window::CreateSyncObjects()
@@ -573,8 +588,6 @@ void Window::OnWindowResize(const Vec2u& size)
     m_Minilized = false;
     assert(ResizeFinalImage(size) && "failed to resize window final image");
     CreateRenderGraph();
-    m_ImGuiContext.window.Width = size.x();
-    m_ImGuiContext.window.Height = size.y();
 }
 void Window::InitRenderGraphResource()
 {
@@ -622,121 +635,36 @@ void Window::CreateRenderGraph()
     // compile
     m_RenderGraph->Compile();
 }
-static void check_vk_result(VkResult err)
-{
-    if (err == VK_SUCCESS)
-        return;
-    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
-    if (err < 0)
-        abort();
-}
-void Window::ImGuiWaitFrameResource()
-{
-    ImDrawData* draw_data = ImGui::GetDrawData();
-    auto* wd = &m_ImGuiContext.window;
-    ImGui_ImplVulkanH_Frame* fd = &wd->Frames[wd->FrameIndex];
-    {
-        auto err = vkWaitForFences(vk::GRC::GetDevice(), 1, &fd->Fence, VK_TRUE,
-                                   UINT64_MAX); // wait indefinitely instead of periodically checking
-        check_vk_result(err);
-
-        err = vkResetFences(vk::GRC::GetDevice(), 1, &fd->Fence);
-        check_vk_result(err);
-    }
-}
-
 void Window::ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer)
 {
-    // Rendering
-    ImDrawData* draw_data = ImGui::GetDrawData();
-    const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
-    auto* wd = &m_ImGuiContext.window;
-    Vec4f clear_color = m_ImGuiClearColor;
-    if (!is_minimized)
-    {
-        wd->ClearValue.color.float32[0] = clear_color.x() * clear_color.w();
-        wd->ClearValue.color.float32[1] = clear_color.y() * clear_color.w();
-        wd->ClearValue.color.float32[2] = clear_color.z() * clear_color.w();
-        wd->ClearValue.color.float32[3] = clear_color.w();
-        ImGuiFrameRender(commandBuffer);
-    }
-}
-void Window::ImGuiFrameRender(rhi::CommandList& commandBuffer)
-{
-    auto* wd = &m_ImGuiContext.window;
-    ImDrawData* draw_data = ImGui::GetDrawData();
-    ImGui_ImplVulkanH_Frame* fd = &wd->Frames[wd->FrameIndex];
-    VkSemaphore image_acquired_semaphore = wd->FrameSemaphores[wd->SemaphoreIndex].ImageAcquiredSemaphore;
-    VkSemaphore render_complete_semaphore = wd->FrameSemaphores[wd->SemaphoreIndex].RenderCompleteSemaphore;
-    auto& vkCommandBuffer = commandBuffer.GetVk();
-    {
-        VkRenderPassBeginInfo info = {};
-        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        info.renderPass = wd->RenderPass;
-        info.framebuffer = fd->Framebuffer;
-        info.renderArea.extent.width = wd->Width;
-        info.renderArea.extent.height = wd->Height;
-        info.clearValueCount = 1;
-        info.pClearValues = &wd->ClearValue;
-        vkCmdBeginRenderPass(vkCommandBuffer.GetHandle(), &info, VK_SUBPASS_CONTENTS_INLINE);
-    }
-
-    // Record dear imgui primitives into command buffer
-    ImGui_ImplVulkan_RenderDrawData(draw_data, vkCommandBuffer.GetHandle());
-
-    // Submit command buffer
-    vkCmdEndRenderPass(vkCommandBuffer.GetHandle());
-}
-void Window::ImGuiWindowContextInit()
-{
-    auto* wd = &m_ImGuiContext.window;
-    wd->ClearEnable = m_ImGuiClearEnable;
-    wd->SurfaceFormat.format = m_SwapChainImageFormat;
-    wd->Surface = m_Surface;
-    wd->ImageCount = m_SwapChainImages.size();
-    Vec2i size = GetSize();
-    wd->Width = size.x();
-    wd->Height = size.y();
-
-    wd->SemaphoreCount = wd->ImageCount + 1;
-    wd->Frames.resize(wd->ImageCount);
-    wd->FrameSemaphores.resize(wd->SemaphoreCount);
-    memset(wd->Frames.Data, 0, wd->Frames.size_in_bytes());
-    memset(wd->FrameSemaphores.Data, 0, wd->FrameSemaphores.size_in_bytes());
-    for (uint32_t i = 0; i < wd->ImageCount; i++)
-    {
-        wd->Frames[i].Backbuffer = m_SwapChainImages[i];
-    }
-
-    // Select Surface Format
-    // const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM,
-    // VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM }; const VkColorSpaceKHR requestSurfaceColorSpace =
-    // VK_COLORSPACE_SRGB_NONLINEAR_KHR; wd->SurfaceFormat =
-    // ImGui_ImplVulkanH_SelectSurfaceFormat(vk::GRC::GetPhysicalDevice(), wd->Surface, requestSurfaceImageFormat,
-    // (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
-
-    // Select Present Mode
-    // #ifdef APP_USE_UNLIMITED_FRAME_RATE
-    // VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR,
-    // VK_PRESENT_MODE_FIFO_KHR };
-    // #else
-    //     VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_FIFO_KHR };
-    // #endif
-
-    wd->PresentMode = m_PresentMode;
-    wd->Swapchain = m_SwapChain->GetVk().GetHandle();
-    // wd->PresentMode = ImGui_ImplVulkanH_SelectPresentMode(vk::GRC::GetPhysicalDevice(), wd->Surface,
-    // &present_modes[0], IM_ARRAYSIZE(present_modes)); printf("[vulkan] Selected PresentMode = %d\n", wd->PresentMode);
-
-    // Create SwapChain, RenderPass, Framebuffer, etc.
-    IM_ASSERT(m_SwapChainImages.size() >= 2);
-    ImGui_ImplVulkanH_CreateOrResizeWindow(vk::GRC::GetInstance(), vk::GRC::GetPhysicalDevice(), vk::GRC::GetDevice(),
-                                           wd, vk::GRC::GetQueueFamilyIndices().graphicsFamily.value(), nullptr,
-                                           size.x(), size.y(), m_SwapChainImages.size());
+    auto frame = std::make_unique<ImGuiApi::WindowContext::Frame>();
+    auto& graph = frame->graph;
+    auto& texture = m_FinalTextures[m_CurrentFrame];
+    auto resource = frame->arena.Import(&texture);
+    RenderGraph::TextureDesc desc{};
+    desc.width = texture.GetWidth();
+    desc.height = texture.GetHeight();
+    desc.pixelFormat = texture.GetFormat();
+    desc.usages = texture.GetUsages();
+    desc.layout = rhi::TextureLayout::ShaderReadOnly;
+    auto target = graph.Import<rhi::Texture2D>("ImGui.FinalImage", desc,
+        std::span<const RenderGraph::ResourceId<rhi::Texture2D>>(&resource, 1));
+    // With no scene layers, initialize the image even if UI clearing is disabled.
+    const bool clear = m_ImGuiClearEnable || m_Layers.empty();
+    Vec4f color = m_ImGuiClearColor;
+    color.x() *= color.w();
+    color.y() *= color.w();
+    color.z() *= color.w();
+    ImGui_ImplRenderGraph_RenderDrawData(ImGui::GetDrawData(), graph, target, clear, color);
+    graph.Compile();
+    graph.SetCommandBuffer(&commandBuffer);
+    graph.Execute();
+    m_ImGuiContext.frames[m_CurrentFrame] = std::move(frame);
 }
 void Window::ImGuiWindowContextDestroy()
 {
-    ImGui_ImplVulkanH_DestroyWindow(vk::GRC::GetInstance(), vk::GRC::GetDevice(), &m_ImGuiContext.window, nullptr);
+    for (auto& frame : m_ImGuiContext.frames)
+        frame.reset();
 }
 void Window::Maximize()
 {
@@ -764,7 +692,7 @@ void Window::SetCursorMode(CursorMode mode)
 }
 void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
 {
-    if (result.status != Render::ImageAcquireStatus::Success && result.status != Render::ImageAcquireStatus::NotReady)
+    if (result.status != Render::ImageAcquireStatus::Success)
     {
         assert(false && "unknown error");
         return;
@@ -777,6 +705,12 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
         layer->OnFrameBegin();
     }
     m_ResourcePool->OnFrameBegin();
+
+    // Only age uploads once a render slot is available. CPU updates while a
+    // window is minimized must not retire staging data that has not been submitted.
+    m_ImGuiContext.frames[m_CurrentFrame].reset();
+    m_PendingUploadList.OnUpdate(false);
+    ImGui_ImplRenderGraph_UpdateTextures(ImGui::GetDrawData(), m_PendingUploadList);
 
     // record command buffer
     auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
@@ -795,6 +729,9 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
         m_RenderGraph->Execute();
     }
 
+    // Composite UI into the final image using a RenderGraph task before presentation.
+    ImGuiRecordCommandBuffer(curCommandBuffer);
+
     // Composite the RenderGraph final image into the acquired swapchain image.
     auto& finalImage = m_FinalTextures[m_CurrentFrame].GetVk();
     VkImageMemoryBarrier beforeBlit[2]{};
@@ -810,7 +747,8 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     beforeBlit[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     beforeBlit[1].srcAccessMask = 0;
     beforeBlit[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    beforeBlit[1].oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    // The acquired image is completely overwritten, including on its first use.
+    beforeBlit[1].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     beforeBlit[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     beforeBlit[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     beforeBlit[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -836,16 +774,13 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     afterBlit[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     afterBlit[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     afterBlit[1].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    afterBlit[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    afterBlit[1].dstAccessMask = 0;
     afterBlit[1].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    afterBlit[1].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    afterBlit[1].newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     vkCmdPipelineBarrier(curCommandBufferVk.GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                          0, 0, nullptr, 0, nullptr, 2, afterBlit);
 
-    m_ImGuiContext.window.FrameIndex = imageIndex;
-    // record imgui command
-    ImGuiRecordCommandBuffer(curCommandBuffer);
     curCommandBufferVk.End();
     // A presentation semaphore can only be reused after its swapchain image is acquired again.
     assert(imageIndex < m_RenderFinishedSemaphores.size());

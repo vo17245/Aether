@@ -76,6 +76,7 @@ public:
         m_Pipeline = rhi::Pipeline::Create(pipelineDesc);
         assert(m_Pipeline && "failed to create circle pipeline");
     }
+    
 
     void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph) override
     {
@@ -119,6 +120,12 @@ public:
                 commandList.BindPipeline(data.layer->m_Pipeline);
                 commandList.GetVk().Draw(3);
             });
+    }
+    void OnImGuiUpdate()override
+    {
+        ImGui::Begin("CircleLayer");
+        ImGui::Text("This is a simple example of using RenderGraph to render a green circle.");
+        ImGui::End();
     }
 
 private:

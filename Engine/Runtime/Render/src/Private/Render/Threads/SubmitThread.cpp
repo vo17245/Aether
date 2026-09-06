@@ -94,7 +94,7 @@ static void HandleVkPresentSubmit(const VkPresentSubmit& submit)
 static void HandleVkImageAcquireSubmit(const VkImageAcquireSubmit& submit)
 {
     const VkImageAcquireSubmit& imageAcquireSubmit = static_cast<const VkImageAcquireSubmit&>(submit);
-    uint32_t imageIndex;
+    uint32_t imageIndex = 0;
     VkResult result = vkAcquireNextImageKHR(
         vk::GRC::GetDevice(), imageAcquireSubmit.swapChain->GetHandle(), imageAcquireSubmit.timeoutNs,
         imageAcquireSubmit.signalSemaphore->GetHandle(), VK_NULL_HANDLE, &imageIndex);
@@ -104,12 +104,16 @@ static void HandleVkImageAcquireSubmit(const VkImageAcquireSubmit& submit)
         acquireResult.imageIndex = imageIndex;
         switch (result)
         {
+        case VK_ERROR_OUT_OF_DATE_KHR:
+            acquireResult.status = ImageAcquireStatus::OutOfDate;
+            break;
         case VK_NOT_READY:
             acquireResult.status = ImageAcquireStatus::NotReady;
             break;
         case VK_TIMEOUT:
             acquireResult.status = ImageAcquireStatus::Timeout;
             break;
+        case VK_SUBOPTIMAL_KHR:
         case VK_SUCCESS:
             acquireResult.status = ImageAcquireStatus::Success;
             break;

@@ -24,18 +24,18 @@ StagingBuffer StagingBuffer::Create(size_t size)
 }
 IndexBuffer IndexBuffer::Create(size_t size)
 {
-    IndexBuffer stagingBuffer;
+    IndexBuffer result;
     switch (Render::Config::RenderApi)
     {
     case Render::Api::Vulkan: {
-        auto buffer = vk::Buffer::CreateForStaging(size);
+        auto buffer = vk::Buffer::CreateForIndex(size);
         if (!buffer)
         {
-            assert(false && "Failed to create staging buffer");
+            assert(false && "Failed to create index buffer");
             return IndexBuffer();
         }
-        stagingBuffer.m_Buffer = std::move(buffer.value());
-        return stagingBuffer;
+        result.m_Buffer = std::move(buffer.value());
+        return result;
     }
     break;
     default:
@@ -45,18 +45,18 @@ IndexBuffer IndexBuffer::Create(size_t size)
 }
 VertexBuffer VertexBuffer::Create(size_t size)
 {
-    VertexBuffer stagingBuffer;
+    VertexBuffer result;
     switch (Render::Config::RenderApi)
     {
     case Render::Api::Vulkan: {
-        auto buffer = vk::Buffer::CreateForStaging(size);
+        auto buffer = vk::Buffer::CreateForVertex(size);
         if (!buffer)
         {
-            assert(false && "Failed to create staging buffer");
+            assert(false && "Failed to create vertex buffer");
             return VertexBuffer();
         }
-        stagingBuffer.m_Buffer = std::move(buffer.value());
-        return stagingBuffer;
+        result.m_Buffer = std::move(buffer.value());
+        return result;
     }
     break;
     default:

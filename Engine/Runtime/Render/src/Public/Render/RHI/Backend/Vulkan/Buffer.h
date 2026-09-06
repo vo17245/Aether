@@ -104,6 +104,8 @@ public:
     {
         return static_cast<T*>(BeginMapImpl());
     }
+    // Call after the GPU fence completes, before reading mapped GPU-written data.
+    void Invalidate();
     void EndMap()
     {
         EndMapImpl();

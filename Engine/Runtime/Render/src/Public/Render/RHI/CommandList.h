@@ -11,6 +11,12 @@
 namespace Aether::rhi
 {
 
+struct TextureUploadRegion
+{
+    uint32_t x = 0, y = 0;
+    uint32_t width = 0, height = 0;
+};
+
 class CommandList
 {
 public:
@@ -35,6 +41,8 @@ public:
     void UploadIndexBuffer(StagingBuffer& src, IndexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
     void UploadUniformBuffer(StagingBuffer& src, UniformBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
     void UploadUniformBuffer(StagingBuffer& src, RWStructuredBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset);
+    // Tightly packed pixels; destination must be in TransferDst layout.
+    void UploadTexture(StagingBuffer& src, Texture2D& dst, const TextureUploadRegion& region);
     void SetDepthCompareOp(CompareOp op);
     operator bool() const
     {

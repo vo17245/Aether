@@ -75,6 +75,7 @@ struct VkPresentSubmit : SubmitBase
 enum class ImageAcquireStatus
 {
     Success,
+    OutOfDate,
     NotReady,
     Timeout,
     Error,

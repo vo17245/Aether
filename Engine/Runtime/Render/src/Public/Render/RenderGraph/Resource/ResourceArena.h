@@ -151,6 +151,12 @@ public:
                 return iter->second->Get();
             }
         }
+        else if constexpr (std::is_same_v<T, rhi::IndexBuffer>)
+        {
+            auto iter = m_IndexBufferMap.find(id);
+            if (iter != m_IndexBufferMap.end())
+                return iter->second->Get();
+        }
         else
         {
             static_assert(always_false_v<T>, "Not implemented resource type");

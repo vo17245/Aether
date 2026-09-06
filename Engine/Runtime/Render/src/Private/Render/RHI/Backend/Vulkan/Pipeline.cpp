@@ -75,7 +75,7 @@ std::optional<GraphicsPipeline> GraphicsPipeline::Builder::Build()
             colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // 目标颜色因子
             colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;                            // 颜色混合操作
             colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;                 // 源Alpha因子
-            colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;                // 目标Alpha因子
+            colorBlendAttachment.dstAlphaBlendFactor = config.compositeAlpha ? VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA : VK_BLEND_FACTOR_ZERO;                // 目标Alpha因子
             colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;                            // Alpha混合操作
         }
         else

@@ -63,10 +63,11 @@ public:
             m_DepthTestCompareOp = compareOp;
             return *this;
         }
-        Builder& EnableBlend()
+        Builder& EnableBlend(bool compositeAlpha = false)
         {
             assert(m_InColorAttachment && "EnableBlend must be called between BeginColorAttachment and EndColorAttachment");
             m_ColorAttachmentConfigs.back().enableBlend = true;
+            m_ColorAttachmentConfigs.back().compositeAlpha = compositeAlpha;
             return *this;
         }
         Builder& AddVertexStage(ShaderModule& shaderModule, const char* entryPoint)
@@ -127,6 +128,7 @@ public:
         struct ColorAttachmentConfig
         {
             bool enableBlend=false;
+            bool compositeAlpha=false;
         };
         std::vector<ColorAttachmentConfig> m_ColorAttachmentConfigs;
         bool m_InColorAttachment=false;

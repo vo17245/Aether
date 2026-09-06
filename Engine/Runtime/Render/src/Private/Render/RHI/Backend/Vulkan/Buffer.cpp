@@ -101,17 +101,7 @@ Buffer::Usage Buffer::GetUsage() const
 }
 void Buffer::SetData(const uint8_t* data, size_t size)
 {
-    if (IsPersistenlyMapped())
-    {
-        memcpy(m_AllocInfo.pMappedData, data, size);
-    }
-    else
-    {
-        void* mappedData;
-        vmaMapMemory(Allocator::Get(), m_Allocation, &mappedData);
-        memcpy(mappedData, data, size);
-        vmaUnmapMemory(Allocator::Get(), m_Allocation);
-    }
+    SetData(0, std::span<const uint8_t>(data, size));
 }
 
 Buffer::~Buffer()
@@ -127,6 +117,7 @@ Buffer::Buffer(Buffer&& other) noexcept
     m_Allocation = other.m_Allocation;
     m_Usage = other.m_Usage;
     m_AllocInfo = other.m_AllocInfo;
+    m_Properties = other.m_Properties;
     other.m_Handle = VK_NULL_HANDLE;
     other.m_Allocation = VK_NULL_HANDLE;
 }
@@ -142,6 +133,7 @@ Buffer& Buffer::operator=(Buffer&& other) noexcept
         m_Allocation = other.m_Allocation;
         m_Usage = other.m_Usage;
         m_AllocInfo = other.m_AllocInfo;
+        m_Properties = other.m_Properties;
         other.m_Handle = VK_NULL_HANDLE;
         other.m_Allocation = VK_NULL_HANDLE;
     }
@@ -168,8 +160,13 @@ void* Buffer::BeginMapImpl()
         return mappedData;
     }
 }
+void Buffer::Invalidate()
+{
+    vmaInvalidateAllocation(Allocator::Get(), m_Allocation, 0, VK_WHOLE_SIZE);
+}
 void Buffer::EndMapImpl()
 {
+    vmaFlushAllocation(Allocator::Get(), m_Allocation, 0, VK_WHOLE_SIZE);
     if (!IsPersistenlyMapped())
     {
         vmaUnmapMemory(Allocator::Get(), m_Allocation);
@@ -191,16 +188,13 @@ bool Buffer::SyncCopy(Buffer& src, Buffer& dst, size_t size, size_t srcOffset, s
 }
 void Buffer::SetData(size_t offset, std::span<const uint8_t> data)
 {
-    if (IsPersistenlyMapped())
-    {
-        memcpy((uint8_t*)m_AllocInfo.pMappedData + offset, data.data(), data.size());
-    }
-    else
-    {
-        void* mappedData;
-        vmaMapMemory(Allocator::Get(), m_Allocation, &mappedData);
-        memcpy((uint8_t*)mappedData + offset, data.data(), data.size());
+    assert(offset <= m_Size && data.size() <= m_Size - offset);
+    if (data.empty())
+        return;
+    auto* mappedData = BeginMap<uint8_t>();
+    memcpy(mappedData + offset, data.data(), data.size());
+    vmaFlushAllocation(Allocator::Get(), m_Allocation, offset, data.size());
+    if (!IsPersistenlyMapped())
         vmaUnmapMemory(Allocator::Get(), m_Allocation);
-    }
 }
 } // namespace Aether::vk

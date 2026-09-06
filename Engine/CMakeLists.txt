@@ -29,3 +29,9 @@ add_subdirectory("Dependencies")
 add_subdirectory("Runtime")
 add_subdirectory("AetherEditor")
 add_subdirectory("Sandbox")
+
+# Standalone GPU integration checks; does not enable the legacy test targets.
+option(AETHER_BUILD_IMGUI_TESTS "Build ImGui RenderGraph GPU integration tests" OFF)
+if(AETHER_BUILD_IMGUI_TESTS)
+    add_subdirectory("Tests/ImGui.Tests")
+endif()

@@ -69,7 +69,6 @@ int main()
         throw std::runtime_error("failed to create the main window Vulkan resources");
     }
     Render::SubmitThread::Init();
-    window->ImGuiWindowContextInit();
     ImGuiApi::Init(*window);
     app->OnInit(*window);
     std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();

@@ -119,7 +119,6 @@ public:
     {
         return *m_RenderGraph;
     }
-    void ImGuiWindowContextInit();
     void ImGuiWindowContextDestroy();
     ImGuiApi::WindowContext& GetImGuiContext()
     {
@@ -193,8 +192,6 @@ private: // imgui
     ImGuiApi::WindowContext m_ImGuiContext;
     Vec4f m_ImGuiClearColor = Vec4f(0.5, 0.7, 1.0, 1.0);
     void ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer);
-    void ImGuiWaitFrameResource();
-    void ImGuiFrameRender(rhi::CommandList& commandBuffer);
 
 private: // upload
     PendingUploadList m_PendingUploadList;

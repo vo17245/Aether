@@ -29,9 +29,8 @@ public:
         {
             img.m_TextureSampler = Aether::rhi::Sampler::CreateDefault();
             img.m_TextureView = img.m_Texture->CreateImageView({});
-            img.m_TextureId = (ImTextureID)ImGui_ImplVulkan_AddTexture(
-                img.m_TextureSampler.GetVk().GetHandle(), img.m_TextureView.GetVk().GetHandle(),
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            img.m_TextureId = ImGui_ImplRenderGraph_AddTexture(
+                *img.m_Texture, img.m_TextureView, img.m_TextureSampler);
         }
         else
         {

@@ -1,10 +1,19 @@
 #pragma once
-#include "ImGui/Backend/imgui_impl_sdl3.h"
-#include "ImGui/Backend/imgui_impl_vulkan.h"
+#include <Render/RenderGraph/RenderGraph.h>
+#include <array>
+#include <memory>
+
 namespace Aether::ImGuiApi
 {
-    struct WindowContext
+struct WindowContext
+{
+    struct Frame
     {
-        ImGui_ImplVulkanH_Window window;
+        RenderGraph::ResourceArena arena;
+        RenderGraph::ResourceLruPool pool{&arena};
+        RenderGraph::RenderGraph graph{&arena, &pool};
     };
+    // Replace a slot only after Window has waited for that slot's submission fence.
+    std::array<std::unique_ptr<Frame>, Render::Config::InFlightFrameResourceSlots> frames;
+};
 }

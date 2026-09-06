@@ -25,24 +25,40 @@ public:
 
 private:
     int m_TTL = 0;
+    bool m_Recorded = false;
     rhi::StagingBuffer m_Buffer;
 };
 class PendingUploadList
 {
 public:
     template<typename BufferType>
-    requires rhi::IsBufferType<BufferType>
-    void UploadBuffer(std::span<const uint8_t> data, rhi::VertexBuffer* dstBuffer, size_t dstOffset)
+    requires (std::is_same_v<BufferType, rhi::VertexBuffer> || std::is_same_v<BufferType, rhi::IndexBuffer>)
+    void UploadBuffer(std::span<const uint8_t> data, BufferType* dstBuffer, size_t dstOffset)
     {
         m_UploadBufferList.push_back(
         CreateUploadBufferCommand(data, dstBuffer, dstOffset, Render::Config::MaxFramesInFlight));   
     }
 
 public:
+    // Copies CPU pixels into an owned staging buffer immediately. RecordCommand
+    // emits layout transitions and the copy before rendering. Keep dst alive until
+    // the submission completes. oldLayout describes its layout before this upload.
+    void UploadTexture(std::span<const uint8_t> pixels, rhi::Texture2D* dst,
+                       const rhi::TextureUploadRegion& region,
+                       rhi::TextureLayout oldLayout = rhi::TextureLayout::ShaderReadOnly);
+    // Age recorded staging buffers once per rendered frame, after waiting for
+    // that frame slot's fence. Pending uploads and minimized frames do not age.
     void OnUpdate(bool minilized);
     void RecordCommand(rhi::CommandList& commandBuffer);
 
 private:
+    struct UploadTextureCommand
+    {
+        TransientStagingBuffer* source = nullptr;
+        rhi::Texture2D* destination = nullptr;
+        rhi::TextureUploadRegion region;
+        rhi::TextureLayout oldLayout;
+    };
     using Buffer = std::variant<std::monostate, rhi::VertexBuffer*, rhi::IndexBuffer*>;
     struct UploadBufferCommand
     {
@@ -78,5 +94,6 @@ private:
 private:
     std::vector<Scope<TransientStagingBuffer>> m_StagingBuffers;
     std::vector<UploadBufferCommand> m_UploadBufferList;
+    std::vector<UploadTextureCommand> m_UploadTextureList;
 };
 } // namespace Aether

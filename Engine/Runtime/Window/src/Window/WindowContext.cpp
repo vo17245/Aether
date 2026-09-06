@@ -328,7 +328,6 @@ void WindowContext::HandleFramebufferResize(Window& window, int width, int heigh
         return;
     }
     window.CreateRenderGraph();
-    window.ImGuiWindowContextInit();
 }
 
 Vec2i WindowContext::MainMonitorSize()
