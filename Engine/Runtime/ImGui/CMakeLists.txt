@@ -8,12 +8,16 @@ file(GLOB_RECURSE FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" 
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
+list(FILTER FILES EXCLUDE REGEX ".*/imgui_impl_glfw[.]cpp$")
 
 add_library(${MODULE_NAME} STATIC ${FILES})
+
+find_package(SDL3 REQUIRED CONFIG)
 
 target_link_libraries(${MODULE_NAME} PUBLIC Render)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
 target_link_libraries(${MODULE_NAME} PUBLIC Window_header)
+target_link_libraries(${MODULE_NAME} PUBLIC SDL3::SDL3)
 
 
 

@@ -3,3 +3,4 @@ compile_commands.json
 .vscode/
 imgui.ini
 __pycache__/
+tmp/

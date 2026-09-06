@@ -1,6 +1,5 @@
 #pragma once
 #include "vulkan/vulkan.h"
-#include <GLFW/glfw3.h>
 #include <optional>
 #include <vector>
 namespace Aether {
@@ -28,7 +27,7 @@ struct SwapChainSupportDetails
 SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, VkExtent2D requestedExtent);
 bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);

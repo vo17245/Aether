@@ -24,4 +24,14 @@ target_link_libraries(${MODULE_NAME} PUBLIC Project)
 target_link_libraries(${MODULE_NAME} PUBLIC Async)
 
 
+if(WIN32 AND TARGET SDL3::SDL3-shared)
+    add_custom_command(TARGET ${MODULE_NAME} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "$<TARGET_FILE:SDL3::SDL3-shared>"
+            "$<TARGET_FILE_DIR:${MODULE_NAME}>"
+        VERBATIM
+    )
+endif()
+
+
 

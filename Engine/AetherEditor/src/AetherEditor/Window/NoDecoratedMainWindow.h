@@ -75,23 +75,19 @@ public:
         {
             if (!m_IsMainWindowDragging)
             {
-                int x, y;
-                glfwGetWindowPos(m_OsWindow->GetHandle(), &x, &y); // 当前 OS 窗口位置
-                double cursorX, cursorY;
-                glfwGetCursorPos(m_OsWindow->GetHandle(), &cursorX, &cursorY);
-                m_MainWindowDragMouseStartPos.x = (float)cursorX;
-                m_MainWindowDragMouseStartPos.y = (float)cursorY;
-                m_MainWindowDragMouseStartPos.x += x;
-                m_MainWindowDragMouseStartPos.y += y;
-                m_MainWindowDragWindowStartPos.x = (float)x;
-                m_MainWindowDragWindowStartPos.y = (float)y;
+                const Vec2i windowPosition = m_OsWindow->GetPosition();
+                const Vec2f cursorPosition = m_OsWindow->GetCursorPosition();
+                m_MainWindowDragMouseStartPos.x = cursorPosition.x() + windowPosition.x();
+                m_MainWindowDragMouseStartPos.y = cursorPosition.y() + windowPosition.y();
+                m_MainWindowDragWindowStartPos.x = static_cast<float>(windowPosition.x());
+                m_MainWindowDragWindowStartPos.y = static_cast<float>(windowPosition.y());
                 m_IsMainWindowDragging = true;
             }
         }
 
         if (m_IsMainWindowDragging)
         {
-            if (glfwGetMouseButton(m_OsWindow->GetHandle(), GLFW_MOUSE_BUTTON_LEFT) != GLFW_PRESS)
+            if (!m_OsWindow->IsMouseButtonPressed(MouseButtonCode::Left))
             {
                 m_IsMainWindowDragging = false;
             }
@@ -99,16 +95,11 @@ public:
 
         if (m_IsMainWindowDragging)
         {
-            int x, y;
-            glfwGetWindowPos(m_OsWindow->GetHandle(), &x, &y); // 当前 OS 窗口位置
-            double cursorX, cursorY;
-            glfwGetCursorPos(m_OsWindow->GetHandle(), &cursorX, &cursorY);
+            const Vec2i windowPosition = m_OsWindow->GetPosition();
+            const Vec2f cursorPosition = m_OsWindow->GetCursorPosition();
             ImVec2 mousePos;
-            mousePos.x = (float)cursorX;
-            mousePos.y = (float)cursorY;
-
-            mousePos.x += x;
-            mousePos.y += y;
+            mousePos.x = cursorPosition.x() + windowPosition.x();
+            mousePos.y = cursorPosition.y() + windowPosition.y();
 
             ImVec2 delta;
             delta.x = mousePos.x - m_MainWindowDragMouseStartPos.x;
@@ -118,7 +109,7 @@ public:
             ImVec2 newWindowPos;
             newWindowPos.x = m_MainWindowDragWindowStartPos.x + delta.x;
             newWindowPos.y = m_MainWindowDragWindowStartPos.y + delta.y;
-            glfwSetWindowPos(m_OsWindow->GetHandle(), newWindowPos.x, newWindowPos.y);
+            m_OsWindow->SetPosition(static_cast<int>(newWindowPos.x), static_cast<int>(newWindowPos.y));
         }
         // 给父窗口创建独立 DockSpace
 

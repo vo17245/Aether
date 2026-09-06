@@ -16,6 +16,7 @@ struct InitResource
 {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     std::function<VkSurfaceKHR(VkInstance)> createSurface;
+    std::vector<const char*> instanceExtensions;
 };
 class RenderContext
 {
@@ -59,7 +60,7 @@ public:
 
     void Cleanup();
 
-    void CreateInstance();
+    void CreateInstance(const InitResource& resource);
 
     void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
@@ -71,7 +72,7 @@ public:
 
     // void CreateCommandPool();
 
-    std::vector<const char*> GetRequiredExtensions();
+    std::vector<const char*> GetRequiredExtensions(const InitResource& resource);
 
     bool CheckValidationLayerSupport();
 

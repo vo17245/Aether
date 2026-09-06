@@ -36,7 +36,7 @@ void RenderContext::Init(const InitResource& resource,const Config& config)
 
 void RenderContext::InitVulkan(const InitResource& resource)
 {
-    CreateInstance();
+    CreateInstance(resource);
     SetupDebugMessenger();
 
     InitResource resolvedResource = resource;
@@ -70,7 +70,7 @@ void RenderContext::Cleanup()
     // WindowContext::Shutdown();
 }
 
-void RenderContext::CreateInstance()
+void RenderContext::CreateInstance(const InitResource& resource)
 {
     if (m_Config.enableValidationLayers && !CheckValidationLayerSupport())
     {
@@ -91,7 +91,7 @@ void RenderContext::CreateInstance()
 #ifdef __APPLE__
 // createInfo.flags=VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
-    auto extensions = GetRequiredExtensions();
+    auto extensions = GetRequiredExtensions(resource);
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -142,14 +142,6 @@ void RenderContext::SetupDebugMessenger()
         throw std::runtime_error("failed to set up debug messenger!");
     }
 }
-
-// void RenderContext::createSurface()
-//{
-//     if (glfwCreateWindowSurface(instance, window->GetHandle(), nullptr, &surface) != VK_SUCCESS)
-//     {
-//         throw std::runtime_error("failed to create window surface!");
-//     }
-// }
 
 void RenderContext::PickPhysicalDevice(const InitResource& resource)
 {
@@ -265,13 +257,9 @@ void RenderContext::CreateLogicalDevice(const InitResource& resource)
 //     }
 // }
 
-std::vector<const char*> RenderContext::GetRequiredExtensions()
+std::vector<const char*> RenderContext::GetRequiredExtensions(const InitResource& resource)
 {
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    std::vector<const char*> extensions = resource.instanceExtensions;
 
     if (m_Config.enableValidationLayers)
     {

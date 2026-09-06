@@ -1,6 +1,6 @@
 #include "ImGuiApi.h"
 #include "ImGui/Backend/imgui_impl_vulkan.h"
-#include "ImGui/Backend/imgui_impl_glfw.h"
+#include "ImGui/Backend/imgui_impl_sdl3.h"
 #include <Window/Window.h>
 #include <Render/RHI/Backend/Vulkan/GlobalPipelineCache.h>
 namespace Aether::ImGuiApi
@@ -10,13 +10,13 @@ static ImGuiContext* g_MainContext = nullptr;
 void NewFrame()
 {
     ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 }
 void Shutdown()
 {
     ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
     vkDestroyDescriptorPool(vk::GRC::GetDevice(), g_DescriptorPool, nullptr);
 }
@@ -49,8 +49,6 @@ void Init(Window& window)
     }
 
     // Create Framebuffers
-    int w, h;
-    glfwGetFramebufferSize(window.GetHandle(), &w, &h);
     ImGui_ImplVulkanH_Window* wd = &window.GetImGuiContext().window;
 
     // Setup Dear ImGui context
@@ -66,7 +64,7 @@ void Init(Window& window)
     // ImGui::StyleColorsLight();
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForVulkan(window.GetHandle(), true);
+    ImGui_ImplSDL3_InitForVulkan(window.GetHandle());
     ImGui_ImplVulkan_InitInfo init_info = {};
     // init_info.ApiVersion = VK_API_VERSION_1_3;              // Pass in your value of VkApplicationInfo::apiVersion,
     // otherwise will default to header version.

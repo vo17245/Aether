@@ -35,7 +35,10 @@ int main()
     {
         GlobalThreadPool::Init(initParams.globalThreadPoolThreadCount);
     }
-    WindowContext::Init();
+    if (!WindowContext::Init())
+    {
+        throw std::runtime_error("failed to initialize SDL3 window context");
+    }
     if (Audio::Init() != 0)
     {
         assert(false && &"Audio Init Failed");
@@ -52,6 +55,7 @@ int main()
     config.enableValidationLayers = true;
     config.enableDynamicRendering = true;
     vk::InitResource initResource;
+    initResource.instanceExtensions = WindowContext::RequiredVulkanInstanceExtensions();
     initResource.createSurface = [windowPtr = window.get()](VkInstance instance) {
         if (windowPtr->CreateSurface(instance) != VK_SUCCESS)
         {

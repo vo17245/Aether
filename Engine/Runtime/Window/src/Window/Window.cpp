@@ -6,8 +6,8 @@
 #include <cstdlib>
 #include <memory>
 #include <variant>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
 #include <optional>
 #include <vector>
 #include "Event.h"
@@ -30,7 +30,7 @@ Window::~Window()
     if (m_Handle != nullptr)
     {
         WindowContext::Remove(m_Handle);
-        glfwDestroyWindow(m_Handle);
+        SDL_DestroyWindow(m_Handle);
     }
 }
 
@@ -44,19 +44,19 @@ Window& Window::operator=(Window&& other) noexcept
     if (this != &other)
     {
         if (m_Handle != nullptr)
-            glfwDestroyWindow(m_Handle);
+            SDL_DestroyWindow(m_Handle);
         m_Handle = other.m_Handle;
         other.m_Handle = nullptr;
     }
     return *this;
 }
-GLFWwindow* Window::GetHandle() const
+SDL_Window* Window::GetHandle() const
 {
     return m_Handle;
 }
 bool Window::ShouldClose() const
 {
-    return glfwWindowShouldClose(m_Handle);
+    return m_ShouldClose;
 }
 void Window::DispatchEvent()
 {
@@ -90,7 +90,7 @@ void Window::DispatchEvent()
 Window* Window::Create(const WindowCreateParam& param)
 {
     // create handle
-    auto* handle = CreateGlfwHandle(param);
+    auto* handle = CreateSdlHandle(param);
     if (handle == nullptr)
     {
         return nullptr;
@@ -258,25 +258,22 @@ VkResult Window::CreateSurface(VkInstance instance)
     {
         return VK_ERROR_INITIALIZATION_FAILED;
     }
-    return glfwCreateWindowSurface(instance, m_Handle, nullptr, &m_Surface);
+    return SDL_Vulkan_CreateSurface(m_Handle, instance, nullptr, &m_Surface)
+               ? VK_SUCCESS
+               : VK_ERROR_INITIALIZATION_FAILED;
 }
-Window::Window(GLFWwindow* window) : m_Handle(window)
+Window::Window(SDL_Window* window) : m_Handle(window)
 {
 }
 /**
- *@brief Create a glfw window handle
+ *@brief Create an SDL window handle
  */
-GLFWwindow* Window::CreateGlfwHandle(const WindowCreateParam& param)
+SDL_Window* Window::CreateSdlHandle(const WindowCreateParam& param)
 {
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    SDL_WindowFlags flags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
     if (param.noDecorate)
-    {
-        // 设置窗口无边框
-        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-    }
-
-    return glfwCreateWindow(param.width, param.height, param.title.c_str(), nullptr, nullptr);
+        flags |= SDL_WINDOW_BORDERLESS;
+    return SDL_CreateWindow(param.title.c_str(), param.width, param.height, flags);
 }
 void Window::SetSize(uint32_t width, uint32_t height)
 {
@@ -285,7 +282,7 @@ void Window::SetSize(uint32_t width, uint32_t height)
         assert(false && "Window handle is null");
         return;
     }
-    glfwSetWindowSize(m_Handle, width, height);
+    SDL_SetWindowSize(m_Handle, static_cast<int>(width), static_cast<int>(height));
 }
 /**
  *@brief Create swapchain ;swapchain images ; setup SwapChainImageFormat ;setup SwapChainExtent
@@ -298,7 +295,10 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
     VkPresentModeKHR presentMode = vk::chooseSwapPresentMode(swapChainSupport.presentModes);
     m_PresentMode = presentMode;
     LogI("[vulkan] choose swapchain present mode: {}", (int)presentMode);
-    VkExtent2D extent = vk::chooseSwapExtent(swapChainSupport.capabilities, m_Handle);
+    const auto requestedSize = GetSize();
+    VkExtent2D extent = vk::chooseSwapExtent(
+        swapChainSupport.capabilities,
+        {static_cast<uint32_t>(requestedSize.x()), static_cast<uint32_t>(requestedSize.y())});
 
     uint32_t imageCount = 0;
     // uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -382,17 +382,41 @@ void Window::CreateImageViews()
 }
 Vec2i Window::GetSize() const
 {
-    int width, height;
-    glfwGetFramebufferSize(m_Handle, &width, &height);
+    int width = 0;
+    int height = 0;
+    SDL_GetWindowSizeInPixels(m_Handle, &width, &height);
     return Vec2i(width, height);
+}
+Vec2i Window::GetPosition() const
+{
+    int x = 0;
+    int y = 0;
+    SDL_GetWindowPosition(m_Handle, &x, &y);
+    return Vec2i(x, y);
+}
+Vec2f Window::GetCursorPosition() const
+{
+    float x = 0.0f;
+    float y = 0.0f;
+    SDL_GetMouseState(&x, &y);
+    return Vec2f(x, y);
+}
+bool Window::IsMouseButtonPressed(MouseButtonCode button) const
+{
+    Uint8 sdlButton = SDL_BUTTON_LEFT;
+    if (button == MouseButtonCode::Right)
+        sdlButton = SDL_BUTTON_RIGHT;
+    else if (button == MouseButtonCode::Middle)
+        sdlButton = SDL_BUTTON_MIDDLE;
+    return (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_MASK(sdlButton)) != 0;
 }
 void Window::SetSize(int width, int height)
 {
-    glfwSetWindowSize(m_Handle, width, height);
+    SDL_SetWindowSize(m_Handle, width, height);
 }
 void Window::SetPosition(int width, int height)
 {
-    glfwSetWindowPos(m_Handle, width, height);
+    SDL_SetWindowPosition(m_Handle, width, height);
 }
 void Window::OnUpdate(float sec)
 {
@@ -416,6 +440,8 @@ void Window::OnUpdate(float sec)
     // imgui
     // Start the Dear ImGui frame
     ImGuiApi::NewFrame();
+    // Keep SDL text events enabled for the engine's CharacterInputEvent stream.
+    SDL_StartTextInput(m_Handle);
     for (auto& layer : m_Layers)
     {
         layer->OnImGuiUpdate();
@@ -502,7 +528,7 @@ bool Window::ReleaseVulkanObjects()
     const bool syncObjectsReleased = ReleaseSyncObjects();
     if (m_Surface != VK_NULL_HANDLE)
     {
-        vkDestroySurfaceKHR(vk::GRC::GetInstance(), m_Surface, nullptr);
+        SDL_Vulkan_DestroySurface(vk::GRC::GetInstance(), m_Surface, nullptr);
         m_Surface = VK_NULL_HANDLE;
     }
     return syncObjectsReleased;
@@ -714,7 +740,7 @@ void Window::ImGuiWindowContextDestroy()
 }
 void Window::Maximize()
 {
-    glfwMaximizeWindow(m_Handle);
+    SDL_MaximizeWindow(m_Handle);
 }
 void Window::OnUpload()
 {
@@ -725,26 +751,16 @@ void Window::OnUpload()
 }
 void Window::SetCursorPosition(double x, double y)
 {
-    glfwSetCursorPos(m_Handle, x, y);
+    SDL_WarpMouseInWindow(m_Handle, static_cast<float>(x), static_cast<float>(y));
 }
 void Window::SetCursorMode(CursorMode mode)
 {
-    int glfwMode = GLFW_CURSOR_NORMAL;
-    switch (mode)
-    {
-    case CursorMode::Normal:
-        glfwMode = GLFW_CURSOR_NORMAL;
-        break;
-    case CursorMode::Hidden:
-        glfwMode = GLFW_CURSOR_HIDDEN;
-        break;
-    case CursorMode::Disabled:
-        glfwMode = GLFW_CURSOR_DISABLED;
-        break;
-    default:
-        break;
-    }
-    glfwSetInputMode(m_Handle, GLFW_CURSOR, glfwMode);
+    const bool relative = mode == CursorMode::Disabled;
+    SDL_SetWindowRelativeMouseMode(m_Handle, relative);
+    if (mode == CursorMode::Normal)
+        SDL_ShowCursor();
+    else
+        SDL_HideCursor();
 }
 void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
 {

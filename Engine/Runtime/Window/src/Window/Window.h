@@ -2,8 +2,7 @@
 #include "Render/Render.h"
 
 #include <memory>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL_video.h>
 #include <vector>
 #include "Event.h"
 #include "Layer.h"
@@ -50,7 +49,7 @@ public:
     Window& operator=(const Window&) = delete;
     Window(Window&& other) noexcept;
     Window& operator=(Window&& other) noexcept;
-    GLFWwindow* GetHandle() const;
+    SDL_Window* GetHandle() const;
     bool ShouldClose() const;
     void DispatchEvent();
     /**
@@ -82,6 +81,9 @@ public:
     VkResult CreateSurface(VkInstance instance);
     VkSurfaceKHR GetSurface() const;
     Vec2i GetSize() const;
+    Vec2i GetPosition() const;
+    Vec2f GetCursorPosition() const;
+    bool IsMouseButtonPressed(MouseButtonCode button) const;
     void SetSize(int width, int height);
     void SetPosition(int width, int height);
     void OnUpdate(float sec);
@@ -143,7 +145,7 @@ private:
     VkFormat m_SwapChainImageFormat{};
     VkExtent2D m_SwapChainExtent{};
     VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
-    GLFWwindow* m_Handle = nullptr;
+    SDL_Window* m_Handle = nullptr;
     std::unique_ptr<rhi::Fence> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];
     // Presentation wait semaphores are tied to swapchain images, not frames in flight.
     std::vector<std::unique_ptr<rhi::Fence>> m_RenderFinishedSemaphores;
@@ -156,11 +158,11 @@ private:
     uint32_t m_CurrentFrame = 0;
 
 private:
-    Window(GLFWwindow* window);
+    Window(SDL_Window* window);
     /**
-     *@brief Create a glfw window handle
+     *@brief Create an SDL window handle
      */
-    static GLFWwindow* CreateGlfwHandle(const WindowCreateParam& param);
+    static SDL_Window* CreateSdlHandle(const WindowCreateParam& param);
     /**
      *@brief Create swapchain ;swapchain images ; setup SwapChainImageFormat ;setup SwapChainExtent
      */
@@ -202,6 +204,7 @@ public:
 
 private:
     bool m_Minilized = false;
+    bool m_ShouldClose = false;
     VkPresentModeKHR m_PresentMode;
 private:
     void OnImageAcquired(const Render::ImageAcquireResult& result);

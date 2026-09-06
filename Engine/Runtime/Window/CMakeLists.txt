@@ -14,8 +14,8 @@ file(GLOB_RECURSE FILES
 add_library(${MODULE_NAME} STATIC ${FILES} )
 
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
-find_package(glfw3 REQUIRED CONFIG)
-target_link_libraries(${MODULE_NAME} PUBLIC glfw)
+find_package(SDL3 REQUIRED CONFIG)
+target_link_libraries(${MODULE_NAME} PUBLIC SDL3::SDL3-static)
 target_link_libraries(${MODULE_NAME} PUBLIC Render)
 target_link_libraries(${MODULE_NAME} PUBLIC ImGui)
 
@@ -27,6 +27,7 @@ target_include_directories(${MODULE_NAME}_header INTERFACE
  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:${MODULE_NAME}/include>
 )
+target_link_libraries(${MODULE_NAME}_header INTERFACE SDL3::Headers)
 
 
 

@@ -1,6 +1,5 @@
 #include "Render/RHI/Backend/Vulkan/VulkanUtils.h"
 #include "vulkan/vulkan_core.h"
-#include <GLFW/glfw3.h>
 #include <algorithm>
 #include <set>
 #include <string>
@@ -93,26 +92,16 @@ VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& avai
 
     return VK_PRESENT_MODE_FIFO_KHR;
 }
-VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window)
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, VkExtent2D requestedExtent)
 {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-    {
         return capabilities.currentExtent;
-    }
-    else
-    {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
 
-        VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-
-        actualExtent.width =
-            std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height =
-            std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-        return actualExtent;
-    }
+    requestedExtent.width =
+        std::clamp(requestedExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    requestedExtent.height =
+        std::clamp(requestedExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    return requestedExtent;
 }
 bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
