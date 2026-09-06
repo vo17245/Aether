@@ -75,6 +75,11 @@ public:
     bool CreateSyncObjects();
     bool ReleaseSyncObjects();
     bool ReleaseVulkanObjects();
+    /**
+     * @brief Create the Vulkan surface after the Vulkan instance is available.
+     *        Calling this more than once is safe.
+     */
+    VkResult CreateSurface(VkInstance instance);
     VkSurfaceKHR GetSurface() const;
     Vec2i GetSize() const;
     void SetSize(int width, int height);
@@ -150,10 +155,6 @@ private:
     uint32_t m_CurrentFrame = 0;
 
 private:
-    /**
-     * @brief create surface
-     */
-    VkResult CreateSurface(VkInstance instance);
     Window(GLFWwindow* window);
     /**
      *@brief Create a glfw window handle

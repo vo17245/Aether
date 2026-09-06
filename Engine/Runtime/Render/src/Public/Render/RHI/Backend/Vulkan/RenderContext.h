@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <vector>
 #include <string>
 
@@ -13,7 +14,8 @@ namespace vk
 {
 struct InitResource
 {
-    VkSurfaceKHR surface;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    std::function<VkSurfaceKHR(VkInstance)> createSurface;
 };
 class RenderContext
 {

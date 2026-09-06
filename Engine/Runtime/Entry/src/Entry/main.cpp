@@ -8,6 +8,7 @@
 #include <Async/GlobalThreadPool.h>
 #include <Render/Threads/SubmitThread.h>
 #include <MainLoop/MainLoop.h>
+#include <stdexcept>
 using namespace Aether;
 namespace Aether
 {
@@ -41,14 +42,29 @@ int main()
         return -1;
     }
     auto window = std::unique_ptr<Window>(Window::Create(app->MainWindowCreateParam()));
+    if (!window)
+    {
+        throw std::runtime_error("failed to create the main window");
+    }
     // 会在window中创建vulkan对象,在销毁vulkan context前必须调用window 的ReleaseVulkanObjects
     // 销毁window中的vulkan对象
     vk::RenderContext::Config config;
     config.enableValidationLayers = true;
     config.enableDynamicRendering = true;
-    vk::GRC::Init({window->GetSurface()}, config);
+    vk::InitResource initResource;
+    initResource.createSurface = [windowPtr = window.get()](VkInstance instance) {
+        if (windowPtr->CreateSurface(instance) != VK_SUCCESS)
+        {
+            return VkSurfaceKHR(VK_NULL_HANDLE);
+        }
+        return windowPtr->GetSurface();
+    };
+    vk::GRC::Init(initResource, config);
+    if (!window->CreateRenderObject())
+    {
+        throw std::runtime_error("failed to create the main window Vulkan resources");
+    }
     Render::SubmitThread::Init();
-    WindowContext::Register(window->GetHandle(), window.get());
     window->ImGuiWindowContextInit();
     ImGuiApi::Init(*window);
     app->OnInit(*window);
@@ -79,13 +95,12 @@ int main()
         Render::SubmitThread::Shutdown();
         vkDeviceWaitIdle(vk::GRC::GetDevice());
         app->OnShutdown();
-        window->ReleaseVulkanObjects();
+        ImGuiApi::Shutdown();
         window->ImGuiWindowContextDestroy();
+        window->ReleaseVulkanObjects();
         delete app;
         window.reset();
-        ImGuiApi::Shutdown();
         vk::GRC::Cleanup();
-        window.reset();
         Audio::Destory();
         WindowContext::Shutdown();
     };

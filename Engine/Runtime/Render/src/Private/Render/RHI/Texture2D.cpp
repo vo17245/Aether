@@ -9,14 +9,19 @@ Texture2D Texture2D::Create(const TextureDesc& desc)
     switch (Render::Config::RenderApi)
     {
     case Render::Api::Vulkan: {
-        auto texture = vk::Texture2D::Create(desc.width, desc.height, desc.pixelFormat, RHITextureUsageFlagsToVk(desc.usages),
-                                             RHITextureLayoutToVk(desc.layout));
+        auto texture = vk::Texture2D::Create(desc.width, desc.height, desc.pixelFormat,
+                                             RHITextureUsageFlagsToVk(desc.usages), VK_IMAGE_LAYOUT_UNDEFINED);
         if (!texture)
         {
             assert(false && "Failed to create texture");
             return Texture2D();
         }
-        return Texture2D(std::move(texture.value()));
+        auto result = Texture2D(std::move(texture.value()));
+        if (desc.layout != TextureLayout::Undefined)
+        {
+            result.SyncTransitionLayout(TextureLayout::Undefined, desc.layout);
+        }
+        return result;
     }
     default:
         assert(false && "Not implemented");

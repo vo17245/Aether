@@ -38,9 +38,20 @@ void RenderContext::InitVulkan(const InitResource& resource)
 {
     CreateInstance();
     SetupDebugMessenger();
-    PickPhysicalDevice(resource);
-    CreateLogicalDevice(resource);
-    m_QueueFamilyIndices = findQueueFamilies(m_PhysicalDevice, resource.surface);
+
+    InitResource resolvedResource = resource;
+    if (resolvedResource.surface == VK_NULL_HANDLE && resolvedResource.createSurface)
+    {
+        resolvedResource.surface = resolvedResource.createSurface(m_Instance);
+    }
+    if (resolvedResource.surface == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("failed to create a Vulkan surface before selecting a physical device");
+    }
+
+    PickPhysicalDevice(resolvedResource);
+    CreateLogicalDevice(resolvedResource);
+    m_QueueFamilyIndices = findQueueFamilies(m_PhysicalDevice, resolvedResource.surface);
 }
 
 void RenderContext::Cleanup()

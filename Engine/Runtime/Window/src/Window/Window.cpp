@@ -26,8 +26,7 @@ namespace Aether
 Window::~Window()
 {
     m_Layers.clear();
-    ReleaseRenderObject();
-    ReleaseSyncObjects();
+    ReleaseVulkanObjects();
     if (m_Handle != nullptr)
     {
         WindowContext::Remove(m_Handle);
@@ -168,7 +167,10 @@ bool Window::CreateRenderObject()
     VkInstance instance = vk::GRC::GetInstance();
     VkPhysicalDevice physicalDevice = vk::GRC::GetPhysicalDevice();
     VkDevice device = vk::GRC ::GetDevice();
-    CreateSurface(instance);
+    if (CreateSurface(instance) != VK_SUCCESS)
+    {
+        return false;
+    }
     CreateSwapChain(instance, physicalDevice, device);
     CreateImageViews();
     CreateSyncObjects();
@@ -212,6 +214,7 @@ bool Window::CreateFinalImage()
         auto& texture = textureOpt;
         m_FinalTextures[i] = std::move(texture);
     }
+    return true;
 }
 void Window::ReleaseFinalImage()
 {
@@ -227,11 +230,6 @@ void Window::ReleaseRenderObject()
     m_SwapChainImages.clear();
     m_SwapChain.reset();
 
-    if (m_Surface != VK_NULL_HANDLE)
-    {
-        vkDestroySurfaceKHR(vk::GRC::GetInstance(), m_Surface, nullptr);
-        m_Surface = VK_NULL_HANDLE;
-    }
     for (size_t i : std::views::iota(0, MAX_FRAMES_IN_FLIGHT))
     {
         m_GraphicsCommandBuffer[i] = rhi::CommandList();
@@ -251,6 +249,14 @@ VkSurfaceKHR Window::GetSurface() const
  */
 VkResult Window::CreateSurface(VkInstance instance)
 {
+    if (m_Surface != VK_NULL_HANDLE)
+    {
+        return VK_SUCCESS;
+    }
+    if (instance == VK_NULL_HANDLE || m_Handle == nullptr)
+    {
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }
     return glfwCreateWindowSurface(instance, m_Handle, nullptr, &m_Surface);
 }
 Window::Window(GLFWwindow* window) : m_Handle(window)
@@ -489,7 +495,13 @@ Input& Window::GetInput()
 bool Window::ReleaseVulkanObjects()
 {
     ReleaseRenderObject();
-    return ReleaseSyncObjects();
+    const bool syncObjectsReleased = ReleaseSyncObjects();
+    if (m_Surface != VK_NULL_HANDLE)
+    {
+        vkDestroySurfaceKHR(vk::GRC::GetInstance(), m_Surface, nullptr);
+        m_Surface = VK_NULL_HANDLE;
+    }
+    return syncObjectsReleased;
 }
 rhi::Texture2D& Window::GetFinalTexture(uint32_t index)
 {

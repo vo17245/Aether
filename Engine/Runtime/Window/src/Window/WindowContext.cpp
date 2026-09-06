@@ -70,11 +70,14 @@ void WindowContext::FramebufferResizeCallback(GLFWwindow* window, int width, int
     }
 
     vkDeviceWaitIdle(vk::GRC::GetDevice());
-    iter->second->ReleaseRenderObject();
-    iter->second->CreateRenderObject();
-    iter->second->m_SwapChainExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-    auto& w= *iter->second;
+    auto& w = *iter->second;
     w.ImGuiWindowContextDestroy();
+    w.ReleaseRenderObject();
+    if (!w.CreateRenderObject())
+    {
+        assert(false && "failed to recreate window Vulkan resources");
+        return;
+    }
     w.ImGuiWindowContextInit();
 }
 void WindowContext::CharacterCallback(GLFWwindow* window, unsigned int codepoint)
