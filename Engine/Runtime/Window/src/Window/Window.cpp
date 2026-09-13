@@ -303,16 +303,12 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
         swapChainSupport.capabilities,
         {static_cast<uint32_t>(requestedSize.x()), static_cast<uint32_t>(requestedSize.y())});
 
-    uint32_t imageCount = 0;
-    // uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-    if (swapChainSupport.capabilities.maxImageCount < MAX_FRAMES_IN_FLIGHT)
-    {
-        assert(false && "swapChainSupport.capabilities.maxImageCount < MAX_FRAMES_IN_FLIGHT");
-    }
-    else
-    {
-        imageCount = MAX_FRAMES_IN_FLIGHT;
-    }
+    // MAX_FRAMES_IN_FLIGHT controls synchronization, while the surface
+    // capabilities control the valid swapchain image count. In particular,
+    // maxImageCount == 0 means that there is no maximum.
+    uint32_t imageCount = std::max(
+        swapChainSupport.capabilities.minImageCount,
+        static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
 
     if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
     {
