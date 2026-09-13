@@ -2,6 +2,7 @@
 #include <Entry/Application.h>
 #include <Render/RHI.h>
 #include <Render/RenderGraph/RenderGraph.h>
+#include <ImGui/Compat/BorderlessWindow.h>
 #include <Window/Layer.h>
 #include <Window/Window.h>
 #include <SDL3/SDL.h>
@@ -10,35 +11,6 @@ using namespace Aether;
 
 namespace
 {
-constexpr int TitleBarHeight = 38;
-constexpr int ResizeBorderWidth = 6;
-constexpr int TitleBarButtonWidth = 46;
-
-SDL_HitTestResult SDLCALL SandboxWindowHitTest(SDL_Window* window, const SDL_Point* point, void*)
-{
-    int width = 0;
-    int height = 0;
-    SDL_GetWindowSize(window, &width, &height);
-    if ((SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED) == 0)
-    {
-        const bool left = point->x < ResizeBorderWidth;
-        const bool right = point->x >= width - ResizeBorderWidth;
-        const bool top = point->y < ResizeBorderWidth;
-        const bool bottom = point->y >= height - ResizeBorderWidth;
-        if (top && left) return SDL_HITTEST_RESIZE_TOPLEFT;
-        if (top && right) return SDL_HITTEST_RESIZE_TOPRIGHT;
-        if (bottom && left) return SDL_HITTEST_RESIZE_BOTTOMLEFT;
-        if (bottom && right) return SDL_HITTEST_RESIZE_BOTTOMRIGHT;
-        if (left) return SDL_HITTEST_RESIZE_LEFT;
-        if (right) return SDL_HITTEST_RESIZE_RIGHT;
-        if (top) return SDL_HITTEST_RESIZE_TOP;
-        if (bottom) return SDL_HITTEST_RESIZE_BOTTOM;
-    }
-    if (point->y < TitleBarHeight && point->x < width - 3 * TitleBarButtonWidth)
-        return SDL_HITTEST_DRAGGABLE;
-    return SDL_HITTEST_NORMAL;
-}
-
 constexpr const char* VertexShaderCode = R"(
 #version 450
 
@@ -79,7 +51,7 @@ public:
     {
         m_Window = window;
         SDL_SetWindowMinimumSize(window->GetHandle(), 400, 300);
-        if (!SDL_SetWindowHitTest(window->GetHandle(), SandboxWindowHitTest, nullptr))
+        if (!m_BorderlessWindow.Attach(window->GetHandle()))
             LogE("Failed to set Sandbox window hit test: {}", SDL_GetError());
 
         auto vertexShader = rhi::VertexShader::Create(
@@ -108,6 +80,12 @@ public:
         pipelineDesc.pixelShader = &m_PixelShader;
         m_Pipeline = rhi::Pipeline::Create(pipelineDesc);
         assert(m_Pipeline && "failed to create circle pipeline");
+    }
+
+    void OnDetach() override
+    {
+        m_BorderlessWindow.Detach();
+        m_Window = nullptr;
     }
     
 
@@ -159,65 +137,12 @@ public:
         ImGui::Begin("CircleLayer");
         ImGui::Text("This is a simple example of using RenderGraph to render a green circle.");
         ImGui::End();
-        DrawTitleBar();
+        m_BorderlessWindow.Draw();
     }
 
 private:
-    void DrawTitleBar()
-    {
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->Pos);
-        ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, static_cast<float>(TitleBarHeight)));
-        ImGui::SetNextWindowViewport(viewport->ID);
-
-        constexpr ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                           ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav |
-                                           ImGuiWindowFlags_NoBringToFrontOnFocus;
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.13f, 0.15f, 0.19f, 1.0f));
-        ImGui::Begin("##SandboxTitleBar", nullptr, flags);
-
-        ImGui::GetWindowDrawList()->AddText(
-            ImVec2(viewport->Pos.x + 12.0f, viewport->Pos.y + 11.0f),
-            IM_COL32(240, 242, 246, 255), "Aether Sandbox");
-
-        ImGui::SetCursorScreenPos(ImVec2(viewport->Pos.x + viewport->Size.x - 3.0f * TitleBarButtonWidth,
-                                         viewport->Pos.y));
-        if (ImGui::Button("-##Minimize", ImVec2(TitleBarButtonWidth, TitleBarHeight)))
-            SDL_MinimizeWindow(m_Window->GetHandle());
-        ImGui::SameLine();
-
-        const bool maximized = (SDL_GetWindowFlags(m_Window->GetHandle()) & SDL_WINDOW_MAXIMIZED) != 0;
-        if (ImGui::Button(maximized ? "o##Maximize" : "[]##Maximize",
-                          ImVec2(TitleBarButtonWidth, TitleBarHeight)))
-        {
-            if (maximized)
-                SDL_RestoreWindow(m_Window->GetHandle());
-            else
-                SDL_MaximizeWindow(m_Window->GetHandle());
-        }
-        ImGui::SameLine();
-
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.82f, 0.18f, 0.20f, 1.0f));
-        if (ImGui::Button("X##Close", ImVec2(TitleBarButtonWidth, TitleBarHeight)))
-        {
-            SDL_Event event{};
-            event.type = SDL_EVENT_WINDOW_CLOSE_REQUESTED;
-            event.window.windowID = SDL_GetWindowID(m_Window->GetHandle());
-            SDL_PushEvent(&event);
-        }
-        ImGui::PopStyleColor();
-
-        ImGui::End();
-        ImGui::PopStyleColor();
-        ImGui::PopStyleVar(5);
-    }
-
     Window* m_Window = nullptr;
+    ImGuiApi::BorderlessWindow m_BorderlessWindow{{.title = "Aether Sandbox"}};
     rhi::VertexShader m_VertexShader;
     rhi::PixelShader m_PixelShader;
     rhi::Pipeline m_Pipeline;
