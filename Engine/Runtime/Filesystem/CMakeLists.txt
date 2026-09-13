@@ -9,10 +9,13 @@ file(GLOB_RECURSE FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
 
-file(GLOB_RECURSE PLATFORM_FILES
-"${CMAKE_CURRENT_SOURCE_DIR}/platform/*.cpp" 
-"${CMAKE_CURRENT_SOURCE_DIR}/platform/*.h" 
-)
+if(WIN32)
+    set(PLATFORM_FILES "${CMAKE_CURRENT_SOURCE_DIR}/platform/windows/FilesystemApi.cpp")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(PLATFORM_FILES "${CMAKE_CURRENT_SOURCE_DIR}/platform/linux/FilesystemApi.cpp")
+else()
+    message(FATAL_ERROR "Filesystem is not supported on ${CMAKE_SYSTEM_NAME}")
+endif()
 
 add_library(${MODULE_NAME} STATIC ${FILES} ${PLATFORM_FILES})
 

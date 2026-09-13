@@ -1,5 +1,5 @@
 #pragma once
-#include <Variant>
+#include <variant>
 #include <string>
 #include "NodeEditorObject.h"
 #include <span>

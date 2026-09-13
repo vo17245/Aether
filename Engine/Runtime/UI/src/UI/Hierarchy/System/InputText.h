@@ -19,88 +19,59 @@ public:
         template <typename T>
         void operator()(T& event)
         {
-        }
-        template <>
-        void operator()(MousePositionEvent& event)
-        {
-            system.m_MousePosition = event.GetPosition();
-        }
-        template <>
-        void operator()(MouseButtonPressedEvent& event)
-        {
-            for (const auto& [entity, base, text, inputText] : view.each())
+            if constexpr (std::is_same_v<T, MousePositionEvent>)
             {
-                auto& pos = base.position;
-                if (pos.x() >= base.position.x() && pos.x() <= base.position.x() + base.size.x() && pos.y() >= base.position.y() && pos.y() <= base.position.y() + base.size.y())
-                {
-                    inputText.focus = true;
-                }
-                else
-                {
-                    inputText.focus = false;
-                }
+                system.m_MousePosition = event.GetPosition();
             }
-        }
-        template <>
-        void operator()(CharacterInputEvent& event)
-        {
-            uint32_t u8;
-            uint32_t size;
-            for (const auto& [entity, base, text, inputText] : view.each())
+            else if constexpr (std::is_same_v<T, MouseButtonPressedEvent>)
             {
-                if (inputText.focus)
-                {
-                    size = Unicode2Utf8(event.GetCode(), u8);
-                    text.content.insert(text.content.end(), (char*)&u8, (char*)&u8 + size);
-                }
-            }
-        }
-        template <>
-        void operator()(KeyboardPressEvent& event)
-        {
-            if (event.GetCode() == KeyboardCode::KEY_BACKSPACE)
-            {
-                uint32_t u8;
-                uint32_t size;
                 for (const auto& [entity, base, text, inputText] : view.each())
                 {
-                    if (inputText.focus && !text.content.empty())
+                    auto& pos = base.position;
+                    if (pos.x() >= base.position.x() && pos.x() <= base.position.x() + base.size.x() && pos.y() >= base.position.y() && pos.y() <= base.position.y() + base.size.y())
                     {
-                        U32String u32(text.content);
-                        if (!u32.GetData().empty())
-                        {
-                            u32.GetData().pop_back();
-                            text.content.clear();
-                            for (auto u : u32.GetData())
-                            {
-                                size = Unicode2Utf8(u, u8);
-                                text.content.insert(text.content.end(), (char*)&u8, (char*)&u8 + size);
-                            }
-                        }
+                        inputText.focus = true;
+                    }
+                    else
+                    {
+                        inputText.focus = false;
                     }
                 }
             }
-        }
-        template <>
-        void operator()(KeyboardRepeatEvent& event)
-        {
-            if (event.GetCode() == KeyboardCode::KEY_BACKSPACE)
+            else if constexpr (std::is_same_v<T, CharacterInputEvent>)
             {
                 uint32_t u8;
                 uint32_t size;
                 for (const auto& [entity, base, text, inputText] : view.each())
                 {
-                    if (inputText.focus && !text.content.empty())
+                    if (inputText.focus)
                     {
-                        U32String u32(text.content);
-                        if (!u32.GetData().empty())
+                        size = Unicode2Utf8(event.GetCode(), u8);
+                        text.content.insert(text.content.end(), (char*)&u8, (char*)&u8 + size);
+                    }
+                }
+            }
+            else if constexpr (std::is_same_v<T, KeyboardPressEvent> ||
+                               std::is_same_v<T, KeyboardRepeatEvent>)
+            {
+                if (event.GetCode() == KeyboardCode::KEY_BACKSPACE)
+                {
+                    uint32_t u8;
+                    uint32_t size;
+                    for (const auto& [entity, base, text, inputText] : view.each())
+                    {
+                        if (inputText.focus && !text.content.empty())
                         {
-                            u32.GetData().pop_back();
-                            text.content.clear();
-                            for (auto u : u32.GetData())
+                            U32String u32(text.content);
+                            if (!u32.GetData().empty())
                             {
-                                size = Unicode2Utf8(u, u8);
-                                text.content.insert(text.content.end(), (char*)&u8, (char*)&u8 + size);
+                                u32.GetData().pop_back();
+                                text.content.clear();
+                                for (auto u : u32.GetData())
+                                {
+                                    size = Unicode2Utf8(u, u8);
+                                    text.content.insert(text.content.end(), (char*)&u8, (char*)&u8 + size);
+                                }
                             }
                         }
                     }

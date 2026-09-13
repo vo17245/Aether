@@ -1,5 +1,5 @@
 #pragma once
-#include <Imgui/Core/imgui.h>
+#include <ImGui/Core/imgui.h>
 #include <functional>
 #include <Window/Window.h>
 #include <AetherEditor/Page/Page.h>

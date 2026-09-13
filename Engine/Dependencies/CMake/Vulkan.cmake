@@ -1,7 +1,13 @@
 set(MODULE_NAME Vulkan)
 add_library(${MODULE_NAME} INTERFACE)
 include("${CMAKE_SOURCE_DIR}/CMake/Local.cmake")
-target_link_libraries(${MODULE_NAME} INTERFACE "${VULKAN_LIB_DIR}/vulkan-1.lib")
+if(WIN32)
+    target_link_libraries(${MODULE_NAME} INTERFACE
+        "${VULKAN_LIB_DIR}/vulkan-1.lib")
+elseif(UNIX)
+    target_link_libraries(${MODULE_NAME} INTERFACE
+    "${VULKAN_LIB_DIR}/VulkanLoader/lib/libvulkan.so")
+endif()
 target_include_directories(${MODULE_NAME} INTERFACE "${VULKAN_INCLUDE_DIR}")
 
 

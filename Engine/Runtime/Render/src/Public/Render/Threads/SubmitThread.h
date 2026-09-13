@@ -1,6 +1,7 @@
 #pragma once
 #include <Core/Core.h>
 #include <Render/RHI.h>
+#include <condition_variable>
 #include <semaphore>
 #include <queue>
 #include <Render/RHI/Backend/Vulkan/Queue.h>

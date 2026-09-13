@@ -1,6 +1,8 @@
 #pragma once
 #include <functional>
 #include <vector>
+#include <cstdint>
+#include <algorithm>
 namespace Aether
 {
 template <typename T>

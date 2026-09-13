@@ -216,12 +216,10 @@ private:
     void SetSlotVirtualInfo(const typename ResourceDescType<ResourceType>::Type& desc,
                             VirtualResourceInfo<ResourceType>& info)
     {
-    }
-    template <>
-    void SetSlotVirtualInfo<rhi::Texture2D>(const typename ResourceDescType<rhi::Texture2D>::Type& desc,
-                                           VirtualResourceInfo<rhi::Texture2D>& info)
-    {
-        info.layout = desc.layout;
+        if constexpr (std::is_same_v<ResourceType, rhi::Texture2D>)
+        {
+            info.layout = desc.layout;
+        }
     }
 
 private:

@@ -1,6 +1,6 @@
 #pragma once
 #include <Core/Core.h>
-#include <Imgui/ImGui.h>
+#include <ImGui/ImGui.h>
 #include <Render/RHI.h>
 #include <expected>
 #include <type_traits>

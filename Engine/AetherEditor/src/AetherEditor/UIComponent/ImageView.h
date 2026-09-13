@@ -1,5 +1,5 @@
 #pragma once
-#include <Imgui/Core/imgui.h>
+#include <ImGui/Core/imgui.h>
 #include <Render/Render.h>
 #include <expected>
 #include "Image.h"
