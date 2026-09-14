@@ -153,7 +153,7 @@ AccessId<ResourceType> RenderTaskBuilder::Create(const std::string& tag,
 {
     if constexpr (std::is_same_v<rhi::Texture2D, ResourceType>)
     {
-        const rhi::TextureDesc& d = desc;
+        const TextureDesc& d = desc;
         assert(d.layout != rhi::TextureLayout::Undefined && "Created texture must have a valid layout");
     }
     auto& slot = m_Graph.m_ResourceAccessor->CreateSlot<ResourceType>(desc);

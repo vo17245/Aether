@@ -27,6 +27,12 @@ namespace Aether
 {
 Window::~Window()
 {
+    if(!m_Layers.empty())
+    {
+        Render::SubmitThread::WaitIdle();
+        m_RenderGraph.reset();
+        for(auto* layer:m_Layers) layer->OnDetach();
+    }
     m_Layers.clear();
     ReleaseVulkanObjects();
     if (m_Handle != nullptr)
@@ -128,9 +134,11 @@ bool Window::PopLayer(Layer* layer)
     auto iter = std::find(m_Layers.begin(), m_Layers.end(), layer);
     if (iter != m_Layers.end())
     {
-        (*iter)->OnDetach();
+        Render::SubmitThread::WaitIdle();
+        auto* detached = *iter;
         m_Layers.erase(iter);
         CreateRenderGraph();
+        detached->OnDetach();
         return true;
     }
     return false;
@@ -182,7 +190,7 @@ bool Window::CreateRenderObject()
     {
         return false;
     }
-    InitRenderGraphResource();
+    if (!m_ResourceArena) InitRenderGraphResource();
     return true;
 }
 bool Window::CreateFinalImage()
@@ -221,9 +229,10 @@ bool Window::CreateFinalImage()
 void Window::ReleaseFinalImage()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        m_FinalImageViews[i] = rhi::TextureView();
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         m_FinalTextures[i] = rhi::Texture2D();
-        m_FinalImageViews[i] = rhi::TextureView();
     }
 }
 void Window::ReleaseRenderObject()
@@ -239,8 +248,6 @@ void Window::ReleaseRenderObject()
     }
     // RenderGraph-owned views must be destroyed before their external final images.
     m_RenderGraph.reset();
-    m_ResourcePool.reset();
-    m_ResourceArena.reset();
     ReleaseFinalImage();
 }
 VkSurfaceKHR Window::GetSurface() const
@@ -361,6 +368,7 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
     vkGetSwapchainImagesKHR(device, m_SwapChain->GetVk().GetHandle(), &imageCount, m_SwapChainImages.data());
 
     m_SwapChainImageFormat = surfaceFormat.format;
+    m_SwapChainColorSpace = surfaceFormat.colorSpace;
     m_SwapChainExtent = extent;
 }
 /**
@@ -536,6 +544,12 @@ Input& Window::GetInput()
 bool Window::ReleaseVulkanObjects()
 {
     ReleaseRenderObject();
+    m_ResourcePool.reset();
+    m_ResourceArena.reset();
+    for (size_t i=0; i<MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        m_FinalTextureArenaIds[i]={};m_FinalViewArenaIds[i]={};
+    }
     const bool syncObjectsReleased = ReleaseSyncObjects();
     if (m_Surface != VK_NULL_HANDLE)
     {
@@ -552,6 +566,8 @@ bool Window::ResizeFinalImage(const Vec2u& size)
 {
     VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
     // create final image(layer will render to final image)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        m_FinalImageViews[i] = rhi::TextureView();
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         rhi::TextureDesc desc{
@@ -582,6 +598,7 @@ void Window::OnWindowResize(const Vec2u& size)
         return; // no need to resize
     }
     m_Minilized = false;
+    Render::SubmitThread::WaitIdle();
     assert(ResizeFinalImage(size) && "failed to resize window final image");
     CreateRenderGraph();
 }
@@ -593,6 +610,15 @@ void Window::InitRenderGraphResource()
 void Window::CreateRenderGraph()
 {
     LogD("Rebuild RenderGraph");
+    // The old graph has finished recording. Its external registrations are
+    // independent of the Window-owned images and can now be recycled.
+    m_RenderGraph.reset();
+    for (size_t i=0; i<MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        if (m_FinalViewArenaIds[i].handle.IsValid()) m_ResourceArena->Destroy(m_FinalViewArenaIds[i]);
+        if (m_FinalTextureArenaIds[i].handle.IsValid()) m_ResourceArena->Destroy(m_FinalTextureArenaIds[i]);
+        m_FinalViewArenaIds[i]={};m_FinalTextureArenaIds[i]={};
+    }
     // create
     m_RenderGraph = CreateScope<RenderGraph::RenderGraph>(m_ResourceArena.get(), m_ResourcePool.get());
     // import final image
@@ -600,6 +626,7 @@ void Window::CreateRenderGraph()
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         finalImageResourceIds[i] = m_ResourceArena->Import(&m_FinalTextures[i]);
+        m_FinalTextureArenaIds[i] = finalImageResourceIds[i];
     }
     RenderGraph::TextureDesc finalImageDesc;
     finalImageDesc.usages = PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample, rhi::TextureUsage::TransferSrc);
@@ -615,6 +642,7 @@ void Window::CreateRenderGraph()
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         finalImageViewResourceIds[i] = m_ResourceArena->Import(&m_FinalImageViews[i]);
+        m_FinalViewArenaIds[i] = finalImageViewResourceIds[i];
     }
     RenderGraph::TextureViewDesc finalImageViewDesc;
     finalImageViewDesc.texture = m_FinalImageAccessId;

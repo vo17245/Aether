@@ -3,13 +3,15 @@
 #include <limits>
 #include <cassert>
 #include <vector>
+#include <optional>
+#include <stdexcept>
 #include <Core/Core.h>
 namespace Aether::RenderGraph
 {
 struct Handle
 {
     using Id = uint16_t;
-    using Version = uint16_t;
+    using Version = uint32_t;
     constexpr static inline const Id InvalidId = std::numeric_limits<Id>::max();
     constexpr static inline const Id MaxId = InvalidId;
     Id id;
@@ -49,15 +51,17 @@ class HandleAllocator
 public:
     static constexpr inline const Handle::Id MaxId = Handle::InvalidId;
     HandleAllocator() :
-        m_Versions(MaxId + 1, 0)
+        m_Versions(MaxId, 0), m_Active(MaxId, false), m_Retired(MaxId, false)
     {
+        m_FreeIds.reserve(MaxId);
     }
-    Handle Allocate()
+    size_t RemainingCapacity() const
     {
-        if (m_NextId >= MaxId && m_FreeIds.empty())
-        {
-            assert(false && "resource handle allocator out of resource");
-        }
+        return (size_t(MaxId) - m_NextId) + m_FreeIds.size();
+    }
+    std::optional<Handle> TryAllocate()
+    {
+        if (RemainingCapacity() == 0) return std::nullopt;
         Handle::Id id;
         if (!m_FreeIds.empty())
         {
@@ -69,31 +73,43 @@ public:
             id = m_NextId++;
         }
 
-        auto version = m_Versions[id]++;
-
-        return Handle(id, version);
+        m_Active[id] = true;
+        return Handle(id, m_Versions[id]);
+    }
+    Handle Allocate()
+    {
+        auto handle = TryAllocate();
+        if (!handle) throw std::overflow_error("resource handle allocator exhausted");
+        return *handle;
     }
     Handle::Version GetNextVersion(const Handle::Id& id) const
     {
-        return m_Versions[id];
+        return id < MaxId ? m_Versions[id] : 0;
     }
-    void Free(const Handle& handle)
+    bool IsActive(const Handle& handle) const
     {
-        if (handle.id >= m_Versions.size())
-        {
-            assert(false && "resource handle id out of range");
+        return handle.id < m_NextId && !m_Retired[handle.id] &&
+               m_Active[handle.id] && m_Versions[handle.id] == handle.version;
+    }
+    bool Free(const Handle& handle)
+    {
+        if (!IsActive(handle)) return false;
+        m_Active[handle.id] = false;
+        if (m_Versions[handle.id] == std::numeric_limits<Handle::Version>::max())
+            m_Retired[handle.id] = true;
+        else {
+            ++m_Versions[handle.id];
+            m_FreeIds.push_back(handle.id);
         }
-        if (handle.version != (m_Versions[handle.id] - 1))
-        {
-            assert(false && "resource handle version mismatch");
-        }
-        m_FreeIds.push_back(handle.id);
+        return true;
     }
 
 private:
     std::vector<Handle::Version> m_Versions;
+    std::vector<bool> m_Active;
+    std::vector<bool> m_Retired;
     std::vector<Handle::Id> m_FreeIds;
-    Handle::Id m_NextId = 0;
+    uint32_t m_NextId = 0;
 };
 } // namespace Aether::RenderGraph
 namespace Aether

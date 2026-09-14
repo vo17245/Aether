@@ -20,6 +20,18 @@ struct ResourceId
 class ResourceIdAllocator
 {
 public:
+    size_t RemainingCapacity() const { return m_Allocator.RemainingCapacity(); }
+    template <typename T>
+    bool IsActive(ResourceId<T> id) const { return m_Allocator.IsActive(id.handle); }
+    template <typename T>
+    bool Free(ResourceId<T> id) { return m_Allocator.Free(id.handle); }
+    template <typename T>
+    std::optional<ResourceId<T>> TryAllocate()
+    {
+        auto handle = m_Allocator.TryAllocate();
+        if (!handle) return std::nullopt;
+        return ResourceId<T>{*handle};
+    }
     template <typename T>
     ResourceId<T> Allocate()
     {

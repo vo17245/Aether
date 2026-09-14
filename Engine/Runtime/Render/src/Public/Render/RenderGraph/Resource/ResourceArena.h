@@ -2,6 +2,9 @@
 #include "ResourceId.h"
 #include "ResourceTypeTraits.h"
 #include "Render/RHI.h"
+#include <algorithm>
+#include <iterator>
+#include <stdexcept>
 namespace Aether::RenderGraph
 {
 class ResourceArena
@@ -22,8 +25,16 @@ public:
         auto imageViewIter = m_ImageViewMap.find(imageView);
         if (imageViewIter != m_ImageViewMap.end())
         {
+            for (auto dependencies = m_TextureToImageViewMap.begin(); dependencies != m_TextureToImageViewMap.end();)
+            {
+                auto& views = dependencies->second;
+                std::erase(views, imageView);
+                if (views.empty()) dependencies = m_TextureToImageViewMap.erase(dependencies);
+                else ++dependencies;
+            }
             m_ImageViews.erase(imageViewIter->second);
             m_ImageViewMap.erase(imageViewIter);
+            m_ResourceIdAllocator.Free(imageView);
         }
     }
     void DestroyTexture(ResourceId<rhi::Texture2D> texture)
@@ -32,11 +43,12 @@ public:
         auto iter = m_TextureToImageViewMap.find(texture);
         if (iter != m_TextureToImageViewMap.end())
         {
-            for (auto imageView : iter->second)
+            auto dependentViews = std::move(iter->second);
+            m_TextureToImageViewMap.erase(iter);
+            for (auto imageView : dependentViews)
             {
                 DestroyImageView(imageView);
             }
-            m_TextureToImageViewMap.erase(iter);
         }
         // destroy texture
         auto textureIter = m_TextureMap.find(texture);
@@ -44,16 +56,15 @@ public:
         {
             m_Textures.erase(textureIter->second);
             m_TextureMap.erase(textureIter);
+            m_ResourceIdAllocator.Free(texture);
         }
     }
 
     ResourceId<rhi::Texture2D> AddTexture(Scope<rhi::Texture2D>&& texture)
     {
         auto id = m_ResourceIdAllocator.Allocate<rhi::Texture2D>();
-        m_Textures.push_back(std::move(texture));
-        auto iter = m_Textures.end();
-        --iter;
-        m_TextureMap[id] = iter;
+        try { StoreOwned(m_Textures,m_TextureMap,id,std::move(texture)); }
+        catch (...) { m_ResourceIdAllocator.Free(id);throw; }
         return id;
     }
 
@@ -61,70 +72,66 @@ public:
     ResourceId<rhi::TextureView> AddImageView(Scope<rhi::TextureView>&& imageView)
     {
         auto id = m_ResourceIdAllocator.Allocate<rhi::TextureView>();
-        m_ImageViews.push_back(std::move(imageView));
-        auto iter = m_ImageViews.end();
-        --iter;
-        m_ImageViewMap[id] = iter;
+        try { StoreOwned(m_ImageViews,m_ImageViewMap,id,std::move(imageView)); }
+        catch (...) { m_ResourceIdAllocator.Free(id);throw; }
         return id;
     }
     ResourceId<rhi::VertexBuffer> AddVertexBuffer(Scope<rhi::VertexBuffer>&& buffer)
     {
         auto id = m_ResourceIdAllocator.Allocate<rhi::VertexBuffer>();
-        m_VertexBuffers.push_back(std::move(buffer));
-        auto iter = m_VertexBuffers.end();
-        --iter;
-        m_VertexBufferMap[id] = iter;
+        try { StoreOwned(m_VertexBuffers,m_VertexBufferMap,id,std::move(buffer)); }
+        catch (...) { m_ResourceIdAllocator.Free(id);throw; }
         return id;
     }
     ResourceId<rhi::IndexBuffer> AddIndexBuffer(Scope<rhi::IndexBuffer>&& buffer)
     {
         auto id = m_ResourceIdAllocator.Allocate<rhi::IndexBuffer>();
-        m_IndexBuffers.push_back(std::move(buffer));
-        auto iter = m_IndexBuffers.end();
-        --iter;
-        m_IndexBufferMap[id] = iter;
+        try { StoreOwned(m_IndexBuffers,m_IndexBufferMap,id,std::move(buffer)); }
+        catch (...) { m_ResourceIdAllocator.Free(id);throw; }
         return id;
     }
     ResourceId<rhi::UniformBuffer> AddUniformBuffer(Scope<rhi::UniformBuffer>&& buffer)
     {
         auto id = m_ResourceIdAllocator.Allocate<rhi::UniformBuffer>();
-        m_UniformBuffers.push_back(std::move(buffer));
-        auto iter = m_UniformBuffers.end();
-        --iter;
-        m_UniformBufferMap[id] = iter;
+        try { StoreOwned(m_UniformBuffers,m_UniformBufferMap,id,std::move(buffer)); }
+        catch (...) { m_ResourceIdAllocator.Free(id);throw; }
         return id;
     }
     ResourceId<rhi::StagingBuffer> AddStagingBuffer(Scope<rhi::StagingBuffer>&& buffer)
     {
         auto id = m_ResourceIdAllocator.Allocate<rhi::StagingBuffer>();
-        m_StagingBuffers.push_back(std::move(buffer));
-        auto iter = m_StagingBuffers.end();
-        --iter;
-        m_StagingBufferMap[id] = iter;
+        try { StoreOwned(m_StagingBuffers,m_StagingBufferMap,id,std::move(buffer)); }
+        catch (...) { m_ResourceIdAllocator.Free(id);throw; }
         return id;
     }
     ResourceId<rhi::RWStructuredBuffer> AddRWStructuredBuffer(Scope<rhi::RWStructuredBuffer>&& buffer)
     {
         auto id = m_ResourceIdAllocator.Allocate<rhi::RWStructuredBuffer>();
-        m_RWStructuredBuffers.push_back(std::move(buffer));
-        auto iter = m_RWStructuredBuffers.end();
-        --iter;
-        m_RWStructuredBufferMap[id] = iter;
+        try { StoreOwned(m_RWStructuredBuffers,m_RWStructuredBufferMap,id,std::move(buffer)); }
+        catch (...) { m_ResourceIdAllocator.Free(id);throw; }
         return id;
     }
 
     template <typename T>
     bool IsValid(ResourceId<T> id)
     {
-        return (m_ResourceIdAllocator.GetNextVersion(id) - 1) == id.handle.version;
+        if (!m_ResourceIdAllocator.IsActive(id)) return false;
+        if constexpr (std::is_same_v<T, rhi::Texture2D>) return m_TextureMap.contains(id);
+        else if constexpr (std::is_same_v<T, rhi::TextureView>) return m_ImageViewMap.contains(id);
+        else if constexpr (std::is_same_v<T, rhi::VertexBuffer>) return m_VertexBufferMap.contains(id);
+        else if constexpr (std::is_same_v<T, rhi::IndexBuffer>) return m_IndexBufferMap.contains(id);
+        else if constexpr (std::is_same_v<T, rhi::UniformBuffer>) return m_UniformBufferMap.contains(id);
+        else if constexpr (std::is_same_v<T, rhi::StagingBuffer>) return m_StagingBufferMap.contains(id);
+        else if constexpr (std::is_same_v<T, rhi::RWStructuredBuffer>) return m_RWStructuredBufferMap.contains(id);
+        else return false;
     }
+    size_t RemainingIdCapacity() const { return m_ResourceIdAllocator.RemainingCapacity(); }
     template <typename T>
         requires IsResource<T>::value
     T* GetResource(ResourceId<T> id)
     {
         if (!IsValid(id))
         {
-            assert(false && "ResourceId is not valid");
             return nullptr;
         }
         if constexpr (std::is_same_v<T, rhi::Texture2D>)
@@ -157,6 +164,11 @@ public:
             if (iter != m_IndexBufferMap.end())
                 return iter->second->Get();
         }
+        else if constexpr (std::is_same_v<T, rhi::UniformBuffer>)
+        {
+            auto iter = m_UniformBufferMap.find(id);
+            if (iter != m_UniformBufferMap.end()) return iter->second->Get();
+        }
         else
         {
             static_assert(always_false_v<T>, "Not implemented resource type");
@@ -170,7 +182,6 @@ public:
     {
         if (!IsValid(id))
         {
-            assert(false && "ResourceId is not valid");
             return;
         }
         if constexpr (std::is_same_v<T, rhi::Texture2D>)
@@ -188,6 +199,7 @@ public:
             {
                 m_VertexBuffers.erase(iter->second);
                 m_VertexBufferMap.erase(iter);
+                m_ResourceIdAllocator.Free(id);
             }
         }
         else if constexpr (std::is_same_v<T, rhi::IndexBuffer>)
@@ -197,6 +209,7 @@ public:
             {
                 m_IndexBuffers.erase(iter->second);
                 m_IndexBufferMap.erase(iter);
+                m_ResourceIdAllocator.Free(id);
             }
         }
         else if constexpr (std::is_same_v<T, rhi::UniformBuffer>)
@@ -206,6 +219,7 @@ public:
             {
                 m_UniformBuffers.erase(iter->second);
                 m_UniformBufferMap.erase(iter);
+                m_ResourceIdAllocator.Free(id);
             }
         }
         else if constexpr (std::is_same_v<T, rhi::StagingBuffer>)
@@ -215,6 +229,7 @@ public:
             {
                 m_StagingBuffers.erase(iter->second);
                 m_StagingBufferMap.erase(iter);
+                m_ResourceIdAllocator.Free(id);
             }
         }
         else if constexpr (std::is_same_v<T, rhi::RWStructuredBuffer>)
@@ -224,6 +239,7 @@ public:
             {
                 m_RWStructuredBuffers.erase(iter->second);
                 m_RWStructuredBufferMap.erase(iter);
+                m_ResourceIdAllocator.Free(id);
             }
         }
         else
@@ -235,31 +251,36 @@ public:
     template <typename T>
     ResourceId<T> Import(T* resource)
     {
+        if (!resource) throw std::invalid_argument("cannot import null resource");
         auto id = m_ResourceIdAllocator.Allocate<T>();
+        try {
         if constexpr (std::is_same_v<T, rhi::Texture2D>)
         {
-            m_Textures.push_back(ResourceWrapper<T>(resource));
-            auto iter = m_Textures.end();
-            --iter;
-            m_TextureMap[id] = iter;
+            StoreImported(m_Textures, m_TextureMap, id, resource);
         }
         else if constexpr (std::is_same_v<T, rhi::TextureView>)
         {
-            m_ImageViews.push_back(ResourceWrapper<T>(resource));
-            auto iter = m_ImageViews.end();
-            --iter;
-            m_ImageViewMap[id] = iter;
+            StoreImported(m_ImageViews, m_ImageViewMap, id, resource);
         }
         else if constexpr (std::is_same_v<T, rhi::VertexBuffer>)
         {
-            m_VertexBuffers.push_back(ResourceWrapper<T>(resource));
-            auto iter = m_VertexBuffers.end();
-            --iter;
-            m_VertexBufferMap[id] = iter;
+            StoreImported(m_VertexBuffers, m_VertexBufferMap, id, resource);
+        }
+        else if constexpr (std::is_same_v<T, rhi::IndexBuffer>)
+        {
+            StoreImported(m_IndexBuffers, m_IndexBufferMap, id, resource);
+        }
+        else if constexpr (std::is_same_v<T, rhi::UniformBuffer>)
+        {
+            StoreImported(m_UniformBuffers, m_UniformBufferMap, id, resource);
         }
         else
         {
             static_assert(always_false_v<T>, "Not implemented resource type");
+        }
+        } catch (...) {
+            m_ResourceIdAllocator.Free(id);
+            throw;
         }
         return id;
     }
@@ -326,6 +347,22 @@ private:
         ResourceWrapper& operator=(const ResourceWrapper&) = delete;
         ResourceWrapper& operator=(ResourceWrapper&&) = default;
     };
+    template <typename T, typename Map>
+    static void StoreImported(std::list<ResourceWrapper<T>>& storage, Map& map, ResourceId<T> id, T* resource)
+    {
+        storage.emplace_back(resource);
+        auto iter = std::prev(storage.end());
+        try { map.emplace(id, iter); }
+        catch (...) { storage.erase(iter); throw; }
+    }
+    template <typename T, typename Map>
+    static void StoreOwned(std::list<ResourceWrapper<T>>& storage, Map& map, ResourceId<T> id, Scope<T>&& resource)
+    {
+        storage.emplace_back(std::move(resource));
+        auto iter=std::prev(storage.end());
+        try { map.emplace(id,iter); }
+        catch (...) { storage.erase(iter);throw; }
+    }
     std::list<ResourceWrapper<rhi::TextureView>> m_ImageViews;
     std::unordered_map<ResourceId<rhi::TextureView>, typename std::list<ResourceWrapper<rhi::TextureView>>::iterator,
                        Hash<ResourceId<rhi::TextureView>>>

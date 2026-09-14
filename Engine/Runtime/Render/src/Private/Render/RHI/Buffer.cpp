@@ -70,10 +70,10 @@ UniformBuffer UniformBuffer::Create(size_t size)
     switch (Render::Config::RenderApi)
     {
     case Render::Api::Vulkan: {
-        auto buffer = vk::Buffer::CreateForStaging(size);
+        auto buffer = vk::Buffer::CreateForUBO(size);
         if (!buffer)
         {
-            assert(false && "Failed to create staging buffer");
+            assert(false && "Failed to create uniform buffer");
             return UniformBuffer();
         }
         stagingBuffer.m_Buffer = std::move(buffer.value());

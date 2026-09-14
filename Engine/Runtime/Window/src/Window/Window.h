@@ -128,6 +128,10 @@ public:
     {
         return m_SwapChainImages.size();
     }
+    VkSurfaceFormatKHR GetSwapChainSurfaceFormat() const
+    {
+        return {m_SwapChainImageFormat, m_SwapChainColorSpace};
+    }
     void SetCursorPosition(double x, double y);
     void SetCursorMode(CursorMode mode);
     bool IsMinilized() const
@@ -142,7 +146,10 @@ private:
     std::vector<VkImage> m_SwapChainImages;
     std::vector<vk::ImageView> m_SwapChainImageViews;
     VkFormat m_SwapChainImageFormat{};
+    VkColorSpaceKHR m_SwapChainColorSpace{};
     VkExtent2D m_SwapChainExtent{};
+    RenderGraph::ResourceId<rhi::Texture2D> m_FinalTextureArenaIds[MAX_FRAMES_IN_FLIGHT]{};
+    RenderGraph::ResourceId<rhi::TextureView> m_FinalViewArenaIds[MAX_FRAMES_IN_FLIGHT]{};
     VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
     SDL_Window* m_Handle = nullptr;
     std::unique_ptr<rhi::Fence> m_ImageAvailableSemaphore[MAX_FRAMES_IN_FLIGHT];

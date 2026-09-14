@@ -95,9 +95,9 @@ int main()
     MainLoop::OnUpload += [&]() { window->OnUpload(); };
     MainLoop::OnRender += [&]() { window->OnRender(); };
     MainLoop::OnCleanup += [&]() {
+        app->OnShutdown();
         Render::SubmitThread::Shutdown();
         vkDeviceWaitIdle(vk::GRC::GetDevice());
-        app->OnShutdown();
         ImGuiApi::Shutdown();
         window->ImGuiWindowContextDestroy();
         window->ReleaseVulkanObjects();

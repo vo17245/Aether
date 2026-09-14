@@ -20,6 +20,10 @@ endif()
 if(AETHER_BUILD_TESTS)
 add_subdirectory("Tests")
 endif()
+option(AETHER_BUILD_RENDERGRAPH_ARENA_TESTS "Build focused RenderGraph arena tests" OFF)
+if(AETHER_BUILD_RENDERGRAPH_ARENA_TESTS)
+    add_subdirectory("Tests/RenderGraphArena.Tests")
+endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
     DESTINATION Vendor
