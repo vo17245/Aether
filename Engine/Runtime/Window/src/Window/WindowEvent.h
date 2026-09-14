@@ -6,6 +6,31 @@
 #include "KeyboardCode.h"
 #include "EventBase.h"
 namespace Aether {
+class WindowFocusLostEvent : public EventBase<WindowFocusLostEvent>
+{
+public:
+    const char* GetNameImpl() const { return "WindowFocusLostEvent"; }
+    std::string ToStringImpl() const { return "WindowFocusLostEvent"; }
+};
+class WindowFocusGainedEvent : public EventBase<WindowFocusGainedEvent>
+{
+public:
+    const char* GetNameImpl() const { return "WindowFocusGainedEvent"; }
+    std::string ToStringImpl() const { return "WindowFocusGainedEvent"; }
+};
+class WindowMinimizedEvent : public EventBase<WindowMinimizedEvent>
+{
+public:
+    const char* GetNameImpl() const { return "WindowMinimizedEvent"; }
+    std::string ToStringImpl() const { return "WindowMinimizedEvent"; }
+};
+class WindowRestoredEvent : public EventBase<WindowRestoredEvent>
+{
+public:
+    const char* GetNameImpl() const { return "WindowRestoredEvent"; }
+    std::string ToStringImpl() const { return "WindowRestoredEvent"; }
+};
+
 class WindowResizeEvent : public EventBase<WindowResizeEvent>
 {
     friend class EventBase;

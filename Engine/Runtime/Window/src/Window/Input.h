@@ -33,6 +33,7 @@ public:
             m_IsPressed[key] = false;
         }
     }
+    void ClearPressedKeys() { m_IsPressed.clear(); }
 
 private:
     std::unordered_map<KeyboardCode, bool> m_IsPressed;
@@ -76,6 +77,7 @@ public:
     {
         return m_Mouse.GetCurPos();
     }
+    void ClearPressedKeys() { m_Keyboard.ClearPressedKeys(); }
 
 private:
     Keyboard m_Keyboard;

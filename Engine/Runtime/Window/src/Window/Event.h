@@ -17,8 +17,13 @@ using Event = std::variant<std::monostate,
                            KeyboardPressEvent,
                            KeyboardRepeatEvent,
                            CharacterInputEvent,
+                           MouseRelativeMotionEvent,
                            MousePositionEvent,
                            MouseButtonPressedEvent,
-                           MouseButtonReleasedEvent>;
+                           MouseButtonReleasedEvent,
+                           WindowFocusLostEvent,
+                           WindowFocusGainedEvent,
+                           WindowMinimizedEvent,
+                           WindowRestoredEvent>;
 
 } // namespace Aether

@@ -134,6 +134,7 @@ public:
     }
     void SetCursorPosition(double x, double y);
     void SetCursorMode(CursorMode mode);
+    bool TrySetCursorMode(CursorMode mode);
     bool IsMinilized() const
     {
         return m_Minilized;

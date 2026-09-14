@@ -70,6 +70,9 @@ void Window::DispatchEvent()
 {
     for (auto& e : m_Event)
     {
+        if (std::holds_alternative<WindowFocusLostEvent>(e) ||
+            std::holds_alternative<WindowMinimizedEvent>(e))
+            m_Input.ClearPressedKeys();
         m_Input.OnEvent(e);
     }
     for (auto& e : m_Event)
@@ -707,12 +710,33 @@ void Window::SetCursorPosition(double x, double y)
 }
 void Window::SetCursorMode(CursorMode mode)
 {
-    const bool relative = mode == CursorMode::Disabled;
-    SDL_SetWindowRelativeMouseMode(m_Handle, relative);
-    if (mode == CursorMode::Normal)
+    (void)TrySetCursorMode(mode);
+}
+bool Window::TrySetCursorMode(CursorMode mode)
+{
+    if (m_Handle == nullptr) return false;
+    if (mode == CursorMode::Disabled)
+    {
+        if (!SDL_SetWindowRelativeMouseMode(m_Handle, true)) return false;
+        if (SDL_HideCursor()) return true;
+        SDL_SetWindowRelativeMouseMode(m_Handle, false);
         SDL_ShowCursor();
-    else
+        return false;
+    }
+    if (mode == CursorMode::Normal)
+    {
+        if (!SDL_SetWindowRelativeMouseMode(m_Handle, false)) return false;
+        if (SDL_ShowCursor()) return true;
+        SDL_SetWindowRelativeMouseMode(m_Handle, true);
         SDL_HideCursor();
+        return false;
+    }
+    if (mode == CursorMode::Hidden)
+    {
+        if (!SDL_SetWindowRelativeMouseMode(m_Handle, false)) return false;
+        return SDL_HideCursor();
+    }
+    return false;
 }
 void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
 {

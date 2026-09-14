@@ -3,6 +3,20 @@
 #include "EventBase.h"
 #include "MouseButtonCode.h"
 namespace Aether {
+class MouseRelativeMotionEvent : public EventBase<MouseRelativeMotionEvent>
+{
+public:
+    MouseRelativeMotionEvent(float dx, float dy) : m_Dx(dx), m_Dy(dy) {}
+    float GetDeltaX() const { return m_Dx; }
+    float GetDeltaY() const { return m_Dy; }
+    const char* GetNameImpl() const { return "MouseRelativeMotionEvent"; }
+    std::string ToStringImpl() const { return std::format("MouseRelativeMotionEvent: {0}, {1}", m_Dx, m_Dy); }
+
+private:
+    float m_Dx;
+    float m_Dy;
+};
+
 class MousePositionEvent : public EventBase<MousePositionEvent>
 {
 public:

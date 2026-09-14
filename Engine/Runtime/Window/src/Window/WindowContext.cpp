@@ -224,6 +224,8 @@ void WindowContext::HandleEvent(const SDL_Event& event)
     case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
     case SDL_EVENT_WINDOW_MINIMIZED:
     case SDL_EVENT_WINDOW_RESTORED:
+    case SDL_EVENT_WINDOW_FOCUS_LOST:
+    case SDL_EVENT_WINDOW_FOCUS_GAINED:
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
         windowId = event.window.windowID;
         break;
@@ -260,9 +262,17 @@ void WindowContext::HandleEvent(const SDL_Event& event)
         break;
     case SDL_EVENT_WINDOW_MINIMIZED:
         window->m_Minilized = true;
+        window->PushEvent(WindowMinimizedEvent());
         break;
     case SDL_EVENT_WINDOW_RESTORED:
         window->m_Minilized = false;
+        window->PushEvent(WindowRestoredEvent());
+        break;
+    case SDL_EVENT_WINDOW_FOCUS_LOST:
+        window->PushEvent(WindowFocusLostEvent());
+        break;
+    case SDL_EVENT_WINDOW_FOCUS_GAINED:
+        window->PushEvent(WindowFocusGainedEvent());
         break;
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
         window->m_ShouldClose = true;
@@ -284,6 +294,7 @@ void WindowContext::HandleEvent(const SDL_Event& event)
         break;
     case SDL_EVENT_MOUSE_MOTION:
         window->PushEvent(MousePositionEvent(Vec2f(event.motion.x, event.motion.y)));
+        window->PushEvent(MouseRelativeMotionEvent(event.motion.xrel, event.motion.yrel));
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     {
