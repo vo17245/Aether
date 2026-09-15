@@ -36,9 +36,9 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/"
     DESTINATION ${MODULE_NAME}/include
     FILES_MATCHING PATTERN "*.h"
 )
-# 2. 配置并生�?Config 文件
+# 2. 配置并生�?Config 文件
 configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/${MODULE_NAME}Config.cmake.in"  # 需要你自己�?
+    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/${MODULE_NAME}Config.cmake.in"  # 需要你自己�?
     "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}Config.cmake"
     INSTALL_DESTINATION ${MODULE_NAME}/
 )
