@@ -1,4 +1,5 @@
 add_subdirectory("Core")
+add_subdirectory("Physics")
 add_subdirectory("Render")
 add_subdirectory("Filesystem")
 add_subdirectory("Window")
