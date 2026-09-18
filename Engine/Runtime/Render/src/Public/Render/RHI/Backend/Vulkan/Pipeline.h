@@ -58,6 +58,18 @@ public:
             return *this;
         }
 
+        Builder& SetPrimitiveTopology(VkPrimitiveTopology topology)
+        {
+            m_PrimitiveTopology = topology;
+            return *this;
+        }
+
+        Builder& SetDepthWriteEnable(bool enabled)
+        {
+            m_DepthWriteEnable = enabled;
+            return *this;
+        }
+
         Builder& SetDepthTestCompareFunc(VkCompareOp compareOp)
         {
             m_DepthTestCompareOp = compareOp;
@@ -118,6 +130,8 @@ public:
         std::vector<VkVertexInputBindingDescription> m_VertexBindingDescriptions;
         std::vector<VkVertexInputAttributeDescription> m_AttributeDescriptions;
         bool m_DepthTestEnable = false;
+        VkPrimitiveTopology m_PrimitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        bool m_DepthWriteEnable = true;
         VkCompareOp m_DepthTestCompareOp = VK_COMPARE_OP_LESS;
         std::vector<VkPipelineShaderStageCreateInfo> m_Stages;
         bool m_EnableDynamicDepthCompareOp = false;

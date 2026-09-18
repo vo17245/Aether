@@ -41,7 +41,7 @@ std::optional<GraphicsPipeline> GraphicsPipeline::Builder::Build()
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.topology = m_PrimitiveTopology;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     VkPipelineViewportStateCreateInfo viewportState{};
@@ -100,10 +100,10 @@ std::optional<GraphicsPipeline> GraphicsPipeline::Builder::Build()
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 
+    depthStencil.depthTestEnable = m_DepthTestEnable ? VK_TRUE : VK_FALSE;
+    depthStencil.depthWriteEnable = (m_DepthTestEnable && m_DepthWriteEnable) ? VK_TRUE : VK_FALSE;
     if (m_DepthTestEnable)
     {
-        depthStencil.depthTestEnable = VK_TRUE;
-        depthStencil.depthWriteEnable = VK_TRUE;
         depthStencil.depthCompareOp = m_DepthTestCompareOp;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_FALSE;
