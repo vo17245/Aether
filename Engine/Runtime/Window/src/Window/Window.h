@@ -10,6 +10,7 @@
 #include "Render/RenderGraph/RenderGraph.h"
 #include "ImGui/Compat/WindowContext.h"
 #include <Render/RHI.h>
+#include <Render/InFlight/InFlightResourceAllocator.h>
 #include <Render/Threads/SubmitThread.h>
 
 
@@ -111,6 +112,10 @@ public:
     {
         return *m_ResourceArena;
     }
+    InFlightResourceAllocator& GetInFlightResourceAllocator()
+    {
+        return *m_InFlightResources;
+    }
     inline RenderGraph::ResourceLruPool& GetResourcePool()
     {
         return *m_ResourcePool;
@@ -189,6 +194,7 @@ private: // render graph
     Scope<RenderGraph::ResourceArena> m_ResourceArena;
     Scope<RenderGraph::ResourceLruPool> m_ResourcePool;
     Scope<RenderGraph::RenderGraph> m_RenderGraph;
+    Scope<InFlightResourceAllocator> m_InFlightResources;
 
     // create render graph, register final image
     // and call each layer RegisterRenderPasses function

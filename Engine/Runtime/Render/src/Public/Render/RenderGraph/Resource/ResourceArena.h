@@ -126,6 +126,11 @@ public:
         else return false;
     }
     size_t RemainingIdCapacity() const { return m_ResourceIdAllocator.RemainingCapacity(); }
+    size_t ActiveIdCount() const
+    {
+        return m_ImageViewMap.size() + m_TextureMap.size() + m_VertexBufferMap.size() + m_IndexBufferMap.size() +
+               m_UniformBufferMap.size() + m_StagingBufferMap.size() + m_RWStructuredBufferMap.size();
+    }
     template <typename T>
         requires IsResource<T>::value
     T* GetResource(ResourceId<T> id)
@@ -168,6 +173,11 @@ public:
         {
             auto iter = m_UniformBufferMap.find(id);
             if (iter != m_UniformBufferMap.end()) return iter->second->Get();
+        }
+        else if constexpr (std::is_same_v<T, rhi::RWStructuredBuffer>)
+        {
+            auto iter = m_RWStructuredBufferMap.find(id);
+            if (iter != m_RWStructuredBufferMap.end()) return iter->second->Get();
         }
         else
         {
@@ -222,6 +232,16 @@ public:
                 m_ResourceIdAllocator.Free(id);
             }
         }
+        else if constexpr (std::is_same_v<T, rhi::RWStructuredBuffer>)
+        {
+            auto iter = m_RWStructuredBufferMap.find(id);
+            if (iter != m_RWStructuredBufferMap.end())
+            {
+                m_RWStructuredBuffers.erase(iter->second);
+                m_RWStructuredBufferMap.erase(iter);
+                m_ResourceIdAllocator.Free(id);
+            }
+        }
         else if constexpr (std::is_same_v<T, rhi::StagingBuffer>)
         {
             auto iter = m_StagingBufferMap.find(id);
@@ -273,6 +293,10 @@ public:
         else if constexpr (std::is_same_v<T, rhi::UniformBuffer>)
         {
             StoreImported(m_UniformBuffers, m_UniformBufferMap, id, resource);
+        }
+        else if constexpr (std::is_same_v<T, rhi::RWStructuredBuffer>)
+        {
+            StoreImported(m_RWStructuredBuffers, m_RWStructuredBufferMap, id, resource);
         }
         else
         {

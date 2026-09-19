@@ -6,9 +6,17 @@ namespace Aether::rhi
 {
 DescriptorSet DescriptorSet::Create(uint32_t samplerCount, uint32_t uboCount, uint32_t ssboCount)
 {
+    return CreateForFrame(vk::GRC::GetFrameIndex(), samplerCount, uboCount, ssboCount);
+}
+
+DescriptorSet DescriptorSet::CreateForFrame(uint32_t frameIndex,
+                                            uint32_t samplerCount,
+                                            uint32_t uboCount,
+                                            uint32_t ssboCount)
+{
     if (Render::Config::RenderApi == Render::Api::Vulkan)
     {
-        auto setOpt = vk::GRC::GetCurrentFrameDynamicDescriptorPool().CreateSet(uboCount, samplerCount, ssboCount);
+        auto setOpt = vk::GRC::GetDynamicDescriptorPool(frameIndex).CreateSet(uboCount, samplerCount, ssboCount);
         if (!setOpt)
         {
             assert(false && "Failed to create descriptor set");

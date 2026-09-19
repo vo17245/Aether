@@ -304,6 +304,20 @@ public:
     {
         return !Empty();
     }
+    vk::Buffer& GetVk()
+    {
+        assert(std::holds_alternative<vk::Buffer>(m_Buffer) && "Buffer is empty");
+        return std::get<vk::Buffer>(m_Buffer);
+    }
+    const vk::Buffer& GetVk() const
+    {
+        assert(std::holds_alternative<vk::Buffer>(m_Buffer) && "Buffer is empty");
+        return std::get<vk::Buffer>(m_Buffer);
+    }
+    void SetData(size_t offset, std::span<const uint8_t> data)
+    {
+        GetVk().SetData(offset, data);
+    }
 
 private:
     std::variant<std::monostate, vk::Buffer> m_Buffer;

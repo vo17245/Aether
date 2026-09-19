@@ -46,6 +46,7 @@ Window::Window(Window&& other) noexcept
 {
     m_Handle = other.m_Handle;
     other.m_Handle = nullptr;
+    m_InFlightResources = std::move(other.m_InFlightResources);
 }
 Window& Window::operator=(Window&& other) noexcept
 {
@@ -55,6 +56,7 @@ Window& Window::operator=(Window&& other) noexcept
             SDL_DestroyWindow(m_Handle);
         m_Handle = other.m_Handle;
         other.m_Handle = nullptr;
+        m_InFlightResources = std::move(other.m_InFlightResources);
     }
     return *this;
 }
@@ -275,7 +277,7 @@ VkResult Window::CreateSurface(VkInstance instance)
                ? VK_SUCCESS
                : VK_ERROR_INITIALIZATION_FAILED;
 }
-Window::Window(SDL_Window* window) : m_Handle(window)
+Window::Window(SDL_Window* window) : m_Handle(window), m_InFlightResources(CreateScope<InFlightResourceAllocator>(MAX_FRAMES_IN_FLIGHT))
 {
 }
 /**
@@ -493,8 +495,6 @@ void Window::OnRender()
         return;
     if (m_ImageAcquireResult.status != Render::ImageAcquireStatus::Success)
         throw std::runtime_error("Failed to acquire swapchain image");
-    // Reset only when a submission will signal this fence.
-    m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset();
     OnImageAcquired(m_ImageAcquireResult);
 }
 bool Window::CreateSyncObjects()
@@ -748,10 +748,20 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     uint32_t imageIndex = result.imageIndex;
     auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
 
+    // The allocator changes slots only after the fence wait and successful image
+    // acquisition. Layer callbacks can therefore write this slot without racing
+    // the previous submission. Keep the fence signaled until all callbacks have
+    // completed so an exception cannot leave an unsignaled, unsubmitted fence.
+    m_InFlightResources->SetCurrentFrame(m_CurrentFrame);
+
     for (auto* layer : m_Layers)
     {
         layer->OnFrameBegin();
     }
+
+    // Reset only when a submission will signal this fence. This deliberately
+    // happens after OnFrameBegin(), whose resource writes may throw.
+    m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset();
     m_ResourcePool->OnFrameBegin();
 
     // Only age uploads once a render slot is available. CPU updates while a
