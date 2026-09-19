@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <Render/Render.h>
 #include <Window/Event.h>
 #include <World/World.h>
@@ -8,8 +9,8 @@ namespace Aether
 class System
 {
 public:
-    virtual std::string_view GetSignature()const=0;
-    virtual std::vector<std::string_view> GetDependencies()const=0;
+    virtual std::string_view GetSignature() const = 0;
+    virtual std::vector<std::string_view> GetDependencies() const = 0;
     virtual void OnAttach(World* scene)
     {
     }
@@ -28,6 +29,9 @@ public:
     }
     virtual ~System() = default;
     virtual void OnEvent(Event& event)
+    {
+    }
+    virtual void OnFrameBegin(std::uint32_t frameSlot)
     {
     }
     virtual void OnDetach()

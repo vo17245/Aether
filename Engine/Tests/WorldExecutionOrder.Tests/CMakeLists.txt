@@ -1,0 +1,2 @@
+add_executable(WorldExecutionOrderTests main.cpp)
+target_link_libraries(WorldExecutionOrderTests PRIVATE World)

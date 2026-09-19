@@ -2,6 +2,9 @@
 #include <entt/entt.hpp>
 #include <Render/Render.h>
 #include <Window/Event.h>
+#include <string>
+#include <string_view>
+#include <vector>
 namespace Aether
 {
 class System;
@@ -51,9 +54,18 @@ public:
     void OnUpload(PendingUploadList& uploadList);
     void OnEvent(Event& event);
     void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph);
-    bool BuildExecutionOrder();
+    void OnFrameBegin(std::uint32_t frameSlot);
+    void BuildExecutionOrder();
+    std::vector<std::string_view> ExecutionOrderSignatures();
 private:
+    void EnsureExecutionOrder();
+    template <typename Callback>
+    void Dispatch(Callback&& callback);
+
     entt::registry m_Registry;
     std::vector<Scope<System>> m_Systems;
+    std::vector<System*> m_ExecutionOrder;
+    bool m_OrderDirty = true;
+    std::uint32_t m_DispatchDepth = 0;
 };
 } // namespace Aether
