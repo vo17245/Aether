@@ -1,7 +1,5 @@
 #include <Render/InFlight/InFlightResourceAllocator.h>
 
-#include <Render/RHI/Backend/Vulkan/GlobalRenderContext.h>
-
 namespace Aether
 {
 namespace
@@ -154,31 +152,58 @@ const rhi::RWStructuredBuffer& InFlightStorageBuffer::GetBufferForImport(std::ui
 }
 
 InFlightDescriptorSet::InFlightDescriptorSet(InFlightResourceAllocator& allocator,
-                                             std::uint32_t samplerCount,
+                                             const vk::DescriptorSetLayout& layout,
                                              std::uint32_t uniformBufferCount,
+                                             std::uint32_t samplerCount,
                                              std::uint32_t storageBufferCount) :
     m_Allocator(&allocator)
 {
     m_Sets.reserve(allocator.FrameSlotCount());
     for (std::uint32_t slot = 0; slot < allocator.FrameSlotCount(); ++slot)
     {
-        auto descriptorSet = rhi::DescriptorSet::CreateForFrame(
-            slot, samplerCount, uniformBufferCount, storageBufferCount);
+        if (uniformBufferCount == 0 && samplerCount == 0 && storageBufferCount == 0)
+            throw std::invalid_argument("an in-flight descriptor set needs at least one binding");
+        auto poolBuilder = vk::DescriptorPool::Builder().MaxSets(1);
+        if (uniformBufferCount)
+            poolBuilder.PushUBO(uniformBufferCount);
+        if (samplerCount)
+            poolBuilder.PushSampler(samplerCount);
+        if (storageBufferCount)
+            poolBuilder.PushSSBO(storageBufferCount);
+        auto pool = poolBuilder.Build();
+        if (!pool)
+            throw std::runtime_error("failed to create an in-flight descriptor pool");
+        auto descriptorSet = vk::DescriptorSet::Create(layout, *pool);
         if (!descriptorSet)
             throw std::runtime_error("failed to create an in-flight descriptor set");
-        m_Sets.push_back(std::make_unique<rhi::DescriptorSet>(std::move(descriptorSet)));
+        Slot resource;
+        resource.pool = std::move(*pool);
+        resource.set = std::move(*descriptorSet);
+        m_Sets.push_back(std::move(resource));
     }
 }
 
-rhi::DescriptorSet& InFlightDescriptorSet::GetSet(std::uint32_t frameSlot)
+vk::DescriptorSet& InFlightDescriptorSet::GetSet(std::uint32_t frameSlot)
 {
     ValidateCurrentSlot(*m_Allocator, frameSlot);
-    return *m_Sets[frameSlot];
+    return *m_Sets[frameSlot].set;
 }
 
-const rhi::DescriptorSet& InFlightDescriptorSet::GetSet(std::uint32_t frameSlot) const
+const vk::DescriptorSet& InFlightDescriptorSet::GetSet(std::uint32_t frameSlot) const
 {
     ValidateCurrentSlot(*m_Allocator, frameSlot);
-    return *m_Sets[frameSlot];
+    return *m_Sets[frameSlot].set;
+}
+
+vk::DescriptorSet& InFlightDescriptorSet::GetSetForSetup(std::uint32_t frameSlot)
+{
+    ValidateSlotRange(*m_Allocator, frameSlot);
+    return *m_Sets[frameSlot].set;
+}
+
+const vk::DescriptorSet& InFlightDescriptorSet::GetSetForSetup(std::uint32_t frameSlot) const
+{
+    ValidateSlotRange(*m_Allocator, frameSlot);
+    return *m_Sets[frameSlot].set;
 }
 } // namespace Aether

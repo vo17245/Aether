@@ -1,10 +1,14 @@
 #pragma once
 
 #include <Render/RHI.h>
+#include <Render/RHI/Backend/Vulkan/DescriptorPool.h>
+#include <Render/RHI/Backend/Vulkan/DescriptorSet.h>
+#include <Render/RHI/Backend/Vulkan/DescriptorSetLayout.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <vector>
@@ -101,20 +105,27 @@ public:
     InFlightDescriptorSet& operator=(InFlightDescriptorSet&&) noexcept = default;
 
     std::uint32_t SlotCount() const noexcept { return static_cast<std::uint32_t>(m_Sets.size()); }
-    rhi::DescriptorSet& GetSet(std::uint32_t frameSlot);
-    const rhi::DescriptorSet& GetSet(std::uint32_t frameSlot) const;
+    vk::DescriptorSet& GetSet(std::uint32_t frameSlot);
+    const vk::DescriptorSet& GetSet(std::uint32_t frameSlot) const;
+    vk::DescriptorSet& GetSetForSetup(std::uint32_t frameSlot);
+    const vk::DescriptorSet& GetSetForSetup(std::uint32_t frameSlot) const;
 
 private:
     friend class InFlightResourceAllocator;
-    // Descriptor sets are allocated from Aether's per-frame DynamicDescriptorPool;
-    // that pool is owned by the Vulkan render context and outlives these sets.
+    // Renderer-facing descriptor sets own an explicit pool per frame slot.
     InFlightDescriptorSet(InFlightResourceAllocator& allocator,
-                          std::uint32_t samplerCount,
+                          const vk::DescriptorSetLayout& layout,
                           std::uint32_t uniformBufferCount,
+                          std::uint32_t samplerCount,
                           std::uint32_t storageBufferCount);
 
+    struct Slot
+    {
+        std::optional<vk::DescriptorPool> pool;
+        std::optional<vk::DescriptorSet> set;
+    };
     InFlightResourceAllocator* m_Allocator = nullptr;
-    std::vector<std::unique_ptr<rhi::DescriptorSet>> m_Sets;
+    std::vector<Slot> m_Sets;
 };
 
 class InFlightResourceAllocator
@@ -139,11 +150,12 @@ public:
     {
         return InFlightStorageBuffer(*this, size);
     }
-    InFlightDescriptorSet AllocateDescriptorSet(std::uint32_t samplerCount,
+    InFlightDescriptorSet AllocateDescriptorSet(const vk::DescriptorSetLayout& layout,
                                                 std::uint32_t uniformBufferCount,
+                                                std::uint32_t samplerCount,
                                                 std::uint32_t storageBufferCount)
     {
-        return InFlightDescriptorSet(*this, samplerCount, uniformBufferCount, storageBufferCount);
+        return InFlightDescriptorSet(*this, layout, uniformBufferCount, samplerCount, storageBufferCount);
     }
 
 private:
