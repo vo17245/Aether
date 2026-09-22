@@ -96,6 +96,10 @@ void World::OnFrameBegin(std::uint32_t frameSlot)
 {
     Dispatch([&](System& system) { system.OnFrameBegin(frameSlot); });
 }
+void World::ExtractRenderData(Render::RenderFeatureFrame& frame)
+{
+    Dispatch([&](System& system) { system.ExtractRenderData(frame); });
+}
 
 void World::BuildExecutionOrder()
 {

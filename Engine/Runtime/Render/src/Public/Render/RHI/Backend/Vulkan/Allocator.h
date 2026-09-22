@@ -13,12 +13,15 @@ public:
     }
     static void Init()
     {
+        if (s_Instance) return;
         s_Instance = new Allocator();
     }
     static void Release()
     {
         delete s_Instance;
+        s_Instance = nullptr;
     }
+    static bool IsInitialized() { return s_Instance != nullptr; }
 
 private:
     ~Allocator()

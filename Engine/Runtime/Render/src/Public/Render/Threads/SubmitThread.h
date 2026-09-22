@@ -112,13 +112,21 @@ public:
     static void Init();
     static void Shutdown();
     // Drain queued submissions and wait until all device queues are idle.
-    static void WaitIdle();
+    // Returns false when no consumer is running; it never waits on a command
+    // that cannot be consumed.
+    static bool WaitIdle();
+    static bool IsRunning();
 
-    static void PushSubmit(Scope<SubmitBase>&& submit)
+    static bool PushSubmit(Scope<SubmitBase>&& submit)
     {
-        std::lock_guard lock(GetSingleton().m_SubmitMutex);
-        GetSingleton().m_Queue.push(std::move(submit));
-        GetSingleton().m_SubmitCondition.notify_one();
+        auto& instance = GetSingleton();
+        {
+            std::lock_guard lock(instance.m_SubmitMutex);
+            if (!instance.m_Running || !submit) return false;
+            instance.m_Queue.push(std::move(submit));
+        }
+        instance.m_SubmitCondition.notify_one();
+        return true;
     }
 
 private:
@@ -133,6 +141,7 @@ private:
 
     std::optional<std::thread> m_Thread;
     std::atomic<bool> m_Running = false;
+    std::thread::id m_WorkerId{};
     std::mutex m_SubmitMutex;
     std::condition_variable m_SubmitCondition;
 

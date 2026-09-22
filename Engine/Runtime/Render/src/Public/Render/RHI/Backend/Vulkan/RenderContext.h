@@ -45,11 +45,11 @@ public:
 
 public:
 
-    VkInstance m_Instance;
-    VkDebugUtilsMessengerEXT m_DebugMessenger;
+    VkInstance m_Instance = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT m_DebugMessenger = VK_NULL_HANDLE;
 
     VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-    VkDevice m_Device;
+    VkDevice m_Device = VK_NULL_HANDLE;
 
     Queue m_GraphicsQueue;
     Queue m_PresentQueue;

@@ -19,8 +19,11 @@ public:
     {
         for (auto* layer : m_Layers)
         {
+            if (m_MainWindow) m_MainWindow->PopLayer(layer);
             delete layer;
         }
+        m_Layers.clear();
+        m_MainWindow = nullptr;
     }
     virtual void OnFrameBegin() override
     {
@@ -38,7 +41,7 @@ public:
 
 private:
     std::vector<Layer*> m_Layers;
-    Window* m_MainWindow;
+    Window* m_MainWindow = nullptr;
 };
 } // namespace AetherEditor
 

@@ -55,6 +55,7 @@ public:
     void OnEvent(Event& event);
     void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph);
     void OnFrameBegin(std::uint32_t frameSlot);
+    void ExtractRenderData(Render::RenderFeatureFrame& frame);
     void BuildExecutionOrder();
     std::vector<std::string_view> ExecutionOrderSignatures();
 private:

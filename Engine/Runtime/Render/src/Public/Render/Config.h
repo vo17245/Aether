@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan/vulkan.h"
+#include <cstdint>
 namespace Aether
 {
 namespace Render
@@ -17,8 +18,9 @@ public:
     static Api RenderApi;
     static int VulkanApiVersion;
     static int VulkanApiVersionNumber;
-    static int MaxFramesInFlight;
     static constexpr const inline int InFlightFrameResourceSlots = 3;
+    static constexpr const inline std::uint32_t MaxFramesInFlight = 2;
+    static_assert(MaxFramesInFlight >= 1 && MaxFramesInFlight <= InFlightFrameResourceSlots);
 };
 } // namespace Render
 } // namespace Aether

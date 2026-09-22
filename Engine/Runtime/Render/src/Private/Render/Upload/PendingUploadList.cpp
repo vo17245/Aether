@@ -18,11 +18,11 @@ void PendingUploadList::UploadTexture(std::span<const uint8_t> pixels, rhi::Text
     m_UploadTextureList.push_back({staging, dst, region, oldLayout});
 }
 
-void PendingUploadList::RecordCommand(rhi::CommandList& commandBuffer)
+void PendingUploadList::RecordCommand(rhi::CommandList& commandBuffer, std::uint32_t frameSlot)
 {
     for (auto& upload : m_UploadBufferList)
     {
-        upload.source->m_Recorded = true;
+        upload.source->m_SubmittedFrameSlot = frameSlot;
         std::visit(
             [&](auto&& dstBuffer) {
                 using T = std::decay_t<decltype(dstBuffer)>;
@@ -46,26 +46,16 @@ void PendingUploadList::RecordCommand(rhi::CommandList& commandBuffer)
         commandBuffer.UploadTexture(upload.source->m_Buffer, *upload.destination, upload.region);
         commandBuffer.TextureLayoutTransition(*upload.destination, rhi::TextureLayout::TransferDst,
                                               rhi::TextureLayout::ShaderReadOnly);
-        upload.source->m_Recorded = true;
+        upload.source->m_SubmittedFrameSlot = frameSlot;
     }
     m_UploadTextureList.clear();
 }
-void PendingUploadList::OnUpdate(bool minilized)
+void PendingUploadList::OnFrameSlotCompleted(std::uint32_t frameSlot)
 {
-    if (minilized)
-    {
-        return;
-    }
     for (auto iter = m_StagingBuffers.begin(); iter != m_StagingBuffers.end();)
     {
         auto& buffer = *iter;
-        if (!buffer->m_Recorded)
-        {
-            ++iter;
-            continue;
-        }
-        buffer->m_TTL--;
-        if (buffer->m_TTL <= 0)
+        if (buffer->m_SubmittedFrameSlot && *buffer->m_SubmittedFrameSlot == frameSlot)
         {
             iter = m_StagingBuffers.erase(iter);
         }

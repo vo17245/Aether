@@ -2,6 +2,8 @@
 #include <Render/RenderGraph/RenderGraph.h>
 #include <Render/Upload/PendingUploadList.h>
 #include <algorithm>
+#include <array>
+#include <cstring>
 #include <memory>
 #include <stdexcept>
 #include <unordered_map>
@@ -22,28 +24,102 @@ struct TextureBinding
     std::optional<vk::DescriptorSet> set;
 };
 
-struct Backend
+} // namespace
+
+struct ImGui_ImplRenderGraph_Backend
 {
     PixelFormat colorFormat;
     rhi::Sampler sampler;
     std::optional<vk::DescriptorSetLayout> descriptorLayout;
     std::optional<vk::PipelineLayout> layout;
     rhi::Pipeline pipeline;
-    std::unordered_map<ImTextureID, std::unique_ptr<TextureBinding>> textures;
+    std::unordered_map<ImGuiCompat::TextureId, std::unique_ptr<TextureBinding>> textures;
     struct RetiredTexture
     {
         std::unique_ptr<TextureBinding> binding;
-        int framesLeft;
+        std::array<bool, Render::Config::MaxFramesInFlight> pendingSlots{};
     };
     std::vector<RetiredTexture> retiredTextures;
-    ImTextureID nextTexture = 1;
+    ImGuiCompat::TextureId nextTexture = 1;
+    std::unordered_map<ImGuiCompat::RenderCallbackId, ImGui_ImplRenderGraph_Callback> callbacks;
+    ImGuiCompat::ImGuiRenderPacketExtractor compatibilityExtractor;
 };
+
+namespace
+{
+using Backend = ImGui_ImplRenderGraph_Backend;
+
+void CreateBinding(Backend& backend, TextureBinding& binding, rhi::Sampler& sampler);
 
 Backend& GetBackend()
 {
     auto* backend = static_cast<Backend*>(ImGui::GetIO().BackendRendererUserData);
     IM_ASSERT(backend && "ImGui RenderGraph backend is not initialized");
     return *backend;
+}
+
+void RetireBinding(Backend& backend, std::unique_ptr<TextureBinding> binding)
+{
+    if (!binding)
+        return;
+    Backend::RetiredTexture retired{.binding = std::move(binding)};
+    retired.pendingSlots.fill(true);
+    backend.retiredTextures.push_back(std::move(retired));
+}
+
+std::unique_ptr<TextureBinding> CreateOwnedBinding(Backend& backend, std::uint32_t width,
+                                                   std::uint32_t height)
+{
+    auto binding = std::make_unique<TextureBinding>();
+    rhi::TextureDesc desc{};
+    desc.width = width;
+    desc.height = height;
+    // Alpha8 data is expanded to white RGBA with the source byte in alpha so
+    // user RGBA textures and atlas textures share the same shader.
+    desc.pixelFormat = PixelFormat::RGBA8888;
+    desc.usages = PackFlags(rhi::TextureUsage::Sample, rhi::TextureUsage::TransferDst);
+    desc.layout = rhi::TextureLayout::Undefined;
+    binding->ownedTexture = rhi::Texture2D::Create(desc);
+    if (!binding->ownedTexture)
+        throw std::runtime_error("ImGui: failed to create owned texture");
+    binding->ownedView = binding->ownedTexture.CreateImageView({});
+    binding->texture = &binding->ownedTexture;
+    binding->view = &binding->ownedView;
+    CreateBinding(backend, *binding, backend.sampler);
+    return binding;
+}
+
+std::vector<std::uint8_t> ExpandPixels(ImTextureFormat format, std::span<const std::byte> pixels)
+{
+    if (format == ImTextureFormat_RGBA32)
+    {
+        const auto* first = reinterpret_cast<const std::uint8_t*>(pixels.data());
+        return {first, first + pixels.size()};
+    }
+    std::vector<std::uint8_t> expanded(pixels.size() * 4);
+    for (std::size_t index = 0; index < pixels.size(); ++index)
+    {
+        expanded[index * 4 + 0] = 255;
+        expanded[index * 4 + 1] = 255;
+        expanded[index * 4 + 2] = 255;
+        expanded[index * 4 + 3] = std::to_integer<std::uint8_t>(pixels[index]);
+    }
+    return expanded;
+}
+
+void QueueRegionUpload(const ImGuiCompat::ImGuiTextureOperation& operation,
+                       const ImGuiCompat::ImGuiTextureRegion& source,
+                       TextureBinding& binding, PendingUploadList& uploads,
+                       rhi::TextureLayout oldLayout)
+{
+    const std::size_t sourcePixelSize = operation.format == ImTextureFormat_RGBA32 ? 4 : 1;
+    if (source.rowBytes != static_cast<std::size_t>(source.width) * sourcePixelSize ||
+        source.pixels.size() != static_cast<std::size_t>(source.rowBytes) * source.height)
+        throw std::invalid_argument("ImGui texture operation has invalid row pitch or pixel data");
+    auto pixels = ExpandPixels(operation.format, source.pixels);
+    uploads.UploadTexture(pixels, binding.texture,
+                          {.x = source.x, .y = source.y, .width = source.width, .height = source.height},
+                          oldLayout);
 }
 
 void CreateBinding(Backend& backend, TextureBinding& binding, rhi::Sampler& sampler)
@@ -85,97 +161,87 @@ layout(location=0) out vec4 outColor;
 void main() { outColor = color * texture(image, uv); }
 )";
 
-struct DrawTask
+struct PacketDrawTask
 {
     Backend* backend = nullptr;
-    ImDrawData* drawData = nullptr;
+    std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> packet;
     RG::AccessId<rhi::VertexBuffer> vertices;
     RG::AccessId<rhi::IndexBuffer> indices;
-    uint32_t width = 0, height = 0;
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
 };
 
-void Draw(rhi::CommandList& commands, RG::ResourceAccessor& resources, DrawTask& task)
+void DrawPacket(rhi::CommandList& commands, RG::ResourceAccessor& resources, PacketDrawTask& task)
 {
-    ImDrawData& data = *task.drawData;
-    if (data.TotalVtxCount <= 0 || data.TotalIdxCount <= 0)
+    const auto& data = *task.packet;
+    if (data.vertices.empty() || data.indices.empty())
         return;
     auto& backend = *task.backend;
     auto& vertices = resources.GetResource(task.vertices)->GetVk();
     auto& indices = resources.GetResource(task.indices)->GetVk();
-    size_t vertexOffset = 0, indexOffset = 0;
-    for (const ImDrawList* list : data.CmdLists)
-    {
-        const size_t vertexBytes = list->VtxBuffer.Size * sizeof(ImDrawVert);
-        const size_t indexBytes = list->IdxBuffer.Size * sizeof(ImDrawIdx);
-        vertices.SetData(vertexOffset, {reinterpret_cast<const uint8_t*>(list->VtxBuffer.Data), vertexBytes});
-        indices.SetData(indexOffset, {reinterpret_cast<const uint8_t*>(list->IdxBuffer.Data), indexBytes});
-        vertexOffset += vertexBytes;
-        indexOffset += indexBytes;
-    }
+    vertices.SetData(0, {reinterpret_cast<const std::uint8_t*>(data.vertices.data()),
+                         data.vertices.size() * sizeof(data.vertices[0])});
+    indices.SetData(0, {reinterpret_cast<const std::uint8_t*>(data.indices.data()),
+                        data.indices.size() * sizeof(data.indices[0])});
 
-    // These bindings are not exposed by CommandList yet. Resource ownership,
-    // attachment setup and layout transitions remain with the RenderGraph.
-    VkCommandBuffer cb = commands.GetVk().GetHandle();
+    VkCommandBuffer commandBuffer = commands.GetVk().GetHandle();
     auto setup = [&]() {
         commands.BindPipeline(backend.pipeline);
         commands.SetViewport(0, 0, static_cast<float>(task.width), static_cast<float>(task.height));
         commands.SetScissor(0, 0, static_cast<float>(task.width), static_cast<float>(task.height));
         VkBuffer vertexBuffer = vertices.GetHandle();
         VkDeviceSize offset = 0;
-        vkCmdBindVertexBuffers(cb, 0, 1, &vertexBuffer, &offset);
-        vkCmdBindIndexBuffer(cb, indices.GetHandle(), 0,
-                            sizeof(ImDrawIdx) == 2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
-        float transform[4] = {2.0f / data.DisplaySize.x, 2.0f / data.DisplaySize.y, 0, 0};
-        transform[2] = -1.0f - data.DisplayPos.x * transform[0];
-        transform[3] = -1.0f - data.DisplayPos.y * transform[1];
-        vkCmdPushConstants(cb, backend.layout->GetHandle(), VK_SHADER_STAGE_VERTEX_BIT, 0,
-                           sizeof(transform), transform);
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
+        vkCmdBindIndexBuffer(commandBuffer, indices.GetHandle(), 0, VK_INDEX_TYPE_UINT32);
+        float transform[4] = {
+            2.0f / data.displaySize[0],
+            2.0f / data.displaySize[1],
+            -1.0f - data.displayPos[0] * (2.0f / data.displaySize[0]),
+            -1.0f - data.displayPos[1] * (2.0f / data.displaySize[1]),
+        };
+        vkCmdPushConstants(commandBuffer, backend.layout->GetHandle(), VK_SHADER_STAGE_VERTEX_BIT,
+                           0, sizeof(transform), transform);
     };
     setup();
-    ImGui_ImplRenderGraph_RenderState state{&commands, &backend.pipeline};
-    void* previousState = ImGui::GetPlatformIO().Renderer_RenderState;
-    ImGui::GetPlatformIO().Renderer_RenderState = &state;
-    int baseVertex = 0;
-    uint32_t baseIndex = 0;
-    for (const ImDrawList* list : data.CmdLists)
+
+    for (const auto& command : data.commands)
     {
-        for (const ImDrawCmd& command : list->CmdBuffer)
+        if (command.type == ImGuiCompat::ImGuiPacketCommandType::ResetRenderState)
         {
-            if (command.UserCallback)
-            {
-                if (command.UserCallback == ImDrawCallback_ResetRenderState)
-                    setup();
-                else
-                    command.UserCallback(list, &command);
-                continue;
-            }
-            if (command.ElemCount == 0)
-                continue;
-            float x1 = (command.ClipRect.x - data.DisplayPos.x) * data.FramebufferScale.x;
-            float y1 = (command.ClipRect.y - data.DisplayPos.y) * data.FramebufferScale.y;
-            float x2 = (command.ClipRect.z - data.DisplayPos.x) * data.FramebufferScale.x;
-            float y2 = (command.ClipRect.w - data.DisplayPos.y) * data.FramebufferScale.y;
-            x1 = std::clamp(x1, 0.0f, static_cast<float>(task.width));
-            y1 = std::clamp(y1, 0.0f, static_cast<float>(task.height));
-            x2 = std::clamp(x2, 0.0f, static_cast<float>(task.width));
-            y2 = std::clamp(y2, 0.0f, static_cast<float>(task.height));
-            if (x2 <= x1 || y2 <= y1)
-                continue;
-            auto binding = backend.textures.find(command.GetTexID());
-            IM_ASSERT(binding != backend.textures.end() && "Texture must be registered with RenderGraph backend");
-            if (binding == backend.textures.end())
-                continue;
-            commands.SetScissor(x1, y1, x2 - x1, y2 - y1);
-            VkDescriptorSet set = binding->second->set->GetHandle();
-            vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, backend.layout->GetHandle(),
-                                    0, 1, &set, 0, nullptr);
-            vkCmdDrawIndexed(cb, command.ElemCount, 1, baseIndex + command.IdxOffset,
-                             baseVertex + static_cast<int>(command.VtxOffset), 0);
+            setup();
+            continue;
         }
-        baseVertex += list->VtxBuffer.Size;
-        baseIndex += list->IdxBuffer.Size;
+        if (command.type == ImGuiCompat::ImGuiPacketCommandType::Callback)
+        {
+            auto callback = backend.callbacks.find(command.callback);
+            if (callback == backend.callbacks.end())
+                throw std::runtime_error("ImGui packet references an unregistered callback");
+            callback->second(commands, command.callbackPayload);
+            continue;
+        }
+        if (command.elementCount == 0)
+            continue;
+
+        float x1 = (command.clipRect[0] - data.displayPos[0]) * data.framebufferScale[0];
+        float y1 = (command.clipRect[1] - data.displayPos[1]) * data.framebufferScale[1];
+        float x2 = (command.clipRect[2] - data.displayPos[0]) * data.framebufferScale[0];
+        float y2 = (command.clipRect[3] - data.displayPos[1]) * data.framebufferScale[1];
+        x1 = std::clamp(x1, 0.0f, static_cast<float>(task.width));
+        y1 = std::clamp(y1, 0.0f, static_cast<float>(task.height));
+        x2 = std::clamp(x2, 0.0f, static_cast<float>(task.width));
+        y2 = std::clamp(y2, 0.0f, static_cast<float>(task.height));
+        if (x2 <= x1 || y2 <= y1)
+            continue;
+        auto binding = backend.textures.find(command.texture);
+        if (binding == backend.textures.end())
+            throw std::runtime_error("ImGui packet references an unregistered texture");
+        commands.SetScissor(x1, y1, x2 - x1, y2 - y1);
+        VkDescriptorSet descriptor = binding->second->set->GetHandle();
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                backend.layout->GetHandle(), 0, 1, &descriptor, 0, nullptr);
+        vkCmdDrawIndexed(commandBuffer, command.elementCount, 1, command.indexOffset,
+                         static_cast<std::int32_t>(command.vertexOffset), 0);
     }
-    ImGui::GetPlatformIO().Renderer_RenderState = previousState;
     commands.SetScissor(0, 0, static_cast<float>(task.width), static_cast<float>(task.height));
 }
 } // namespace
@@ -184,21 +250,33 @@ bool ImGui_ImplRenderGraph_Init(const ImGui_ImplRenderGraph_InitInfo& info)
 {
     auto& io = ImGui::GetIO();
     IM_ASSERT(io.BackendRendererUserData == nullptr);
+    auto* backend = ImGui_ImplRenderGraph_CreateBackend(info);
+    if (!backend)
+        return false;
+    io.BackendRendererUserData = backend;
+    io.BackendRendererName = "imgui_impl_rendergraph";
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures;
+    return true;
+}
+
+ImGui_ImplRenderGraph_Backend* ImGui_ImplRenderGraph_CreateBackend(
+    const ImGui_ImplRenderGraph_InitInfo& info)
+{
     auto backend = std::make_unique<Backend>();
     backend->colorFormat = info.ColorFormat;
     auto sampler = vk::Sampler::Builder().SetDefaultCreateInfo()
         .SetAddressMode(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE).SetAnisotropyEnable(false).Build();
     if (!sampler)
-        return false;
+        return nullptr;
     backend->sampler = rhi::Sampler(std::move(*sampler));
     backend->descriptorLayout = vk::DescriptorSetLayout::Builder()
         .BeginSamplerBinding().UseFragmentStage().EndSamplerBinding().Build();
     if (!backend->descriptorLayout)
-        return false;
+        return nullptr;
     backend->layout = vk::PipelineLayout::Builder().AddDescriptorSetLayout(*backend->descriptorLayout)
         .AddPushConstantRange(4 * sizeof(float), static_cast<vk::ShaderStageFlags>(VK_SHADER_STAGE_VERTEX_BIT)).Build();
     if (!backend->layout)
-        return false;
+        return nullptr;
     std::string preamble;
 #ifdef IMGUI_USE_BGRA_PACKED_COLOR
     preamble = "#define IMGUI_COLOR_BGRA\n";
@@ -206,7 +284,7 @@ bool ImGui_ImplRenderGraph_Init(const ImGui_ImplRenderGraph_InitInfo& info)
     auto vertex = rhi::VertexShader::Create(ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, VertexCode, preamble));
     auto pixel = rhi::PixelShader::Create(ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, PixelCode));
     if (!vertex || !pixel)
-        return false;
+        return nullptr;
     VkVertexInputBindingDescription binding{0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX};
     VkVertexInputAttributeDescription attributes[] = {
         {0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, pos)},
@@ -220,17 +298,24 @@ bool ImGui_ImplRenderGraph_Init(const ImGui_ImplRenderGraph_InitInfo& info)
         .AddVertexStage(vertex->GetVk(), "main").AddFragmentStage(pixel->GetVk(), "main")
         .BeginColorAttachment().EnableBlend(true).EndColorAttachment().Build();
     if (!pipeline)
-        return false;
+        return nullptr;
     backend->pipeline = rhi::Pipeline(std::move(*pipeline));
-    io.BackendRendererUserData = backend.release();
-    io.BackendRendererName = "imgui_impl_rendergraph";
-    io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures;
-    return true;
+    return backend.release();
+}
+
+void ImGui_ImplRenderGraph_DestroyBackend(ImGui_ImplRenderGraph_Backend* backend)
+{
+    delete backend;
 }
 
 void ImGui_ImplRenderGraph_NewFrame()
 {
     (void)GetBackend();
+}
+
+ImGui_ImplRenderGraph_Backend* ImGui_ImplRenderGraph_GetBackend()
+{
+    return &GetBackend();
 }
 
 ImTextureID ImGui_ImplRenderGraph_AddTexture(rhi::Texture2D& texture, rhi::TextureView& view, rhi::Sampler& sampler)
@@ -240,94 +325,123 @@ ImTextureID ImGui_ImplRenderGraph_AddTexture(rhi::Texture2D& texture, rhi::Textu
     binding->texture = &texture;
     binding->view = &view;
     CreateBinding(backend, *binding, sampler);
-    const ImTextureID id = backend.nextTexture++;
+    const ImTextureID id = static_cast<ImTextureID>(backend.nextTexture++);
     backend.textures.emplace(id, std::move(binding));
     return id;
 }
 
 void ImGui_ImplRenderGraph_RemoveTexture(ImTextureID texture)
 {
-    GetBackend().textures.erase(texture);
+    auto& backend = GetBackend();
+    auto found = backend.textures.find(static_cast<ImGuiCompat::TextureId>(texture));
+    if (found == backend.textures.end())
+        return;
+    RetireBinding(backend, std::move(found->second));
+    backend.textures.erase(found);
 }
 
 void ImGui_ImplRenderGraph_UpdateTextures(ImDrawData* data, PendingUploadList& uploads)
 {
     auto& backend = GetBackend();
-    std::erase_if(backend.retiredTextures, [](Backend::RetiredTexture& texture) {
-        return --texture.framesLeft <= 0;
-    });
-    if (!data || !data->Textures)
+    if (!data)
         return;
-    for (ImTextureData* texture : *data->Textures)
+    auto extraction = backend.compatibilityExtractor.Extract(*data);
+    if (!extraction)
+        throw std::runtime_error(extraction.error().message);
+    ImGui_ImplRenderGraph_ApplyTextureOperations(backend, extraction->textureOperations, uploads);
+    if (!backend.compatibilityExtractor.CommitAccepted(*extraction))
+        throw std::runtime_error("ImGui texture extraction was acknowledged twice");
+}
+
+void ImGui_ImplRenderGraph_ApplyTextureOperations(
+    ImGui_ImplRenderGraph_Backend& backend,
+    std::span<const ImGuiCompat::ImGuiTextureOperation> operations,
+    PendingUploadList& uploads)
+{
+    for (const auto& operation : operations)
     {
-        if (texture->Status == ImTextureStatus_WantDestroy)
+        if (operation.texture == 0)
+            throw std::invalid_argument("ImGui texture operation has invalid identity");
+
+        auto found = backend.textures.find(operation.texture);
+        if (operation.type == ImGuiCompat::ImGuiTextureOperationType::Destroy)
         {
-            auto found = backend.textures.find(texture->GetTexID());
             if (found != backend.textures.end())
             {
-                backend.retiredTextures.push_back({std::move(found->second), Render::Config::MaxFramesInFlight});
+                RetireBinding(backend, std::move(found->second));
                 backend.textures.erase(found);
             }
-            texture->SetTexID(ImTextureID_Invalid);
-            texture->BackendUserData = nullptr;
-            texture->SetStatus(ImTextureStatus_Destroyed);
+            continue;
         }
-        else if (texture->Status == ImTextureStatus_WantCreate || texture->Status == ImTextureStatus_WantUpdates)
+
+        if (operation.width == 0 || operation.height == 0)
+            throw std::invalid_argument("ImGui texture operation has invalid dimensions");
+
+        if (operation.format != ImTextureFormat_RGBA32 && operation.format != ImTextureFormat_Alpha8)
+            throw std::invalid_argument("ImGui texture operation has unsupported format");
+
+        auto replacement = CreateOwnedBinding(backend, operation.width, operation.height);
+        if (operation.type == ImGuiCompat::ImGuiTextureOperationType::Create)
         {
-            IM_ASSERT(texture->Format == ImTextureFormat_RGBA32);
-            const bool create = texture->Status == ImTextureStatus_WantCreate;
-            std::unique_ptr<TextureBinding> newBinding;
-            TextureBinding* binding;
-            if (create)
-            {
-                newBinding = std::make_unique<TextureBinding>();
-                binding = newBinding.get();
-                rhi::TextureDesc desc{};
-                desc.width = texture->Width;
-                desc.height = texture->Height;
-                desc.pixelFormat = PixelFormat::RGBA8888;
-                desc.usages = PackFlags(rhi::TextureUsage::Sample, rhi::TextureUsage::TransferDst);
-                desc.layout = rhi::TextureLayout::Undefined;
-                binding->ownedTexture = rhi::Texture2D::Create(desc);
-                if (!binding->ownedTexture)
-                    throw std::runtime_error("ImGui: failed to create font texture");
-                binding->ownedView = binding->ownedTexture.CreateImageView({});
-                binding->texture = &binding->ownedTexture;
-                binding->view = &binding->ownedView;
-                CreateBinding(backend, *binding, backend.sampler);
-            }
-            else
-            {
-                binding = backend.textures.at(texture->GetTexID()).get();
-            }
-            const auto& rect = texture->UpdateRect;
-            rhi::TextureUploadRegion region;
-            region.x = create ? 0 : rect.x;
-            region.y = create ? 0 : rect.y;
-            region.width = create ? texture->Width : rect.w;
-            region.height = create ? texture->Height : rect.h;
-            if (region.width && region.height)
-            {
-                const size_t rowBytes = static_cast<size_t>(region.width) * 4;
-                std::vector<uint8_t> pixels(rowBytes * region.height);
-                const auto* source = static_cast<const uint8_t*>(texture->GetPixels());
-                for (uint32_t row = 0; row < region.height; ++row)
-                    memcpy(pixels.data() + row * rowBytes,
-                           source + (static_cast<size_t>(region.y + row) * texture->Width + region.x) * 4,
-                           rowBytes);
-                uploads.UploadTexture(pixels, binding->texture, region,
-                    create ? rhi::TextureLayout::Undefined : rhi::TextureLayout::ShaderReadOnly);
-            }
-            if (create)
-            {
-                const ImTextureID id = backend.nextTexture++;
-                texture->BackendUserData = binding;
-                backend.textures.emplace(id, std::move(newBinding));
-                texture->SetTexID(id);
-            }
-            texture->SetStatus(ImTextureStatus_OK);
+            if (found != backend.textures.end())
+                throw std::logic_error("ImGui create operation reused a live texture ID");
+            if (operation.regions.size() != 1 || operation.regions[0].x != 0 ||
+                operation.regions[0].y != 0 || operation.regions[0].width != operation.width ||
+                operation.regions[0].height != operation.height)
+                throw std::invalid_argument("ImGui create operation must own one full image");
+            QueueRegionUpload(operation, operation.regions[0], *replacement, uploads,
+                              rhi::TextureLayout::Undefined);
+            backend.textures.emplace(operation.texture, std::move(replacement));
+            continue;
         }
+
+        if (found == backend.textures.end())
+            throw std::logic_error("ImGui update operation references an unknown texture ID");
+        const std::size_t sourcePixelSize = operation.format == ImTextureFormat_RGBA32 ? 4 : 1;
+        if (operation.fullRowBytes != operation.width * sourcePixelSize ||
+            operation.fullPixels.size() != static_cast<std::size_t>(operation.fullRowBytes) * operation.height)
+            throw std::invalid_argument("ImGui update operation does not own a full replacement image");
+        ImGuiCompat::ImGuiTextureRegion full{
+            .x = 0,
+            .y = 0,
+            .width = operation.width,
+            .height = operation.height,
+            .rowBytes = operation.fullRowBytes,
+            .pixels = operation.fullPixels,
+        };
+        QueueRegionUpload(operation, full, *replacement, uploads, rhi::TextureLayout::Undefined);
+        auto retired = std::move(found->second);
+        found->second = std::move(replacement);
+        RetireBinding(backend, std::move(retired));
     }
+}
+
+void ImGui_ImplRenderGraph_OnFrameSlotCompleted(ImGui_ImplRenderGraph_Backend& backend,
+                                                 std::uint32_t frameSlot)
+{
+    if (frameSlot >= Render::Config::MaxFramesInFlight)
+        throw std::out_of_range("ImGui completed frame slot is out of range");
+    for (auto& texture : backend.retiredTextures)
+        texture.pendingSlots[frameSlot] = false;
+    std::erase_if(backend.retiredTextures, [](const Backend::RetiredTexture& texture) {
+        return std::none_of(texture.pendingSlots.begin(), texture.pendingSlots.end(),
+                            [](bool pending) { return pending; });
+    });
+}
+
+void ImGui_ImplRenderGraph_RegisterCallback(ImGui_ImplRenderGraph_Backend& backend,
+                                            ImGuiCompat::RenderCallbackId id,
+                                            ImGui_ImplRenderGraph_Callback callback)
+{
+    if (id == 0 || !callback)
+        throw std::invalid_argument("ImGui render callback requires a non-zero ID and callable");
+    backend.callbacks[id] = std::move(callback);
+}
+
+void ImGui_ImplRenderGraph_UnregisterCallback(ImGui_ImplRenderGraph_Backend& backend,
+                                              ImGuiCompat::RenderCallbackId id)
+{
+    backend.callbacks.erase(id);
 }
 
 void ImGui_ImplRenderGraph_Shutdown()
@@ -336,14 +450,15 @@ void ImGui_ImplRenderGraph_Shutdown()
     auto& backend = GetBackend();
     for (ImTextureData* texture : ImGui::GetPlatformIO().Textures)
     {
-        if (texture->BackendUserData && backend.textures.contains(texture->GetTexID()))
+        if (texture->GetTexID() != ImTextureID_Invalid &&
+            backend.textures.contains(static_cast<ImGuiCompat::TextureId>(texture->GetTexID())))
         {
             texture->SetTexID(ImTextureID_Invalid);
             texture->BackendUserData = nullptr;
             texture->SetStatus(ImTextureStatus_Destroyed);
         }
     }
-    delete &backend;
+    ImGui_ImplRenderGraph_DestroyBackend(&backend);
     io.BackendRendererUserData = nullptr;
     io.BackendRendererName = nullptr;
     io.BackendFlags &= ~(ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures);
@@ -352,27 +467,47 @@ void ImGui_ImplRenderGraph_Shutdown()
 void ImGui_ImplRenderGraph_RenderDrawData(ImDrawData* data, RG::RenderGraph& graph,
     RG::AccessId<rhi::Texture2D> target, bool clear, const Vec4f& clearColor)
 {
-    if (!data || data->DisplaySize.x <= 0 || data->DisplaySize.y <= 0)
-        return;
-    const int width = static_cast<int>(data->DisplaySize.x * data->FramebufferScale.x);
-    const int height = static_cast<int>(data->DisplaySize.y * data->FramebufferScale.y);
-    if (width <= 0 || height <= 0)
+    if (!data)
         return;
     auto& backend = GetBackend();
+    auto extraction = backend.compatibilityExtractor.Extract(*data);
+    if (!extraction)
+        throw std::runtime_error(extraction.error().message);
+    if (!extraction->textureOperations.empty())
+        throw std::logic_error("ImGui texture operations must be applied before rendering draw data");
+    ImGui_ImplRenderGraph_RenderPacket(backend,
+        std::make_shared<const ImGuiCompat::ImGuiRenderPacket>(std::move(extraction->packet)),
+        graph, target, clear, clearColor);
+}
+
+void ImGui_ImplRenderGraph_RenderPacket(
+    ImGui_ImplRenderGraph_Backend& backend,
+    std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> packet,
+    RG::RenderGraph& graph, RG::AccessId<rhi::Texture2D> target,
+    bool clear, const Vec4f& clearColor)
+{
+    if (!packet || packet->displaySize[0] <= 0.0f || packet->displaySize[1] <= 0.0f)
+        return;
+    const auto width = static_cast<std::uint32_t>(
+        packet->displaySize[0] * packet->framebufferScale[0]);
+    const auto height = static_cast<std::uint32_t>(
+        packet->displaySize[1] * packet->framebufferScale[1]);
+    if (width == 0 || height == 0)
+        return;
     auto* targetResource = graph.GetVirtualResourceById(target);
-    IM_ASSERT(targetResource && targetResource->desc.pixelFormat == backend.colorFormat);
+    if (!targetResource || targetResource->desc.pixelFormat != backend.colorFormat)
+        throw std::invalid_argument("ImGui packet target has an incompatible format");
     std::string tag = "ImGui." + graph.CreateUniqueId();
     std::vector<RG::AccessId<rhi::Texture2D>> sampledTextures;
-    std::unordered_set<ImTextureID> usedTextures;
-    for (const ImDrawList* list : data->CmdLists)
-        for (const ImDrawCmd& command : list->CmdBuffer)
-            if (!command.UserCallback && command.ElemCount)
-                usedTextures.insert(command.GetTexID());
-    for (ImTextureID id : usedTextures)
+    std::unordered_set<ImGuiCompat::TextureId> usedTextures;
+    for (const auto& command : packet->commands)
+        if (command.type == ImGuiCompat::ImGuiPacketCommandType::Draw && command.elementCount)
+            usedTextures.insert(command.texture);
+    for (const auto id : usedTextures)
     {
         auto found = backend.textures.find(id);
         if (found == backend.textures.end())
-            throw std::runtime_error("ImGui: unregistered texture ID");
+            throw std::runtime_error("ImGui packet uses an unregistered texture ID");
         auto& texture = *found->second->texture;
         RG::TextureDesc desc{};
         desc.width = texture.GetWidth();
@@ -384,18 +519,18 @@ void ImGui_ImplRenderGraph_RenderDrawData(ImDrawData* data, RG::RenderGraph& gra
         sampledTextures.push_back(graph.Import<rhi::Texture2D>(tag + ".Texture." + std::to_string(id), desc,
             std::span<const RG::ResourceId<rhi::Texture2D>>(&resource, 1)));
     }
-    graph.AddRenderTask<DrawTask>(tag,
-        [&](RG::RenderTaskBuilder& builder, DrawTask& task) {
+    graph.AddRenderTask<PacketDrawTask>(tag,
+        [&](RG::RenderTaskBuilder& builder, PacketDrawTask& task) {
             task.backend = &backend;
-            task.drawData = data;
-            task.width = std::min(static_cast<uint32_t>(width), targetResource->desc.width);
-            task.height = std::min(static_cast<uint32_t>(height), targetResource->desc.height);
-            if (data->TotalVtxCount > 0 && data->TotalIdxCount > 0)
+            task.packet = packet;
+            task.width = std::min(width, targetResource->desc.width);
+            task.height = std::min(height, targetResource->desc.height);
+            if (!packet->vertices.empty() && !packet->indices.empty())
             {
                 task.vertices = builder.Create<rhi::VertexBuffer>(tag + ".Vertices",
-                    RG::VertexBufferDesc{static_cast<size_t>(data->TotalVtxCount) * sizeof(ImDrawVert)});
+                    RG::VertexBufferDesc{packet->vertices.size() * sizeof(packet->vertices[0])});
                 task.indices = builder.Create<rhi::IndexBuffer>(tag + ".Indices",
-                    RG::IndexBufferDesc{static_cast<size_t>(data->TotalIdxCount) * sizeof(ImDrawIdx)});
+                    RG::IndexBufferDesc{packet->indices.size() * sizeof(packet->indices[0])});
                 builder.Write(task.vertices);
                 builder.Read(task.vertices);
                 builder.Write(task.indices);
@@ -412,5 +547,5 @@ void ImGui_ImplRenderGraph_RenderDrawData(ImDrawData* data, RG::RenderGraph& gra
             pass.width = targetResource->desc.width;
             pass.height = targetResource->desc.height;
             builder.SetRenderPassDesc(pass);
-        }, Draw);
+        }, DrawPacket);
 }

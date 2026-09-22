@@ -4,6 +4,7 @@
 #include "RenderTask.h"
 #include "Resource/ResourceAccessor.h"
 #include "TransferTask.h"
+#include <memory>
 namespace Aether::RenderGraph
 {
 class RenderGraph
@@ -116,6 +117,11 @@ public:
     {
         return std::string("#") + std::to_string(m_UniqueId++);
     }
+    void RetainLifetime(std::shared_ptr<void> lifetime)
+    {
+        if (lifetime)
+            m_RetainedLifetimes.push_back(std::move(lifetime));
+    }
     std::string ExportGraphviz() const;
 
 private:
@@ -145,6 +151,10 @@ private:
     std::vector<TaskBase*> m_Steps; // compile result
     std::unordered_map<std::string, Handle> m_TagToAccessId;
     uint32_t m_UniqueId = 0;
+    // Render tasks may use non-owning pointers to render-side objects. Keeping
+    // their owners in the graph makes those pointers valid until the graph is
+    // retired, including across a topology rebuild.
+    std::vector<std::shared_ptr<void>> m_RetainedLifetimes;
 };
 template <typename ResourceType>
     requires IsResource<ResourceType>::value

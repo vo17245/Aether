@@ -68,9 +68,9 @@ Fence& Fence::operator=(Fence&& other) noexcept
     }
     return *this;
 }
-void Fence::Reset()
+VkResult Fence::Reset()
 {
-    vkResetFences(GRC::GetDevice(), 1, &m_Fence);
+    return vkResetFences(GRC::GetDevice(), 1, &m_Fence);
 }
 //@return
 //  Result::None ok

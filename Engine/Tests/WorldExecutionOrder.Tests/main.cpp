@@ -79,6 +79,11 @@ struct RecorderSystem final : Aether::System
         Record(std::format("frame:{}", slot));
     }
 
+    void ExtractRenderData(Aether::Render::RenderFeatureFrame&) override
+    {
+        Record("extract");
+    }
+
     void Record(std::string_view callback)
     {
         if (log)
@@ -176,6 +181,11 @@ int main()
         log.clear();
         world.OnFrameBegin(17);
         AssertOrder(log, "frame:17", {"A", "B", "C"});
+
+        log.clear();
+        Aether::Render::RenderFeatureFrame frame(1);
+        world.ExtractRenderData(frame);
+        AssertOrder(log, "extract", {"A", "B", "C"});
     }
 
     {

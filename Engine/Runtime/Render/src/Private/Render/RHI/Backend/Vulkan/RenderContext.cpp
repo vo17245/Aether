@@ -56,18 +56,24 @@ void RenderContext::InitVulkan(const InitResource& resource)
 
 void RenderContext::Cleanup()
 {
-    // vkDestroyCommandPool(m_Device, m_GraphicsCommandPool, nullptr);
-    // delete m_Window;
-    vkDestroyDevice(m_Device, nullptr);
-
-    if (m_Config.enableValidationLayers)
+    if (m_Device != VK_NULL_HANDLE)
     {
-        DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+        vkDestroyDevice(m_Device, nullptr);
+        m_Device = VK_NULL_HANDLE;
     }
 
-    vkDestroyInstance(m_Instance, nullptr);
+    if (m_Config.enableValidationLayers && m_DebugMessenger != VK_NULL_HANDLE && m_Instance != VK_NULL_HANDLE)
+    {
+        DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
+        m_DebugMessenger = VK_NULL_HANDLE;
+    }
 
-    // WindowContext::Shutdown();
+    if (m_Instance != VK_NULL_HANDLE)
+    {
+        vkDestroyInstance(m_Instance, nullptr);
+        m_Instance = VK_NULL_HANDLE;
+    }
+    m_PhysicalDevice = VK_NULL_HANDLE;
 }
 
 void RenderContext::CreateInstance(const InitResource& resource)

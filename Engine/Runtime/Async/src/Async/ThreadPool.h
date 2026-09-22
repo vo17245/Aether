@@ -81,7 +81,7 @@ public:
 
     ThreadPool(const ThreadPool&) = delete;
     template <typename Fn, typename OnComplete>
-    void Enqueue(Fn&& fn, OnComplete&& onComplete)
+    bool Enqueue(Fn&& fn, OnComplete&& onComplete)
     {
         using FuncType = LambdaTraits<Fn>;
         using RetType = typename FuncType::RetType;
@@ -102,27 +102,39 @@ public:
         }
         {
             std::unique_lock<std::mutex> lock(m_Mutex);
+            if (!m_Accepting)
+            {
+                return false;
+            }
             m_Jobs.push_back(std::move(task));
         }
 
         m_Cond.notify_one();
+        return true;
+    }
+
+    void StopAccepting()
+    {
+        {
+            std::unique_lock<std::mutex> lock(m_Mutex);
+            m_Accepting = false;
+            m_Shutdown = true;
+        }
+        m_Cond.notify_all();
+    }
+
+    void JoinWorkers()
+    {
+        for (auto& t : m_Threads)
+        {
+            if (t.joinable()) t.join();
+        }
     }
 
     void Shutdown()
     {
-        // Stop all worker threads...
-        {
-            std::unique_lock<std::mutex> lock(m_Mutex);
-            m_Shutdown = true;
-        }
-
-        m_Cond.notify_all();
-
-        // Join...
-        for (auto& t : m_Threads)
-        {
-            t.join();
-        }
+        StopAccepting();
+        JoinWorkers();
     }
     moodycamel::ConcurrentQueue<Scope<TaskBase>>& GetCompleteQueue()
     {
@@ -170,6 +182,7 @@ private:
     std::list<Scope<TaskBase>> m_Jobs;
 
     bool m_Shutdown;
+    bool m_Accepting = true;
 
     std::condition_variable m_Cond;
     std::mutex m_Mutex;

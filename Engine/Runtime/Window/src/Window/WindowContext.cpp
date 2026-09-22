@@ -6,9 +6,9 @@
 #include "Window/Window.h"
 #include <ImGui/Backend/imgui_impl_sdl3.h>
 #include <ImGui/Core/imgui.h>
-#include <Render/Threads/SubmitThread.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
+#include <algorithm>
 #include <cassert>
 #include <stdexcept>
 
@@ -257,15 +257,27 @@ void WindowContext::HandleEvent(const SDL_Event& event)
         window->PushEvent(WindowResizeEvent(event.window.data1, event.window.data2));
         break;
     case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+        window->UpdateWindowState(
+            {static_cast<std::uint32_t>(std::max(event.window.data1, 0)),
+             static_cast<std::uint32_t>(std::max(event.window.data2, 0))},
+            event.window.data1 == 0 || event.window.data2 == 0);
         window->PushEvent(FrameBufferResizeEvent(event.window.data1, event.window.data2));
         HandleFramebufferResize(*window, event.window.data1, event.window.data2);
         break;
     case SDL_EVENT_WINDOW_MINIMIZED:
-        window->m_Minilized = true;
+        window->UpdateWindowState(window->m_WindowState.pixelExtent, true);
         window->PushEvent(WindowMinimizedEvent());
         break;
     case SDL_EVENT_WINDOW_RESTORED:
-        window->m_Minilized = false;
+        {
+            int width = 0;
+            int height = 0;
+            SDL_GetWindowSizeInPixels(window->GetHandle(), &width, &height);
+            window->UpdateWindowState(
+                {static_cast<std::uint32_t>(std::max(width, 0)),
+                 static_cast<std::uint32_t>(std::max(height, 0))},
+                width == 0 || height == 0);
+        }
         window->PushEvent(WindowRestoredEvent());
         break;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
@@ -325,20 +337,11 @@ void WindowContext::HandleFramebufferResize(Window& window, int width, int heigh
 {
     if (width == 0 || height == 0)
     {
-        window.m_Minilized = true;
+        window.UpdateWindowState({}, true);
         return;
     }
 
-    window.m_Minilized = false;
-    Render::SubmitThread::WaitIdle();
-    window.ImGuiWindowContextDestroy();
-    window.ReleaseRenderObject();
-    if (!window.CreateRenderObject())
-    {
-        assert(false && "failed to recreate window Vulkan resources");
-        return;
-    }
-    window.CreateRenderGraph();
+    window.UpdateWindowState({static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)}, false);
 }
 
 Vec2i WindowContext::MainMonitorSize()

@@ -8,12 +8,15 @@ class GlobalThreadPool
 public:
     static void Init(size_t threadCount );
     template <typename Fn, typename OnComplete>
-    static void Enqueue(Fn&& fn, OnComplete&& onComplete)
+    static bool Enqueue(Fn&& fn, OnComplete&& onComplete)
     {
         assert(s_ThreadPool && "GlobalThreadPool not initialized!");
-        s_ThreadPool->Enqueue(std::forward<Fn>(fn), std::forward<OnComplete>(onComplete));
+        return s_ThreadPool->Enqueue(std::forward<Fn>(fn), std::forward<OnComplete>(onComplete));
     }
+    static void StopAccepting();
+    static void JoinWorkers();
     static void Destory();
+    static bool IsInitialized();
     static moodycamel::ConcurrentQueue<Scope<TaskBase>>& GetCompleteQueue()
     {
         assert(s_ThreadPool && "GlobalThreadPool not initialized!");

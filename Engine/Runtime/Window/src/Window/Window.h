@@ -2,17 +2,24 @@
 #include "Render/Render.h"
 
 #include <memory>
+#include <deque>
+#include <atomic>
 #include <SDL3/SDL_video.h>
 #include <vector>
 #include "Event.h"
 #include "Layer.h"
 #include "Input.h"
+#include "WindowState.h"
 #include "Render/RenderGraph/RenderGraph.h"
 #include "ImGui/Compat/WindowContext.h"
+#include "ImGui/Compat/ImGuiRenderPacket.h"
 #include <Render/RHI.h>
 #include <Render/InFlight/InFlightResourceAllocator.h>
-#include <Render/Threads/SubmitThread.h>
+#include <Render/Threads/RenderThread.h>
+#include <Render/Feature/RenderFeature.h>
+#include <unordered_map>
 
+struct ImGui_ImplRenderGraph_Backend;
 
 
 namespace Aether
@@ -29,6 +36,9 @@ struct WindowCreateParam
     std::string title = "Default Title";
     bool noDecorate = false;
     bool imGuiEnableClear = true;
+    // Diagnostic switch: preserve P7's submit-and-wait behavior for pixel and
+    // ordering comparisons. Normal operation uses the bounded asynchronous queue.
+    bool serialRenderThread = false;
 };
 enum class CursorMode
 {
@@ -42,7 +52,7 @@ class Window
     friend class vk::RenderContext;
 
 public:
-    constexpr const static inline int MAX_FRAMES_IN_FLIGHT = 2;
+    constexpr const static inline std::uint32_t MAX_FRAMES_IN_FLIGHT = Render::Config::MaxFramesInFlight;
 
 public:
     ~Window();
@@ -65,6 +75,8 @@ public:
     void PushLayer(Layer* layer);
     void PushLayers(const std::span<Layer*>& layers);
     bool PopLayer(Layer* layer);
+    void DetachAllLayers();
+    bool HasLayers() const { return !m_Layers.empty(); }
     rhi::SwapChain* GetSwapChain() const;
     const std::vector<VkImage>& GetImages() const;
     std::vector<VkImage>& GetImages();
@@ -142,12 +154,22 @@ public:
     bool TrySetCursorMode(CursorMode mode);
     bool IsMinilized() const
     {
-        return m_Minilized;
+        return m_WindowState.minimized;
     }
+    WindowId GetId() const { return m_Id; }
+    const WindowState& GetWindowState() const { return m_WindowState; }
+    PixelExtent GetPixelExtent() const { return m_WindowState.pixelExtent; }
+    void InitializeRendering(Render::RenderThread& renderThread);
+    void ShutdownRendering();
+    // RenderThread onStop hook. This is idempotent and must run on its worker,
+    // including after a command failure has made normal submission impossible.
+    void CleanupRenderingOnRenderThread();
 
 private:
     std::vector<Event> m_Event;
     std::vector<Layer*> m_Layers;
+    std::unordered_map<Layer*, std::vector<std::shared_ptr<Render::RenderFeature>>> m_LayerRenderFeatures;
+    std::vector<std::shared_ptr<Render::RenderFeature>> m_RenderFeatures;
     Scope<rhi::SwapChain> m_SwapChain;
     std::vector<VkImage> m_SwapChainImages;
     std::vector<vk::ImageView> m_SwapChainImageViews;
@@ -195,15 +217,24 @@ private: // render graph
     Scope<RenderGraph::ResourceLruPool> m_ResourcePool;
     Scope<RenderGraph::RenderGraph> m_RenderGraph;
     Scope<InFlightResourceAllocator> m_InFlightResources;
+    Render::RenderFeatureFrame m_ExtractedRenderFrame;
+    Render::CpuFrameId m_NextCpuFrameId = 1;
 
     // create render graph, register final image
     // and call each layer RegisterRenderPasses function
     void CreateRenderGraph();
+    void AttachRenderFeatures(Layer& layer);
+    void DetachRenderFeatures(Layer& layer);
     RenderGraph::AccessId<rhi::Texture2D> m_FinalImageAccessId;
 
 private: // imgui
     bool m_ImGuiClearEnable = false;
     ImGuiApi::WindowContext m_ImGuiContext;
+    ImGuiCompat::ImGuiRenderPacketExtractor m_ImGuiPacketExtractor;
+    std::optional<ImGuiCompat::ImGuiRenderPacketExtractor::Extraction> m_PendingImGuiExtraction;
+    std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> m_ImGuiRenderPacket;
+    std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> m_LastSubmittedImGuiPacket;
+    ::ImGui_ImplRenderGraph_Backend* m_ImGuiBackend = nullptr;
     Vec4f m_ImGuiClearColor = Vec4f(0.5, 0.7, 1.0, 1.0);
     void ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer);
 
@@ -214,12 +245,27 @@ public:
     Delegate<void(Event&)> EventHandler;
 
 private:
-    bool m_Minilized = false;
+    WindowId m_Id = 0;
+    WindowState m_WindowState;
+    std::atomic<std::uint64_t> m_LatestWindowStateVersion = 0;
+    WindowState m_RenderWindowState;
+    std::uint64_t m_SubmittedWindowStateVersion = 0;
+    std::uint64_t m_RenderWindowStateVersion = 0;
     bool m_ShouldClose = false;
+    bool m_SerialRenderThread = false;
+    bool m_RenderSwapchainInvalid = false;
     VkPresentModeKHR m_PresentMode;
 private:
-    void OnImageAcquired(const Render::ImageAcquireResult& result);
-    Render::ImageAcquireResult m_ImageAcquireResult;
-    std::binary_semaphore m_ImageAcquireSemaphore{0};
+    void OnImageAcquired(std::uint32_t imageIndex);
+    void UpdateWindowState(PixelExtent extent, bool minimized);
+    void OnRenderThread(Render::RenderFrameContext& context,
+                        Render::RenderFeatureFrame featureFrame,
+                        std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> imguiPacket,
+                        std::uint64_t windowStateVersion);
+    void SubmitReliableAndWait(std::unique_ptr<Render::IRenderCommand> command);
+    void CheckCompletedFrames(bool requireAll = false);
+    void AssertRenderThread() const;
+    Render::RenderThread* m_RenderThread = nullptr;
+    std::deque<Render::CommandTicket> m_PendingFrameTickets;
 };
 } // namespace Aether

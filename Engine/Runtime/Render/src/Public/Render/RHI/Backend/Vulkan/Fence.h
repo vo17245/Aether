@@ -19,7 +19,7 @@ public:
     Fence& operator=(const Fence&) = delete;
     Fence(Fence&& other) noexcept;
     Fence& operator=(Fence&& other) noexcept;
-    void Reset();
+    VkResult Reset();
     //@return
     //  Result::None ok
     //  Result::Timeout timeout

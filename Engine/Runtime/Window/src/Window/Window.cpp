@@ -21,25 +21,144 @@
 #include "ImGui/Compat/ImGuiApi.h"
 #include <ImGui/Backend/imgui_impl_rendergraph.h>
 #include <Debug/Log.h>
-#include <Render/Threads/SubmitThread.h>
 
 namespace Aether
 {
 Window::~Window()
 {
-    if(!m_Layers.empty())
-    {
-        Render::SubmitThread::WaitIdle();
-        m_RenderGraph.reset();
-        for(auto* layer:m_Layers) layer->OnDetach();
-    }
+    // Layers are non-owning. Normal shutdown must detach them while their
+    // owners are still alive; never dereference leftovers from a destructor.
+    assert(m_Layers.empty() && "all layers must be popped before Window destruction");
+    assert(m_LayerRenderFeatures.empty() && "all render features must be detached before Window destruction");
     m_Layers.clear();
-    ReleaseVulkanObjects();
+    assert(m_RenderThread == nullptr && "ShutdownRendering must run before Window destruction");
     if (m_Handle != nullptr)
     {
         WindowContext::Remove(m_Handle);
         SDL_DestroyWindow(m_Handle);
     }
+}
+
+void Window::AssertRenderThread() const
+{
+    if (!m_RenderThread || !m_RenderThread->IsRenderThread())
+        throw std::logic_error("Vulkan window operation must run on RenderThread");
+}
+
+void Window::CheckCompletedFrames(bool requireAll)
+{
+    while (!m_PendingFrameTickets.empty())
+    {
+        auto& ticket = m_PendingFrameTickets.front();
+        if (!ticket.IsReady())
+        {
+            if (!requireAll) break;
+            if (ticket.Wait() != Render::TicketWaitStatus::Completed)
+                throw std::runtime_error("RenderThread frame completion wait failed");
+        }
+        const auto result = ticket.TryGetResult();
+        if (!result || result->status != Render::CommandCompletionStatus::Succeeded)
+            throw std::runtime_error(result ? result->message : "RenderThread frame result is unavailable");
+        m_PendingFrameTickets.pop_front();
+    }
+}
+
+void Window::SubmitReliableAndWait(std::unique_ptr<Render::IRenderCommand> command)
+{
+    if (!m_RenderThread || !command)
+        throw std::logic_error("Window render command submitted before renderer initialization");
+    if (m_RenderThread->IsRenderThread())
+    {
+        Render::RenderFrameContext context{.frameSlot = m_CurrentFrame};
+        command->Execute(context);
+        return;
+    }
+
+    Render::RenderEnvelope envelope;
+    envelope.reliableCommands.push_back(std::move(command));
+    Render::RenderSubmitResult submitted;
+    for (;;)
+    {
+        submitted = m_RenderThread->TrySubmit(envelope);
+        if (submitted.status != Render::RenderSubmitStatus::Full)
+            break;
+        if (!m_RenderThread->WaitForCapacity(1, envelope.PayloadBytes(), false,
+                                             std::chrono::milliseconds(100)))
+            throw std::runtime_error("RenderThread stopped while waiting for command capacity");
+    }
+    if (!submitted)
+        throw std::runtime_error("RenderThread rejected reliable command: " + submitted.message);
+    if (submitted.receipt.envelope.Wait() != Render::TicketWaitStatus::Completed)
+        throw std::runtime_error("RenderThread reliable command did not complete");
+    const auto result = submitted.receipt.envelope.TryGetResult();
+    if (!result || result->status != Render::CommandCompletionStatus::Succeeded)
+        throw std::runtime_error(result ? result->message : "RenderThread command result is unavailable");
+}
+
+void Window::InitializeRendering(Render::RenderThread& renderThread)
+{
+    if (m_RenderThread)
+        throw std::logic_error("Window rendering is already initialized");
+    m_RenderThread = &renderThread;
+    const WindowState initialState = m_WindowState;
+    try
+    {
+        SubmitReliableAndWait(Render::MakeRenderCommand([this, initialState](Render::RenderFrameContext&) {
+            AssertRenderThread();
+            m_RenderWindowState = initialState;
+            if (!CreateRenderObject())
+                throw std::runtime_error("failed to create window Vulkan resources");
+            m_ImGuiBackend = ImGui_ImplRenderGraph_CreateBackend();
+            if (!m_ImGuiBackend)
+                throw std::runtime_error("failed to create ImGui GPU backend");
+            m_RenderWindowStateVersion = initialState.version;
+            CreateRenderGraph();
+        }));
+        m_SubmittedWindowStateVersion = initialState.version;
+    }
+    catch (...)
+    {
+        m_RenderThread = nullptr;
+        throw;
+    }
+}
+
+void Window::ShutdownRendering()
+{
+    if (!m_RenderThread)
+        return;
+    if (m_RenderThread->State() == Render::RenderThreadState::Failed)
+    {
+        m_RenderThread->Join();
+        m_PendingFrameTickets.clear();
+        m_LastSubmittedImGuiPacket.reset();
+        m_RenderThread = nullptr;
+        return;
+    }
+    SubmitReliableAndWait(Render::MakeRenderCommand([this](Render::RenderFrameContext&) {
+        CleanupRenderingOnRenderThread();
+    }));
+    CheckCompletedFrames(true);
+    m_LastSubmittedImGuiPacket.reset();
+    m_RenderThread = nullptr;
+}
+
+void Window::CleanupRenderingOnRenderThread()
+{
+    if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
+        vkDeviceWaitIdle(vk::GRC::GetDevice());
+    m_RenderGraph.reset();
+    Render::RenderFrameContext context{.frameSlot = m_CurrentFrame};
+    for (auto feature = m_RenderFeatures.rbegin(); feature != m_RenderFeatures.rend(); ++feature)
+    {
+        try { (*feature)->OnRenderDetach(context); } catch (...) {}
+    }
+    m_RenderFeatures.clear();
+    ImGuiWindowContextDestroy();
+    ImGui_ImplRenderGraph_DestroyBackend(m_ImGuiBackend);
+    m_ImGuiBackend = nullptr;
+    m_PendingUploadList.ReleaseAll();
+    ReleaseVulkanObjects();
 }
 
 Window::Window(Window&& other) noexcept
@@ -113,6 +232,9 @@ Window* Window::Create(const WindowCreateParam& param)
     // register
     WindowContext::Register(handle, window);
     window->m_ImGuiClearEnable = param.imGuiEnableClear;
+    const char* serialOverride = std::getenv("AETHER_RENDER_THREAD_SERIAL");
+    window->m_SerialRenderThread = param.serialRenderThread ||
+        (serialOverride != nullptr && serialOverride[0] != '\0' && serialOverride[0] != '0');
     return window;
 }
 /**
@@ -121,10 +243,32 @@ Window* Window::Create(const WindowCreateParam& param)
  */
 void Window::PushLayer(Layer* layer)
 {
-    m_Layers.emplace_back(layer);
+    if (!layer)
+        throw std::invalid_argument("Window::PushLayer cannot attach a null layer");
+    if (std::find(m_Layers.begin(), m_Layers.end(), layer) != m_Layers.end())
+        throw std::logic_error("Window::PushLayer cannot attach a layer twice");
 
     layer->OnAttach(this);
-    CreateRenderGraph();
+    try
+    {
+        AttachRenderFeatures(*layer);
+        m_Layers.emplace_back(layer);
+    }
+    catch (...)
+    {
+        auto iter = std::find(m_Layers.begin(), m_Layers.end(), layer);
+        if (iter != m_Layers.end())
+            m_Layers.erase(iter);
+        DetachRenderFeatures(*layer);
+        try
+        {
+            layer->OnDetach();
+        }
+        catch (...)
+        {
+        }
+        throw;
+    }
 }
 void Window::PushLayers(const std::span<Layer*>& layers)
 {
@@ -132,21 +276,104 @@ void Window::PushLayers(const std::span<Layer*>& layers)
     {
         PushLayer(layer);
     }
-    CreateRenderGraph();
 }
 bool Window::PopLayer(Layer* layer)
 {
     auto iter = std::find(m_Layers.begin(), m_Layers.end(), layer);
     if (iter != m_Layers.end())
     {
-        Render::SubmitThread::WaitIdle();
         auto* detached = *iter;
         m_Layers.erase(iter);
-        CreateRenderGraph();
+        // Reset frontend data before detaching render state. Frames already
+        // accepted by RenderThread own their own feature/data references.
+        m_ExtractedRenderFrame = Render::RenderFeatureFrame{};
+        DetachRenderFeatures(*detached);
         detached->OnDetach();
         return true;
     }
     return false;
+}
+
+void Window::AttachRenderFeatures(Layer& layer)
+{
+    std::vector<std::shared_ptr<Render::RenderFeature>> features;
+    layer.CollectRenderFeatures(features);
+
+    for (std::size_t index = 0; index < features.size(); ++index)
+    {
+        if (!features[index])
+            throw std::invalid_argument("Layer returned a null RenderFeature");
+        if (std::find(features.begin(), features.begin() + static_cast<std::ptrdiff_t>(index), features[index]) !=
+            features.begin() + static_cast<std::ptrdiff_t>(index))
+            throw std::logic_error("Layer returned the same RenderFeature more than once");
+        for (const auto& [attachedLayer, attachedFeatures] : m_LayerRenderFeatures)
+        {
+            (void)attachedLayer;
+            if (std::find(attachedFeatures.begin(), attachedFeatures.end(), features[index]) != attachedFeatures.end())
+                throw std::logic_error("RenderFeature is already attached to another Layer");
+        }
+    }
+
+    m_LayerRenderFeatures.emplace(&layer, features);
+    SubmitReliableAndWait(Render::MakeRenderCommand(
+        [this, features = std::move(features)](Render::RenderFrameContext& context) mutable {
+            // Graph tasks may still be referenced by submitted command buffers.
+            // Topology changes are rare, so P6 uses the conservative drain path.
+            if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
+                vkDeviceWaitIdle(vk::GRC::GetDevice());
+            std::size_t attachedCount = 0;
+            try
+            {
+                for (auto& feature : features)
+                {
+                    feature->OnRenderAttach(context);
+                    ++attachedCount;
+                    m_RenderFeatures.push_back(feature);
+                }
+                CreateRenderGraph();
+            }
+            catch (...)
+            {
+                while (attachedCount > 0)
+                {
+                    auto& feature = features[--attachedCount];
+                    std::erase(m_RenderFeatures, feature);
+                    try { feature->OnRenderDetach(context); } catch (...) {}
+                }
+                throw;
+            }
+        }));
+}
+
+void Window::DetachRenderFeatures(Layer& layer)
+{
+    auto iter = m_LayerRenderFeatures.find(&layer);
+    if (iter == m_LayerRenderFeatures.end())
+        return;
+
+    auto features = std::move(iter->second);
+    m_LayerRenderFeatures.erase(iter);
+    if (!m_RenderThread || m_RenderThread->State() == Render::RenderThreadState::Failed ||
+        m_RenderThread->State() == Render::RenderThreadState::Stopped)
+        return;
+    SubmitReliableAndWait(Render::MakeRenderCommand(
+        [this, features = std::move(features)](Render::RenderFrameContext& context) mutable {
+            if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
+                vkDeviceWaitIdle(vk::GRC::GetDevice());
+            for (const auto& feature : features)
+                std::erase(m_RenderFeatures, feature);
+            CreateRenderGraph();
+            for (auto feature = features.rbegin(); feature != features.rend(); ++feature)
+                (*feature)->OnRenderDetach(context);
+        }));
+}
+
+void Window::DetachAllLayers()
+{
+    while (!m_Layers.empty())
+    {
+        PopLayer(m_Layers.back());
+    }
 }
 rhi::SwapChain* Window::GetSwapChain() const
 {
@@ -200,8 +427,7 @@ bool Window::CreateRenderObject()
 }
 bool Window::CreateFinalImage()
 {
-    auto size = GetSize();
-    VkExtent2D extent{(uint32_t)size.x(), (uint32_t)size.y()};
+    const VkExtent2D extent = m_SwapChainExtent;
     // create tonemap render pass
 
     auto renderPassOpt = vk::RenderPass::CreateForPresent(m_SwapChainImageFormat);
@@ -216,8 +442,8 @@ bool Window::CreateFinalImage()
         rhi::TextureDesc desc{
             .usages=PackFlags(rhi::TextureUsage::ColorAttachment, rhi::TextureUsage::Sample, rhi::TextureUsage::TransferSrc),
             .pixelFormat=PixelFormat::RGBA8888,
-            .width=(uint32_t)size.x(),
-            .height=(uint32_t)size.y(),
+            .width=extent.width,
+            .height=extent.height,
             .layout=rhi::TextureLayout::ShaderReadOnly
         };
         auto textureOpt = rhi::Texture2D::Create(desc);
@@ -247,7 +473,7 @@ void Window::ReleaseRenderObject()
     m_SwapChainImages.clear();
     m_SwapChain.reset();
 
-    for (size_t i : std::views::iota(0, MAX_FRAMES_IN_FLIGHT))
+    for (std::uint32_t i : std::views::iota(0u, MAX_FRAMES_IN_FLIGHT))
     {
         m_GraphicsCommandBuffer[i] = rhi::CommandList();
     }
@@ -279,6 +505,13 @@ VkResult Window::CreateSurface(VkInstance instance)
 }
 Window::Window(SDL_Window* window) : m_Handle(window), m_InFlightResources(CreateScope<InFlightResourceAllocator>(MAX_FRAMES_IN_FLIGHT))
 {
+    m_Id = SDL_GetWindowID(window);
+    int width = 0;
+    int height = 0;
+    SDL_GetWindowSizeInPixels(window, &width, &height);
+    UpdateWindowState({static_cast<std::uint32_t>(std::max(width, 0)),
+                       static_cast<std::uint32_t>(std::max(height, 0))},
+                      width == 0 || height == 0);
 }
 /**
  *@brief Create an SDL window handle
@@ -310,10 +543,10 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
     VkPresentModeKHR presentMode = vk::chooseSwapPresentMode(swapChainSupport.presentModes);
     m_PresentMode = presentMode;
     LogI("[vulkan] choose swapchain present mode: {}", (int)presentMode);
-    const auto requestedSize = GetSize();
+    const auto requestedSize = m_RenderWindowState.pixelExtent;
     VkExtent2D extent = vk::chooseSwapExtent(
         swapChainSupport.capabilities,
-        {static_cast<uint32_t>(requestedSize.x()), static_cast<uint32_t>(requestedSize.y())});
+        {requestedSize.width, requestedSize.height});
 
     // MAX_FRAMES_IN_FLIGHT controls synchronization, while the surface
     // capabilities control the valid swapchain image count. In particular,
@@ -381,10 +614,10 @@ void Window::CreateSwapChain(VkInstance instance, VkPhysicalDevice physicalDevic
  */
 void Window::CreateImageViews()
 {
-    auto size = GetSize();
     for (size_t i = 0; i < m_SwapChainImages.size(); i++)
     {
-        auto imageViewOpt = vk::ImageView::Create(m_SwapChainImages[i], m_SwapChainImageFormat, size.x(), size.y());
+        auto imageViewOpt = vk::ImageView::Create(m_SwapChainImages[i], m_SwapChainImageFormat,
+                                                  m_SwapChainExtent.width, m_SwapChainExtent.height);
         if (!imageViewOpt.has_value())
         {
             assert(false && "ImageView::Create failed");
@@ -436,19 +669,6 @@ void Window::OnUpdate(float sec)
     {
         layer->OnUpdate(sec);
     }
-    bool anyLayerNeedRebuild = false;
-    for (auto& layer : m_Layers)
-    {
-        if (layer->NeedRebuildRenderGraph())
-        {
-            anyLayerNeedRebuild = true;
-            break;
-        }
-    }
-    if (anyLayerNeedRebuild)
-    {
-        CreateRenderGraph();
-    }
     // imgui
     // Start the Dear ImGui frame
     ImGuiApi::NewFrame();
@@ -459,43 +679,217 @@ void Window::OnUpdate(float sec)
         layer->OnImGuiUpdate();
     }
     ImGui::Render();
+
+    auto imguiExtraction = m_ImGuiPacketExtractor.Extract(*ImGui::GetDrawData());
+    if (!imguiExtraction)
+        throw std::runtime_error("Failed to extract ImGui render packet: " + imguiExtraction.error().message);
+    // Replacing an unaccepted extraction is safe: ImGui texture status is not
+    // acknowledged until the render envelope is accepted below.
+    m_PendingImGuiExtraction = std::move(*imguiExtraction);
+
+    Render::RenderFeatureFrame frame(m_NextCpuFrameId++);
+    for (auto* layer : m_Layers)
+        layer->ExtractRenderData(frame);
+    m_ExtractedRenderFrame = std::move(frame);
 }
 
 void Window::OnRender()
 {
-    if (m_Minilized || GetSize().x() == 0 || GetSize().y() == 0)
+    if (!m_RenderThread)
+        throw std::logic_error("Window::OnRender called without a RenderThread");
+
+    CheckCompletedFrames();
+    auto featureFrame = std::move(m_ExtractedRenderFrame);
+    m_ExtractedRenderFrame = Render::RenderFeatureFrame{};
+    std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> packet = m_LastSubmittedImGuiPacket;
+    std::vector<ImGuiCompat::ImGuiTextureOperation> textureOperations;
+    ImGuiCompat::ImGuiRenderPacketExtractor::Extraction* extraction = nullptr;
+    if (m_PendingImGuiExtraction)
     {
+        extraction = &*m_PendingImGuiExtraction;
+        packet = std::make_shared<const ImGuiCompat::ImGuiRenderPacket>(
+            std::move(extraction->packet));
+        textureOperations = std::move(extraction->textureOperations);
+    }
+
+    std::size_t payloadBytes = packet ? packet->PayloadBytes() : 0;
+    for (const auto& operation : textureOperations)
+        payloadBytes += operation.PayloadBytes();
+
+    Render::RenderEnvelope envelope;
+    envelope.cpuFrameId = featureFrame.GetCpuFrameId();
+    const WindowState submittedWindowState = m_WindowState;
+    const bool hasWindowStateUpdate = submittedWindowState.version != m_SubmittedWindowStateVersion;
+    if (hasWindowStateUpdate)
+    {
+        envelope.reliableCommands.push_back(Render::MakeRenderCommand(
+            [this, state = submittedWindowState]() {
+                AssertRenderThread();
+                m_RenderWindowState = state;
+            }));
+    }
+    if (!textureOperations.empty())
+    {
+        envelope.reliableCommands.push_back(Render::MakeRenderCommand(
+            [this, operations = std::move(textureOperations)]() {
+                ImGui_ImplRenderGraph_ApplyTextureOperations(*m_ImGuiBackend, operations,
+                                                             m_PendingUploadList);
+            }, payloadBytes - (packet ? packet->PayloadBytes() : 0)));
+    }
+    const std::size_t drawPayloadBytes =
+        (packet ? packet->PayloadBytes() : 0) + featureFrame.PayloadBytes();
+    envelope.drawCommand = Render::MakeRenderCommand(
+        [this, featureFrame = std::move(featureFrame), packet,
+         windowStateVersion = submittedWindowState.version](Render::RenderFrameContext& context) mutable {
+            OnRenderThread(context, std::move(featureFrame), packet, windowStateVersion);
+        }, drawPayloadBytes);
+
+    Render::RenderSubmitResult submitted;
+    for (;;)
+    {
+        submitted = m_RenderThread->TrySubmit(envelope);
+        if (submitted.status != Render::RenderSubmitStatus::Full)
+            break;
+        CheckCompletedFrames();
+        if (!m_RenderThread->WaitForCapacity(envelope.CommandCount(), envelope.PayloadBytes(), true,
+                                             std::chrono::milliseconds(2)))
+        {
+            if (m_RenderThread->State() != Render::RenderThreadState::Running)
+                throw std::runtime_error("RenderThread stopped while waiting for frame capacity");
+            // Keep the OS responsive without recursively dispatching a Layer
+            // update or starting another ImGui frame.
+            WindowContext::PollEvents();
+        }
+    }
+    if (!submitted)
+        throw std::runtime_error("RenderThread rejected frame: " + submitted.message);
+
+    if (extraction)
+    {
+        if (!m_ImGuiPacketExtractor.CommitAccepted(*extraction))
+            throw std::logic_error("ImGui render extraction was accepted more than once");
+        m_PendingImGuiExtraction.reset();
+        m_LastSubmittedImGuiPacket = packet;
+    }
+    if (hasWindowStateUpdate)
+        m_SubmittedWindowStateVersion = submittedWindowState.version;
+
+    if (m_SerialRenderThread)
+    {
+        if (submitted.receipt.envelope.Wait() != Render::TicketWaitStatus::Completed)
+            throw std::runtime_error("RenderThread frame did not complete");
+        const auto result = submitted.receipt.envelope.TryGetResult();
+        if (!result || result->status != Render::CommandCompletionStatus::Succeeded)
+            throw std::runtime_error(result ? result->message : "RenderThread frame result is unavailable");
+    }
+    else
+    {
+        m_PendingFrameTickets.push_back(std::move(submitted.receipt.envelope));
+    }
+}
+
+void Window::OnRenderThread(Render::RenderFrameContext& context,
+                            Render::RenderFeatureFrame featureFrame,
+                            std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> imguiPacket,
+                            std::uint64_t windowStateVersion)
+{
+    AssertRenderThread();
+    if (windowStateVersion != m_RenderWindowState.version ||
+        windowStateVersion != m_LatestWindowStateVersion.load(std::memory_order_acquire))
+        return;
+    context.frameSlot = m_CurrentFrame;
+    m_ImGuiRenderPacket = std::move(imguiPacket);
+    if (m_RenderWindowStateVersion != m_RenderWindowState.version || m_RenderSwapchainInvalid)
+    {
+        if (m_RenderWindowState.minimized || m_RenderWindowState.pixelExtent.width == 0 ||
+            m_RenderWindowState.pixelExtent.height == 0)
+        {
+            m_RenderWindowStateVersion = m_RenderWindowState.version;
+        }
+        else
+        {
+            vkDeviceWaitIdle(vk::GRC::GetDevice());
+            ReleaseRenderObject();
+            if (!CreateRenderObject())
+                throw std::runtime_error("Failed to recreate resized window resources");
+            CreateRenderGraph();
+            m_RenderWindowStateVersion = m_RenderWindowState.version;
+            m_RenderSwapchainInvalid = false;
+        }
+    }
+
+    // wait for render resource
+    if (m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Wait() != VK_SUCCESS)
+        throw std::runtime_error("Vulkan frame-slot fence wait failed");
+    m_PendingUploadList.OnFrameSlotCompleted(m_CurrentFrame);
+    ImGui_ImplRenderGraph_OnFrameSlotCompleted(*m_ImGuiBackend, m_CurrentFrame);
+    featureFrame.Prepare(context);
+
+    if (m_RenderWindowState.minimized || m_RenderWindowState.pixelExtent.width == 0 ||
+        m_RenderWindowState.pixelExtent.height == 0)
+    {
+        if (!m_PendingUploadList.HasPendingCommands())
+            return;
+        auto& commandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame];
+        auto& vkCommandBuffer = commandBuffer.GetVk();
+        vkCommandBuffer.Reset();
+        vkCommandBuffer.Begin();
+        m_PendingUploadList.RecordCommand(commandBuffer, m_CurrentFrame);
+        vkCommandBuffer.End();
+        if (m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset() != VK_SUCCESS)
+            throw std::runtime_error("Vulkan upload-only fence reset failed");
+        const VkCommandBuffer handle = vkCommandBuffer.GetHandle();
+        VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &handle;
+        if (vkQueueSubmit(vk::GRC::GetGraphicsQueue().GetHandle(), 1, &submitInfo,
+                          m_CommandBufferFences[m_CurrentFrame]->GetVkFence().GetHandle()) != VK_SUCCESS)
+            throw std::runtime_error("Vulkan upload-only submission failed");
+        m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         return;
     }
-   
-    // wait for render resource
-    m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Wait();
-    // acquire next image
+
+    uint32_t imageIndex = 0;
+    constexpr std::uint64_t AcquireTimeoutNs = 100'000'000;
+    const VkResult acquireResult = vkAcquireNextImageKHR(
+        vk::GRC::GetDevice(), m_SwapChain->GetVk().GetHandle(), AcquireTimeoutNs,
+        m_ImageAvailableSemaphore[m_CurrentFrame]->GetVkSemaphore().GetHandle(),
+        VK_NULL_HANDLE, &imageIndex);
+    enum class AcquireStatus
     {
-        auto imageAcquireSubmit = CreateScope<Render::VkImageAcquireSubmit>();
-        imageAcquireSubmit->swapChain = &m_SwapChain->GetVk();
-        imageAcquireSubmit->signalSemaphore = &m_ImageAvailableSemaphore[m_CurrentFrame]->GetVkSemaphore();
-        imageAcquireSubmit->timeoutNs = std::numeric_limits<uint64_t>::max();
-        imageAcquireSubmit->result = &m_ImageAcquireResult;
-        imageAcquireSubmit->semaphore = &m_ImageAcquireSemaphore;
-        Render::SubmitThread::PushSubmit(std::move(imageAcquireSubmit));
+        Success,
+        OutOfDate,
+        NotReady,
+        Timeout,
+        Error,
+    };
+    AcquireStatus acquireStatus = AcquireStatus::Error;
+    switch (acquireResult)
+    {
+    case VK_SUCCESS:
+    case VK_SUBOPTIMAL_KHR: acquireStatus = AcquireStatus::Success; break;
+    case VK_ERROR_OUT_OF_DATE_KHR: acquireStatus = AcquireStatus::OutOfDate; break;
+    case VK_NOT_READY: acquireStatus = AcquireStatus::NotReady; break;
+    case VK_TIMEOUT: acquireStatus = AcquireStatus::Timeout; break;
+    default: acquireStatus = AcquireStatus::Error; break;
     }
-    m_ImageAcquireSemaphore.acquire();
-    if (m_ImageAcquireResult.status == Render::ImageAcquireStatus::OutOfDate)
+    if (acquireResult == VK_SUBOPTIMAL_KHR)
+        m_RenderSwapchainInvalid = true;
+    if (acquireStatus == AcquireStatus::OutOfDate)
     {
-        Render::SubmitThread::WaitIdle();
+        vkDeviceWaitIdle(vk::GRC::GetDevice());
         ReleaseRenderObject();
         if (!CreateRenderObject())
             throw std::runtime_error("Failed to recreate out-of-date swapchain");
         CreateRenderGraph();
+        m_RenderSwapchainInvalid = false;
         return;
     }
-    if (m_ImageAcquireResult.status == Render::ImageAcquireStatus::NotReady ||
-        m_ImageAcquireResult.status == Render::ImageAcquireStatus::Timeout)
+    if (acquireStatus == AcquireStatus::NotReady || acquireStatus == AcquireStatus::Timeout)
         return;
-    if (m_ImageAcquireResult.status != Render::ImageAcquireStatus::Success)
+    if (acquireStatus != AcquireStatus::Success)
         throw std::runtime_error("Failed to acquire swapchain image");
-    OnImageAcquired(m_ImageAcquireResult);
+    OnImageAcquired(imageIndex);
 }
 bool Window::CreateSyncObjects()
 {
@@ -597,13 +991,10 @@ void Window::OnWindowResize(const Vec2u& size)
 {
     if (size.x() == 0 || size.y() == 0)
     {
-        m_Minilized = true;
+        UpdateWindowState({}, true);
         return; // no need to resize
     }
-    m_Minilized = false;
-    Render::SubmitThread::WaitIdle();
-    assert(ResizeFinalImage(size) && "failed to resize window final image");
-    CreateRenderGraph();
+    UpdateWindowState({size.x(), size.y()}, false);
 }
 void Window::InitRenderGraphResource()
 {
@@ -655,9 +1046,16 @@ void Window::CreateRenderGraph()
         std::span<const RenderGraph::ResourceId<rhi::TextureView>>(finalImageViewResourceIds, MAX_FRAMES_IN_FLIGHT));
 
     // call each layer's RegisterRenderPasses function
-    for (auto* layer : m_Layers)
+    for (const auto& feature : m_RenderFeatures)
     {
-        layer->OnBuildRenderGraph(*m_RenderGraph);
+        m_RenderGraph->RetainLifetime(feature);
+        Render::RenderGraphBuildContext context{
+            .graph = *m_RenderGraph,
+            .output = m_FinalImageAccessId,
+            .width = m_FinalTextures[0].GetWidth(),
+            .height = m_FinalTextures[0].GetHeight(),
+        };
+        feature->BuildRenderGraph(context);
     }
     // compile
     m_RenderGraph->Compile();
@@ -677,12 +1075,13 @@ void Window::ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer)
     auto target = graph.Import<rhi::Texture2D>("ImGui.FinalImage", desc,
         std::span<const RenderGraph::ResourceId<rhi::Texture2D>>(&resource, 1));
     // With no scene layers, initialize the image even if UI clearing is disabled.
-    const bool clear = m_ImGuiClearEnable || m_Layers.empty();
+    const bool clear = m_ImGuiClearEnable || m_RenderFeatures.empty();
     Vec4f color = m_ImGuiClearColor;
     color.x() *= color.w();
     color.y() *= color.w();
     color.z() *= color.w();
-    ImGui_ImplRenderGraph_RenderDrawData(ImGui::GetDrawData(), graph, target, clear, color);
+    ImGui_ImplRenderGraph_RenderPacket(*m_ImGuiBackend, m_ImGuiRenderPacket,
+                                      graph, target, clear, color);
     graph.Compile();
     graph.SetCommandBuffer(&commandBuffer);
     graph.Execute();
@@ -690,6 +1089,8 @@ void Window::ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer)
 }
 void Window::ImGuiWindowContextDestroy()
 {
+    m_PendingImGuiExtraction.reset();
+    m_ImGuiRenderPacket.reset();
     for (auto& frame : m_ImGuiContext.frames)
         frame.reset();
 }
@@ -738,14 +1139,8 @@ bool Window::TrySetCursorMode(CursorMode mode)
     }
     return false;
 }
-void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
+void Window::OnImageAcquired(std::uint32_t imageIndex)
 {
-    if (result.status != Render::ImageAcquireStatus::Success)
-    {
-        assert(false && "unknown error");
-        return;
-    }
-    uint32_t imageIndex = result.imageIndex;
     auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
 
     // The allocator changes slots only after the fence wait and successful image
@@ -754,22 +1149,9 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     // completed so an exception cannot leave an unsignaled, unsubmitted fence.
     m_InFlightResources->SetCurrentFrame(m_CurrentFrame);
 
-    for (auto* layer : m_Layers)
-    {
-        layer->OnFrameBegin();
-    }
-
-    // Reset only when a submission will signal this fence. This deliberately
-    // happens after OnFrameBegin(), whose resource writes may throw.
-    m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset();
     m_ResourcePool->OnFrameBegin();
 
-    // Only age uploads once a render slot is available. CPU updates while a
-    // window is minimized must not retire staging data that has not been submitted.
     m_ImGuiContext.frames[m_CurrentFrame].reset();
-    m_PendingUploadList.OnUpdate(false);
-    ImGui_ImplRenderGraph_UpdateTextures(ImGui::GetDrawData(), m_PendingUploadList);
-
     // record command buffer
     auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
     auto& curCommandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame];
@@ -777,7 +1159,7 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     curCommandBufferVk.Begin();
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
     // record transfer command here
-    m_PendingUploadList.RecordCommand(curCommandBuffer);
+    m_PendingUploadList.RecordCommand(curCommandBuffer, m_CurrentFrame);
 
     // Record the RenderGraph. It owns the final-image layout transitions.
     if (m_RenderGraph)
@@ -815,10 +1197,10 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     vkCmdPipelineBarrier(curCommandBufferVk.GetHandle(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                          VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 2, beforeBlit);
 
-    const auto finalSize = GetSize();
     VkImageBlit blit{};
     blit.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-    blit.srcOffsets[1] = {finalSize.x(), finalSize.y(), 1};
+    blit.srcOffsets[1] = {static_cast<std::int32_t>(finalImage.GetWidth()),
+                          static_cast<std::int32_t>(finalImage.GetHeight()), 1};
     blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
     blit.dstOffsets[1] = {static_cast<int32_t>(m_SwapChainExtent.width),
                           static_cast<int32_t>(m_SwapChainExtent.height), 1};
@@ -843,39 +1225,50 @@ void Window::OnImageAcquired(const Render::ImageAcquireResult& result)
     // A presentation semaphore can only be reused after its swapchain image is acquired again.
     assert(imageIndex < m_RenderFinishedSemaphores.size());
     auto& renderFinishedSemaphore = *m_RenderFinishedSemaphores[imageIndex];
-    {
-        auto submit = CreateScope<Render::VkCommandSubmit>();
-        submit->commandBuffer = &m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
-        submit->signalFence = &m_CommandBufferFences[m_CurrentFrame]->GetVkFence();
-        submit->waitSemaphores.push_back(&imageAvailableSemaphore.GetVkSemaphore());
-        submit->waitStages.push_back(Render::PipelineSyncStage::AllCommands);
-        submit->signalSemaphores.push_back(&renderFinishedSemaphore.GetVkSemaphore());
-        submit->queue = &vk::GRC::GetGraphicsQueue();
-        Render::SubmitThread::PushSubmit(std::move(submit));
-    }
-    // m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().Submit(1, &imageAvailableSemaphoreHandle, &stage, 1,
-    //                                                        &renderFinishedSemaphore,
-    //                                                        m_CommandBufferFences[m_CurrentFrame]->GetVk().GetHandle());
-    //  async present
+    const VkSemaphore waitSemaphore = imageAvailableSemaphore.GetVkSemaphore().GetHandle();
+    const VkSemaphore signalSemaphore = renderFinishedSemaphore.GetVkSemaphore().GetHandle();
+    const VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    const VkCommandBuffer commandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk().GetHandle();
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &waitSemaphore;
+    submitInfo.pWaitDstStageMask = &waitStage;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &signalSemaphore;
+    // Keep the slot fence signaled throughout CPU recording. Reset only once
+    // all fallible recording work is complete and a submit will signal it.
+    if (m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset() != VK_SUCCESS)
+        throw std::runtime_error("Vulkan graphics fence reset failed");
+    if (vkQueueSubmit(vk::GRC::GetGraphicsQueue().GetHandle(), 1, &submitInfo,
+                      m_CommandBufferFences[m_CurrentFrame]->GetVkFence().GetHandle()) != VK_SUCCESS)
+        throw std::runtime_error("Vulkan graphics submission failed");
 
-    // VkPresentInfoKHR presentInfo{};
-    // presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    // presentInfo.waitSemaphoreCount = 1;
-    // presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
-    // VkSwapchainKHR swapChains[] = {m_SwapChain->GetVk().GetHandle()};
-    // presentInfo.swapchainCount = 1;
-    // presentInfo.pSwapchains = swapChains;
-    // presentInfo.pImageIndices = &imageIndex;
-    // vkQueuePresentKHR(vk::GRC::GetPresentQueue().GetHandle(), &presentInfo);
-    {
-        auto present = CreateScope<Render::VkPresentSubmit>();
-        present->imageIndex = imageIndex;
-        present->swapChain = &m_SwapChain->GetVk();
-        present->waitSemaphores.push_back(&renderFinishedSemaphore.GetVkSemaphore());
-        Render::SubmitThread::PushSubmit(std::move(present));
-    }
+    VkSwapchainKHR swapchain = m_SwapChain->GetVk().GetHandle();
+    VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &signalSemaphore;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swapchain;
+    presentInfo.pImageIndices = &imageIndex;
+    const VkResult presentResult = vkQueuePresentKHR(vk::GRC::GetPresentQueue().GetHandle(), &presentInfo);
+    if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR &&
+        presentResult != VK_ERROR_OUT_OF_DATE_KHR)
+        throw std::runtime_error("Vulkan presentation failed");
+    if (presentResult == VK_SUBOPTIMAL_KHR || presentResult == VK_ERROR_OUT_OF_DATE_KHR)
+        m_RenderSwapchainInvalid = true;
 
     // forward current frame index
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void Window::UpdateWindowState(PixelExtent extent, bool minimized)
+{
+    if (m_WindowState.pixelExtent == extent && m_WindowState.minimized == minimized) return;
+    m_WindowState.pixelExtent = extent;
+    m_WindowState.minimized = minimized;
+    ++m_WindowState.version;
+    m_LatestWindowStateVersion.store(m_WindowState.version, std::memory_order_release);
 }
 } // namespace Aether

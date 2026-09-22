@@ -34,6 +34,10 @@ public:
     virtual void OnFrameBegin(std::uint32_t frameSlot)
     {
     }
+    virtual void ExtractRenderData(Render::RenderFeatureFrame& frame)
+    {
+        (void)frame;
+    }
     virtual void OnDetach()
     {
     }

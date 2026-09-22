@@ -3,6 +3,7 @@
 #include <Render/RHI/Backend/Vulkan/RenderContext.h>
 #include "vulkan/vulkan_core.h"
 #include <mutex>
+#include <thread>
 #include "DynamicDescriptorPool.h"
 #include <Render/Config.h>
 
@@ -28,6 +29,13 @@ public:
     static VkSwapchainKHR GetSwapChain();
     static QueueFamilyIndices GetQueueFamilyIndices();
     static void Cleanup();
+    static void CleanupCurrentThreadResources();
+    // Once runtime handoff is complete, every GRC-backed GPU operation must
+    // originate from this owner. An unbound owner is reserved for bootstrap
+    // and final context teardown.
+    static void BindRuntimeRenderThread();
+    static void UnbindRuntimeRenderThread();
+    static void AssertRuntimeRenderThread();
     /**
      * @brief get current thread's GraphicsCommandPool
      */

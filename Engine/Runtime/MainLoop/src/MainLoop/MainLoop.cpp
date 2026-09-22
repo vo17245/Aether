@@ -12,22 +12,26 @@ namespace Aether
     Delegate<void()> MainLoop::OnEvent;
     Delegate<void()> MainLoop::OnCleanup;
     static bool isRunning = false;
-    static std::chrono::high_resolution_clock::time_point lastTime;
 
     void MainLoop::Run()
     {
         isRunning = true;
         OnStart.Broadcast();
+        auto lastTime = std::chrono::steady_clock::now();
 
         while (isRunning)
         {
             OnFrameBegin.Broadcast();
+            if (!isRunning) break;
             OnEvent.Broadcast();
-            auto currentTime = std::chrono::high_resolution_clock::now();
+            if (!isRunning) break;
+            const auto currentTime = std::chrono::steady_clock::now();
             float deltaSec = std::chrono::duration<float>(currentTime - lastTime).count();
             lastTime = currentTime;
             OnUpdate.Broadcast(deltaSec);
+            if (!isRunning) break;
             OnUpload.Broadcast();
+            if (!isRunning) break;
             OnRender.Broadcast();
         }
         OnCleanup.Broadcast();
@@ -37,5 +41,10 @@ namespace Aether
     void MainLoop::Quit()
     {
         isRunning = false;
+    }
+
+    bool MainLoop::IsRunning()
+    {
+        return isRunning;
     }
 }

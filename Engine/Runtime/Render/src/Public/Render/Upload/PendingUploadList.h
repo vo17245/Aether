@@ -1,5 +1,6 @@
 #pragma once
 #include <Render/RHI.h>
+#include <optional>
 namespace Aether
 {
 class PendingUploadList;
@@ -8,7 +9,7 @@ class TransientStagingBuffer
     friend class PendingUploadList;
 
 public:
-    TransientStagingBuffer(int ttl, rhi::StagingBuffer&& buffer) : m_TTL(ttl), m_Buffer(std::move(buffer))
+    explicit TransientStagingBuffer(rhi::StagingBuffer&& buffer) : m_Buffer(std::move(buffer))
     {
     }
     ~TransientStagingBuffer()
@@ -24,8 +25,7 @@ public:
     }
 
 private:
-    int m_TTL = 0;
-    bool m_Recorded = false;
+    std::optional<std::uint32_t> m_SubmittedFrameSlot;
     rhi::StagingBuffer m_Buffer;
 };
 class PendingUploadList
@@ -36,7 +36,7 @@ public:
     void UploadBuffer(std::span<const uint8_t> data, BufferType* dstBuffer, size_t dstOffset)
     {
         m_UploadBufferList.push_back(
-        CreateUploadBufferCommand(data, dstBuffer, dstOffset, Render::Config::MaxFramesInFlight));   
+        CreateUploadBufferCommand(data, dstBuffer, dstOffset));
     }
 
 public:
@@ -46,10 +46,21 @@ public:
     void UploadTexture(std::span<const uint8_t> pixels, rhi::Texture2D* dst,
                        const rhi::TextureUploadRegion& region,
                        rhi::TextureLayout oldLayout = rhi::TextureLayout::ShaderReadOnly);
-    // Age recorded staging buffers once per rendered frame, after waiting for
-    // that frame slot's fence. Pending uploads and minimized frames do not age.
-    void OnUpdate(bool minilized);
-    void RecordCommand(rhi::CommandList& commandBuffer);
+    // Release only staging associated with a frame slot whose fence completed.
+    void OnFrameSlotCompleted(std::uint32_t frameSlot);
+    void RecordCommand(rhi::CommandList& commandBuffer, std::uint32_t frameSlot);
+    bool HasPendingCommands() const noexcept
+    {
+        return !m_UploadBufferList.empty() || !m_UploadTextureList.empty();
+    }
+    // Call only after the device/submissions using these staging buffers are
+    // idle. This makes their physical destruction occur on the render owner.
+    void ReleaseAll() noexcept
+    {
+        m_UploadBufferList.clear();
+        m_UploadTextureList.clear();
+        m_StagingBuffers.clear();
+    }
 
 private:
     struct UploadTextureCommand
@@ -70,11 +81,10 @@ private:
     };
     template <typename BufferType>
     UploadBufferCommand CreateUploadBufferCommand(std::span<const uint8_t> data, BufferType* dstBuffer,
-                                                  size_t dstOffset, uint32_t ttl)
+                                                  size_t dstOffset)
     {
         auto stagingBuffer = AllocateStagingBuffer(data.size());
         stagingBuffer->SetData(0, data);
-        stagingBuffer->m_TTL = ttl;
         auto command = UploadBufferCommand{};
         command.source = stagingBuffer;
         command.destination = dstBuffer;
@@ -87,7 +97,7 @@ private:
     TransientStagingBuffer* AllocateStagingBuffer(size_t size)
     {
         m_StagingBuffers.push_back(
-            CreateScope<TransientStagingBuffer>(Render::Config::MaxFramesInFlight, rhi::StagingBuffer::Create(size)));
+            CreateScope<TransientStagingBuffer>(rhi::StagingBuffer::Create(size)));
         return m_StagingBuffers.back().get();
     }
 

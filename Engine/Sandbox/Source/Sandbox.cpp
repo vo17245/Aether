@@ -6,6 +6,8 @@
 #include <Window/Layer.h>
 #include <Window/Window.h>
 #include <SDL3/SDL.h>
+#include <array>
+#include <stdexcept>
 
 using namespace Aether;
 
@@ -44,34 +46,29 @@ void main()
 }
 )";
 
-class CircleLayer final : public Layer
+struct CircleFrameData final : Render::RenderFeatureData
+{
+    explicit CircleFrameData(bool isVisible) : visible(isVisible) {}
+    bool visible = true;
+    std::size_t PayloadBytes() const noexcept override { return sizeof(*this); }
+};
+
+class CircleRenderFeature final : public Render::RenderFeature
 {
 public:
-    void OnAttach(Window* window) override
+    void OnRenderAttach(Render::RenderFrameContext&) override
     {
-        m_Window = window;
-        SDL_SetWindowMinimumSize(window->GetHandle(), 400, 300);
-        if (!m_BorderlessWindow.Attach(window->GetHandle()))
-            LogE("Failed to set Sandbox window hit test: {}", SDL_GetError());
-
+        m_FrameVisible.fill(true);
         auto vertexShader = rhi::VertexShader::Create(
             ShaderSource(ShaderStageType::Vertex, ShaderLanguage::GLSL, VertexShaderCode));
         if (!vertexShader)
-        {
-            LogE("Failed to create circle vertex shader: {}", vertexShader.error());
-            assert(false && "failed to create circle vertex shader");
-            return;
-        }
+            throw std::runtime_error("failed to create circle vertex shader: " + vertexShader.error());
         m_VertexShader = std::move(*vertexShader);
 
         auto pixelShader = rhi::PixelShader::Create(
             ShaderSource(ShaderStageType::Fragment, ShaderLanguage::GLSL, PixelShaderCode));
         if (!pixelShader)
-        {
-            LogE("Failed to create circle pixel shader: {}", pixelShader.error());
-            assert(false && "failed to create circle pixel shader");
-            return;
-        }
+            throw std::runtime_error("failed to create circle pixel shader: " + pixelShader.error());
         m_PixelShader = std::move(*pixelShader);
 
         rhi::PipelineDesc pipelineDesc;
@@ -79,33 +76,34 @@ public:
         pipelineDesc.vertexShader = &m_VertexShader;
         pipelineDesc.pixelShader = &m_PixelShader;
         m_Pipeline = rhi::Pipeline::Create(pipelineDesc);
-        assert(m_Pipeline && "failed to create circle pipeline");
+        if (!m_Pipeline)
+            throw std::runtime_error("failed to create circle pipeline");
     }
 
-    void OnDetach() override
+    void OnRenderDetach(Render::RenderFrameContext&) override
     {
-        m_BorderlessWindow.Detach();
-        m_Window = nullptr;
+        m_Pipeline = rhi::Pipeline{};
+        m_PixelShader = rhi::PixelShader{};
+        m_VertexShader = rhi::VertexShader{};
     }
-    
 
-    void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph) override
+    void BuildRenderGraph(Render::RenderGraphBuildContext& context) override
     {
         struct TaskData
         {
-            CircleLayer* layer = nullptr;
+            std::shared_ptr<CircleRenderFeature> feature;
             uint32_t width = 0;
             uint32_t height = 0;
         };
 
-        const Vec2i size = m_Window->GetSize();
-        renderGraph.AddRenderTask<TaskData>(
+        auto self = std::static_pointer_cast<CircleRenderFeature>(shared_from_this());
+        context.graph.AddRenderTask<TaskData>(
             "Sandbox.GreenCircle",
             [&](RenderGraph::RenderTaskBuilder& builder, TaskData& data) {
                 auto targetView = builder.Create<rhi::TextureView>(
                     "Sandbox.GreenCircle.TargetView",
                     RenderGraph::TextureViewDesc{
-                        .texture = m_Window->GetFinalImageAccessId(),
+                        .texture = context.output,
                         .desc = {},
                     });
 
@@ -117,35 +115,82 @@ public:
                     .storeOp = rhi::AttachmentStoreOp::Store,
                 };
                 passDesc.clearColor[0] = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
-                passDesc.width = static_cast<uint32_t>(size.x());
-                passDesc.height = static_cast<uint32_t>(size.y());
+                passDesc.width = context.width;
+                passDesc.height = context.height;
                 builder.SetRenderPassDesc(passDesc);
 
-                data.layer = this;
+                data.feature = self;
                 data.width = passDesc.width;
                 data.height = passDesc.height;
             },
-            [](rhi::CommandList& commandList, RenderGraph::ResourceAccessor&, TaskData& data) {
+            [](rhi::CommandList& commandList, RenderGraph::ResourceAccessor& accessor, TaskData& data) {
                 commandList.SetViewport(0.0f, 0.0f, static_cast<float>(data.width), static_cast<float>(data.height));
                 commandList.SetScissor(0.0f, 0.0f, static_cast<float>(data.width), static_cast<float>(data.height));
-                commandList.BindPipeline(data.layer->m_Pipeline);
-                commandList.GetVk().Draw(3);
+                commandList.BindPipeline(data.feature->m_Pipeline);
+                const auto slot = accessor.GetCurrentFrame() % Render::Config::MaxFramesInFlight;
+                if (data.feature->m_FrameVisible[slot])
+                    commandList.GetVk().Draw(3);
             });
     }
+
+    void PrepareFrame(Render::RenderFrameContext& context, const Render::RenderFeatureData& data) override
+    {
+        const auto* circle = dynamic_cast<const CircleFrameData*>(&data);
+        if (!circle)
+            throw std::invalid_argument("CircleRenderFeature received incompatible frame data");
+        m_FrameVisible[context.frameSlot % Render::Config::MaxFramesInFlight] = circle->visible;
+    }
+
+private:
+    std::array<bool, Render::Config::MaxFramesInFlight> m_FrameVisible{};
+    rhi::VertexShader m_VertexShader;
+    rhi::PixelShader m_PixelShader;
+    rhi::Pipeline m_Pipeline;
+};
+
+class CircleLayer final : public Layer
+{
+public:
+    void OnAttach(Window* window) override
+    {
+        m_Window = window;
+        m_RenderFeature = std::make_shared<CircleRenderFeature>();
+        SDL_SetWindowMinimumSize(window->GetHandle(), 400, 300);
+        if (!m_BorderlessWindow.Attach(window->GetHandle()))
+            LogE("Failed to set Sandbox window hit test: {}", SDL_GetError());
+    }
+
+    void OnDetach() override
+    {
+        m_BorderlessWindow.Detach();
+        m_RenderFeature.reset();
+        m_Window = nullptr;
+    }
+
+    void CollectRenderFeatures(std::vector<std::shared_ptr<Render::RenderFeature>>& features) override
+    {
+        features.push_back(m_RenderFeature);
+    }
+
+    void ExtractRenderData(Render::RenderFeatureFrame& frame) override
+    {
+        frame.Emplace<CircleFrameData>(m_RenderFeature, m_Visible);
+    }
+
     void OnImGuiUpdate() override
     {
         ImGui::Begin("CircleLayer");
         ImGui::Text("This is a simple example of using RenderGraph to render a green circle.");
+        ImGui::Checkbox("Visible", &m_Visible);
         ImGui::End();
         m_BorderlessWindow.Draw();
     }
 
 private:
     Window* m_Window = nullptr;
+    bool m_Visible = true;
+    std::shared_ptr<CircleRenderFeature> m_RenderFeature;
     ImGuiApi::BorderlessWindow m_BorderlessWindow{{.title = "Aether Sandbox"}};
-    rhi::VertexShader m_VertexShader;
-    rhi::PixelShader m_PixelShader;
-    rhi::Pipeline m_Pipeline;
 };
 } // namespace
 
@@ -154,14 +199,17 @@ class Sandbox final : public Application
 public:
     void OnInit(Window& window) override
     {
+        m_Window = &window;
         m_CircleLayer = new CircleLayer();
         window.PushLayer(m_CircleLayer);
     }
 
     void OnShutdown() override
     {
+        if (m_Window && m_CircleLayer) m_Window->PopLayer(m_CircleLayer);
         delete m_CircleLayer;
         m_CircleLayer = nullptr;
+        m_Window = nullptr;
     }
 
     const char* GetName() const override
@@ -179,6 +227,7 @@ public:
     }
 
 private:
+    Window* m_Window = nullptr;
     CircleLayer* m_CircleLayer = nullptr;
 };
 

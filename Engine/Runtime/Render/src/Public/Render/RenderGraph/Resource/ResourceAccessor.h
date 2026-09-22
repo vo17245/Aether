@@ -52,6 +52,10 @@ public:
     {
         m_FrameIndex=frame;
     }
+    uint32_t GetCurrentFrame() const
+    {
+        return m_FrameIndex;
+    }
     ResourceAccessorBase(Borrow<ResourceArena> resourceArena, Borrow<ResourceLruPool> resourcePool) :
         m_ResourceArena(resourceArena), m_ResourcePool(resourcePool), m_FrameIndex(0)
     {

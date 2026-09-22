@@ -136,18 +136,30 @@ LogE(Ts&&... args) -> LogE<Ts...>;
 template <typename... Ts>
 struct LogD
 {
+    LogD(Ts&&...) {}
 };
+template <typename... Ts>
+LogD(Ts&&... args) -> LogD<Ts...>;
 template <typename... Ts>
 struct LogI
 {
+    LogI(Ts&&...) {}
 };
+template <typename... Ts>
+LogI(Ts&&... args) -> LogI<Ts...>;
 template <typename... Ts>
 struct LogW
 {
+    LogW(Ts&&...) {}
 };
+template <typename... Ts>
+LogW(Ts&&... args) -> LogW<Ts...>;
 template <typename... Ts>
 struct LogE
 {
+    LogE(Ts&&...) {}
 };
+template <typename... Ts>
+LogE(Ts&&... args) -> LogE<Ts...>;
 #endif
 } // namespace Aether

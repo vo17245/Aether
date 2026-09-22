@@ -1,4 +1,5 @@
 #include <Render/InFlight/InFlightResourceAllocator.h>
+#include <Render/Config.h>
 
 namespace Aether
 {
@@ -41,8 +42,8 @@ void ValidateCurrentSlot(const InFlightResourceAllocator& allocator, std::uint32
 
 InFlightResourceAllocator::InFlightResourceAllocator(std::uint32_t frameSlotCount) : m_FrameSlotCount(frameSlotCount)
 {
-    if (frameSlotCount == 0)
-        throw std::invalid_argument("an in-flight resource allocator needs at least one frame slot");
+    if (frameSlotCount == 0 || frameSlotCount > Render::Config::InFlightFrameResourceSlots)
+        throw std::invalid_argument("in-flight frame slot count is outside the configured capacity");
 }
 
 void InFlightResourceAllocator::SetCurrentFrame(std::uint32_t frameSlot)

@@ -8,3 +8,4 @@
 #include "Upload/PendingUploadList.h"
 #include "Shader/ShaderSource.h"
 #include "Utils.h"
+#include "Feature/RenderFeature.h"

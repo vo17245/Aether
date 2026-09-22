@@ -12,14 +12,28 @@ void SubmitThread::Shutdown()
 {
     GetSingleton().ShutdownImpl();
 }
-void SubmitThread::WaitIdle()
+bool SubmitThread::WaitIdle()
 {
+    auto& instance = GetSingleton();
+    {
+        std::lock_guard lock(instance.m_SubmitMutex);
+        if (instance.m_WorkerId == std::this_thread::get_id())
+        {
+            return false;
+        }
+        if (!instance.m_Running) return false;
+    }
     std::binary_semaphore completed{0};
     auto submit = CreateScope<CustomSubmit>();
     submit->func = []() { vkDeviceWaitIdle(vk::GRC::GetDevice()); };
     submit->semaphore = &completed;
-    PushSubmit(std::move(submit));
+    if (!PushSubmit(std::move(submit))) return false;
     completed.acquire();
+    return true;
+}
+bool SubmitThread::IsRunning()
+{
+    return GetSingleton().m_Running.load();
 }
 SubmitThread& SubmitThread::GetSingleton()
 {
@@ -28,17 +42,26 @@ SubmitThread& SubmitThread::GetSingleton()
 }
 void SubmitThread::InitImpl()
 {
+    std::lock_guard lock(m_SubmitMutex);
+    if (m_Running) return;
+    if (m_Thread && m_Thread->joinable()) return;
     m_Running = true;
     m_Thread.emplace(Worker{*this});
 }
 void SubmitThread::ShutdownImpl()
 {
-    m_Running = false;
+    {
+        std::lock_guard lock(m_SubmitMutex);
+        if (!m_Running && (!m_Thread || !m_Thread->joinable())) return;
+        m_Running = false;
+    }
     m_SubmitCondition.notify_all();
     if (m_Thread && m_Thread->joinable())
     {
+        if (m_Thread->get_id() == std::this_thread::get_id()) return;
         m_Thread->join();
     }
+    m_Thread.reset();
 }
 static void HandleVkCommandSubmit(const VkCommandSubmit& submit)
 {
@@ -168,6 +191,10 @@ static void HandleVkSubmit(const SubmitBase& submit)
 }
 void SubmitThread::Worker::operator()()
 {
+    {
+        std::lock_guard lock(thread.m_SubmitMutex);
+        thread.m_WorkerId = std::this_thread::get_id();
+    }
     for (;;)
     {
         std::unique_ptr<SubmitBase> submit;
@@ -178,7 +205,7 @@ void SubmitThread::Worker::operator()()
                 { 
                     return thread.m_Queue.size()>0 || thread.m_Running == false; 
                 });
-            if (thread.m_Running == false && !thread.m_Queue.size()>0)
+            if (!thread.m_Running && thread.m_Queue.empty())
             {
                 break;
             }
@@ -197,6 +224,10 @@ void SubmitThread::Worker::operator()()
             break;
         }
         }
+    }
+    {
+        std::lock_guard lock(thread.m_SubmitMutex);
+        thread.m_WorkerId = {};
     }
 }
 } // namespace Aether::Render

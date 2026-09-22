@@ -9,7 +9,6 @@ namespace Aether::ImGuiApi
 static ImGuiContext* g_MainContext = nullptr;
 void NewFrame()
 {
-    ImGui_ImplRenderGraph_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 }
@@ -22,6 +21,15 @@ void Shutdown()
 }
 void Init(Window& window)
 {
+    InitFrontend(window);
+    if (!ImGui_ImplRenderGraph_Init())
+    {
+        ShutdownFrontend();
+        throw std::runtime_error("Failed to initialize ImGui RenderGraph backend");
+    }
+}
+void InitFrontend(Window& window)
+{
     IMGUI_CHECKVERSION();
     g_MainContext = ImGui::CreateContext();
     auto& io = ImGui::GetIO();
@@ -33,13 +41,29 @@ void Init(Window& window)
         g_MainContext = nullptr;
         throw std::runtime_error("Failed to initialize ImGui SDL3 backend");
     }
-    if (!ImGui_ImplRenderGraph_Init())
+    io.BackendRendererName = "imgui_impl_rendergraph_packet";
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures;
+}
+void PrepareRendererShutdown()
+{
+    if (!g_MainContext) return;
+    for (ImTextureData* texture : ImGui::GetPlatformIO().Textures)
     {
-        ImGui_ImplSDL3_Shutdown();
-        ImGui::DestroyContext();
-        g_MainContext = nullptr;
-        throw std::runtime_error("Failed to initialize ImGui RenderGraph backend");
+        texture->SetTexID(ImTextureID_Invalid);
+        texture->BackendUserData = nullptr;
+        texture->SetStatus(ImTextureStatus_Destroyed);
     }
+}
+void ShutdownFrontend()
+{
+    if (!g_MainContext) return;
+    auto& io = ImGui::GetIO();
+    io.BackendRendererUserData = nullptr;
+    io.BackendRendererName = nullptr;
+    io.BackendFlags &= ~(ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures);
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+    g_MainContext = nullptr;
 }
 void EnableDocking()
 {
