@@ -1,0 +1,3 @@
+add_executable(RenderCommandExtraction.Tests main.cpp)
+target_link_libraries(RenderCommandExtraction.Tests PRIVATE Window)
+add_test(NAME RenderCommandExtraction.Tests COMMAND RenderCommandExtraction.Tests)

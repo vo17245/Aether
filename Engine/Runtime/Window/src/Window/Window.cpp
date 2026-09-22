@@ -45,6 +45,40 @@ void Window::AssertRenderThread() const
         throw std::logic_error("Vulkan window operation must run on RenderThread");
 }
 
+Render::RenderFrameContext Window::MakeFeatureContext(std::uint32_t frameSlot)
+{
+    if (!m_RenderFeatureServices)
+        throw std::logic_error("render feature services are not initialized");
+    return Render::RenderFrameContext{.frameSlot = frameSlot, .services = &*m_RenderFeatureServices};
+}
+
+void Window::MaintainRenderFeatures(Render::RenderFrameContext& commandContext)
+{
+    AssertRenderThread();
+    auto context = MakeFeatureContext(m_CurrentFrame);
+    context.cpuFrameId = commandContext.cpuFrameId;
+    context.completedSerial = commandContext.completedSerial;
+    const bool pending = std::ranges::any_of(m_RenderFeatures, [](const auto& feature) {
+        return feature->HasPendingResourceUpdates();
+    });
+    const bool topologyDirty = std::ranges::any_of(m_RenderFeatures, [](const auto& feature) {
+        return feature->NeedRebuildRenderGraph();
+    });
+    if (!pending && !topologyDirty)
+        return;
+
+    if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
+        vkDeviceWaitIdle(vk::GRC::GetDevice());
+    m_RenderGraph.reset();
+    for (const auto& feature : m_RenderFeatures)
+        feature->OnGpuIdle(context);
+    if (pending)
+        for (const auto& feature : m_RenderFeatures)
+            if (feature->HasPendingResourceUpdates())
+                feature->ApplyPendingResourceUpdates(context);
+    m_RenderGraphDirty = true;
+}
+
 void Window::CheckCompletedFrames(bool requireAll)
 {
     while (!m_PendingFrameTickets.empty())
@@ -108,6 +142,10 @@ void Window::InitializeRendering(Render::RenderThread& renderThread)
             m_RenderWindowState = initialState;
             if (!CreateRenderObject())
                 throw std::runtime_error("failed to create window Vulkan resources");
+            m_RenderFeatureServices.emplace(Render::RenderFeatureServices{
+                .resources = *m_InFlightResources,
+                .arena = *m_ResourceArena,
+            });
             m_ImGuiBackend = ImGui_ImplRenderGraph_CreateBackend();
             if (!m_ImGuiBackend)
                 throw std::runtime_error("failed to create ImGui GPU backend");
@@ -148,10 +186,17 @@ void Window::CleanupRenderingOnRenderThread()
     if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
         vkDeviceWaitIdle(vk::GRC::GetDevice());
     m_RenderGraph.reset();
-    Render::RenderFrameContext context{.frameSlot = m_CurrentFrame};
-    for (auto feature = m_RenderFeatures.rbegin(); feature != m_RenderFeatures.rend(); ++feature)
+    if (m_RenderFeatureServices)
     {
-        try { (*feature)->OnRenderDetach(context); } catch (...) {}
+        auto context = MakeFeatureContext(m_CurrentFrame);
+        for (const auto& feature : m_RenderFeatures)
+        {
+            try { feature->OnGpuIdle(context); } catch (...) {}
+        }
+        for (auto feature = m_RenderFeatures.rbegin(); feature != m_RenderFeatures.rend(); ++feature)
+        {
+            try { (*feature)->OnRenderDetach(context); } catch (...) {}
+        }
     }
     m_RenderFeatures.clear();
     ImGuiWindowContextDestroy();
@@ -159,6 +204,8 @@ void Window::CleanupRenderingOnRenderThread()
     m_ImGuiBackend = nullptr;
     m_PendingUploadList.ReleaseAll();
     ReleaseVulkanObjects();
+    m_RenderFeatureServices.reset();
+    m_RenderGraphDirty = true;
 }
 
 Window::Window(Window&& other) noexcept
@@ -287,6 +334,8 @@ bool Window::PopLayer(Layer* layer)
         // Reset frontend data before detaching render state. Frames already
         // accepted by RenderThread own their own feature/data references.
         m_ExtractedRenderFrame = Render::RenderFeatureFrame{};
+        m_ExtractedRenderCommands.Cancel();
+        m_ExtractedRenderCommands = RenderCommandExtraction{};
         DetachRenderFeatures(*detached);
         detached->OnDetach();
         return true;
@@ -316,27 +365,29 @@ void Window::AttachRenderFeatures(Layer& layer)
 
     m_LayerRenderFeatures.emplace(&layer, features);
     SubmitReliableAndWait(Render::MakeRenderCommand(
-        [this, features = std::move(features)](Render::RenderFrameContext& context) mutable {
+        [this, features = std::move(features)](Render::RenderFrameContext&) mutable {
             // Graph tasks may still be referenced by submitted command buffers.
             // Topology changes are rare, so P6 uses the conservative drain path.
             if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
                 vkDeviceWaitIdle(vk::GRC::GetDevice());
-            std::size_t attachedCount = 0;
+            auto context = MakeFeatureContext(m_CurrentFrame);
+            std::size_t attemptedCount = 0;
             try
             {
                 for (auto& feature : features)
                 {
+                    ++attemptedCount;
                     feature->OnRenderAttach(context);
-                    ++attachedCount;
                     m_RenderFeatures.push_back(feature);
                 }
+                m_RenderGraphDirty = true;
                 CreateRenderGraph();
             }
             catch (...)
             {
-                while (attachedCount > 0)
+                while (attemptedCount > 0)
                 {
-                    auto& feature = features[--attachedCount];
+                    auto& feature = features[--attemptedCount];
                     std::erase(m_RenderFeatures, feature);
                     try { feature->OnRenderDetach(context); } catch (...) {}
                 }
@@ -357,11 +408,16 @@ void Window::DetachRenderFeatures(Layer& layer)
         m_RenderThread->State() == Render::RenderThreadState::Stopped)
         return;
     SubmitReliableAndWait(Render::MakeRenderCommand(
-        [this, features = std::move(features)](Render::RenderFrameContext& context) mutable {
+        [this, features = std::move(features)](Render::RenderFrameContext&) mutable {
             if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
                 vkDeviceWaitIdle(vk::GRC::GetDevice());
+            auto context = MakeFeatureContext(m_CurrentFrame);
+            m_RenderGraph.reset();
+            for (const auto& feature : m_RenderFeatures)
+                feature->OnGpuIdle(context);
             for (const auto& feature : features)
                 std::erase(m_RenderFeatures, feature);
+            m_RenderGraphDirty = true;
             CreateRenderGraph();
             for (auto feature = features.rbegin(); feature != features.rend(); ++feature)
                 (*feature)->OnRenderDetach(context);
@@ -687,6 +743,11 @@ void Window::OnUpdate(float sec)
     // acknowledged until the render envelope is accepted below.
     m_PendingImGuiExtraction = std::move(*imguiExtraction);
 
+    m_ExtractedRenderCommands.Cancel();
+    m_ExtractedRenderCommands = RenderCommandExtraction{};
+    for (auto* layer : m_Layers)
+        layer->ExtractRenderCommands(m_ExtractedRenderCommands);
+
     Render::RenderFeatureFrame frame(m_NextCpuFrameId++);
     for (auto* layer : m_Layers)
         layer->ExtractRenderData(frame);
@@ -736,6 +797,15 @@ void Window::OnRender()
                                                              m_PendingUploadList);
             }, payloadBytes - (packet ? packet->PayloadBytes() : 0)));
     }
+    auto commandExtraction = std::move(m_ExtractedRenderCommands);
+    m_ExtractedRenderCommands = RenderCommandExtraction{};
+    auto extractedCommands = commandExtraction.TakeCommands();
+    for (auto& command : extractedCommands)
+        envelope.reliableCommands.push_back(std::move(command));
+    // A reliable maintenance step follows every resource command and also
+    // advances previously deferred work on frames without a new batch.
+    envelope.reliableCommands.push_back(Render::MakeRenderCommand(
+        [this](Render::RenderFrameContext& context) { MaintainRenderFeatures(context); }));
     const std::size_t drawPayloadBytes =
         (packet ? packet->PayloadBytes() : 0) + featureFrame.PayloadBytes();
     envelope.drawCommand = Render::MakeRenderCommand(
@@ -762,7 +832,12 @@ void Window::OnRender()
         }
     }
     if (!submitted)
+    {
+        commandExtraction.Cancel();
         throw std::runtime_error("RenderThread rejected frame: " + submitted.message);
+    }
+
+    commandExtraction.Accept();
 
     if (extraction)
     {
@@ -797,7 +872,8 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
     if (windowStateVersion != m_RenderWindowState.version ||
         windowStateVersion != m_LatestWindowStateVersion.load(std::memory_order_acquire))
         return;
-    context.frameSlot = m_CurrentFrame;
+    context = MakeFeatureContext(m_CurrentFrame);
+    context.cpuFrameId = featureFrame.GetCpuFrameId();
     m_ImGuiRenderPacket = std::move(imguiPacket);
     if (m_RenderWindowStateVersion != m_RenderWindowState.version || m_RenderSwapchainInvalid)
     {
@@ -818,12 +894,28 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
         }
     }
 
+    if (m_RenderGraphDirty || std::ranges::any_of(m_RenderFeatures, [](const auto& feature) {
+            return feature->NeedRebuildRenderGraph();
+        }))
+    {
+        if (!m_RenderWindowState.minimized && m_RenderWindowState.pixelExtent.width != 0 &&
+            m_RenderWindowState.pixelExtent.height != 0)
+        {
+            if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
+                vkDeviceWaitIdle(vk::GRC::GetDevice());
+            m_RenderGraph.reset();
+            for (const auto& feature : m_RenderFeatures)
+                feature->OnGpuIdle(context);
+            CreateRenderGraph();
+        }
+    }
+
     // wait for render resource
     if (m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Wait() != VK_SUCCESS)
         throw std::runtime_error("Vulkan frame-slot fence wait failed");
     m_PendingUploadList.OnFrameSlotCompleted(m_CurrentFrame);
     ImGui_ImplRenderGraph_OnFrameSlotCompleted(*m_ImGuiBackend, m_CurrentFrame);
-    featureFrame.Prepare(context);
+    m_InFlightResources->SetCurrentFrame(m_CurrentFrame);
 
     if (m_RenderWindowState.minimized || m_RenderWindowState.pixelExtent.width == 0 ||
         m_RenderWindowState.pixelExtent.height == 0)
@@ -889,7 +981,8 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
         return;
     if (acquireStatus != AcquireStatus::Success)
         throw std::runtime_error("Failed to acquire swapchain image");
-    OnImageAcquired(imageIndex);
+    featureFrame.Prepare(context);
+    OnImageAcquired(imageIndex, context);
 }
 bool Window::CreateSyncObjects()
 {
@@ -1054,11 +1147,15 @@ void Window::CreateRenderGraph()
             .output = m_FinalImageAccessId,
             .width = m_FinalTextures[0].GetWidth(),
             .height = m_FinalTextures[0].GetHeight(),
+            .surfaceFormat = GetSwapChainSurfaceFormat(),
         };
         feature->BuildRenderGraph(context);
     }
     // compile
     m_RenderGraph->Compile();
+    for (const auto& feature : m_RenderFeatures)
+        feature->OnRenderGraphBuilt();
+    m_RenderGraphDirty = false;
 }
 void Window::ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer)
 {
@@ -1139,7 +1236,7 @@ bool Window::TrySetCursorMode(CursorMode mode)
     }
     return false;
 }
-void Window::OnImageAcquired(std::uint32_t imageIndex)
+void Window::OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContext& context)
 {
     auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
 
@@ -1147,8 +1244,6 @@ void Window::OnImageAcquired(std::uint32_t imageIndex)
     // acquisition. Layer callbacks can therefore write this slot without racing
     // the previous submission. Keep the fence signaled until all callbacks have
     // completed so an exception cannot leave an unsignaled, unsubmitted fence.
-    m_InFlightResources->SetCurrentFrame(m_CurrentFrame);
-
     m_ResourcePool->OnFrameBegin();
 
     m_ImGuiContext.frames[m_CurrentFrame].reset();
@@ -1167,6 +1262,8 @@ void Window::OnImageAcquired(std::uint32_t imageIndex)
         m_RenderGraph->SetCommandBuffer(&m_GraphicsCommandBuffer[m_CurrentFrame]);
         m_RenderGraph->SetCurrentFrame(m_CurrentFrame);
         m_RenderGraph->Execute();
+        for (const auto& feature : m_RenderFeatures)
+            feature->OnFrameRecorded(context);
     }
 
     // Composite UI into the final image using a RenderGraph task before presentation.

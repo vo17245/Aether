@@ -18,6 +18,7 @@
 #include <Render/Threads/RenderThread.h>
 #include <Render/Feature/RenderFeature.h>
 #include <unordered_map>
+#include <optional>
 
 struct ImGui_ImplRenderGraph_Backend;
 
@@ -217,7 +218,9 @@ private: // render graph
     Scope<RenderGraph::ResourceLruPool> m_ResourcePool;
     Scope<RenderGraph::RenderGraph> m_RenderGraph;
     Scope<InFlightResourceAllocator> m_InFlightResources;
+    std::optional<Render::RenderFeatureServices> m_RenderFeatureServices;
     Render::RenderFeatureFrame m_ExtractedRenderFrame;
+    RenderCommandExtraction m_ExtractedRenderCommands;
     Render::CpuFrameId m_NextCpuFrameId = 1;
 
     // create render graph, register final image
@@ -256,7 +259,7 @@ private:
     bool m_RenderSwapchainInvalid = false;
     VkPresentModeKHR m_PresentMode;
 private:
-    void OnImageAcquired(std::uint32_t imageIndex);
+    void OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContext& context);
     void UpdateWindowState(PixelExtent extent, bool minimized);
     void OnRenderThread(Render::RenderFrameContext& context,
                         Render::RenderFeatureFrame featureFrame,
@@ -265,7 +268,11 @@ private:
     void SubmitReliableAndWait(std::unique_ptr<Render::IRenderCommand> command);
     void CheckCompletedFrames(bool requireAll = false);
     void AssertRenderThread() const;
+    Render::RenderFrameContext MakeFeatureContext(std::uint32_t frameSlot);
+    void MaintainRenderFeatures(Render::RenderFrameContext& context);
+    void MarkRenderGraphDirty() noexcept { m_RenderGraphDirty = true; }
     Render::RenderThread* m_RenderThread = nullptr;
     std::deque<Render::CommandTicket> m_PendingFrameTickets;
+    bool m_RenderGraphDirty = true;
 };
 } // namespace Aether

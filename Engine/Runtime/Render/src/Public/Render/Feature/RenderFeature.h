@@ -26,6 +26,7 @@ struct RenderGraphBuildContext
     RenderGraph::AccessId<rhi::Texture2D> output;
     std::uint32_t width = 0;
     std::uint32_t height = 0;
+    VkSurfaceFormatKHR surfaceFormat{};
 };
 
 class RenderFeature : public std::enable_shared_from_this<RenderFeature>
@@ -40,6 +41,12 @@ public:
     virtual void OnRenderDetach(RenderFrameContext&) {}
     virtual void BuildRenderGraph(RenderGraphBuildContext&) {}
     virtual void PrepareFrame(RenderFrameContext&, const RenderFeatureData&) {}
+    virtual bool NeedRebuildRenderGraph() const { return false; }
+    virtual bool HasPendingResourceUpdates() const { return false; }
+    virtual void ApplyPendingResourceUpdates(RenderFrameContext&) {}
+    virtual void OnGpuIdle(RenderFrameContext&) {}
+    virtual void OnRenderGraphBuilt() {}
+    virtual void OnFrameRecorded(RenderFrameContext&) {}
 };
 
 struct RenderFeatureFrameEntry
