@@ -47,6 +47,9 @@ public:
     virtual void OnGpuIdle(RenderFrameContext&) {}
     virtual void OnRenderGraphBuilt() {}
     virtual void OnFrameRecorded(RenderFrameContext&) {}
+    // Called after this slot's fence signals and before PrepareFrame, including
+    // minimized upload-only frames. Resources exposed by services are writable.
+    virtual void OnFrameSlotReady(RenderFrameContext&) {}
 };
 
 struct RenderFeatureFrameEntry

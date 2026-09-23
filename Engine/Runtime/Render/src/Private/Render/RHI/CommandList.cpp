@@ -90,14 +90,40 @@ static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
     void CommandList::UploadVertexBuffer(StagingBuffer& src, VertexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
     {
         CopyVertexBuffer(src, dst, size, srcOffset, dstOffset);
+        if (Render::Config::RenderApi == Render::Api::Vulkan)
+        {
+            auto& commandBuffer = std::get<vk::GraphicsCommandBuffer>(m_Data);
+            VkBufferMemoryBarrier barrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.buffer = dst.GetVk().GetHandle();
+            barrier.offset = dstOffset;
+            barrier.size = size;
+            vkCmdPipelineBarrier(commandBuffer.GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+        }
     }
     void CommandList::UploadIndexBuffer(StagingBuffer& src, IndexBuffer& dst, size_t size, size_t srcOffset, size_t dstOffset)
     {
         switch (Render::Config::RenderApi)
         {
-        case Render::Api::Vulkan:
-            vk::AsyncCopyBuffer(std::get<vk::GraphicsCommandBuffer>(m_Data), src.GetVk(), dst.GetVk(), size, srcOffset, dstOffset);
+        case Render::Api::Vulkan: {
+            auto& commandBuffer = std::get<vk::GraphicsCommandBuffer>(m_Data);
+            vk::AsyncCopyBuffer(commandBuffer, src.GetVk(), dst.GetVk(), size, srcOffset, dstOffset);
+            VkBufferMemoryBarrier barrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_INDEX_READ_BIT;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.buffer = dst.GetVk().GetHandle();
+            barrier.offset = dstOffset;
+            barrier.size = size;
+            vkCmdPipelineBarrier(commandBuffer.GetHandle(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &barrier, 0, nullptr);
             break;
+        }
         default:
             assert(false && "unsupported api");
             break;

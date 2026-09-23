@@ -10,6 +10,7 @@ namespace Aether::Render
 namespace Aether
 {
 class InFlightResourceAllocator;
+class PendingUploadList;
 namespace RenderGraph
 {
 class ResourceArena;
@@ -27,6 +28,7 @@ struct RenderFeatureServices
 {
     InFlightResourceAllocator& resources;
     RenderGraph::ResourceArena& arena;
+    PendingUploadList& uploads;
 };
 
 struct RenderFrameContext

@@ -45,6 +45,15 @@ void Window::AssertRenderThread() const
         throw std::logic_error("Vulkan window operation must run on RenderThread");
 }
 
+void Window::WaitForDeviceIdle(WindowRenderIdleReason reason)
+{
+    if (vk::GRC::GetDevice() == VK_NULL_HANDLE)
+        return;
+    m_LastDeviceIdleReason.store(reason, std::memory_order_relaxed);
+    m_DeviceIdleWaits.fetch_add(1, std::memory_order_relaxed);
+    vkDeviceWaitIdle(vk::GRC::GetDevice());
+}
+
 Render::RenderFrameContext Window::MakeFeatureContext(std::uint32_t frameSlot)
 {
     if (!m_RenderFeatureServices)
@@ -67,8 +76,7 @@ void Window::MaintainRenderFeatures(Render::RenderFrameContext& commandContext)
     if (!pending && !topologyDirty)
         return;
 
-    if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
-        vkDeviceWaitIdle(vk::GRC::GetDevice());
+    WaitForDeviceIdle(WindowRenderIdleReason::ResourceMaintenance);
     m_RenderGraph.reset();
     for (const auto& feature : m_RenderFeatures)
         feature->OnGpuIdle(context);
@@ -145,6 +153,7 @@ void Window::InitializeRendering(Render::RenderThread& renderThread)
             m_RenderFeatureServices.emplace(Render::RenderFeatureServices{
                 .resources = *m_InFlightResources,
                 .arena = *m_ResourceArena,
+                .uploads = m_PendingUploadList,
             });
             m_ImGuiBackend = ImGui_ImplRenderGraph_CreateBackend();
             if (!m_ImGuiBackend)
@@ -183,8 +192,7 @@ void Window::ShutdownRendering()
 
 void Window::CleanupRenderingOnRenderThread()
 {
-    if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
-        vkDeviceWaitIdle(vk::GRC::GetDevice());
+    WaitForDeviceIdle(WindowRenderIdleReason::Shutdown);
     m_RenderGraph.reset();
     if (m_RenderFeatureServices)
     {
@@ -282,6 +290,7 @@ Window* Window::Create(const WindowCreateParam& param)
     const char* serialOverride = std::getenv("AETHER_RENDER_THREAD_SERIAL");
     window->m_SerialRenderThread = param.serialRenderThread ||
         (serialOverride != nullptr && serialOverride[0] != '\0' && serialOverride[0] != '0');
+    window->m_NonBlockingRenderSubmit = param.nonBlockingRenderSubmit;
     return window;
 }
 /**
@@ -368,8 +377,7 @@ void Window::AttachRenderFeatures(Layer& layer)
         [this, features = std::move(features)](Render::RenderFrameContext&) mutable {
             // Graph tasks may still be referenced by submitted command buffers.
             // Topology changes are rare, so P6 uses the conservative drain path.
-            if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
-                vkDeviceWaitIdle(vk::GRC::GetDevice());
+            WaitForDeviceIdle(WindowRenderIdleReason::LayerAttach);
             auto context = MakeFeatureContext(m_CurrentFrame);
             std::size_t attemptedCount = 0;
             try
@@ -409,8 +417,7 @@ void Window::DetachRenderFeatures(Layer& layer)
         return;
     SubmitReliableAndWait(Render::MakeRenderCommand(
         [this, features = std::move(features)](Render::RenderFrameContext&) mutable {
-            if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
-                vkDeviceWaitIdle(vk::GRC::GetDevice());
+            WaitForDeviceIdle(WindowRenderIdleReason::LayerDetach);
             auto context = MakeFeatureContext(m_CurrentFrame);
             m_RenderGraph.reset();
             for (const auto& feature : m_RenderFeatures)
@@ -820,6 +827,8 @@ void Window::OnRender()
         submitted = m_RenderThread->TrySubmit(envelope);
         if (submitted.status != Render::RenderSubmitStatus::Full)
             break;
+        if (m_NonBlockingRenderSubmit)
+            break;
         CheckCompletedFrames();
         if (!m_RenderThread->WaitForCapacity(envelope.CommandCount(), envelope.PayloadBytes(), true,
                                              std::chrono::milliseconds(2)))
@@ -834,6 +843,12 @@ void Window::OnRender()
     if (!submitted)
     {
         commandExtraction.Cancel();
+        if (submitted.status == Render::RenderSubmitStatus::Full && m_NonBlockingRenderSubmit)
+        {
+            if (extraction) m_PendingImGuiExtraction.reset();
+            m_NonBlockingFrameDrops.fetch_add(1, std::memory_order_relaxed);
+            return;
+        }
         throw std::runtime_error("RenderThread rejected frame: " + submitted.message);
     }
 
@@ -884,7 +899,7 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
         }
         else
         {
-            vkDeviceWaitIdle(vk::GRC::GetDevice());
+            WaitForDeviceIdle(WindowRenderIdleReason::Resize);
             ReleaseRenderObject();
             if (!CreateRenderObject())
                 throw std::runtime_error("Failed to recreate resized window resources");
@@ -901,8 +916,7 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
         if (!m_RenderWindowState.minimized && m_RenderWindowState.pixelExtent.width != 0 &&
             m_RenderWindowState.pixelExtent.height != 0)
         {
-            if (vk::GRC::GetDevice() != VK_NULL_HANDLE)
-                vkDeviceWaitIdle(vk::GRC::GetDevice());
+            WaitForDeviceIdle(WindowRenderIdleReason::FeatureGraphRebuild);
             m_RenderGraph.reset();
             for (const auto& feature : m_RenderFeatures)
                 feature->OnGpuIdle(context);
@@ -913,9 +927,11 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
     // wait for render resource
     if (m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Wait() != VK_SUCCESS)
         throw std::runtime_error("Vulkan frame-slot fence wait failed");
-    m_PendingUploadList.OnFrameSlotCompleted(m_CurrentFrame);
+    m_PendingUploadList.OnFrameSlotCompleted(m_CurrentFrame, m_FrameSubmissionGenerations[m_CurrentFrame]);
     ImGui_ImplRenderGraph_OnFrameSlotCompleted(*m_ImGuiBackend, m_CurrentFrame);
     m_InFlightResources->SetCurrentFrame(m_CurrentFrame);
+    for (const auto& feature : m_RenderFeatures)
+        feature->OnFrameSlotReady(context);
 
     if (m_RenderWindowState.minimized || m_RenderWindowState.pixelExtent.width == 0 ||
         m_RenderWindowState.pixelExtent.height == 0)
@@ -927,6 +943,13 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
         vkCommandBuffer.Reset();
         vkCommandBuffer.Begin();
         m_PendingUploadList.RecordCommand(commandBuffer, m_CurrentFrame);
+        struct UploadRollback
+        {
+            PendingUploadList& uploads;
+            std::uint32_t slot;
+            bool active = true;
+            ~UploadRollback() { if (active) uploads.OnQueueSubmitFailed(slot); }
+        } rollback{m_PendingUploadList, m_CurrentFrame};
         vkCommandBuffer.End();
         if (m_CommandBufferFences[m_CurrentFrame]->GetVkFence().Reset() != VK_SUCCESS)
             throw std::runtime_error("Vulkan upload-only fence reset failed");
@@ -937,6 +960,8 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
         if (vkQueueSubmit(vk::GRC::GetGraphicsQueue().GetHandle(), 1, &submitInfo,
                           m_CommandBufferFences[m_CurrentFrame]->GetVkFence().GetHandle()) != VK_SUCCESS)
             throw std::runtime_error("Vulkan upload-only submission failed");
+        rollback.active = false;
+        m_PendingUploadList.OnQueueSubmitted(m_CurrentFrame, ++m_FrameSubmissionGenerations[m_CurrentFrame]);
         m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         return;
     }
@@ -969,7 +994,7 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
         m_RenderSwapchainInvalid = true;
     if (acquireStatus == AcquireStatus::OutOfDate)
     {
-        vkDeviceWaitIdle(vk::GRC::GetDevice());
+        WaitForDeviceIdle(WindowRenderIdleReason::SwapchainOutOfDate);
         ReleaseRenderObject();
         if (!CreateRenderObject())
             throw std::runtime_error("Failed to recreate out-of-date swapchain");
@@ -1096,6 +1121,7 @@ void Window::InitRenderGraphResource()
 }
 void Window::CreateRenderGraph()
 {
+    m_RenderGraphBuilds.fetch_add(1, std::memory_order_relaxed);
     LogD("Rebuild RenderGraph");
     // The old graph has finished recording. Its external registrations are
     // independent of the Window-owned images and can now be recycled.
@@ -1255,6 +1281,13 @@ void Window::OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContex
     // curCommandBuffer.BeginRenderPass(curRenderPass, curFrameBuffer,clearColor);
     // record transfer command here
     m_PendingUploadList.RecordCommand(curCommandBuffer, m_CurrentFrame);
+    struct UploadRollback
+    {
+        PendingUploadList& uploads;
+        std::uint32_t slot;
+        bool active = true;
+        ~UploadRollback() { if (active) uploads.OnQueueSubmitFailed(slot); }
+    } uploadRollback{m_PendingUploadList, m_CurrentFrame};
 
     // Record the RenderGraph. It owns the final-image layout transitions.
     if (m_RenderGraph)
@@ -1341,6 +1374,8 @@ void Window::OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContex
     if (vkQueueSubmit(vk::GRC::GetGraphicsQueue().GetHandle(), 1, &submitInfo,
                       m_CommandBufferFences[m_CurrentFrame]->GetVkFence().GetHandle()) != VK_SUCCESS)
         throw std::runtime_error("Vulkan graphics submission failed");
+    uploadRollback.active = false;
+    m_PendingUploadList.OnQueueSubmitted(m_CurrentFrame, ++m_FrameSubmissionGenerations[m_CurrentFrame]);
 
     VkSwapchainKHR swapchain = m_SwapChain->GetVk().GetHandle();
     VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};

@@ -40,6 +40,19 @@ struct WindowCreateParam
     // Diagnostic switch: preserve P7's submit-and-wait behavior for pixel and
     // ordering comparisons. Normal operation uses the bounded asynchronous queue.
     bool serialRenderThread = false;
+    // Drop a frame when the bounded RenderThread queue is full; the next tick re-extracts it.
+    bool nonBlockingRenderSubmit = false;
+};
+enum class WindowRenderIdleReason : std::uint8_t
+{
+    None, ResourceMaintenance, Shutdown, LayerAttach, LayerDetach, Resize, FeatureGraphRebuild, SwapchainOutOfDate
+};
+struct WindowRenderDiagnostics
+{
+    std::uint64_t renderGraphBuilds = 0;
+    std::uint64_t deviceIdleWaits = 0;
+    std::uint64_t nonBlockingFrameDrops = 0;
+    WindowRenderIdleReason lastDeviceIdleReason = WindowRenderIdleReason::None;
 };
 enum class CursorMode
 {
@@ -158,6 +171,13 @@ public:
         return m_WindowState.minimized;
     }
     WindowId GetId() const { return m_Id; }
+    WindowRenderDiagnostics GetRenderDiagnostics() const noexcept
+    {
+        return {m_RenderGraphBuilds.load(std::memory_order_relaxed),
+                m_DeviceIdleWaits.load(std::memory_order_relaxed),
+                m_NonBlockingFrameDrops.load(std::memory_order_relaxed),
+                m_LastDeviceIdleReason.load(std::memory_order_relaxed)};
+    }
     const WindowState& GetWindowState() const { return m_WindowState; }
     PixelExtent GetPixelExtent() const { return m_WindowState.pixelExtent; }
     void InitializeRendering(Render::RenderThread& renderThread);
@@ -226,9 +246,14 @@ private: // render graph
     // create render graph, register final image
     // and call each layer RegisterRenderPasses function
     void CreateRenderGraph();
+    void WaitForDeviceIdle(WindowRenderIdleReason reason);
     void AttachRenderFeatures(Layer& layer);
     void DetachRenderFeatures(Layer& layer);
     RenderGraph::AccessId<rhi::Texture2D> m_FinalImageAccessId;
+    std::atomic_uint64_t m_RenderGraphBuilds{0};
+    std::atomic_uint64_t m_DeviceIdleWaits{0};
+    std::atomic_uint64_t m_NonBlockingFrameDrops{0};
+    std::atomic<WindowRenderIdleReason> m_LastDeviceIdleReason{WindowRenderIdleReason::None};
 
 private: // imgui
     bool m_ImGuiClearEnable = false;
@@ -256,6 +281,8 @@ private:
     std::uint64_t m_RenderWindowStateVersion = 0;
     bool m_ShouldClose = false;
     bool m_SerialRenderThread = false;
+    bool m_NonBlockingRenderSubmit = false;
+    std::uint64_t m_FrameSubmissionGenerations[MAX_FRAMES_IN_FLIGHT]{};
     bool m_RenderSwapchainInvalid = false;
     VkPresentModeKHR m_PresentMode;
 private:
