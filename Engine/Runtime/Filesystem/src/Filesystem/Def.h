@@ -11,7 +11,7 @@ namespace Filesystem {
 /**
 * @note FileHandle 是一个非透明的句柄
 *                  在Windows下为HANDLE (aka void*)
-*                  在Linux下为FILE* (aka void*)
+*                  在Linux和macOS下为FILE* (aka void*)
 */
 struct FileHandle
 {

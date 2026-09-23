@@ -4,9 +4,12 @@ include("${CMAKE_SOURCE_DIR}/CMake/Local.cmake")
 if(WIN32)
     target_link_libraries(${MODULE_NAME} INTERFACE
         "${VULKAN_LIB_DIR}/vulkan-1.lib")
+elseif(APPLE)
+    target_link_libraries(${MODULE_NAME} INTERFACE
+        "${VULKAN_LIB_DIR}/libMoltenVK.dylib")
 elseif(UNIX)
     target_link_libraries(${MODULE_NAME} INTERFACE
-    "${VULKAN_LIB_DIR}/VulkanLoader/lib/libvulkan.so")
+        "${VULKAN_LIB_DIR}/VulkanLoader/lib/libvulkan.so")
 endif()
 target_include_directories(${MODULE_NAME} INTERFACE "${VULKAN_INCLUDE_DIR}")
 

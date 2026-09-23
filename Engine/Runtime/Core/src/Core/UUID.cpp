@@ -1,4 +1,5 @@
 #include "UUID.h"
+#include <algorithm>
 namespace Aether
 {
 namespace

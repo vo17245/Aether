@@ -11,8 +11,8 @@ file(GLOB_RECURSE FILES
 
 if(WIN32)
     set(PLATFORM_FILES "${CMAKE_CURRENT_SOURCE_DIR}/platform/windows/FilesystemApi.cpp")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(PLATFORM_FILES "${CMAKE_CURRENT_SOURCE_DIR}/platform/linux/FilesystemApi.cpp")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(PLATFORM_FILES "${CMAKE_CURRENT_SOURCE_DIR}/platform/posix/FilesystemApi.cpp")
 else()
     message(FATAL_ERROR "Filesystem is not supported on ${CMAKE_SYSTEM_NAME}")
 endif()
