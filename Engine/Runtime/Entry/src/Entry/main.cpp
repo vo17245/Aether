@@ -97,6 +97,8 @@ int main()
         if (threadPoolInitialized) GlobalThreadPool::Destory();
         threadPoolInitialized = false;
         app.reset();
+        if (window && renderContextInitialized)
+            cleanupStep("window surface release", [&] { window->CleanupSurface(); });
         window.reset();
         if (renderContextInitialized) vk::GRC::Cleanup();
         renderContextInitialized = false;

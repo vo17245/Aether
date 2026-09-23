@@ -31,14 +31,7 @@ private:
 
 private:
     const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
-#ifdef __APPLE__
-    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-                                                       VK_KHR_MAINTENANCE1_EXTENSION_NAME, "VK_KHR_portability_subset",
-                                                       VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME};
-#else
-    const std::vector<const char*> deviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_MAINTENANCE1_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME};
-#endif
+    std::vector<const char*> m_DeviceExtensions;
 
 public:
     void Init(const InitResource& resource,const Config& config);

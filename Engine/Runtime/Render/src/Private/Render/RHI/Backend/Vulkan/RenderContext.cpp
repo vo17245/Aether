@@ -27,6 +27,52 @@ namespace Aether
 {
 namespace vk
 {
+namespace
+{
+bool HasInstanceExtension(const char* extensionName)
+{
+    uint32_t extensionCount = 0;
+    if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr) != VK_SUCCESS)
+        return false;
+
+    std::vector<VkExtensionProperties> extensions(extensionCount);
+    if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data()) != VK_SUCCESS)
+        return false;
+
+    return std::any_of(extensions.begin(), extensions.end(), [extensionName](const auto& extension) {
+        return std::strcmp(extension.extensionName, extensionName) == 0;
+    });
+}
+
+bool HasDeviceExtension(VkPhysicalDevice device, const char* extensionName)
+{
+    uint32_t extensionCount = 0;
+    if (vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr) != VK_SUCCESS)
+        return false;
+
+    std::vector<VkExtensionProperties> extensions(extensionCount);
+    if (vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, extensions.data()) != VK_SUCCESS)
+        return false;
+
+    return std::any_of(extensions.begin(), extensions.end(), [extensionName](const auto& extension) {
+        return std::strcmp(extension.extensionName, extensionName) == 0;
+    });
+}
+
+bool SupportsDeviceExtensions(VkPhysicalDevice device, const std::vector<const char*>& requestedExtensions)
+{
+    return std::all_of(requestedExtensions.begin(), requestedExtensions.end(), [device](const char* extensionName) {
+        return HasDeviceExtension(device, extensionName);
+    });
+}
+
+bool ContainsExtension(const std::vector<const char*>& extensions, const char* extensionName)
+{
+    return std::any_of(extensions.begin(), extensions.end(), [extensionName](const char* extension) {
+        return std::strcmp(extension, extensionName) == 0;
+    });
+}
+} // namespace
 
 void RenderContext::Init(const InitResource& resource,const Config& config)
 {
@@ -94,10 +140,11 @@ void RenderContext::CreateInstance(const InitResource& resource)
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-#ifdef __APPLE__
-// createInfo.flags=VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif
     auto extensions = GetRequiredExtensions(resource);
+#ifdef __APPLE__
+    if (ContainsExtension(extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME))
+        createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -161,13 +208,19 @@ void RenderContext::PickPhysicalDevice(const InitResource& resource)
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
+    const std::vector<const char*> requiredDeviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE1_EXTENSION_NAME,
+        VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+    };
+
     std::vector<VkPhysicalDevice> suitableDevices;
     for (const auto& device : devices)
     {
-        if (isDeviceSuitable(device, resource.surface))
-        {
-            suitableDevices.push_back(device);
-        }
+        if (!isDeviceSuitable(device, resource.surface)
+            || !SupportsDeviceExtensions(device, requiredDeviceExtensions))
+            continue;
+        suitableDevices.push_back(device);
     }
 
     if (suitableDevices.empty())
@@ -175,6 +228,11 @@ void RenderContext::PickPhysicalDevice(const InitResource& resource)
         throw std::runtime_error("failed to find a suitable GPU!");
     }
     m_PhysicalDevice = ChoosePhysicalDevice(suitableDevices);
+    m_DeviceExtensions = requiredDeviceExtensions;
+#ifdef __APPLE__
+    if (HasDeviceExtension(m_PhysicalDevice, "VK_KHR_portability_subset"))
+        m_DeviceExtensions.push_back("VK_KHR_portability_subset");
+#endif
 }
 
 void RenderContext::CreateLogicalDevice(const InitResource& resource)
@@ -221,8 +279,8 @@ void RenderContext::CreateLogicalDevice(const InitResource& resource)
 
     createInfo.pEnabledFeatures = nullptr;
 
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
 
     if (m_Config.enableValidationLayers)
     {
@@ -272,9 +330,10 @@ std::vector<const char*> RenderContext::GetRequiredExtensions(const InitResource
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 #ifdef __APPLE__
-    // extensions.push_back("VK_KHR_portability_subset");
     extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-// extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    if (HasInstanceExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)
+        && !ContainsExtension(extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME))
+        extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif
 
     return extensions;

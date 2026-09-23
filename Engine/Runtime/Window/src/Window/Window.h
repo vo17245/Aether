@@ -106,6 +106,7 @@ public:
      *        Calling this more than once is safe.
      */
     VkResult CreateSurface(VkInstance instance);
+    void CleanupSurface();
     VkSurfaceKHR GetSurface() const;
     Vec2i GetSize() const;
     Vec2i GetPosition() const;

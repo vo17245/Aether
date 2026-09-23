@@ -6,7 +6,7 @@ if(WIN32)
         "${VULKAN_LIB_DIR}/vulkan-1.lib")
 elseif(APPLE)
     target_link_libraries(${MODULE_NAME} INTERFACE
-        "${VULKAN_LIB_DIR}/libMoltenVK.dylib")
+        "${VULKAN_LIB_DIR}/libvulkan.1.dylib")
 elseif(UNIX)
     target_link_libraries(${MODULE_NAME} INTERFACE
         "${VULKAN_LIB_DIR}/VulkanLoader/lib/libvulkan.so")

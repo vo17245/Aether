@@ -544,6 +544,17 @@ void Window::ReleaseRenderObject()
     m_RenderGraph.reset();
     ReleaseFinalImage();
 }
+void Window::CleanupSurface()
+{
+    if (m_Surface == VK_NULL_HANDLE)
+        return;
+
+    const VkInstance instance = vk::GRC::GetInstance();
+    if (instance != VK_NULL_HANDLE)
+        SDL_Vulkan_DestroySurface(instance, m_Surface, nullptr);
+    m_Surface = VK_NULL_HANDLE;
+}
+
 VkSurfaceKHR Window::GetSurface() const
 {
     return m_Surface;
