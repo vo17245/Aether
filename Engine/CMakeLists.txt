@@ -13,17 +13,6 @@ include("CMake/Local.cmake")
 set(CMAKE_MODULE_PATH "") 
 set( CMAKE_PREFIX_PATH  "${AETHER_DEPENDENCIES_PACKAGES_DIR}")#只从指定文件夹中查找�?
 
-option(AETHER_BUILD_UI "Build the legacy Runtime/UI module" OFF)
-option(AETHER_BUILD_EDITOR "Build AetherEditor (requires Runtime/UI)" OFF)
-option(AETHER_BUILD_DEMO "Build legacy demo applications" OFF)
-
-if(AETHER_BUILD_EDITOR AND NOT AETHER_BUILD_UI)
-    message(FATAL_ERROR "AETHER_BUILD_EDITOR requires AETHER_BUILD_UI=ON")
-endif()
-
-if(AETHER_BUILD_DEMO)
-add_subdirectory("Demo")
-endif()
 if(AETHER_BUILD_TESTS)
 enable_testing()
 add_subdirectory("Tests")
