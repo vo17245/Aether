@@ -12,6 +12,9 @@
 namespace Aether
 {
 
+World::World() = default;
+World::~World() = default;
+
 void World::OnUpdate(float deltaTime)
 {
     Dispatch([&](System& system) { system.OnUpdate(deltaTime); });

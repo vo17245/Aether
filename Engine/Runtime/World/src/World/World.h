@@ -1,17 +1,24 @@
 #pragma once
 #include <entt/entt.hpp>
+#include <World/Serialization/ArchiveTypes.h>
 #include <Render/Render.h>
 #include <Window/Event.h>
 #include <string>
 #include <string_view>
 #include <vector>
+#include <memory>
 namespace Aether
 {
 class System;
+namespace Serialization { class ComponentCodecRegistry; class SaveContext; class LoadContext; }
 using EntityId = entt::entity;
 class World
 {
 public:
+    World();
+    ~World();
+    World(const World&) = delete;
+    World& operator=(const World&) = delete;
     EntityId CreateEntity()
     {
         auto entity = m_Registry.create();
@@ -37,7 +44,17 @@ public:
         return m_Registry.get<T>(entity);
     }
     template <typename T>
+    const T& GetComponent(EntityId entity) const
+    {
+        return m_Registry.get<T>(entity);
+    }
+    template <typename T>
     bool HasComponent(EntityId entity)
+    {
+        return m_Registry.any_of<T>(entity);
+    }
+    template <typename T>
+    bool HasComponent(EntityId entity) const
     {
         return m_Registry.any_of<T>(entity);
     }
@@ -46,6 +63,28 @@ public:
     {
         return m_Registry.view<Ts...>();
     }
+    template <typename... Ts>
+    auto Select() const
+    {
+        return m_Registry.view<Ts...>();
+    }
+    bool IsValid(EntityId entity) const { return m_Registry.valid(entity); }
+    std::vector<EntityId> Entities() const
+    {
+        std::vector<EntityId> entities;
+        const auto* pool = m_Registry.storage<EntityId>();
+        entities.reserve(pool ? pool->size() : 0);
+        if (pool)
+            for (const auto& item : pool->each()) entities.push_back(std::get<0>(item));
+        return entities;
+    }
+    // Serialization is synchronous. Callers must provide exclusive, single-threaded
+    // access and must not call it from a System callback.
+    Serialization::Result<Json> Serialize(const Serialization::ComponentCodecRegistry& codecs,
+                                          Serialization::SaveContext& context) const;
+    static Serialization::Result<std::unique_ptr<World>> Deserialize(
+        const Json& document, const Serialization::ComponentCodecRegistry& codecs,
+        Serialization::LoadContext& context);
 public:
     void PushSystem(Scope<System>&& system);
     void EraseSystem(System* system);
@@ -59,6 +98,7 @@ public:
     void BuildExecutionOrder();
     std::vector<std::string_view> ExecutionOrderSignatures();
 private:
+    friend class WorldArchiveAccess;
     void EnsureExecutionOrder();
     template <typename Callback>
     void Dispatch(Callback&& callback);

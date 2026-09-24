@@ -1,0 +1,4 @@
+add_executable(WorldSerializationTests main.cpp)
+target_compile_features(WorldSerializationTests PRIVATE cxx_std_23)
+target_link_libraries(WorldSerializationTests PRIVATE World)
+add_test(NAME WorldSerializationTests COMMAND WorldSerializationTests)
