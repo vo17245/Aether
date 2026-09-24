@@ -16,6 +16,8 @@ enum class ImageChannelDataType
 class Image
 {
 public:
+    // EXR images are returned as interleaved RGBA32F; other supported formats use RGBA8.
+    // For multipart EXR, the first supported flat image part is used.
     static std::expected<Image, std::string> LoadFromMemory(const uint8_t* data, size_t size);
     static std::expected<Image,std::string> LoadFromFile(const std::string_view path);
     static Image CreateRgba8(uint32_t width,uint32_t height);
@@ -41,6 +43,10 @@ public:
     {
         return std::visit(GetChannelsImpl{}, m_Data);
     }
+    ImageChannelDataType GetChannelDataType() const
+    {
+        return std::visit(GetChannelDataTypeImpl{}, m_Data);
+    }
     uint8_t* GetData() const
     {
         return std::visit(GetDataImpl{}, m_Data);
@@ -55,7 +61,7 @@ public:
     */
     size_t GetRowBytes() const
     {
-        return GetWidth() * GetChannels();
+        return std::visit(GetStrideImpl{}, m_Data);
     }
     size_t GetDataSize()const
     {
@@ -143,12 +149,12 @@ private:
         uint32_t width;
         uint32_t height;
         uint32_t channels = 4; // Default to RGBA
-        uint32_t rowBytes = 0; // Bytes in one row
+        size_t rowBytes = 0; // Bytes in one row
         uint8_t* data=nullptr;
         BasicImageData(uint32_t _width,uint32_t _height,uint32_t _channels,ImageChannelDataType _channelDataType)
         :width(_width),height(_height),channels(_channels),channelDataType(_channelDataType)
         {
-            uint32_t pixelSize;
+            size_t pixelSize;
             switch (channelDataType)
             {
                 case ImageChannelDataType::U8:
@@ -236,6 +242,21 @@ private:
             return data.data;
         }
     };
+    struct GetChannelDataTypeImpl
+    {
+        ImageChannelDataType operator()(const std::monostate&) const
+        {
+            return ImageChannelDataType::U8;
+        }
+        ImageChannelDataType operator()(const StbImageData& data) const
+        {
+            return data.channelDataType;
+        }
+        ImageChannelDataType operator()(const BasicImageData& data) const
+        {
+            return data.channelDataType;
+        }
+    };
     struct GetStrideImpl
     {
         size_t operator()(const std::monostate&) const
@@ -244,7 +265,7 @@ private:
         }
         size_t operator()(const StbImageData& data) const
         {
-            uint32_t pixelSize;
+            size_t pixelSize;
             switch (data.channelDataType)
             {
                 case ImageChannelDataType::U8:

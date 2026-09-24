@@ -16,6 +16,11 @@ find_package(stb_image REQUIRED CONFIG)
 find_package(stb_image_write REQUIRED CONFIG)
 target_link_libraries(${MODULE_NAME} PUBLIC stb_image)
 target_link_libraries(${MODULE_NAME} PUBLIC stb_image_write)
+set(_IO_PREVIOUS_CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
+find_package(tinyexr3 REQUIRED MODULE)
+set(CMAKE_MODULE_PATH "${_IO_PREVIOUS_CMAKE_MODULE_PATH}")
+target_link_libraries(${MODULE_NAME} PRIVATE tinyexr3::tinyexr3)
 target_link_libraries(${MODULE_NAME} PUBLIC Core)
 find_package(ZLIB REQUIRED CONFIG)
 find_package(PNG REQUIRED CONFIG)
@@ -55,6 +60,7 @@ configure_package_config_file(
 # 3. 安装 Config  文件
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/${MODULE_NAME}Config.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Findtinyexr3.cmake"
     DESTINATION ${MODULE_NAME}/
 )
 
