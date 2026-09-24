@@ -8,18 +8,14 @@ endif()
 
 
 include("CMake/Local.cmake")
-# 禁止cmake查找系统中安装的包，但是使用find_package(xx REQUIRED) 不指定CONFIG�?还是会从系统中查找包
-# 需要使用find_package(xx REQUIRED CONFIG) 来从指定的目录中查找�?
+# 禁止cmake查找系统中安装的包，但是使用find_package(xx REQUIRED) 不指定CONFIG还是会从系统中查找包
+# 需要使用find_package(xx REQUIRED CONFIG) 来从指定的目录中查找
 set(CMAKE_MODULE_PATH "") 
-set( CMAKE_PREFIX_PATH  "${AETHER_DEPENDENCIES_PACKAGES_DIR}")#只从指定文件夹中查找�?
+set( CMAKE_PREFIX_PATH  "${AETHER_DEPENDENCIES_PACKAGES_DIR}")#只从指定文件夹中查找
 
 if(AETHER_BUILD_TESTS)
 enable_testing()
 add_subdirectory("Tests")
-endif()
-option(AETHER_BUILD_RENDERGRAPH_ARENA_TESTS "Build focused RenderGraph arena tests" OFF)
-if(AETHER_BUILD_RENDERGRAPH_ARENA_TESTS)
-    add_subdirectory("Tests/RenderGraphArena.Tests")
 endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
