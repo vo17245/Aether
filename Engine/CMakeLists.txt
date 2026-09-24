@@ -39,9 +39,7 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
 
 add_subdirectory("Dependencies")
 add_subdirectory("Runtime")
-if(AETHER_BUILD_EDITOR)
-add_subdirectory("AetherEditor")
-endif()
+
 add_subdirectory("Sandbox")
 
 # Standalone GPU integration checks; does not enable the legacy test targets.
