@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <cstdint>
 #include "TextureView.h"
 
 namespace Aether::rhi
@@ -20,6 +22,8 @@ namespace Aether::rhi
         AttachmentLoadOp loadOp;
         AttachmentStoreOp storeOp;
         Vec4f clearColor = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+        std::array<std::uint32_t, 4> clearColorUint{};
+        bool clearColorIsUint = false;
     };
     struct DepthAttachment
     {

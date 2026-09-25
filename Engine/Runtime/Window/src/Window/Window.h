@@ -298,7 +298,7 @@ private:
     bool m_RenderSwapchainInvalid = false;
     VkPresentModeKHR m_PresentMode;
 private:
-    void OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContext& context);
+    void OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContext& context, bool& featureFrameSubmitted);
     void UpdateWindowState(PixelExtent extent, bool minimized);
     void OnRenderThread(Render::RenderFrameContext& context,
                         Render::RenderFeatureFrame featureFrame,

@@ -61,6 +61,10 @@ public:
     
 public:
     static std::optional<Buffer> Create(size_t size, Usage usage, Property properties);
+    static std::optional<Buffer> CreateForReadback(size_t size)
+    {
+        return Create(size, Buffer::Usage::TransferDst, Buffer::Property::HostVisible);
+    }
     static std::optional<Buffer> CreateForStaging(size_t size)
     {
         return Create(size,

@@ -22,6 +22,15 @@ StagingBuffer StagingBuffer::Create(size_t size)
         return StagingBuffer();
     }
 }
+StagingBuffer StagingBuffer::CreateForReadback(size_t size)
+{
+    StagingBuffer stagingBuffer;
+    if (Render::Config::RenderApi != Render::Api::Vulkan) return stagingBuffer;
+    auto buffer = vk::Buffer::CreateForReadback(size);
+    if (!buffer) return stagingBuffer;
+    stagingBuffer.m_Buffer = std::move(*buffer);
+    return stagingBuffer;
+}
 IndexBuffer IndexBuffer::Create(size_t size)
 {
     IndexBuffer result;

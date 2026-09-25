@@ -174,6 +174,11 @@ public:
             auto iter = m_UniformBufferMap.find(id);
             if (iter != m_UniformBufferMap.end()) return iter->second->Get();
         }
+        else if constexpr (std::is_same_v<T, rhi::StagingBuffer>)
+        {
+            auto iter = m_StagingBufferMap.find(id);
+            if (iter != m_StagingBufferMap.end()) return iter->second->Get();
+        }
         else if constexpr (std::is_same_v<T, rhi::RWStructuredBuffer>)
         {
             auto iter = m_RWStructuredBufferMap.find(id);
@@ -293,6 +298,10 @@ public:
         else if constexpr (std::is_same_v<T, rhi::UniformBuffer>)
         {
             StoreImported(m_UniformBuffers, m_UniformBufferMap, id, resource);
+        }
+        else if constexpr (std::is_same_v<T, rhi::StagingBuffer>)
+        {
+            StoreImported(m_StagingBuffers, m_StagingBufferMap, id, resource);
         }
         else if constexpr (std::is_same_v<T, rhi::RWStructuredBuffer>)
         {

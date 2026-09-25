@@ -32,6 +32,8 @@ public:
 
 public:
     static StagingBuffer Create(size_t size);
+    // Host-readable destination for asynchronous GPU copies.
+    static StagingBuffer CreateForReadback(size_t size);
     bool Empty() const
     {
         return m_Buffer.index() == 0;

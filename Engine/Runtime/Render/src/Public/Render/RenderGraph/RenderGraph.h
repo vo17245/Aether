@@ -33,6 +33,9 @@ public:
     }
 
     void Compile();
+    void AddDownloadTextureTask(const std::string& tag, AccessId<rhi::Texture2D> source,
+                                AccessId<rhi::StagingBuffer> destination,
+                                TextureDownloadRegions regionsForCurrentSlot);
     void SetCurrentFrame(uint32_t frame)
     {
         m_ResourceAccessor->SetCurrentFrame(frame);

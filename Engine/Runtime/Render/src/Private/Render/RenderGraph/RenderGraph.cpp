@@ -1,9 +1,36 @@
 #include "Render/RenderGraph/RenderGraph.h"
 #include <stack>
+#include <stdexcept>
 #include "Render/RenderGraph/ImageLayoutTransitionTask.h"
 
 namespace Aether::RenderGraph
 {
+void RenderGraph::AddDownloadTextureTask(const std::string& tag, AccessId<rhi::Texture2D> source,
+                                         AccessId<rhi::StagingBuffer> destination,
+                                         TextureDownloadRegions regionsForCurrentSlot)
+{
+    const auto sourceIt = m_AccessIdToResourceIndex.find(source.handle);
+    const auto destinationIt = m_AccessIdToResourceIndex.find(destination.handle);
+    if (sourceIt == m_AccessIdToResourceIndex.end() || destinationIt == m_AccessIdToResourceIndex.end()
+        || !regionsForCurrentSlot)
+        throw std::invalid_argument("invalid texture download task resources or region provider");
+    auto task = CreateScope<DownloadTextureTask>();
+    task->tag = tag;
+    task->source = source;
+    task->destination = destination;
+    task->regionsForCurrentSlot = std::move(regionsForCurrentSlot);
+    auto* sourceResource = m_Resources[sourceIt->second].get();
+    auto* destinationResource = m_Resources[destinationIt->second].get();
+    if (sourceResource->code != ResourceCode::Texture
+        || destinationResource->code != ResourceCode::StagingBuffer)
+        throw std::invalid_argument("texture download task resource types do not match");
+    task->reads.push_back(sourceResource);
+    sourceResource->readers.push_back(task.get());
+    task->writes.push_back(destinationResource);
+    destinationResource->writers.push_back(task.get());
+    m_Tasks.push_back(std::move(task));
+}
+
 void RenderGraph::Compile()
 {
     CullTasks();
@@ -443,6 +470,11 @@ void RenderGraph::Execute()
             transitionTask.Execute(*m_CommandBuffer, *m_ResourceAccessor);
         }
         break;
+        case TaskType::DownloadTextureTask: {
+            auto& downloadTask = static_cast<DownloadTextureTask&>(task);
+            downloadTask.Execute(*m_CommandBuffer, *m_ResourceAccessor);
+        }
+        break;
         default:
             assert(false && "Unsupported task type in RenderGraph::Execute");
         }
@@ -517,6 +549,11 @@ public:
         break;
         case TaskType::ImageLayoutTransitionTask: {
             auto& t = static_cast<ImageLayoutTransitionTask&>(*task);
+            AddNode(t.tag, BorderColor, TransitionTaskColor);
+        }
+        break;
+        case TaskType::DownloadTextureTask: {
+            auto& t = static_cast<DownloadTextureTask&>(*task);
             AddNode(t.tag, BorderColor, TransitionTaskColor);
         }
         break;

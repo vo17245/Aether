@@ -4,6 +4,7 @@
 #include "TaskBase.h"
 #include "Resource/Attachment.h"
 #include <Render/RHI.h>
+#include <array>
 namespace Aether::RenderGraph
 {
 
@@ -13,6 +14,8 @@ struct RenderPassDesc
     std::optional<Attachment> depthAttachment;
     size_t colorAttachmentCount = 0;            // number of color attachments
     Vec4f clearColor[rhi::MaxColorAttachments]; // default clear color
+    std::array<std::uint32_t, 4> clearColorUint[rhi::MaxColorAttachments]{};
+    bool clearColorIsUint[rhi::MaxColorAttachments]{};
     float clearDepth;
     uint32_t clearStencil;
     uint32_t width;
@@ -25,7 +28,9 @@ struct RenderPassDesc
         }
         for (size_t i = 0; i < colorAttachmentCount; ++i)
         {
-            if (!(clearColor[i] == other.clearColor[i]))
+            if (!(clearColor[i] == other.clearColor[i])
+                || clearColorUint[i] != other.clearColorUint[i]
+                || clearColorIsUint[i] != other.clearColorIsUint[i])
             {
                 return false;
             }
@@ -114,11 +119,17 @@ struct RenderTask : public RenderTaskBase
         if (!skipRenderPassBegin)
         {
             uint16_t clearValueCount = renderPassDesc.colorAttachmentCount;
-            VkClearValue clearValues[rhi::MaxColorAttachments + 1];
+            VkClearValue clearValues[rhi::MaxColorAttachments + 1]{};
             for (size_t i = 0; i < renderPassDesc.colorAttachmentCount; ++i)
             {
-                clearValues[i].color = {renderPassDesc.clearColor[i].x(), renderPassDesc.clearColor[i].y(),
-                                        renderPassDesc.clearColor[i].z(), renderPassDesc.clearColor[i].w()};
+                if (renderPassDesc.clearColorIsUint[i])
+                {
+                    for (std::size_t channel = 0; channel < 4; ++channel)
+                        clearValues[i].color.uint32[channel] = renderPassDesc.clearColorUint[i][channel];
+                }
+                else
+                    clearValues[i].color = {renderPassDesc.clearColor[i].x(), renderPassDesc.clearColor[i].y(),
+                                            renderPassDesc.clearColor[i].z(), renderPassDesc.clearColor[i].w()};
             }
             if (renderPassDesc.depthAttachment)
             {
@@ -146,6 +157,8 @@ struct RenderTask : public RenderTaskBase
             assert(imageView && "Failed to get image view resource");
             renderPass.colorAttachments.emplace_back(
                 imageView, colorAttachment.loadOp, colorAttachment.storeOp, desc.clearColor[i]);
+            renderPass.colorAttachments.back().clearColorUint = desc.clearColorUint[i];
+            renderPass.colorAttachments.back().clearColorIsUint = desc.clearColorIsUint[i];
         }
         if (desc.depthAttachment)
         {

@@ -47,6 +47,10 @@ public:
     virtual void OnGpuIdle(RenderFrameContext&) {}
     virtual void OnRenderGraphBuilt() {}
     virtual void OnFrameRecorded(RenderFrameContext&) {}
+    // Distinguish recorded work from work accepted by the graphics queue.
+    // These callbacks must never throw through Window.
+    virtual void OnFrameSubmitted(RenderFrameContext&) noexcept {}
+    virtual void OnFrameAborted(RenderFrameContext&) noexcept {}
     // Called after this slot's fence signals and before PrepareFrame, including
     // minimized upload-only frames. Resources exposed by services are writable.
     virtual void OnFrameSlotReady(RenderFrameContext&) {}

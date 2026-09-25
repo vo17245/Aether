@@ -82,6 +82,13 @@ public:
             m_ColorAttachmentConfigs.back().compositeAlpha = compositeAlpha;
             return *this;
         }
+        Builder& DisableBlend()
+        {
+            assert(m_InColorAttachment && "DisableBlend must be called between BeginColorAttachment and EndColorAttachment");
+            m_ColorAttachmentConfigs.back().enableBlend = false;
+            m_ColorAttachmentConfigs.back().compositeAlpha = false;
+            return *this;
+        }
         Builder& AddVertexStage(ShaderModule& shaderModule, const char* entryPoint)
         {
             VkPipelineShaderStageCreateInfo stage{};

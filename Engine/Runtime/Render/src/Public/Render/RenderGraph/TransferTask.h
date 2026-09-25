@@ -2,6 +2,8 @@
 #include "TaskBase.h"
 #include "Resource/AccessId.h"
 #include <Render/RHI.h>
+#include <functional>
+#include <span>
 namespace Aether::RenderGraph
 {
 // texture
@@ -12,11 +14,21 @@ struct UploadTextureTask : public TaskBase
     AccessId<rhi::Texture2D> destination;
     
 };
+using TextureDownloadRegion = rhi::TextureDownloadRegion;
+using TextureDownloadRegions = std::function<std::span<const TextureDownloadRegion>()>;
 struct DownloadTextureTask : public TaskBase
 {
     DownloadTextureTask() : TaskBase(TaskType::DownloadTextureTask) {}
     AccessId<rhi::Texture2D> source;
     AccessId<rhi::StagingBuffer> destination;
+    TextureDownloadRegions regionsForCurrentSlot;
+    void Execute(rhi::CommandList& commandBuffer, ResourceAccessor& resourceAccessor)
+    {
+        auto* src = resourceAccessor.GetResource(source);
+        auto* dst = resourceAccessor.GetResource(destination);
+        if (!src || !dst || !regionsForCurrentSlot) return;
+        commandBuffer.DownloadTexture(*src, *dst, regionsForCurrentSlot());
+    }
 };
 // vertex buffer
 struct UploadVertexBufferTask : public TaskBase

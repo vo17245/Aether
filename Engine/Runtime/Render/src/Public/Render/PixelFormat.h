@@ -40,6 +40,7 @@ enum class PixelFormat : int32_t
     R_FLOAT32_DEPTH = Bit(20),
     // shader采样时，获取的类型是uint(一般是32位)
     RGBA8888_UInt = Bit(21),
+    R_UINT32 = Bit(22),
 };
 inline constexpr const bool PixelFormatIsFloat(PixelFormat format)
 {
@@ -76,6 +77,7 @@ inline constexpr const uint32_t PixelFormatSize(PixelFormat format)
     case PixelFormat::RGBA_FLOAT32_UNKNOWN: return 16;
     case PixelFormat::R_FLOAT32_DEPTH: return 4;
     case PixelFormat::RGBA8888_UInt: return 4;
+    case PixelFormat::R_UINT32: return 4;
     case PixelFormat::RGBA_FLOAT16: return 8;
     case PixelFormat::RGB_FLOAT16: return 6;
     case PixelFormat::RG_FLOAT16: return 4;
@@ -108,6 +110,7 @@ inline constexpr const char* PixelFormatToString(PixelFormat format)
     case PixelFormat::RGBA_FLOAT32_UNKNOWN: return "RGBA_FLOAT32_UNKNOWN";
     case PixelFormat::R_FLOAT32_DEPTH: return "R_FLOAT32_DEPTH";
     case PixelFormat::RGBA8888_UInt: return "RGBA8888_UInt";
+    case PixelFormat::R_UINT32: return "R_UINT32";
     case PixelFormat::RGBA_FLOAT16: return "RGBA_FLOAT16";
     case PixelFormat::RGB_FLOAT16: return "RGB_FLOAT16";
     case PixelFormat::RG_FLOAT16: return "RG_FLOAT16";
@@ -139,6 +142,7 @@ inline constexpr VkFormat PixelFormatToVkFormat(PixelFormat format)
     case PixelFormat::RGBA_FLOAT32_UNKNOWN: return VK_FORMAT_R32G32B32A32_SFLOAT;
     case PixelFormat::R_FLOAT32_DEPTH: return VK_FORMAT_D32_SFLOAT;
     case PixelFormat::RGBA8888_UInt: return VK_FORMAT_R8G8B8A8_UINT;
+    case PixelFormat::R_UINT32: return VK_FORMAT_R32_UINT;
     case PixelFormat::RGBA_FLOAT16: return VK_FORMAT_R16G16B16A16_SFLOAT;
     case PixelFormat::RGB_FLOAT16: return VK_FORMAT_R16G16B16_SFLOAT;
     case PixelFormat::RG_FLOAT16: return VK_FORMAT_R16G16_SFLOAT;

@@ -1064,8 +1064,18 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
         return;
     if (acquireStatus != AcquireStatus::Success)
         throw std::runtime_error("Failed to acquire swapchain image");
-    featureFrame.Prepare(context);
-    OnImageAcquired(imageIndex, context);
+    bool featureFrameSubmitted = false;
+    try
+    {
+        featureFrame.Prepare(context);
+        OnImageAcquired(imageIndex, context, featureFrameSubmitted);
+    }
+    catch (...)
+    {
+        if (!featureFrameSubmitted)
+            for (const auto& feature : m_RenderFeatures) feature->OnFrameAborted(context);
+        throw;
+    }
 }
 bool Window::CreateSyncObjects()
 {
@@ -1331,7 +1341,7 @@ bool Window::TrySetCursorMode(CursorMode mode)
     }
     return false;
 }
-void Window::OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContext& context)
+void Window::OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContext& context, bool& featureFrameSubmitted)
 {
     auto& imageAvailableSemaphore = *m_ImageAvailableSemaphore[m_CurrentFrame];
 
@@ -1446,6 +1456,8 @@ void Window::OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContex
         throw std::runtime_error("Vulkan graphics submission failed");
     uploadRollback.active = false;
     m_PendingUploadList.OnQueueSubmitted(m_CurrentFrame, ++m_FrameSubmissionGenerations[m_CurrentFrame]);
+    featureFrameSubmitted = true;
+    for (const auto& feature : m_RenderFeatures) feature->OnFrameSubmitted(context);
 
     VkSwapchainKHR swapchain = m_SwapChain->GetVk().GetHandle();
     VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
