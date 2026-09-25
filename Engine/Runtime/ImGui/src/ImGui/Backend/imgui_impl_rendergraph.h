@@ -3,6 +3,7 @@
 #include <Core/Math/Def.h>
 #include <Render/PixelFormat.h>
 #include <ImGui/Compat/ImGuiRenderPacket.h>
+#include <Core/DisplaySurfaceToken.h>
 #include <functional>
 #include <memory>
 #include <span>
@@ -36,6 +37,15 @@ struct ImGui_ImplRenderGraph_InitInfo
 struct ImGui_ImplRenderGraph_Backend;
 using ImGui_ImplRenderGraph_Callback = std::function<void(
     Aether::rhi::CommandList&, std::span<const std::byte>)>;
+struct ImGui_ImplRenderGraph_DisplaySurfaceBinding
+{
+    Aether::rhi::Texture2D* texture = nullptr;
+    Aether::rhi::TextureView* view = nullptr;
+    Aether::rhi::Sampler* sampler = nullptr;
+    std::shared_ptr<const void> lease;
+};
+using ImGui_ImplRenderGraph_DisplaySurfaceResolver = std::function<std::optional<
+    ImGui_ImplRenderGraph_DisplaySurfaceBinding>(Aether::DisplaySurfaceToken)>;
 
 IMGUI_IMPL_API bool ImGui_ImplRenderGraph_Init(const ImGui_ImplRenderGraph_InitInfo& info = {});
 IMGUI_IMPL_API ImGui_ImplRenderGraph_Backend* ImGui_ImplRenderGraph_CreateBackend(
@@ -64,6 +74,8 @@ IMGUI_IMPL_API void ImGui_ImplRenderGraph_RegisterCallback(
     ImGui_ImplRenderGraph_Callback callback);
 IMGUI_IMPL_API void ImGui_ImplRenderGraph_UnregisterCallback(
     ImGui_ImplRenderGraph_Backend& backend, Aether::ImGuiCompat::RenderCallbackId id);
+IMGUI_IMPL_API void ImGui_ImplRenderGraph_SetDisplaySurfaceResolver(
+    ImGui_ImplRenderGraph_Backend& backend, ImGui_ImplRenderGraph_DisplaySurfaceResolver resolver);
 
 // Textures must remain alive and in ShaderReadOnly layout between graph executions.
 // IDs belong to this backend; Vulkan backend descriptor IDs are not interchangeable.

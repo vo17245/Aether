@@ -7,9 +7,11 @@
 #include <string_view>
 #include <vector>
 #include <memory>
+#include <cstdint>
 namespace Aether
 {
 class System;
+enum class SystemUpdatePhase : std::uint8_t;
 namespace Serialization { class ComponentCodecRegistry; class SaveContext; class LoadContext; }
 using EntityId = entt::entity;
 class World
@@ -69,6 +71,7 @@ public:
         return m_Registry.view<Ts...>();
     }
     bool IsValid(EntityId entity) const { return m_Registry.valid(entity); }
+    bool IsDispatching() const noexcept { return m_DispatchDepth != 0; }
     std::vector<EntityId> Entities() const
     {
         std::vector<EntityId> entities;
@@ -88,14 +91,17 @@ public:
 public:
     void PushSystem(Scope<System>&& system);
     void EraseSystem(System* system);
-    void OnUpdate(float deltaTime);
+	void OnUpdate(float deltaTime);
+	void OnUpdatePhase(SystemUpdatePhase phase, float deltaTime);
     bool NeedRebuildRenderGraph();
     void OnUpload(PendingUploadList& uploadList);
     void OnEvent(Event& event);
     void OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph);
     void OnFrameBegin(std::uint32_t frameSlot);
     void ExtractRenderData(Render::RenderFeatureFrame& frame);
-    void BuildExecutionOrder();
+	void BuildExecutionOrder();
+	void BuildPhaseExecutionOrder();
+	void ReplaceDataFrom(World& detached);
     std::vector<std::string_view> ExecutionOrderSignatures();
 private:
     friend class WorldArchiveAccess;
@@ -106,7 +112,8 @@ private:
     entt::registry m_Registry;
     std::vector<Scope<System>> m_Systems;
     std::vector<System*> m_ExecutionOrder;
-    bool m_OrderDirty = true;
+	bool m_OrderDirty = true;
+	bool m_PhaseOrderValid = false;
     std::uint32_t m_DispatchDepth = 0;
 };
 } // namespace Aether

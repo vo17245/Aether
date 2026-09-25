@@ -1,4 +1,5 @@
 #include <ImGui/Compat/ImGuiRenderPacket.h>
+#include <Core/DisplaySurfaceToken.h>
 
 #include <cstring>
 #include <iostream>
@@ -127,6 +128,33 @@ void TestCallbackProtocol()
     Check(reset && reset->packet.commands[0].type == ImGuiPacketCommandType::ResetRenderState,
           "ResetRenderState was not preserved");
 }
+
+void TestDisplaySurfaceToken()
+{
+    ImDrawList list(nullptr);
+    list.VtxBuffer.push_back({{1.0f, 2.0f}, {0.0f, 0.0f}, 0xffffffffu});
+    list.IdxBuffer.push_back(0);
+
+    ImGuiRenderPacketExtractor extractor;
+    const Aether::DisplaySurfaceToken expected{.id = 41, .generation = 7};
+    const ImTextureID texture = extractor.RegisterDisplaySurface(expected);
+    Check(texture != ImTextureID_Invalid, "display surface handle allocation failed");
+    ImDrawCmd draw;
+    draw.ClipRect = {0, 0, 20, 20};
+    draw.TexRef = ImTextureRef(texture);
+    draw.ElemCount = 1;
+    list.CmdBuffer.push_back(draw);
+    ImVector<ImTextureData*> textures;
+    ImDrawData data = MakeData(list, textures);
+
+    auto extracted = extractor.Extract(data);
+    Check(extracted && extracted->packet.commands.size() == 1,
+          "display surface draw command extraction failed");
+    const auto& command = extracted->packet.commands.front();
+    Check(command.displaySurface && *command.displaySurface == expected && command.texture == 0,
+          "display surface token was mixed with a numeric texture ID");
+    Check(extractor.UnregisterDisplaySurface(texture), "registered display surface was not removed");
+}
 } // namespace
 
 int main()
@@ -135,6 +163,7 @@ int main()
     {
         TestOwnedPacketAndTextureCommit();
         TestCallbackProtocol();
+        TestDisplaySurfaceToken();
     }
     catch (const std::exception& exception)
     {

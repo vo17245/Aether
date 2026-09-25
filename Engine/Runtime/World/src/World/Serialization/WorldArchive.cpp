@@ -100,7 +100,10 @@ Serialization::Result<Json> World::Serialize(const Serialization::ComponentCodec
             return std::unexpected(Error(ArchiveErrorCode::InvalidArgument, "cannot serialize a World during a system callback"));
         codecs.Freeze();
         stage = "enumerating entities";
-        const auto entities = Entities();
+        auto entities = Entities();
+        std::erase_if(entities, [&](EntityId entity) {
+            return HasComponent<Serialization::ExcludeFromArchiveComponent>(entity);
+        });
         if (entities.size() > context.m_Limits.maxEntities)
             return std::unexpected(Error(ArchiveErrorCode::ResourceLimitExceeded, "entity count exceeds archive limit"));
 

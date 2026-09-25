@@ -236,7 +236,11 @@ ImGuiRenderPacketExtractor::Extract(const ImDrawData& drawData)
                 if (source.TexRef._TexData)
                     command.texture = ResolveTextureData(source.TexRef._TexData);
                 else if (source.TexRef._TexID != ImTextureID_Invalid)
-                    command.texture = ResolveUserTexture(source.TexRef._TexID);
+                {
+                    const auto surface = m_DisplaySurfaces.find(source.TexRef._TexID);
+                    if (surface != m_DisplaySurfaces.end()) command.displaySurface = surface->second;
+                    else command.texture = ResolveUserTexture(source.TexRef._TexID);
+                }
                 else
                     return std::unexpected(
                         ImGuiExtractError{ImGuiExtractErrorCode::InvalidTexture, "draw command has no texture"});
@@ -275,5 +279,24 @@ bool ImGuiRenderPacketExtractor::CommitAccepted(Extraction& extraction)
     }
     extraction.committed = true;
     return true;
+}
+
+ImTextureID ImGuiRenderPacketExtractor::RegisterDisplaySurface(DisplaySurfaceToken token)
+{
+    if (!token.IsValid()) return ImTextureID_Invalid;
+    while (m_DisplaySurfaces.contains(m_NextDisplaySurface) || m_UserTextures.contains(m_NextDisplaySurface))
+    {
+        if (m_NextDisplaySurface == std::numeric_limits<ImTextureID>::max()) return ImTextureID_Invalid;
+        ++m_NextDisplaySurface;
+    }
+    const auto handle = m_NextDisplaySurface;
+    m_DisplaySurfaces.emplace(handle, token);
+    if (m_NextDisplaySurface != std::numeric_limits<ImTextureID>::max()) ++m_NextDisplaySurface;
+    return handle;
+}
+
+bool ImGuiRenderPacketExtractor::UnregisterDisplaySurface(ImTextureID textureId) noexcept
+{
+    return m_DisplaySurfaces.erase(textureId) != 0;
 }
 } // namespace Aether::ImGuiCompat

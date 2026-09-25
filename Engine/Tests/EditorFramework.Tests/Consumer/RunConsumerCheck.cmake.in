@@ -1,0 +1,44 @@
+set(package_build_dir "@CMAKE_BINARY_DIR@")
+set(consumer_source "@CMAKE_CURRENT_SOURCE_DIR@/Consumer")
+set(dependency_prefix "@AETHER_DEPENDENCIES_PACKAGES_DIR@")
+set(with_imgui "@AETHER_BUILD_EDITOR_IMGUI@")
+set(work_dir "@CMAKE_CURRENT_BINARY_DIR@/EditorPackageConsumerWork")
+set(prefix "${work_dir}/install")
+set(moved_prefix "${work_dir}/install-moved")
+set(config "@CMAKE_BUILD_TYPE@")
+if(config STREQUAL "")
+    set(config Debug)
+endif()
+
+file(REMOVE_RECURSE "${work_dir}")
+file(MAKE_DIRECTORY "${work_dir}")
+
+function(run_checked label)
+    execute_process(COMMAND ${ARGN}
+        RESULT_VARIABLE result
+        OUTPUT_VARIABLE output
+        ERROR_VARIABLE error)
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "${label} failed (${result})\n${output}\n${error}")
+    endif()
+endfunction()
+
+run_checked("Install Aether editor package"
+    "@CMAKE_COMMAND@" --install "${package_build_dir}" --prefix "${prefix}" --config "${config}")
+
+function(configure_and_build prefix_path build_path)
+    set(prefixes "${prefix_path};${dependency_prefix}")
+    string(REPLACE ";" "\\;" escaped_prefixes "${prefixes}")
+    run_checked("Configure external consumer at ${prefix_path}"
+        "@CMAKE_COMMAND@" -S "${consumer_source}" -B "${build_path}"
+        "-DCMAKE_PREFIX_PATH=${escaped_prefixes}"
+        "-DCMAKE_BUILD_TYPE=${config}"
+        "-DEDITOR_FRAMEWORK_CONSUMER_WITH_IMGUI=${with_imgui}")
+    run_checked("Build external consumer at ${prefix_path}"
+        "@CMAKE_COMMAND@" --build "${build_path}" --config "${config}" --parallel 4)
+endfunction()
+
+configure_and_build("${prefix}" "${work_dir}/consumer")
+run_checked("Move installed Aether package"
+    "@CMAKE_COMMAND@" -E rename "${prefix}" "${moved_prefix}")
+configure_and_build("${moved_prefix}" "${work_dir}/consumer-moved")

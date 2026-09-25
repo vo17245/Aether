@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.20)
+project(PaletteFeature LANGUAGES CXX)
+find_package(GameFeature CONFIG REQUIRED)
+find_package(ProjectAsset CONFIG REQUIRED)
+
+add_library(PaletteFeatureRuntime STATIC Runtime/Components.cpp Runtime/Registration.cpp)
+target_compile_features(PaletteFeatureRuntime PUBLIC cxx_std_23)
+target_include_directories(PaletteFeatureRuntime PUBLIC Runtime/Public)
+target_link_libraries(PaletteFeatureRuntime PUBLIC Aether::GameFeature Aether::ProjectAsset)
+
+if(GAME_BUILD_EDITOR)
+    find_package(EditorFramework CONFIG REQUIRED)
+    add_library(PaletteFeatureEditor STATIC Editor/Registration.cpp Editor/Importer.cpp)
+    target_compile_features(PaletteFeatureEditor PUBLIC cxx_std_23)
+    target_include_directories(PaletteFeatureEditor PUBLIC Editor/Public Runtime/Public)
+    target_link_libraries(PaletteFeatureEditor PUBLIC PaletteFeatureRuntime Aether::EditorFramework)
+endif()

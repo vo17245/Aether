@@ -1,11 +1,13 @@
 #pragma once
 
 #include <ImGui/Core/imgui.h>
+#include <Core/DisplaySurfaceToken.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <expected>
 #include <span>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -37,6 +39,7 @@ struct ImGuiPacketCommand
     std::uint32_t indexOffset = 0;
     std::uint32_t vertexOffset = 0;
     TextureId texture = 0;
+    std::optional<DisplaySurfaceToken> displaySurface;
     RenderCallbackId callback = 0;
     std::vector<std::byte> callbackPayload;
 };
@@ -127,6 +130,8 @@ public:
     // Call only after ReliableCommands + OptionalDrawPacket was accepted atomically.
     // A rejected submission leaves the ImGui texture state untouched and may retry.
     bool CommitAccepted(Extraction& extraction);
+    ImTextureID RegisterDisplaySurface(DisplaySurfaceToken token);
+    bool UnregisterDisplaySurface(ImTextureID textureId) noexcept;
 
 private:
     TextureId AllocateTextureId();
@@ -135,7 +140,9 @@ private:
 
     // Keep frontend-created atlas IDs disjoint from backend/user texture IDs.
     TextureId m_NextTexture = TextureId{1} << 63;
+    ImTextureID m_NextDisplaySurface = static_cast<ImTextureID>(1) << 62;
     std::unordered_map<ImTextureID, TextureId> m_UserTextures;
+    std::unordered_map<ImTextureID, DisplaySurfaceToken> m_DisplaySurfaces;
     std::unordered_map<ImTextureData*, TextureId> m_TextureData;
     std::unordered_map<ImDrawCallback, RenderCallbackId> m_Callbacks;
 };

@@ -10,6 +10,8 @@ add_subdirectory("Resource")
 add_subdirectory("IO")
 add_subdirectory("Entry")
 add_subdirectory("World")
+add_subdirectory("ProjectAsset")
+add_subdirectory("GameFeature")
 # Text's current GPU-facing API is consumed only by the excluded legacy UI and
 # demo targets. Keep it out of the RenderThread-supported default build.
 if(AETHER_BUILD_UI OR AETHER_BUILD_DEMO)

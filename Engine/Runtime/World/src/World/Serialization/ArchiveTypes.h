@@ -18,6 +18,10 @@ namespace Aether { class World; }
 
 namespace Aether::Serialization
 {
+// Entities carrying this component belong to a runtime service/preview and are
+// excluded as a whole from persistent World archives.
+struct ExcludeFromArchiveComponent { std::uint8_t marker = 0; };
+
 enum class ArchiveErrorCode
 {
     InvalidArgument, InvalidFormat, UnsupportedVersion, UnknownComponent, DuplicateRegistration,

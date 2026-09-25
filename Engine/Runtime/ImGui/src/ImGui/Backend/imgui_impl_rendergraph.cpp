@@ -14,6 +14,16 @@ namespace RG = Aether::RenderGraph;
 
 namespace
 {
+struct SurfaceTokenHash
+{
+    std::size_t operator()(DisplaySurfaceToken token) const noexcept
+    {
+        const auto first = std::hash<std::uint64_t>{}(token.id);
+        const auto second = std::hash<std::uint32_t>{}(token.generation);
+        return first ^ (second + 0x9e3779b9u + (first << 6) + (first >> 2));
+    }
+};
+
 struct TextureBinding
 {
     rhi::Texture2D ownedTexture;
@@ -23,6 +33,14 @@ struct TextureBinding
     std::optional<vk::DescriptorPool> pool;
     std::optional<vk::DescriptorSet> set;
 };
+
+struct PacketSurfaceBinding
+{
+    std::shared_ptr<TextureBinding> binding;
+    std::shared_ptr<const void> lease;
+};
+using PacketSurfaceBindings =
+    std::unordered_map<DisplaySurfaceToken, PacketSurfaceBinding, SurfaceTokenHash>;
 
 } // namespace
 
@@ -42,6 +60,7 @@ struct ImGui_ImplRenderGraph_Backend
     std::vector<RetiredTexture> retiredTextures;
     ImGuiCompat::TextureId nextTexture = 1;
     std::unordered_map<ImGuiCompat::RenderCallbackId, ImGui_ImplRenderGraph_Callback> callbacks;
+    ImGui_ImplRenderGraph_DisplaySurfaceResolver displaySurfaceResolver;
     ImGuiCompat::ImGuiRenderPacketExtractor compatibilityExtractor;
 };
 
@@ -165,6 +184,7 @@ struct PacketDrawTask
 {
     Backend* backend = nullptr;
     std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> packet;
+    std::shared_ptr<const PacketSurfaceBindings> displaySurfaces;
     RG::AccessId<rhi::VertexBuffer> vertices;
     RG::AccessId<rhi::IndexBuffer> indices;
     std::uint32_t width = 0;
@@ -232,11 +252,23 @@ void DrawPacket(rhi::CommandList& commands, RG::ResourceAccessor& resources, Pac
         y2 = std::clamp(y2, 0.0f, static_cast<float>(task.height));
         if (x2 <= x1 || y2 <= y1)
             continue;
-        auto binding = backend.textures.find(command.texture);
-        if (binding == backend.textures.end())
-            throw std::runtime_error("ImGui packet references an unregistered texture");
+        const TextureBinding* textureBinding = nullptr;
+        if (command.displaySurface)
+        {
+            auto binding = task.displaySurfaces->find(*command.displaySurface);
+            if (binding == task.displaySurfaces->end())
+                throw std::runtime_error("ImGui packet references an unresolved display surface");
+            textureBinding = binding->second.binding.get();
+        }
+        else
+        {
+            auto binding = backend.textures.find(command.texture);
+            if (binding == backend.textures.end())
+                throw std::runtime_error("ImGui packet references an unregistered texture");
+            textureBinding = binding->second.get();
+        }
         commands.SetScissor(x1, y1, x2 - x1, y2 - y1);
-        VkDescriptorSet descriptor = binding->second->set->GetHandle();
+        VkDescriptorSet descriptor = textureBinding->set->GetHandle();
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 backend.layout->GetHandle(), 0, 1, &descriptor, 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, command.elementCount, 1, command.indexOffset,
@@ -444,6 +476,12 @@ void ImGui_ImplRenderGraph_UnregisterCallback(ImGui_ImplRenderGraph_Backend& bac
     backend.callbacks.erase(id);
 }
 
+void ImGui_ImplRenderGraph_SetDisplaySurfaceResolver(
+    ImGui_ImplRenderGraph_Backend& backend, ImGui_ImplRenderGraph_DisplaySurfaceResolver resolver)
+{
+    backend.displaySurfaceResolver = std::move(resolver);
+}
+
 void ImGui_ImplRenderGraph_Shutdown()
 {
     auto& io = ImGui::GetIO();
@@ -500,9 +538,15 @@ void ImGui_ImplRenderGraph_RenderPacket(
     std::string tag = "ImGui." + graph.CreateUniqueId();
     std::vector<RG::AccessId<rhi::Texture2D>> sampledTextures;
     std::unordered_set<ImGuiCompat::TextureId> usedTextures;
+    std::unordered_set<DisplaySurfaceToken, SurfaceTokenHash> usedDisplaySurfaces;
     for (const auto& command : packet->commands)
         if (command.type == ImGuiCompat::ImGuiPacketCommandType::Draw && command.elementCount)
-            usedTextures.insert(command.texture);
+        {
+            if (command.displaySurface)
+                usedDisplaySurfaces.insert(*command.displaySurface);
+            else
+                usedTextures.insert(command.texture);
+        }
     for (const auto id : usedTextures)
     {
         auto found = backend.textures.find(id);
@@ -519,10 +563,38 @@ void ImGui_ImplRenderGraph_RenderPacket(
         sampledTextures.push_back(graph.Import<rhi::Texture2D>(tag + ".Texture." + std::to_string(id), desc,
             std::span<const RG::ResourceId<rhi::Texture2D>>(&resource, 1)));
     }
+    auto surfaceBindings = std::make_shared<PacketSurfaceBindings>();
+    for (const auto token : usedDisplaySurfaces)
+    {
+        if (!backend.displaySurfaceResolver)
+            throw std::runtime_error("ImGui packet uses a display surface without a resolver");
+        auto resolved = backend.displaySurfaceResolver(token);
+        if (!resolved || !resolved->texture || !resolved->view || !resolved->sampler || !resolved->lease)
+            throw std::runtime_error("ImGui display surface is unavailable or has no lifetime lease");
+
+        auto binding = std::make_shared<TextureBinding>();
+        binding->texture = resolved->texture;
+        binding->view = resolved->view;
+        CreateBinding(backend, *binding, *resolved->sampler);
+
+        RG::TextureDesc desc{};
+        desc.width = resolved->texture->GetWidth();
+        desc.height = resolved->texture->GetHeight();
+        desc.pixelFormat = resolved->texture->GetFormat();
+        desc.usages = resolved->texture->GetUsages();
+        desc.layout = rhi::TextureLayout::ShaderReadOnly;
+        auto resource = graph.GetResourceArena().Import(resolved->texture);
+        const auto surfaceAccess = graph.Import<rhi::Texture2D>(
+            tag + ".Surface." + std::to_string(token.id) + "." + std::to_string(token.generation),
+            desc, std::span<const RG::ResourceId<rhi::Texture2D>>(&resource, 1));
+        sampledTextures.push_back(surfaceAccess);
+        surfaceBindings->emplace(token, PacketSurfaceBinding{std::move(binding), std::move(resolved->lease)});
+    }
     graph.AddRenderTask<PacketDrawTask>(tag,
         [&](RG::RenderTaskBuilder& builder, PacketDrawTask& task) {
             task.backend = &backend;
             task.packet = packet;
+            task.displaySurfaces = surfaceBindings;
             task.width = std::min(width, targetResource->desc.width);
             task.height = std::min(height, targetResource->desc.height);
             if (!packet->vertices.empty() && !packet->indices.empty())

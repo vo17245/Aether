@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.20)
+project(SampleSceneFeature LANGUAGES CXX)
+find_package(GameFeature CONFIG REQUIRED)
+find_package(ProjectAsset CONFIG REQUIRED)
+
+add_library(SampleSceneFeatureRuntime STATIC Runtime/Components.cpp Runtime/Registration.cpp)
+target_compile_features(SampleSceneFeatureRuntime PUBLIC cxx_std_23)
+target_include_directories(SampleSceneFeatureRuntime PUBLIC Runtime/Public)
+target_link_libraries(SampleSceneFeatureRuntime PUBLIC Aether::GameFeature Aether::ProjectAsset PaletteFeatureRuntime)
+
+if(GAME_BUILD_EDITOR)
+    find_package(EditorFramework CONFIG REQUIRED)
+    add_library(SampleSceneFeatureEditor STATIC Editor/Registration.cpp Editor/Importer.cpp)
+    target_compile_features(SampleSceneFeatureEditor PUBLIC cxx_std_23)
+    target_include_directories(SampleSceneFeatureEditor PUBLIC Editor/Public Runtime/Public)
+    target_link_libraries(SampleSceneFeatureEditor PUBLIC SampleSceneFeatureRuntime Aether::EditorFramework)
+endif()

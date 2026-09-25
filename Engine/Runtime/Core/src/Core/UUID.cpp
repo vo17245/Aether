@@ -13,8 +13,8 @@ public:
         auto seed_data = std::array<int, std::mt19937::state_size>{};
         std::generate(std::begin(seed_data), std::end(seed_data), std::ref(rd));
         std::seed_seq seq(std::begin(seed_data), std::end(seed_data));
-        std::mt19937 generator(seq);
-        m_Generator = uuids::uuid_random_generator{generator};
+        m_Engine.seed(seq);
+        m_Generator.emplace(m_Engine);
     }
     uuids::uuid Generate()
     {
@@ -27,6 +27,7 @@ public:
     }
 
 private:
+    std::mt19937 m_Engine;
     std::optional<uuids::uuid_random_generator> m_Generator;
 };
 } // namespace

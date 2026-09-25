@@ -1,6 +1,19 @@
 cmake_minimum_required(VERSION 3.14)
 project(Aether)
 set(CMAKE_CXX_STANDARD 23)
+option(AETHER_BUILD_EDITOR "Build editor framework libraries" OFF)
+option(AETHER_BUILD_EDITOR_IMGUI "Build optional ImGui editor adapter" OFF)
+option(AETHER_BUILD_EDITOR_TESTS "Build editor framework tests" OFF)
+option(AETHER_BUILD_EDITOR_GPU_TESTS "Build editor GPU integration tests" OFF)
+if(AETHER_BUILD_EDITOR_IMGUI AND NOT AETHER_BUILD_EDITOR)
+    message(FATAL_ERROR "AETHER_BUILD_EDITOR_IMGUI requires AETHER_BUILD_EDITOR")
+endif()
+if(AETHER_BUILD_EDITOR_TESTS AND NOT AETHER_BUILD_EDITOR)
+    message(FATAL_ERROR "AETHER_BUILD_EDITOR_TESTS requires AETHER_BUILD_EDITOR")
+endif()
+if(AETHER_BUILD_EDITOR_GPU_TESTS AND (NOT AETHER_BUILD_EDITOR_TESTS OR NOT AETHER_BUILD_EDITOR_IMGUI))
+    message(FATAL_ERROR "Editor GPU tests require editor tests and EditorImGui")
+endif()
 # 关闭严格别名和整数环绕优�?
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-fno-strict-overflow -fno-strict-aliasing)
@@ -24,6 +37,14 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
 
 add_subdirectory("Dependencies")
 add_subdirectory("Runtime")
+
+if(AETHER_BUILD_EDITOR)
+    add_subdirectory("Editor")
+endif()
+if(AETHER_BUILD_EDITOR_TESTS)
+    enable_testing()
+    add_subdirectory("Tests/EditorFramework.Tests")
+endif()
 
 add_subdirectory("Sandbox")
 

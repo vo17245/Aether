@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(GameFeature REQUIRED CONFIG)
+find_dependency(ProjectAsset REQUIRED CONFIG)
+find_dependency(World REQUIRED CONFIG)
+find_dependency(Filesystem REQUIRED CONFIG)
+include("${CMAKE_CURRENT_LIST_DIR}/EditorFrameworkTargets.cmake")

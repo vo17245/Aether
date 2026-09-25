@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <format>
 #include <functional>
+#include <exception>
 #include <queue>
 #include <stdexcept>
 #include <unordered_map>
@@ -18,6 +19,25 @@ World::~World() = default;
 void World::OnUpdate(float deltaTime)
 {
     Dispatch([&](System& system) { system.OnUpdate(deltaTime); });
+}
+void World::OnUpdatePhase(SystemUpdatePhase phase, float deltaTime)
+{
+    BuildPhaseExecutionOrder();
+    ++m_DispatchDepth;
+    try
+    {
+        for (auto* system : m_ExecutionOrder)
+        {
+            if (system->GetUpdatePhase() == phase)
+                system->OnUpdatePhase(phase, deltaTime);
+        }
+    }
+    catch (...)
+    {
+        --m_DispatchDepth;
+        throw;
+    }
+    --m_DispatchDepth;
 }
 bool World::NeedRebuildRenderGraph()
 {
@@ -61,6 +81,7 @@ void World::PushSystem(Scope<System>&& system)
     const bool previousOrderDirty = m_OrderDirty;
     m_Systems.push_back(std::move(system));
     m_OrderDirty = true;
+    m_PhaseOrderValid = false;
     try
     {
         rawSystem->OnAttach(this);
@@ -76,6 +97,7 @@ void World::PushSystem(Scope<System>&& system)
         }
         m_Systems.pop_back();
         m_OrderDirty = previousOrderDirty;
+        m_PhaseOrderValid = false;
         throw;
     }
 }
@@ -86,9 +108,13 @@ void World::EraseSystem(System* system)
     auto iter = std::find_if(m_Systems.begin(), m_Systems.end(), [&](const Scope<System>& ptr) { return ptr.get() == system; });
     if (iter != m_Systems.end())
     {
-        (*iter)->OnDetach();
+        std::exception_ptr detachFailure;
+        try { (*iter)->OnDetach(); }
+        catch (...) { detachFailure = std::current_exception(); }
         m_Systems.erase(iter);
         m_OrderDirty = true;
+        m_PhaseOrderValid = false;
+        if (detachFailure) std::rethrow_exception(detachFailure);
     }
 }
 void World::OnBuildRenderGraph(RenderGraph::RenderGraph& renderGraph)
@@ -190,6 +216,43 @@ void World::BuildExecutionOrder()
 
     m_ExecutionOrder = std::move(executionOrder);
     m_OrderDirty = false;
+    m_PhaseOrderValid = false;
+}
+
+void World::BuildPhaseExecutionOrder()
+{
+    if (m_PhaseOrderValid && !m_OrderDirty)
+        return;
+    EnsureExecutionOrder();
+
+    std::unordered_map<std::string, SystemUpdatePhase> phases;
+    phases.reserve(m_Systems.size());
+    for (const auto& system : m_Systems)
+        phases.emplace(std::string(system->GetSignature()), system->GetUpdatePhase());
+
+    for (const auto& system : m_Systems)
+    {
+        const auto dependentPhase = system->GetUpdatePhase();
+        for (const auto dependency : system->GetDependencies())
+        {
+            const auto dependencyPhase = phases.at(std::string(dependency));
+            if (SystemUpdatePhaseOrder(dependencyPhase) > SystemUpdatePhaseOrder(dependentPhase))
+                throw std::logic_error(std::format("system '{}' depends on later update phase system '{}'",
+                                                    system->GetSignature(), dependency));
+        }
+    }
+    m_PhaseOrderValid = true;
+}
+
+void World::ReplaceDataFrom(World& detached)
+{
+    if (m_DispatchDepth != 0 || detached.m_DispatchDepth != 0)
+        throw std::logic_error("cannot replace World data while either World is dispatching callbacks");
+    if (!detached.m_Systems.empty())
+        throw std::logic_error("replacement World must not own Systems");
+    m_Registry.swap(detached.m_Registry);
+    for (auto& system : m_Systems)
+        system->OnWorldDataReplaced();
 }
 
 std::vector<std::string_view> World::ExecutionOrderSignatures()
