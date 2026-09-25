@@ -213,7 +213,7 @@ void WindowContext::HandleEvent(const SDL_Event& event)
     if (event.type == SDL_EVENT_QUIT)
     {
         for (auto& [id, window] : Get().m_Windows)
-            window->m_ShouldClose = true;
+            window->RequestClose();
         return;
     }
 
@@ -287,7 +287,7 @@ void WindowContext::HandleEvent(const SDL_Event& event)
         window->PushEvent(WindowFocusGainedEvent());
         break;
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-        window->m_ShouldClose = true;
+        window->RequestClose();
         break;
     case SDL_EVENT_KEY_DOWN:
     {

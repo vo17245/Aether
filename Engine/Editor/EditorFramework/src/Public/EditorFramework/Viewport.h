@@ -107,6 +107,7 @@ public:
     bool Upsert(ViewportRequest request);
     bool Remove(std::string_view viewId);
     bool Focus(std::string_view viewId);
+    bool Suspend(std::string_view viewId, std::string reason);
     void SetUiCapture(bool mouse, bool keyboard) noexcept;
     std::expected<ViewportModel, std::string> Update(std::string_view viewId,
         const ViewportProviderRegistry& providers);

@@ -4,6 +4,7 @@
 #include <Render/PixelFormat.h>
 #include <ImGui/Compat/ImGuiRenderPacket.h>
 #include <Core/DisplaySurfaceToken.h>
+#include <Render/RenderGraph/Resource/ResourceId.h>
 #include <functional>
 #include <memory>
 #include <span>
@@ -42,10 +43,12 @@ struct ImGui_ImplRenderGraph_DisplaySurfaceBinding
     Aether::rhi::Texture2D* texture = nullptr;
     Aether::rhi::TextureView* view = nullptr;
     Aether::rhi::Sampler* sampler = nullptr;
+    Aether::RenderGraph::ResourceId<Aether::rhi::Texture2D> resourceId{};
     std::shared_ptr<const void> lease;
 };
 using ImGui_ImplRenderGraph_DisplaySurfaceResolver = std::function<std::optional<
-    ImGui_ImplRenderGraph_DisplaySurfaceBinding>(Aether::DisplaySurfaceToken)>;
+    ImGui_ImplRenderGraph_DisplaySurfaceBinding>(Aether::DisplaySurfaceToken,
+        const std::shared_ptr<const void>&, std::uint32_t)>;
 
 IMGUI_IMPL_API bool ImGui_ImplRenderGraph_Init(const ImGui_ImplRenderGraph_InitInfo& info = {});
 IMGUI_IMPL_API ImGui_ImplRenderGraph_Backend* ImGui_ImplRenderGraph_CreateBackend(
@@ -95,7 +98,8 @@ IMGUI_IMPL_API void ImGui_ImplRenderGraph_RenderPacket(
     std::shared_ptr<const Aether::ImGuiCompat::ImGuiRenderPacket> packet,
     Aether::RenderGraph::RenderGraph& graph,
     Aether::RenderGraph::AccessId<Aether::rhi::Texture2D> target,
-    bool clear = false, const Aether::Vec4f& clearColor = Aether::Vec4f(0, 0, 0, 0));
+    bool clear = false, const Aether::Vec4f& clearColor = Aether::Vec4f(0, 0, 0, 0),
+    std::uint32_t frameSlot = 0);
 
 struct ImGui_ImplRenderGraph_RenderState
 {

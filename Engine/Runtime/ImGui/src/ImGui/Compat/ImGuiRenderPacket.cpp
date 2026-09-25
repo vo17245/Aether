@@ -238,7 +238,11 @@ ImGuiRenderPacketExtractor::Extract(const ImDrawData& drawData)
                 else if (source.TexRef._TexID != ImTextureID_Invalid)
                 {
                     const auto surface = m_DisplaySurfaces.find(source.TexRef._TexID);
-                    if (surface != m_DisplaySurfaces.end()) command.displaySurface = surface->second;
+                    if (surface != m_DisplaySurfaces.end())
+                    {
+                        command.displaySurface = surface->second.token;
+                        command.displaySurfacePin = surface->second.pin;
+                    }
                     else command.texture = ResolveUserTexture(source.TexRef._TexID);
                 }
                 else
@@ -281,16 +285,17 @@ bool ImGuiRenderPacketExtractor::CommitAccepted(Extraction& extraction)
     return true;
 }
 
-ImTextureID ImGuiRenderPacketExtractor::RegisterDisplaySurface(DisplaySurfaceToken token)
+ImTextureID ImGuiRenderPacketExtractor::RegisterDisplaySurface(
+    DisplaySurfaceToken token, std::shared_ptr<const void> lifetimePin)
 {
-    if (!token.IsValid()) return ImTextureID_Invalid;
+    if (!token.IsValid() || !lifetimePin) return ImTextureID_Invalid;
     while (m_DisplaySurfaces.contains(m_NextDisplaySurface) || m_UserTextures.contains(m_NextDisplaySurface))
     {
         if (m_NextDisplaySurface == std::numeric_limits<ImTextureID>::max()) return ImTextureID_Invalid;
         ++m_NextDisplaySurface;
     }
     const auto handle = m_NextDisplaySurface;
-    m_DisplaySurfaces.emplace(handle, token);
+    m_DisplaySurfaces.emplace(handle, DisplaySurfaceRegistration{token, std::move(lifetimePin)});
     if (m_NextDisplaySurface != std::numeric_limits<ImTextureID>::max()) ++m_NextDisplaySurface;
     return handle;
 }

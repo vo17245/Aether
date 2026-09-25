@@ -20,6 +20,7 @@
 #include <ranges>
 #include "ImGui/Compat/ImGuiApi.h"
 #include <ImGui/Backend/imgui_impl_rendergraph.h>
+#include <Render/DisplaySurfaceService.h>
 #include <Debug/Log.h>
 
 namespace Aether
@@ -80,6 +81,7 @@ void Window::MaintainRenderFeatures(Render::RenderFrameContext& commandContext)
     m_RenderGraph.reset();
     for (const auto& feature : m_RenderFeatures)
         feature->OnGpuIdle(context);
+    if (m_DisplaySurfaces) m_DisplaySurfaces->CollectRetired();
     if (pending)
         for (const auto& feature : m_RenderFeatures)
             if (feature->HasPendingResourceUpdates())
@@ -150,14 +152,34 @@ void Window::InitializeRendering(Render::RenderThread& renderThread)
             m_RenderWindowState = initialState;
             if (!CreateRenderObject())
                 throw std::runtime_error("failed to create window Vulkan resources");
+            m_DisplaySurfaces = std::make_unique<Render::DisplaySurfaceService>(
+                *m_ResourceArena, m_InFlightResources->FrameSlotCount());
+            if (auto initialized = m_DisplaySurfaces->Initialize(); !initialized)
+                throw std::runtime_error("failed to initialize display surfaces: " + initialized.error());
             m_RenderFeatureServices.emplace(Render::RenderFeatureServices{
                 .resources = *m_InFlightResources,
                 .arena = *m_ResourceArena,
                 .uploads = m_PendingUploadList,
+                .displaySurfaces = *m_DisplaySurfaces,
             });
             m_ImGuiBackend = ImGui_ImplRenderGraph_CreateBackend();
             if (!m_ImGuiBackend)
                 throw std::runtime_error("failed to create ImGui GPU backend");
+            ImGui_ImplRenderGraph_SetDisplaySurfaceResolver(*m_ImGuiBackend,
+                [this](DisplaySurfaceToken token, const std::shared_ptr<const void>& pin, std::uint32_t frameSlot)
+                    -> std::optional<ImGui_ImplRenderGraph_DisplaySurfaceBinding> {
+                    if (!m_DisplaySurfaces) return std::nullopt;
+                    const auto resolved = m_DisplaySurfaces->ResolveForUi(token, pin, frameSlot);
+                    if (!resolved.texture || !resolved.view || !resolved.sampler || !resolved.lease)
+                        return std::nullopt;
+                    return ImGui_ImplRenderGraph_DisplaySurfaceBinding{
+                        .texture = resolved.texture,
+                        .view = resolved.view,
+                        .sampler = resolved.sampler,
+                        .resourceId = resolved.resourceId,
+                        .lease = resolved.lease,
+                    };
+                });
             m_RenderWindowStateVersion = initialState.version;
             CreateRenderGraph();
         }));
@@ -210,9 +232,14 @@ void Window::CleanupRenderingOnRenderThread()
     ImGuiWindowContextDestroy();
     ImGui_ImplRenderGraph_DestroyBackend(m_ImGuiBackend);
     m_ImGuiBackend = nullptr;
+    m_RenderFeatureServices.reset();
+    if (m_DisplaySurfaces)
+    {
+        m_DisplaySurfaces->ShutdownAfterGpuIdle();
+        m_DisplaySurfaces.reset();
+    }
     m_PendingUploadList.ReleaseAll();
     ReleaseVulkanObjects();
-    m_RenderFeatureServices.reset();
     m_RenderGraphDirty = true;
 }
 
@@ -221,6 +248,7 @@ Window::Window(Window&& other) noexcept
     m_Handle = other.m_Handle;
     other.m_Handle = nullptr;
     m_InFlightResources = std::move(other.m_InFlightResources);
+    m_CloseRequestGate = std::move(other.m_CloseRequestGate);
 }
 Window& Window::operator=(Window&& other) noexcept
 {
@@ -231,6 +259,7 @@ Window& Window::operator=(Window&& other) noexcept
         m_Handle = other.m_Handle;
         other.m_Handle = nullptr;
         m_InFlightResources = std::move(other.m_InFlightResources);
+        m_CloseRequestGate = std::move(other.m_CloseRequestGate);
     }
     return *this;
 }
@@ -240,7 +269,23 @@ SDL_Window* Window::GetHandle() const
 }
 bool Window::ShouldClose() const
 {
-    return m_ShouldClose;
+    return m_CloseRequestGate.ShouldClose();
+}
+void Window::SetCloseRequestHandler(std::function<void()> handler)
+{
+    m_CloseRequestGate.SetHandler(std::move(handler));
+}
+void Window::ConfirmClose()
+{
+    m_CloseRequestGate.Confirm();
+}
+void Window::CancelCloseRequest() noexcept
+{
+    m_CloseRequestGate.Cancel();
+}
+void Window::RequestClose()
+{
+    m_CloseRequestGate.Request();
 }
 void Window::DispatchEvent()
 {
@@ -542,6 +587,7 @@ void Window::ReleaseRenderObject()
     }
     // RenderGraph-owned views must be destroyed before their external final images.
     m_RenderGraph.reset();
+    if (m_DisplaySurfaces) m_DisplaySurfaces->CollectRetired();
     ReleaseFinalImage();
 }
 void Window::CleanupSurface()
@@ -931,6 +977,7 @@ void Window::OnRenderThread(Render::RenderFrameContext& context,
             m_RenderGraph.reset();
             for (const auto& feature : m_RenderFeatures)
                 feature->OnGpuIdle(context);
+            if (m_DisplaySurfaces) m_DisplaySurfaces->CollectRetired();
             CreateRenderGraph();
         }
     }
@@ -1215,7 +1262,7 @@ void Window::ImGuiRecordCommandBuffer(rhi::CommandList& commandBuffer)
     color.y() *= color.w();
     color.z() *= color.w();
     ImGui_ImplRenderGraph_RenderPacket(*m_ImGuiBackend, m_ImGuiRenderPacket,
-                                      graph, target, clear, color);
+                                      graph, target, clear, color, m_CurrentFrame);
     graph.Compile();
     graph.SetCommandBuffer(&commandBuffer);
     graph.Execute();
@@ -1227,6 +1274,17 @@ void Window::ImGuiWindowContextDestroy()
     m_ImGuiRenderPacket.reset();
     for (auto& frame : m_ImGuiContext.frames)
         frame.reset();
+}
+ImTextureID Window::RegisterDisplaySurfaceForUi(DisplaySurfaceToken token)
+{
+    if (!m_DisplaySurfaces) return ImTextureID_Invalid;
+    const auto publication = m_DisplaySurfaces->AcquireUiPublication(token);
+    if (!publication) return ImTextureID_Invalid;
+    return m_ImGuiPacketExtractor.RegisterDisplaySurface(token, publication->lifetimePin);
+}
+bool Window::UnregisterDisplaySurfaceForUi(ImTextureID textureId) noexcept
+{
+    return m_ImGuiPacketExtractor.UnregisterDisplaySurface(textureId);
 }
 void Window::Maximize()
 {
@@ -1284,6 +1342,7 @@ void Window::OnImageAcquired(std::uint32_t imageIndex, Render::RenderFrameContex
     m_ResourcePool->OnFrameBegin();
 
     m_ImGuiContext.frames[m_CurrentFrame].reset();
+    if (m_DisplaySurfaces) m_DisplaySurfaces->CollectRetired();
     // record command buffer
     auto& curCommandBufferVk = m_GraphicsCommandBuffer[m_CurrentFrame].GetVk();
     auto& curCommandBuffer = m_GraphicsCommandBuffer[m_CurrentFrame];

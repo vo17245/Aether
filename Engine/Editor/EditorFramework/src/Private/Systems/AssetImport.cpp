@@ -119,7 +119,10 @@ std::expected<PreparedAssetImport, std::string> PrepareImport(AssetImportRequest
         if (!std::filesystem::is_regular_file(input.sourcePath, ec) || ec)
             return std::unexpected("import input is not a regular file: " + input.sourcePath.string());
         const auto size = std::filesystem::file_size(input.sourcePath, ec);
-        if (ec || size > limits.maxSingleFileBytes || size > limits.maxTotalFileBytes - std::min(totalBytes, limits.maxTotalFileBytes))
+        const auto importerLimit = importer.maxInputBytes == 0
+            ? limits.maxSingleFileBytes : std::min(importer.maxInputBytes, limits.maxSingleFileBytes);
+        if (ec || size > importerLimit || size > limits.maxSingleFileBytes
+            || size > limits.maxTotalFileBytes - std::min(totalBytes, limits.maxTotalFileBytes))
             return std::unexpected("import input exceeds configured size limits: " + input.sourcePath.string());
         std::ifstream stream(input.sourcePath, std::ios::binary);
         if (!stream) return std::unexpected("could not read import input: " + input.sourcePath.string());

@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <memory>
 #include <span>
 #include <optional>
 #include <string>
@@ -40,6 +41,7 @@ struct ImGuiPacketCommand
     std::uint32_t vertexOffset = 0;
     TextureId texture = 0;
     std::optional<DisplaySurfaceToken> displaySurface;
+    std::shared_ptr<const void> displaySurfacePin;
     RenderCallbackId callback = 0;
     std::vector<std::byte> callbackPayload;
 };
@@ -130,7 +132,7 @@ public:
     // Call only after ReliableCommands + OptionalDrawPacket was accepted atomically.
     // A rejected submission leaves the ImGui texture state untouched and may retry.
     bool CommitAccepted(Extraction& extraction);
-    ImTextureID RegisterDisplaySurface(DisplaySurfaceToken token);
+    ImTextureID RegisterDisplaySurface(DisplaySurfaceToken token, std::shared_ptr<const void> lifetimePin);
     bool UnregisterDisplaySurface(ImTextureID textureId) noexcept;
 
 private:
@@ -142,7 +144,8 @@ private:
     TextureId m_NextTexture = TextureId{1} << 63;
     ImTextureID m_NextDisplaySurface = static_cast<ImTextureID>(1) << 62;
     std::unordered_map<ImTextureID, TextureId> m_UserTextures;
-    std::unordered_map<ImTextureID, DisplaySurfaceToken> m_DisplaySurfaces;
+    struct DisplaySurfaceRegistration { DisplaySurfaceToken token; std::shared_ptr<const void> pin; };
+    std::unordered_map<ImTextureID, DisplaySurfaceRegistration> m_DisplaySurfaces;
     std::unordered_map<ImTextureData*, TextureId> m_TextureData;
     std::unordered_map<ImDrawCallback, RenderCallbackId> m_Callbacks;
 };

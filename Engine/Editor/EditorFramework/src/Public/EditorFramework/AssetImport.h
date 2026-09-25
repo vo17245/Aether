@@ -53,6 +53,8 @@ struct AssetImporterDescriptor
     std::function<bool(std::span<const std::byte>)> probe;
     std::function<std::expected<AssetImportProduct, std::string>(
         const std::vector<ImportInputData>&, const Json&)> import;
+    // Checked before allocating ImportInputData::contents. Zero uses the project limit.
+    std::uint64_t maxInputBytes = 0;
 };
 
 class AssetImporterRegistry

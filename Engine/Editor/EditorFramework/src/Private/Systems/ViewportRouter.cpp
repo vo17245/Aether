@@ -70,6 +70,16 @@ bool ViewportRouter::Focus(std::string_view viewId)
     return true;
 }
 
+bool ViewportRouter::Suspend(std::string_view viewId, std::string reason)
+{
+    const auto found = m_Views.find(std::string(viewId));
+    if (found == m_Views.end()) return false;
+    found->second.status = ViewportStatus::Suspended;
+    found->second.output = {};
+    found->second.error = std::move(reason);
+    return true;
+}
+
 void ViewportRouter::SetUiCapture(bool mouse, bool keyboard) noexcept
 {
     m_CaptureMouse = mouse;

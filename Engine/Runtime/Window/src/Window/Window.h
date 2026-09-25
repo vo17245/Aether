@@ -1,5 +1,6 @@
 #pragma once
 #include "Render/Render.h"
+#include "CloseRequestGate.h"
 
 #include <memory>
 #include <deque>
@@ -19,6 +20,7 @@
 #include <Render/Feature/RenderFeature.h>
 #include <unordered_map>
 #include <optional>
+#include <functional>
 
 struct ImGui_ImplRenderGraph_Backend;
 
@@ -76,6 +78,9 @@ public:
     Window& operator=(Window&& other) noexcept;
     SDL_Window* GetHandle() const;
     bool ShouldClose() const;
+    void SetCloseRequestHandler(std::function<void()> handler);
+    void ConfirmClose();
+    void CancelCloseRequest() noexcept;
     void DispatchEvent();
     /**
      * @brief Create a window
@@ -152,6 +157,10 @@ public:
         return *m_RenderGraph;
     }
     void ImGuiWindowContextDestroy();
+    // Registers a window-owned RenderGraph surface as an ImGui texture handle.
+    // Call on the UI thread after the render feature publishes the token.
+    ImTextureID RegisterDisplaySurfaceForUi(DisplaySurfaceToken token);
+    bool UnregisterDisplaySurfaceForUi(ImTextureID textureId) noexcept;
     ImGuiApi::WindowContext& GetImGuiContext()
     {
         return m_ImGuiContext;
@@ -230,6 +239,7 @@ private:
     void CreateCommandBuffer();
     bool ResizeFinalImage(const Vec2u& size);
     void OnWindowResize(const Vec2u& size);
+    void RequestClose();
 
 private:
     Input m_Input;
@@ -239,6 +249,7 @@ private: // render graph
     Scope<RenderGraph::ResourceLruPool> m_ResourcePool;
     Scope<RenderGraph::RenderGraph> m_RenderGraph;
     Scope<InFlightResourceAllocator> m_InFlightResources;
+    Scope<Render::DisplaySurfaceService> m_DisplaySurfaces;
     std::optional<Render::RenderFeatureServices> m_RenderFeatureServices;
     Render::RenderFeatureFrame m_ExtractedRenderFrame;
     RenderCommandExtraction m_ExtractedRenderCommands;
@@ -280,7 +291,7 @@ private:
     WindowState m_RenderWindowState;
     std::uint64_t m_SubmittedWindowStateVersion = 0;
     std::uint64_t m_RenderWindowStateVersion = 0;
-    bool m_ShouldClose = false;
+    CloseRequestGate m_CloseRequestGate;
     bool m_SerialRenderThread = false;
     bool m_NonBlockingRenderSubmit = false;
     std::uint64_t m_FrameSubmissionGenerations[MAX_FRAMES_IN_FLIGHT]{};

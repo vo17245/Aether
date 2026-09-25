@@ -137,7 +137,9 @@ void TestDisplaySurfaceToken()
 
     ImGuiRenderPacketExtractor extractor;
     const Aether::DisplaySurfaceToken expected{.id = 41, .generation = 7};
-    const ImTextureID texture = extractor.RegisterDisplaySurface(expected);
+    auto oldPin = std::make_shared<int>(41);
+    std::weak_ptr<int> oldWeak = oldPin;
+    const ImTextureID texture = extractor.RegisterDisplaySurface(expected, oldPin);
     Check(texture != ImTextureID_Invalid, "display surface handle allocation failed");
     ImDrawCmd draw;
     draw.ClipRect = {0, 0, 20, 20};
@@ -153,7 +155,25 @@ void TestDisplaySurfaceToken()
     const auto& command = extracted->packet.commands.front();
     Check(command.displaySurface && *command.displaySurface == expected && command.texture == 0,
           "display surface token was mixed with a numeric texture ID");
+    auto inFlightPacket = std::make_shared<ImGuiRenderPacket>(std::move(extracted->packet));
     Check(extractor.UnregisterDisplaySurface(texture), "registered display surface was not removed");
+    oldPin.reset();
+    Check(!oldWeak.expired(), "in-flight packet did not retain its display surface generation");
+
+    const Aether::DisplaySurfaceToken replacement{.id = 41, .generation = 8};
+    auto replacementPin = std::make_shared<int>(42);
+    const ImTextureID replacementTexture = extractor.RegisterDisplaySurface(replacement, replacementPin);
+    Check(replacementTexture != ImTextureID_Invalid && replacementTexture != texture,
+          "replacement generation reused a stale ImGui handle");
+    list.CmdBuffer[0].TexRef = ImTextureRef(replacementTexture);
+    auto replacementPacket = extractor.Extract(data);
+    Check(replacementPacket && replacementPacket->packet.commands[0].displaySurface == replacement,
+          "replacement generation was not extracted independently");
+    Check(extractor.UnregisterDisplaySurface(replacementTexture), "replacement surface handle was not removed");
+    replacementPin.reset();
+    Check(!oldWeak.expired(), "replacement extraction invalidated an older in-flight packet");
+    inFlightPacket.reset();
+    Check(oldWeak.expired(), "retired display surface generation remained pinned after its packet was released");
 }
 } // namespace
 

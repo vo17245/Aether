@@ -522,7 +522,7 @@ void ImGui_ImplRenderGraph_RenderPacket(
     ImGui_ImplRenderGraph_Backend& backend,
     std::shared_ptr<const ImGuiCompat::ImGuiRenderPacket> packet,
     RG::RenderGraph& graph, RG::AccessId<rhi::Texture2D> target,
-    bool clear, const Vec4f& clearColor)
+    bool clear, const Vec4f& clearColor, std::uint32_t frameSlot)
 {
     if (!packet || packet->displaySize[0] <= 0.0f || packet->displaySize[1] <= 0.0f)
         return;
@@ -568,7 +568,12 @@ void ImGui_ImplRenderGraph_RenderPacket(
     {
         if (!backend.displaySurfaceResolver)
             throw std::runtime_error("ImGui packet uses a display surface without a resolver");
-        auto resolved = backend.displaySurfaceResolver(token);
+        const auto command = std::ranges::find_if(packet->commands, [token](const auto& item) {
+            return item.type == ImGuiCompat::ImGuiPacketCommandType::Draw && item.displaySurface == token;
+        });
+        if (command == packet->commands.end())
+            throw std::logic_error("ImGui display surface lost its packet lifetime pin");
+        auto resolved = backend.displaySurfaceResolver(token, command->displaySurfacePin, frameSlot);
         if (!resolved || !resolved->texture || !resolved->view || !resolved->sampler || !resolved->lease)
             throw std::runtime_error("ImGui display surface is unavailable or has no lifetime lease");
 
@@ -583,10 +588,11 @@ void ImGui_ImplRenderGraph_RenderPacket(
         desc.pixelFormat = resolved->texture->GetFormat();
         desc.usages = resolved->texture->GetUsages();
         desc.layout = rhi::TextureLayout::ShaderReadOnly;
-        auto resource = graph.GetResourceArena().Import(resolved->texture);
+        if (!resolved->resourceId.handle.IsValid())
+            throw std::runtime_error("ImGui display surface has no stable ResourceArena registration");
         const auto surfaceAccess = graph.Import<rhi::Texture2D>(
             tag + ".Surface." + std::to_string(token.id) + "." + std::to_string(token.generation),
-            desc, std::span<const RG::ResourceId<rhi::Texture2D>>(&resource, 1));
+            desc, std::span<const RG::ResourceId<rhi::Texture2D>>(&resolved->resourceId, 1));
         sampledTextures.push_back(surfaceAccess);
         surfaceBindings->emplace(token, PacketSurfaceBinding{std::move(binding), std::move(resolved->lease)});
     }

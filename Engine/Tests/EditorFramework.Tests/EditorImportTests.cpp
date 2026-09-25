@@ -142,6 +142,13 @@ int main()
     request.inputs.push_back({"primary.mesh", sourcePath});
     request.settings = Json{{"scale", 1.0}};
     request.displayPath = "Meshes/Imported";
+    auto boundedImporter = *importers.Find(importer.id);
+    boundedImporter.maxInputBytes = 4;
+    auto oversizedTask = StartAssetImport(request, boundedImporter, importRoot);
+    auto oversizedPrepared = oversizedTask.result.get();
+    assert(!oversizedPrepared);
+    assert(oversizedPrepared.error().find("size limits") != std::string::npos);
+
     auto task = StartAssetImport(request, *importers.Find(importer.id), importRoot);
     auto prepared = task.result.get();
     assert(prepared);

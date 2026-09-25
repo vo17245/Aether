@@ -76,6 +76,11 @@ int main()
         fake.id, 0.0, 0.0, 1.0, 1}));
     auto suspended = router.Update("view.suspended", providers);
     assert(suspended && suspended->status == ViewportStatus::Suspended);
+    assert(router.Suspend("view.main", "Loading viewport surface"));
+    const auto loading = router.Find("view.main");
+    assert(loading && loading->status == ViewportStatus::Suspended
+        && loading->error == "Loading viewport surface" && !loading->output.surface.IsValid()
+        && !loading->output.ownedPayload);
     router.Remove("view.main");
     assert(!router.FocusedView());
 }

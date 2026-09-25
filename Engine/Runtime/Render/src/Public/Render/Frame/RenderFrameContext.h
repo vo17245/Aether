@@ -19,6 +19,8 @@ class ResourceArena;
 
 namespace Aether::Render
 {
+class DisplaySurfaceService;
+
 using CpuFrameId = std::uint64_t;
 using SubmissionSerial = std::uint64_t;
 
@@ -29,6 +31,7 @@ struct RenderFeatureServices
     InFlightResourceAllocator& resources;
     RenderGraph::ResourceArena& arena;
     PendingUploadList& uploads;
+    DisplaySurfaceService& displaySurfaces;
 };
 
 struct RenderFrameContext
