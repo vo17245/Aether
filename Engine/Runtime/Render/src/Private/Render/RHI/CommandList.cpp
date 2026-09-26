@@ -8,8 +8,11 @@ void CommandList::DownloadTexture(Texture2D& src, StagingBuffer& dst,
                                   std::span<const TextureDownloadRegion> regions)
 {
     if (regions.empty()) return;
-    if (src.GetFormat() != PixelFormat::R_UINT32 && src.GetFormat() != PixelFormat::R_FLOAT32)
-        throw std::invalid_argument("texture download supports only R32_UINT and R32_SFLOAT");
+    const auto format = src.GetFormat();
+    if (format != PixelFormat::R_UINT32 && format != PixelFormat::R_FLOAT32
+        && format != PixelFormat::RGBA8888 && format != PixelFormat::RGBA8888_UNKNOWN
+        && format != PixelFormat::RGBA8888_SRGB && format != PixelFormat::RGBA8888_UInt)
+        throw std::invalid_argument("texture download supports R32 and RGBA8 formats");
     if (!(src.GetVk().GetVkUsageFlags() & VK_IMAGE_USAGE_TRANSFER_SRC_BIT))
         throw std::invalid_argument("texture download source lacks TRANSFER_SRC usage");
     const auto usage = static_cast<std::underlying_type_t<vk::Buffer::Usage>>(dst.GetVk().GetUsage());
@@ -296,7 +299,21 @@ static constexpr inline VkCompareOp RHICompareOpToVk(CompareOp op)
         renderingInfo.colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size());
         renderingInfo.pColorAttachments = colorAttachments.data();
         renderingInfo.pDepthAttachment = pass.depthAttachment ? &depthAttachment : nullptr;
-        vkCmdBeginRendering(std::get<vk::GraphicsCommandBuffer>(m_Data).GetHandle(), &renderingInfo);
+
+        // Separate dynamic-rendering scopes may access the same attachments without a
+        // layout transition. Preserve attachment ordering across those scopes explicitly.
+        VkMemoryBarrier attachmentBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        attachmentBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+            | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        attachmentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+            | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+            | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        constexpr VkPipelineStageFlags attachmentStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+            | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        auto commandBuffer = std::get<vk::GraphicsCommandBuffer>(m_Data).GetHandle();
+        vkCmdPipelineBarrier(commandBuffer, attachmentStages, attachmentStages, 0,
+                             1, &attachmentBarrier, 0, nullptr, 0, nullptr);
+        vkCmdBeginRendering(commandBuffer, &renderingInfo);
     }
 
     void CommandList::EndRenderPass()

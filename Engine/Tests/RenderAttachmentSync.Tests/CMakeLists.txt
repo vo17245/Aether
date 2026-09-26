@@ -1,0 +1,2 @@
+add_executable(RenderAttachmentSync.Tests EXCLUDE_FROM_ALL main.cpp)
+target_link_libraries(RenderAttachmentSync.Tests PRIVATE Entry)

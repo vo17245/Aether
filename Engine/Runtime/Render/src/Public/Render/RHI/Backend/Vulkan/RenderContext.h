@@ -25,6 +25,7 @@ public:
     {
         bool enableValidationLayers = false;
         bool enableDynamicRendering = false;
+        bool enableSynchronizationValidation = false;
     };
 private:
     Config m_Config;

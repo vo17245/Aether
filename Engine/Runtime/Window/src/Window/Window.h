@@ -44,6 +44,8 @@ struct WindowCreateParam
     bool serialRenderThread = false;
     // Drop a frame when the bounded RenderThread queue is full; the next tick re-extracts it.
     bool nonBlockingRenderSubmit = false;
+    // Enable VK_LAYER_KHRONOS_validation synchronization checks for GPU smoke tests.
+    bool enableSynchronizationValidation = false;
 };
 enum class WindowRenderIdleReason : std::uint8_t
 {

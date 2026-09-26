@@ -121,13 +121,15 @@ int main()
         if (Audio::Init() != 0)
             throw std::runtime_error("failed to initialize audio");
         audioInitialized = true;
-        window.reset(Window::Create(app->MainWindowCreateParam()));
+        const auto windowParams = app->MainWindowCreateParam();
+        window.reset(Window::Create(windowParams));
         if (!window)
             throw std::runtime_error("failed to create the main window");
         // Window/surface must be released before the Vulkan context.
         vk::RenderContext::Config config;
         config.enableValidationLayers = true;
         config.enableDynamicRendering = true;
+        config.enableSynchronizationValidation = windowParams.enableSynchronizationValidation;
         vk::InitResource initResource;
         initResource.instanceExtensions = WindowContext::RequiredVulkanInstanceExtensions();
         initResource.createSurface = [windowPtr = window.get()](VkInstance instance) {

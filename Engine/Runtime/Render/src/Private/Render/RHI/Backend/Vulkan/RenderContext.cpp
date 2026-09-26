@@ -141,6 +141,12 @@ void RenderContext::CreateInstance(const InitResource& resource)
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
     auto extensions = GetRequiredExtensions(resource);
+    if (m_Config.enableSynchronizationValidation)
+    {
+        if (!m_Config.enableValidationLayers)
+            throw std::invalid_argument("synchronization validation requires Vulkan validation layers");
+        extensions.push_back(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME);
+    }
 #ifdef __APPLE__
     if (ContainsExtension(extensions, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME))
         createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
@@ -148,13 +154,25 @@ void RenderContext::CreateInstance(const InitResource& resource)
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+    VkValidationFeatureEnableEXT enabledValidationFeature = VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT;
+    VkValidationFeaturesEXT validationFeatures{VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
     if (m_Config.enableValidationLayers)
     {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
 
         PopulateDebugMessengerCreateInfo(debugCreateInfo);
-        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+        if (m_Config.enableSynchronizationValidation)
+        {
+            validationFeatures.enabledValidationFeatureCount = 1;
+            validationFeatures.pEnabledValidationFeatures = &enabledValidationFeature;
+            validationFeatures.pNext = &debugCreateInfo;
+            createInfo.pNext = &validationFeatures;
+        }
+        else
+        {
+            createInfo.pNext = &debugCreateInfo;
+        }
     }
     else
     {
