@@ -1,12 +1,20 @@
 #pragma once
 #include <Window/Window.h>
 #include "InitParams.h"
+#include <span>
+#include <string_view>
 namespace Aether
 {
     class Application
     {
     public:
         virtual ~Application() = default;
+        // Called before engine initialization. Arguments exclude the executable name
+        // and remain valid until shutdown. Return false to exit with status 1.
+        virtual bool OnCommandLineArguments(std::span<const std::string_view> arguments)
+        {
+            return true;
+        }
         virtual void OnInit(Window& window)
         {
             // e.q. push layer

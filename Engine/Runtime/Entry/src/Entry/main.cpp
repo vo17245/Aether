@@ -8,6 +8,8 @@
 #include <Render/Threads/RenderThread.h>
 #include <MainLoop/MainLoop.h>
 #include <stdexcept>
+#include <string_view>
+#include <vector>
 using namespace Aether;
 namespace Aether
 {
@@ -30,10 +32,14 @@ void HandleGlobalThreadPoolCompleteTasks()
     }
 }
 } // namespace
-int main()
+int main(int argc, char* argv[])
 {
+    std::vector<std::string_view> arguments;
+    arguments.reserve(argc > 1 ? static_cast<std::size_t>(argc - 1) : 0);
+    for (int i = 1; i < argc; ++i) arguments.emplace_back(argv[i]);
     auto app = std::unique_ptr<Application>(CreateApplication());
     if (!app) return -1;
+    if (!app->OnCommandLineArguments(arguments)) return 1;
     const auto initParams = app->GetInitParams();
     std::unique_ptr<Window> window;
     bool threadPoolInitialized = false;
