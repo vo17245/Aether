@@ -1,0 +1,16 @@
+#pragma once
+#define AETHER_SCRIPT_DOTNET_ROOT R"aether(@SCRIPT_DOTNET_ROOT@)aether"
+#define AETHER_SCRIPT_HOSTFXR_PATH R"aether(@SCRIPT_HOSTFXR_PATH@)aether"
+namespace Aether::Script::Detail
+{
+inline constexpr char RuntimeConfig[] = R"aether({
+  "runtimeOptions": {
+    "tfm": "@SCRIPT_DOTNET_TFM@",
+    "framework": {
+      "name": "Microsoft.NETCore.App",
+      "version": "@SCRIPT_DOTNET_RUNTIME_VERSION@"
+    },
+    "rollForward": "LatestPatch"
+  }
+})aether";
+}

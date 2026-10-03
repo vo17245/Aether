@@ -1,6 +1,8 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.18)
 project(Aether)
 set(CMAKE_CXX_STANDARD 23)
+option(AETHER_BUILD_SCRIPT "Build the .NET Script module" ON)
+option(AETHER_BUILD_SCRIPT_TESTS "Build .NET Script integration tests" ${AETHER_BUILD_TESTS})
 option(AETHER_BUILD_EDITOR "Build editor framework libraries" OFF)
 option(AETHER_BUILD_EDITOR_IMGUI "Build optional ImGui editor adapter" OFF)
 option(AETHER_BUILD_EDITOR_TESTS "Build editor framework tests" OFF)
@@ -37,6 +39,14 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/Vendor/"
 
 add_subdirectory("Dependencies")
 add_subdirectory("Runtime")
+
+if(AETHER_BUILD_SCRIPT_TESTS)
+    if(NOT AETHER_BUILD_SCRIPT)
+        message(FATAL_ERROR "AETHER_BUILD_SCRIPT_TESTS requires AETHER_BUILD_SCRIPT")
+    endif()
+    enable_testing()
+    add_subdirectory("Tests/Script.Tests")
+endif()
 
 if(AETHER_BUILD_EDITOR)
     add_subdirectory("Editor")

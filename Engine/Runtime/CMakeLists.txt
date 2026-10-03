@@ -1,4 +1,7 @@
 add_subdirectory("Core")
+if(AETHER_BUILD_SCRIPT)
+add_subdirectory("Script")
+endif()
 add_subdirectory("Physics")
 add_subdirectory("Render")
 add_subdirectory("Filesystem")
