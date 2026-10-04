@@ -1,4 +1,5 @@
 #pragma once
+#define AETHER_SCRIPT_DOTNET_TFM "@SCRIPT_DOTNET_TFM@"
 #define AETHER_SCRIPT_DOTNET_ROOT R"aether(@SCRIPT_DOTNET_ROOT@)aether"
 #define AETHER_SCRIPT_HOSTFXR_PATH R"aether(@SCRIPT_HOSTFXR_PATH@)aether"
 namespace Aether::Script::Detail

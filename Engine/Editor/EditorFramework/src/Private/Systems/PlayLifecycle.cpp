@@ -35,6 +35,7 @@ PlayResult<void> StartPlay(PlaySessionComponent& session, const World& authoring
     context.role = GameFeatures::WorldRole::Play;
     context.worldInstanceId = GameFeatures::WorldInstanceId::Create();
     context.catalog = catalog;
+    context.projectRoot = projectRoot;
     auto mounted = mountScope->Mount(*clone->world, context, runtime.Systems());
     if (!mounted)
     {
@@ -100,6 +101,7 @@ PlayResult<std::uint32_t> AdvancePlay(PlaySessionComponent& session, double delt
     std::uint32_t steps = 0;
     try
     {
+        session.playWorld->OnUpdatePhase(SystemUpdatePhase::HostUpdate, static_cast<float>(deltaTimeSeconds));
         while (steps < session.clock.maxCatchUpSteps && session.clock.accumulatorSeconds >= session.clock.fixedStepSeconds)
         {
             session.playWorld->OnUpdatePhase(SystemUpdatePhase::Simulation, static_cast<float>(session.clock.fixedStepSeconds));

@@ -117,7 +117,15 @@ native 回调在托管代码仍可能调用它时必须保持有效；C# 需持�
 托管入口必须自行处理异常，避免异常穿过 native 调用边界。
 
 程序集加载到默认 AssemblyLoadContext。多个 Runtime 共享进程内的 CoreCLR；
-销毁 Runtime 不会关闭 CoreCLR 或卸载程序集，当前模块不提供热重载或隔离卸载。
+销毁 Runtime 不会关闭 CoreCLR 或卸载程序集，默认 Create 接口保留该行为。
+
+`Runtime::CreateReloadable()` 创建独立的 collectible AssemblyLoadContext，使用
+LoadFromStream 读取 DLL 及其托管依赖，不长期锁定 DLL 文件。每次创建上下文都会读取
+当前磁盘版本，相同程序集名称也不会复用上次运行的脚本或静态状态。Runtime 和 Function
+共享上下文寿命，最后一个引用释放后请求卸载；实际回收由 CoreCLR 协作式 GC 完成。
+同一上下文的加载、解析和调用由调用方串行执行，脚本需自行停止后台任务和释放外部引用。
+桥接 IL 嵌入 Script 库，无需额外部署桥接 DLL。`GetTargetFramework()` 返回当前运行时
+支持的目标框架，供编辑器调用同一个 SDK 编译脚本。
 使用者无需提供、部署或传入 `.runtimeconfig.json`。`Runtime::Create()` 将内置 JSON
 写入唯一临时目录，在 hostfxr 初始化及 delegate 获取完成、初始化上下文关闭后，删除文件
 和目录。POSIX 使用 `mkdtemp` 创建仅当前用户可访问的目录。框架版本取自构建时的 dotnet root，

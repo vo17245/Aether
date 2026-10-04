@@ -1,5 +1,7 @@
 #include "Runtime.h"
 #include "ScriptConfig.h"
+#include "BridgeAssembly.h"
+#include <mutex>
 #include "Private/TemporaryRuntimeConfig.h"
 #include <coreclr_delegates.h>
 #include <hostfxr.h>
@@ -101,12 +103,74 @@ struct Runtime::State
 {
     load_assembly_fn loadAssembly = nullptr;
     get_function_pointer_fn getFunction = nullptr;
+    void* session = nullptr;
+    using Load = int32_t(AETHER_SCRIPT_CALL*)(void*, const char*, char*, int32_t);
+    using Resolve = int32_t(AETHER_SCRIPT_CALL*)(void*, const char*, const char*, void**, char*, int32_t);
+    using Release = void(AETHER_SCRIPT_CALL*)(void*);
+    Load reloadableLoad = nullptr;
+    Resolve reloadableResolve = nullptr;
+    Release release = nullptr;
+    ~State() { if (session && release) release(session); }
 };
 
 std::filesystem::path Runtime::GetDotnetRoot()
 {
     constexpr std::string_view root = AETHER_SCRIPT_DOTNET_ROOT;
     return std::filesystem::path(std::u8string(root.begin(), root.end()));
+}
+
+std::string_view Runtime::GetTargetFramework() { return AETHER_SCRIPT_DOTNET_TFM; }
+
+std::optional<Runtime> Runtime::CreateReloadable(std::string* error)
+{
+    auto host = Create(error);
+    if (!host) return std::nullopt;
+    // Bridge initialization is shared, while every returned Runtime gets a new context.
+    static std::mutex mutex;
+    static bool loaded = false;
+    std::lock_guard lock(mutex);
+    if (!loaded)
+    {
+        static const HostingApi api;
+        const Detail::TemporaryRuntimeConfig config(Detail::RuntimeConfig);
+        const auto root = GetDotnetRoot().native();
+        const hostfxr_initialize_parameters parameters{sizeof(hostfxr_initialize_parameters), nullptr, root.c_str()};
+        HostContext context{nullptr, api.close};
+        auto status = api.initialize(config.Path().c_str(), &parameters, &context.handle);
+        void* loader = nullptr;
+        if (status >= 0 && context.handle)
+            status = api.getDelegate(context.handle, hdt_load_assembly_bytes, &loader);
+        if (status < 0 || !loader)
+        {
+            FailStatus(error, "Failed to get bridge loader", status);
+            return std::nullopt;
+        }
+        status = reinterpret_cast<load_assembly_bytes_fn>(loader)(Detail::BridgeAssembly,
+            sizeof(Detail::BridgeAssembly), nullptr, 0, nullptr, nullptr);
+        if (status < 0)
+        {
+            FailStatus(error, "Failed to load Script bridge", status);
+            return std::nullopt;
+        }
+        loaded = true;
+    }
+    constexpr auto type = "Aether.Script.Bridge, Aether.Script.Bridge";
+    const auto create = host->LoadFunction<void*()>(type, "Create", error);
+    if (!create) return std::nullopt;
+    auto state = std::make_shared<State>();
+    state->reloadableLoad = reinterpret_cast<State::Load>(host->ResolveFunction(type, "Load", error));
+    if (!state->reloadableLoad) return std::nullopt;
+    state->reloadableResolve = reinterpret_cast<State::Resolve>(host->ResolveFunction(type, "Resolve", error));
+    if (!state->reloadableResolve) return std::nullopt;
+    state->release = reinterpret_cast<State::Release>(host->ResolveFunction(type, "Release", error));
+    if (!state->release) return std::nullopt;
+    state->session = create();
+    if (!state->session)
+    {
+        Fail(error, "Failed to create reloadable Script context");
+        return std::nullopt;
+    }
+    return Runtime(std::move(state));
 }
 
 std::optional<Runtime> Runtime::Create(std::string* error)
@@ -160,6 +224,14 @@ bool Runtime::LoadAssembly(const std::filesystem::path& assembly, std::string* e
     ClearError(error);
     if (!m_State) return Fail(error, "Runtime has been moved from");
     if (assembly.empty()) return Fail(error, "IL assembly path is empty");
+    if (m_State->session)
+    {
+        const auto utf8 = std::filesystem::absolute(assembly).u8string();
+        char message[4096]{};
+        const auto result = m_State->reloadableLoad(m_State->session,
+            reinterpret_cast<const char*>(utf8.c_str()), message, sizeof(message));
+        return result == 0 || Fail(error, "Failed to load IL assembly: " + std::string(message));
+    }
     const auto path = std::filesystem::absolute(assembly).native();
     const auto result = m_State->loadAssembly(path.c_str(), nullptr, nullptr);
     return result >= 0 || FailStatus(error, "Failed to load IL assembly", result);
@@ -178,6 +250,15 @@ void* Runtime::ResolveFunction(std::string_view typeName, std::string_view metho
     {
         Fail(error, "Managed type and method names must be nonempty and contain no null bytes");
         return nullptr;
+    }
+    if (m_State->session)
+    {
+        void* function = nullptr;
+        char message[4096]{};
+        const auto result = m_State->reloadableResolve(m_State->session,
+            std::string(typeName).c_str(), std::string(methodName).c_str(), &function, message, sizeof(message));
+        if (result != 0) Fail(error, "Failed to resolve managed method: " + std::string(message));
+        return function;
     }
     const auto type = HostString(typeName);
     const auto method = HostString(methodName);

@@ -5,6 +5,7 @@
 #include <World/World.h>
 
 #include <functional>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -19,6 +20,7 @@ struct WorldMountContext
     WorldRole role = WorldRole::Authoring;
     WorldInstanceId worldInstanceId;
     std::shared_ptr<const ProjectAssets::CatalogSnapshot> catalog;
+    std::filesystem::path projectRoot;
 };
 
 struct SystemRegistration

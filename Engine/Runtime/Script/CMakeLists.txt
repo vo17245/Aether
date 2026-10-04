@@ -61,7 +61,28 @@ string(REGEX MATCH "^[0-9]+\\.[0-9]+" _runtime_family "${SCRIPT_DOTNET_RUNTIME_V
 set(SCRIPT_DOTNET_TFM "net${_runtime_family}")
 configure_file(CMake/ScriptConfig.h.in generated/ScriptConfig.h @ONLY)
 
-add_library(${MODULE_NAME} STATIC src/Script/Runtime.cpp src/Private/TemporaryRuntimeConfig.cpp)
+if(WIN32)
+    set(_dotnet "${SCRIPT_DOTNET_ROOT}/dotnet.exe")
+else()
+    set(_dotnet "${SCRIPT_DOTNET_ROOT}/dotnet")
+endif()
+set(_bridge_dir "${CMAKE_CURRENT_BINARY_DIR}/ManagedBridge")
+set(_bridge_header "${CMAKE_CURRENT_BINARY_DIR}/generated/BridgeAssembly.h")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/empty-nuget")
+add_custom_command(OUTPUT "${_bridge_header}"
+    COMMAND "${CMAKE_COMMAND}" -E env
+        "DOTNET_CLI_HOME=${CMAKE_CURRENT_BINARY_DIR}/.dotnet"
+        "DOTNET_CLI_TELEMETRY_OPTOUT=1" "DOTNET_NOLOGO=1"
+        "${_dotnet}" build "${CMAKE_CURRENT_SOURCE_DIR}/Managed/Bridge.csproj"
+        --configuration Release --output "${_bridge_dir}"
+        --source "${CMAKE_CURRENT_BINARY_DIR}/empty-nuget"
+        "-p:AetherTargetFramework=${SCRIPT_DOTNET_TFM}"
+        "-p:BaseIntermediateOutputPath=${CMAKE_CURRENT_BINARY_DIR}/bridge-obj/"
+    COMMAND "${CMAKE_COMMAND}"
+        "-DINPUT=${_bridge_dir}/Aether.Script.Bridge.dll" "-DOUTPUT=${_bridge_header}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/CMake/EmbedBridge.cmake"
+    DEPENDS Managed/Bridge.cs Managed/Bridge.csproj CMake/EmbedBridge.cmake VERBATIM)
+add_library(${MODULE_NAME} STATIC src/Script/Runtime.cpp src/Private/TemporaryRuntimeConfig.cpp "${_bridge_header}")
 add_library(Aether::Script ALIAS Script)
 set_property(TARGET Script PROPERTY AETHER_SCRIPT_DOTNET_ROOT "${SCRIPT_DOTNET_ROOT}")
 target_compile_features(${MODULE_NAME} PUBLIC cxx_std_23)

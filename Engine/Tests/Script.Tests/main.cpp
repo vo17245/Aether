@@ -122,6 +122,24 @@ int main(int argc, char** argv)
     CHECK(!empty);
     try { empty(); CHECK(false); }
     catch (const std::bad_function_call&) {}
+    // Fresh contexts reset static state and keep escaped functions alive.
+    auto reloadable = Runtime::CreateReloadable(&error);
+    CHECK(reloadable);
+    CHECK(reloadable->LoadAssembly(Utf8Path(argv[1]), &error));
+    auto freshCount = reloadable->LoadFunction<int32_t()>(type, "Count", &error);
+    auto freshNotify = reloadable->LoadFunction<void()>(type, "Notify", &error);
+    CHECK(freshCount && freshNotify);
+    CHECK(freshCount() == 0);
+    freshNotify();
+    CHECK(freshCount() == 1);
+    CHECK(!reloadable->LoadFunction<int32_t()>(type, "OrdinaryMethod", &error));
+    CHECK(!error.empty());
+    reloadable.reset();
+    CHECK(freshCount() == 1);
+    auto isolated = Runtime::CreateReloadable(&error);
+    CHECK(isolated && isolated->LoadAssembly(Utf8Path(argv[1]), &error));
+    CHECK(isolated->LoadFunction<int32_t()>(type, "Count", &error)() == 0);
+    CHECK(freshCount() == 1);
     std::cout << "Script integration tests passed\n";
     return 0;
 }

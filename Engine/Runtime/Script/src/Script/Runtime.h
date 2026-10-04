@@ -11,7 +11,8 @@
 
 namespace Aether::Script
 {
-// Hosts framework-dependent IL assemblies in CoreCLR's default load context.
+// Hosts framework-dependent IL assemblies in CoreCLR. Create uses the default
+// load context; CreateReloadable uses an isolated collectible context.
 // CoreCLR and its hosting library remain loaded for the process lifetime.
 class Runtime
 {
@@ -20,6 +21,13 @@ public:
     // failures print to stderr and abort; hosting failures populate error.
     static std::optional<Runtime> Create(std::string* error = nullptr);
     static std::filesystem::path GetDotnetRoot();
+    static std::string_view GetTargetFramework();
+
+    // A fresh collectible AssemblyLoadContext. Assemblies are loaded from bytes,
+    // so rebuilding a DLL in place is safe. Functions retain the context until
+    // the last Runtime/Function reference is destroyed. Calls/load/resolve on a
+    // given context must be serialized by the owner.
+    static std::optional<Runtime> CreateReloadable(std::string* error = nullptr);
 
     bool LoadAssembly(const std::filesystem::path& assembly, std::string* error = nullptr) const;
 

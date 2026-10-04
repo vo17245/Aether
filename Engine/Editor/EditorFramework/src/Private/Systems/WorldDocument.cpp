@@ -104,7 +104,7 @@ std::expected<OpenWorldDocumentResult, std::string> OpenProjectWorldDocument(
 
     const auto instanceId = GameFeatures::WorldInstanceId::Create();
     auto mountScope = std::make_unique<GameFeatures::FeatureMountScope>();
-    GameFeatures::WorldMountContext mountContext{GameFeatures::WorldRole::Authoring, instanceId, catalog};
+    GameFeatures::WorldMountContext mountContext{GameFeatures::WorldRole::Authoring, instanceId, catalog, projectRoot};
     auto mounted = mountScope->Mount(*decoded->world, mountContext, runtime->Systems());
     if (!mounted) return std::unexpected(mounted.error().message);
 

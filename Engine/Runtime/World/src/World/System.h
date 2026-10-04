@@ -10,6 +10,7 @@ enum class SystemUpdatePhase : std::uint8_t
 {
     EditorInput,
     EditorTools,
+    HostUpdate, // once per Host frame in Play, independent of fixed simulation steps
     Simulation,
     Presentation,
     EditorModel
